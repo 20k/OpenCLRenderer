@@ -1,0 +1,12 @@
+syntax: glob
+*.obj
+*.mtl
+*.txt
+*.jpg
+*.any
+*.tga
+*.png
+*.exe
+*.o
+*.depend
+*.layout

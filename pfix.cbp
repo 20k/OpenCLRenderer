@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="pfix" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/pfix" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/pfix" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+			<Add option="-DSFML_STATIC" />
+		</Compiler>
+		<Linker>
+			<Add option="-lmingw32" />
+			<Add option="-lsfml-graphics-s" />
+			<Add option="-lsfml-audio-s" />
+			<Add option="-lsfml-network-s" />
+			<Add option="-lsfml-window-s" />
+			<Add option="-lsfml-system-s" />
+			<Add option="-luser32" />
+			<Add option="-lgdi32" />
+			<Add option="-lwinmm" />
+			<Add option="-ldxguid" />
+			<Add option="-lopengl32" />
+			<Add option="-lopencl" />
+			<Add option="-lglew32.dll" />
+		</Linker>
+		<Unit filename="cl2.cl" />
+		<Unit filename="clstate.cpp" />
+		<Unit filename="clstate.h" />
+		<Unit filename="engine.cpp" />
+		<Unit filename="engine.hpp" />
+		<Unit filename="light.cpp" />
+		<Unit filename="light.hpp" />
+		<Unit filename="main.cpp" />
+		<Unit filename="obj_g_descriptor.hpp" />
+		<Unit filename="obj_info_struct.cpp" />
+		<Unit filename="obj_info_struct.hpp" />
+		<Unit filename="obj_load.cpp" />
+		<Unit filename="obj_load.hpp" />
+		<Unit filename="obj_mem_manager.cpp" />
+		<Unit filename="obj_mem_manager.hpp" />
+		<Unit filename="object.cpp" />
+		<Unit filename="object.hpp" />
+		<Unit filename="objects_container.cpp" />
+		<Unit filename="objects_container.hpp" />
+		<Unit filename="ocl.h" />
+		<Unit filename="proj.hpp" />
+		<Unit filename="texture.cpp" />
+		<Unit filename="texture.hpp" />
+		<Unit filename="triangle.cpp" />
+		<Unit filename="triangle.hpp" />
+		<Unit filename="vertex.cpp" />
+		<Unit filename="vertex.hpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
