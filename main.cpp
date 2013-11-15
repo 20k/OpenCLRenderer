@@ -80,58 +80,6 @@ int main(int argc, char *argv[])
         window.check_obj_visibility();
 
 
-
-        /*cl_mem* arg[] = {&g_screen};
-
-        cl_uint p3global_ws[]= {g_size, g_size};
-        cl_uint p3local_ws[]= {16, 16};
-
-        run_kernel_with_args(cl::kernel3, p3global_ws, p3local_ws, 2, arg, 1, true);
-
-        cl_float4* tmem = new cl_float4[g_size*g_size];
-
-        size_t origin[3] = {0,0,0};
-        size_t region[3] = {g_size, g_size, 1};
-
-        clEnqueueReadImage(cl::cqueue, g_screen, CL_TRUE, origin, region, 0, 0, tmem, 0, NULL, NULL);
-
-        clFinish(cl::cqueue);
-
-        sf::Image img;
-        img.create(g_size, g_size);
-        sf::Texture tex;
-        //tex.create(g_size, g_size);
-
-        for(int j=0; j<g_size; j++)
-        {
-            for(int i=0; i<g_size; i++)
-            {
-                img.setPixel(i, j, sf::Color(tmem[j*g_size + i].x*255, tmem[j*g_size + i].y*255, tmem[j*g_size + i].z*255));
-            }
-        }
-
-        //img.saveToFile("test.png");
-        //return 0;
-
-        //tex.update(img);
-        tex.loadFromImage(img);
-        img = tex.copyToImage();
-        //img.saveToFile("test.png");
-        //return 0;
-
-        sf::Sprite spr;
-        spr.setTexture(tex);
-
-        //window.window.clear();
-
-        window.window.draw(spr);
-        window.window.display();
-
-        delete [] tmem;*/
-
-
-
-
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

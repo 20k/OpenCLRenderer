@@ -463,7 +463,6 @@ void engine::draw_bulk_objs_n()
 
     sf::Clock c;
 
-    //glFinish();
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_screen, 0, NULL, NULL);
     clFinish(cl::cqueue);
 
@@ -547,7 +546,6 @@ void engine::draw_bulk_objs_n()
 
 
 
-
     //std::cout << "p2time " << p2.getElapsedTime().asMicroseconds() << std::endl;
 
     sf::Clock c3;
@@ -584,7 +582,6 @@ void engine::draw_bulk_objs_n()
 
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_screen, 0, NULL, NULL);
     clFinish(cl::cqueue);
-    //glFinish();
 }
 
 
