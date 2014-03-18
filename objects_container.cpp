@@ -41,7 +41,7 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
 void objects_container::set_file(std::string f)
 {
-    std::cout << "hello" << std::endl;
+    //std::cout << "hello" << std::endl;
     file = f;
 }
 

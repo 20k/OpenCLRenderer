@@ -7,6 +7,14 @@
 #include "clstate.h"
 #include <windows.h>
 
+#include <boost/compute/source.hpp>
+#include <boost/compute/system.hpp>
+#include <boost/compute/algorithm/iota.hpp>
+#include <boost/compute/interop/opengl.hpp>
+#include <boost/compute/interop/vtk.hpp>
+
+namespace compute = boost::compute;
+
 const char* oclErrorString(cl_int error)
 {
     static const char* errorString[] =

@@ -18,8 +18,9 @@ int main(int argc, char *argv[])
     sponza.set_file("Sp2/sp2.obj");
     sponza.set_active(true);
 
-
     sponza2.set_file("Sp2/boringroom.obj");
+
+
 
     obj_mem_manager g_manage;
 
@@ -59,6 +60,9 @@ int main(int argc, char *argv[])
 
     cl_mem g_screen=clCreateImage2D(cl::context, CL_MEM_WRITE_ONLY, &fem, g_size, g_size, 0, NULL, &cl::error);
 
+    //g_manage.g_arrange_mem();
+    //g_manage.g_changeover();
+
 
 
     while(window.window.isOpen())
@@ -77,7 +81,7 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        window.check_obj_visibility();
+        //window.check_obj_visibility();
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

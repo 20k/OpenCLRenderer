@@ -31,7 +31,7 @@ struct temporaries
 
 struct obj_mem_manager
 {
-    static temporaries temporary_objects[2];
+    static temporaries temporary_objects;
     static texture_array_descriptor tdescrip;
     static cl_uint tri_num;
 
