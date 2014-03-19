@@ -11,7 +11,6 @@
 #include <boost/compute/system.hpp>
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
-#include <boost/compute/interop/vtk.hpp>
 
 namespace compute = boost::compute;
 
@@ -218,7 +217,81 @@ cl_program loadprogram(std::string relative_path, cl_context &context)
 
 void oclstuff(std::string file)
 {
-    cl::error = 0;   // Used to handle error codes
+    ///need to initialise context and shit
+
+    cl_int error = 0;   // Used to handle error codes
+
+    cl_platform_id platform;
+
+    // Platform
+    error = oclGetPlatformID(&platform);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error getting platform id: " << std::endl;
+        exit(error);
+    }
+
+
+    cl_context_properties props[] =
+    {
+        CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+        CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+        CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
+        0
+    };
+
+    cl_device_id device;
+
+
+    // Device
+    error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error getting device ids: ";
+        exit(error);
+    }
+
+
+    // Context
+    cl_context context = clCreateContext(props, 1, &device, NULL, NULL, &error);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error creating context: ";
+        exit(error);
+    }
+
+
+    cl::context = compute::context(context, true);
+
+    cl::device = compute::device(device, true);
+
+    cl::cqueue = compute::command_queue(cl::context, cl::device);
+
+
+
+    int src_size=0;
+    const char *source;
+
+    source = file_contents(file.c_str(), &src_size);
+
+    compute::program program = compute::program::create_with_source(source, cl::context);
+
+    std::string buildoptions = "-cl-fast-relaxed-math";
+
+
+    program.build(buildoptions.c_str());
+
+
+    cl::kernel1 = compute::kernel(program, "part1");
+    cl::kernel2 = compute::kernel(program, "part2");
+    cl::kernel3 = compute::kernel(program, "part3");
+    cl::prearrange = compute::kernel(program, "prearrange");
+
+
+    /*cl::error = 0;   // Used to handle error codes
 
 
     // Platform
@@ -276,7 +349,6 @@ void oclstuff(std::string file)
 
     size_t src_size=0;
     const char *source;
-
 
     source=file_contents(file.c_str(), (int*)&src_size);
 
@@ -359,10 +431,7 @@ void oclstuff(std::string file)
     if(cl::error!=0)
     {
         std::cout << "kernelcreation trivial" << cl::error << std::endl;
-    }
-
-
-
+    }*/
 }
 
 

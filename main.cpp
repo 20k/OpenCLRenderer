@@ -25,9 +25,9 @@ int main(int argc, char *argv[])
     obj_mem_manager g_manage;
 
     engine window;
+    window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("cl2.cl");
     window.load(800,600,1000, "turtles");
-    window.window.create(sf::VideoMode(800, 600), "erer");
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
@@ -53,17 +53,6 @@ int main(int argc, char *argv[])
     window.construct_shadowmaps();
 
     int g_size = 1024;
-
-    cl_image_format fem;
-    fem.image_channel_order = CL_RGBA;
-    fem.image_channel_data_type = CL_FLOAT;
-
-    cl_mem g_screen=clCreateImage2D(cl::context, CL_MEM_WRITE_ONLY, &fem, g_size, g_size, 0, NULL, &cl::error);
-
-    //g_manage.g_arrange_mem();
-    //g_manage.g_changeover();
-
-
 
     while(window.window.isOpen())
     {

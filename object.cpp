@@ -132,5 +132,6 @@ void object::g_flush(cl_uint arrange_id)
         cumulative+=obj_mem_manager::obj_sub_nums[i];
     }
 
-    clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc, CL_FALSE, sizeof(obj_g_descriptor)*(cumulative + object_sub_position), sizeof(cl_float4), &pos, 0, NULL, NULL);
+    //clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc, CL_FALSE, sizeof(obj_g_descriptor)*(cumulative + object_sub_position), sizeof(cl_float4), &pos, 0, NULL, NULL);
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_obj_desc, sizeof(obj_g_descriptor)*(cumulative + object_sub_position), sizeof(cl_float4), &pos);
 }

@@ -1,6 +1,6 @@
 #include "clstate.h"
 
-cl_int              cl::error = 0;   // Used to handle error codes
+/*cl_int              cl::error = 0;   // Used to handle error codes
 cl_platform_id      cl::platform;
 cl_context          cl::context;
 cl_command_queue    cl::cqueue;
@@ -15,3 +15,17 @@ cl_kernel cl::light_smap;
 cl_kernel cl::trivial_kernel;
 
 size_t cl::optimum=0;
+*/
+
+
+
+
+compute::device cl::device;
+compute::command_queue cl::cqueue;
+compute::context cl::context;
+
+
+compute::kernel cl::kernel1;
+compute::kernel cl::kernel2;
+compute::kernel cl::kernel3;
+compute::kernel cl::prearrange;

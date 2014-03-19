@@ -7,6 +7,13 @@
 #include "light.hpp"
 #include "clstate.h"
 
+#include <boost/compute/source.hpp>
+#include <boost/compute/system.hpp>
+#include <boost/compute/algorithm/iota.hpp>
+#include <boost/compute/interop/opengl.hpp>
+
+namespace compute = boost::compute;
+
 struct engine
 {
     sf::Mouse mouse;
@@ -17,30 +24,30 @@ struct engine
     cl_float4 c_pos;
     cl_float4 c_rot;
 
-    cl_mem g_screen;
+    compute::opengl_renderbuffer g_screen;
 
-    cl_mem g_c_pos;
-    cl_mem g_c_rot;
+    compute::buffer g_c_pos;
+    compute::buffer g_c_rot;
 
-    cl_mem depth_buffer[2]; ///switches between the two every frame
-    cl_mem g_depth_screen;
-    cl_mem g_id_screen;
-    cl_mem g_id_screen_tex;
-    cl_mem g_normals_screen;
-    cl_mem g_texture_screen;
-    cl_mem g_shadow_light_buffer;
-    cl_mem g_shadow_occlusion_screen;
+    compute::buffer depth_buffer[2]; ///switches between the two every frame ///make this a 2d image?
+    //cl_mem g_depth_screen;
+    compute::buffer g_id_screen;
+    compute::image2d g_id_screen_tex;
+    compute::buffer g_normals_screen;
+    compute::buffer g_texture_screen;
+    compute::buffer g_shadow_light_buffer;
+    compute::buffer g_shadow_occlusion_screen;
 
-    cl_mem g_tid_buf;
-    cl_mem g_tid_buf_max_len;
-    cl_mem g_tid_buf_atomic_count;
+    compute::buffer g_tid_buf;
+    compute::buffer g_tid_buf_max_len;
+    compute::buffer g_tid_buf_atomic_count;
     int c_tid_buf_len;
 
-    cl_mem g_valid_fragment_mem;
-    cl_mem g_valid_fragment_num;
+    compute::buffer g_valid_fragment_mem;
+    compute::buffer g_valid_fragment_num;
 
     cl_uint* d_depth_buf;
-    cl_mem d_triangle_buf;
+    compute::buffer d_triangle_buf;
     triangle *dc_triangle_buf;
 
     static unsigned int gl_screen_id;
@@ -74,30 +81,18 @@ struct engine
 };
 
 
-static void run_kernel_with_args(cl_kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, int dimensions, cl_mem **argv, int argc, bool blocking)
+static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     for(int i=0; i<argc; i++)
     {
-        cl::error |= clSetKernelArg(kernel, i, sizeof(cl_mem), argv[i]);
-
-        if(cl::error!=0)
-        {
-            std::cout << "Error in kernel setargs " << i << " " << cl::error << std::endl;
-            exit(1);
-        }
+        kernel.set_arg(i, *(argv[i]));
     }
 
-    cl::error = clEnqueueNDRangeKernel(cl::cqueue, kernel, dimensions, NULL, global_ws, local_ws, 0, NULL, NULL);
+    cl::cqueue.enqueue_nd_range_kernel(kernel, dimensions, NULL, global_ws, local_ws);
 
 
     if(blocking)
-        clFinish(cl::cqueue);
-
-    if(cl::error!=0)
-    {
-        std::cout << "Error In kernel with " << argc << " args" << std::endl;
-        exit(cl::error);
-    }
+        cl::cqueue.finish();
 }
 
 
