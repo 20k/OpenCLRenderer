@@ -3,8 +3,9 @@
 #include <iostream>
 #include <math.h>
 #include <boost/bind.hpp>
+#include "texture_manager.hpp"
 
-cl_uint texture::gidc=0;
+/*cl_uint texture::gidc=0;
 
 std::vector<texture> texture::texturelist;
 std::vector<cl_uint> texture::active_textures;
@@ -63,14 +64,67 @@ cl_int texture::idquerytexture(cl_uint id)
 bool texture::t_compare(texture one, texture two)
 {
     return one.get_largest_dimension() < two.get_largest_dimension();
-}
+}*/
 
 cl_uint texture::get_largest_dimension()
 {
+    if(!is_loaded)
+    {
+        std::cout << "tried to find dimension of non loaded texture" << std::endl;
+        exit(32323);
+    }
     return c_image.getSize().x > c_image.getSize().y ? c_image.getSize().x : c_image.getSize().y;
 }
 
-void texture::init()
+cl_uint texture::get_largest_num(int num)
+{
+    if(num == 0)
+        return get_largest_dimension();
+
+    if(!has_mipmaps)
+    {
+        std::cout << "fatal error, mipmaps not created" << std::endl;
+        exit(3434);
+    }
+    else
+        return mipmaps[num-1].getSize().x;
+}
+
+sf::Image& texture::get_texture_level(int num)
+{
+    if(num == 0)
+        return c_image;
+
+    if(!has_mipmaps)
+    {
+        std::cout << "fatal error, mipmaps not created for texture level" << std::endl;
+        exit(3434);
+    }
+    else
+        return mipmaps[num-1];
+}
+
+cl_uint texture::get_active_id()
+{
+    for(int i=0; i<texture_manager::active_textures.size(); i++)
+    {
+        if(texture_manager::active_textures[i]->id == id)
+        {
+            return i;
+        }
+    }
+}
+
+void texture::activate()
+{
+    texture_manager::activate_texture(id);
+}
+void texture::inactivate()
+{
+    texture_manager::inactivate_texture(id);
+}
+
+/*void texture::init()
 {
     //location = name;
     //id = gidc++;
@@ -131,22 +185,127 @@ cl_uint texture::set_active(bool param)
             return -1;
         }
     }
-}
+}*/
 
 void texture::set_texture_location(std::string loc)
 {
-    location = loc;
+    texture_location = loc;
 }
 
-void texture_load(texture* tex)
+bool texture::exists()
 {
-    tex->c_image.loadFromFile(tex->location);
-    tex->loaded = true;
+    return texture_manager::exists_by_location(texture_location);
+}
 
-    if(tex->get_largest_dimension() > max_tex_size)
+void texture::push()
+{
+    if(!exists())
+    {
+        id = texture_manager::add_texture(*this);
+    }
+}
+
+void texture::load()
+{
+    c_image.loadFromFile(texture_location);
+    is_loaded = true;
+
+    if(get_largest_dimension() > max_tex_size)
     {
         std::cout << "Error, texture larger than max texture size @" << __LINE__ << " @" << __FILE__ << std::endl;
     }
+}
+
+
+/*void gen_miplevel(texture &tex, int level)
+{
+    int size=tex.get_largest_dimension();
+    int newsize=size >> 1;
+
+    //std::cout << newsize << std::endl;
+
+    tex.mipmaps[level].create(newsize, newsize);
+
+    for(int i=0; i<newsize; i++)
+    {
+        for(int j=0; j<newsize; j++)
+        {
+            sf::Color p4[4];
+
+            p4[0]=tex.c_image.getPixel(i*2, j*2);
+            p4[1]=tex.c_image.getPixel(i*2+1, j*2);
+            p4[2]=tex.c_image.getPixel(i*2, j*2+1);
+            p4[3]=tex.c_image.getPixel(i*2+1, j*2+1);
+
+            sf::Color m=pixel4(p4[0], p4[1], p4[2], p4[3]);
+
+
+            gen.c_image.setPixel(i, j, m);
+        }
+    }
+
+}*/
+
+static sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &p3)
+{
+    sf::Color ret;
+    ret.r=(p0.r + p1.r + p2.r + p3.r)/4.0f;
+    ret.g=(p0.g + p1.g + p2.g + p3.g)/4.0f;
+    ret.b=(p0.b + p1.b + p2.b + p3.b)/4.0f;
+
+    return ret;
+}
+
+
+void gen_miplevel(texture& tex, int level)
+{
+    int size = tex.get_largest_num(level);
+    int newsize=size >> 1;
+
+    sf::Image& base = level == 0 ? tex.c_image : tex.mipmaps[level-1];
+    sf::Image& mip = tex.mipmaps[level];
+
+    tex.mipmaps[level].create(newsize, newsize);
+
+    for(int i=0; i<newsize; i++)
+    {
+        for(int j=0; j<newsize; j++)
+        {
+            sf::Color p4[4];
+
+            p4[0]=base.getPixel(i*2, j*2);
+            p4[1]=base.getPixel(i*2+1, j*2);
+            p4[2]=base.getPixel(i*2, j*2+1);
+            p4[3]=base.getPixel(i*2+1, j*2+1);
+
+            sf::Color m=pixel4(p4[0], p4[1], p4[2], p4[3]);
+
+            mip.setPixel(i, j, m);
+        }
+    }
+
+}
+
+
+void texture::generate_mipmaps()
+{
+    if(!has_mipmaps)
+    {
+        //gen_miplevel(*this, 0);
+        //gen_miplevel(*this, 1);
+        //gen_miplevel(*this, 2);
+        //gen_miplevel(*this, 3);
+
+        has_mipmaps = true;
+
+        for(int i=0; i<MIP_LEVELS; i++)
+            gen_miplevel(*this, i);
+    }
+}
+
+/*void texture_load(texture* tex)
+{
+
 }
 
 void texture::set_load_func(boost::function<void (texture*)> func)
@@ -157,4 +316,4 @@ void texture::set_load_func(boost::function<void (texture*)> func)
 void texture::call_load_func(texture* tex)
 {
     fp(tex);
-}
+}*/

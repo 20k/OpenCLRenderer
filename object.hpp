@@ -21,9 +21,9 @@ struct object
     boost::function<void (object*)> obj_load_func;
 
     cl_uint tid; ///texture id
-    cl_uint atid; ///texture id in the active texturelist
+    //cl_uint atid; ///texture id in the active texturelist
     cl_uint bid; ///bumpmap_id
-    cl_uint abid; ///active bumpmap_id
+    //cl_uint abid; ///active bumpmap_id
 
     cl_uint object_g_id; ///obj_g_descriptor id
 
@@ -35,6 +35,7 @@ struct object
     cl_uint has_bump;
 
     object();
+
     void set_active    (bool param);
     void set_pos       (cl_float4);
     void set_rot       (cl_float4);

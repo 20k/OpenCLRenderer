@@ -13,6 +13,7 @@
 #include "obj_mem_manager.hpp"
 #include <stdio.h>
 #include <limits.h>
+#include "texture_manager.hpp"
 
 unsigned int engine::gl_framebuffer_id=0;
 unsigned int engine::gl_screen_id=0;
@@ -461,9 +462,6 @@ void engine::draw_bulk_objs_n()
 
     sf::Clock c;
 
-    //clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_screen, 0, NULL, NULL);
-    //clFinish(cl::cqueue);
-
     cl_mem scr = g_screen.get();
 
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
@@ -516,7 +514,6 @@ void engine::draw_bulk_objs_n()
         p1global_ws_new += local;
     }
 
-
     compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
     run_kernel_with_args(cl::kernel1, &p1global_ws_new, &local, 1, p1arglist, 12, true);
 
@@ -566,10 +563,10 @@ void engine::draw_bulk_objs_n()
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer texture_wrapper(obj_mem_manager::g_texture_array.get());
+    compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
 
     compute::buffer *p3arglist[]= {&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &image_wrapper, &texture_wrapper,
-                          &screen_wrapper, &obj_mem_manager::g_texture_nums, &obj_mem_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf};
+                          &screen_wrapper, &texture_manager::g_texture_numbers, &texture_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf};
 
 
     run_kernel_with_args(cl::kernel3, p3global_ws, p3local_ws, 2, p3arglist, 17, true);

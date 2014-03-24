@@ -71,6 +71,8 @@
 		<Unit filename="proj.hpp" />
 		<Unit filename="texture.cpp" />
 		<Unit filename="texture.hpp" />
+		<Unit filename="texture_manager.cpp" />
+		<Unit filename="texture_manager.hpp" />
 		<Unit filename="triangle.cpp" />
 		<Unit filename="triangle.hpp" />
 		<Unit filename="vertex.cpp" />

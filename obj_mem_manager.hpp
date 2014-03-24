@@ -37,10 +37,9 @@ struct temporaries
 struct obj_mem_manager
 {
     static temporaries temporary_objects;
-    static texture_array_descriptor tdescrip;
     static cl_uint tri_num;
 
-    static std::vector<int>     obj_sub_nums; ///after g_arrange
+    static std::vector<int> obj_sub_nums; ///after g_arrange
 
     static compute::buffer g_tri_mem;
     static compute::buffer g_tri_num;
@@ -57,11 +56,6 @@ struct obj_mem_manager
     static compute::buffer g_cut_tri_mem;
     static compute::buffer g_cut_tri_num;
 
-    static cl_uchar4* c_texture_array;
-
-    static compute::image3d g_texture_array;
-    static compute::buffer g_texture_sizes;
-    static compute::buffer g_texture_nums;
 
     static int which_temp_object;
 
@@ -71,6 +65,8 @@ struct obj_mem_manager
     static void g_arrange_mem();
     static void g_changeover();
     static void g_update_obj(object*);
+
+    static void load_active_objects();
 };
 
 

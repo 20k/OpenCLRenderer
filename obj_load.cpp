@@ -320,14 +320,8 @@ void obj_load(objects_container* pobj)
 
         texture tex;
         tex.type = 0;
-        tex.init();
         tex.set_texture_location(full);
-        tex.get_id();
-
-        if(texture::idquerytexture(tex.id)==-1)
-        {
-            tex.push();
-        }
+        tex.push();
 
         cl_uint isbump = 0;
         cl_uint b_id = -1;
@@ -339,14 +333,8 @@ void obj_load(objects_container* pobj)
             std::string bump_full = dir + std::string("/") + bumpmap_name;
 
             bumpmap.type = 1;
-            bumpmap.init();
             bumpmap.set_texture_location(bump_full);
-            b_id = bumpmap.get_id();
-
-            if(texture::idquerytexture(bumpmap.id)==-1)
-            {
-                bumpmap.push();
-            }
+            bumpmap.push();
         }
 
         object obj;
@@ -360,6 +348,7 @@ void obj_load(objects_container* pobj)
         obj.tri_num = obj.tri_list.size(); ///needs to be removed
 
         obj.tid = tex.id; ///this is potentially bad if textures are removed
+        //std::cout << obj.tid << std::endl;
         obj.bid = b_id;
         obj.has_bump = isbump;
 

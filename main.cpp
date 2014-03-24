@@ -1,5 +1,6 @@
 #include "proj.hpp"
 #include "ocl.h"
+#include "texture_manager.hpp"
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -9,7 +10,6 @@
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
-
 
     objects_container sponza;
     objects_container sponza2;
@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
     sponza2.set_file("Sp2/boringroom.obj");
 
 
-
-    obj_mem_manager g_manage;
+    //obj_mem_manager g_manage;
+    //texture_manager t_manage;
 
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
@@ -31,8 +31,15 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
-    g_manage.g_arrange_mem();
-    g_manage.g_changeover();
+    obj_mem_manager::load_active_objects();
+
+    texture_manager::allocate_textures();
+
+    obj_mem_manager::g_arrange_mem();
+    obj_mem_manager::g_changeover();
+
+    //g_manage.g_arrange_mem();
+    //g_manage.g_changeover();
 
     sf::Event Event;
 

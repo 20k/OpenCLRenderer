@@ -15,8 +15,46 @@ void texture_load(texture*);
 struct texture
 {
     sf::Image c_image;
+
+    sf::Image mipmaps[MIP_LEVELS];
     ///location is unique string that is texture location, used to check if textures refer to the same thing
-    std::string location;
+
+    bool is_active = false;
+    bool is_loaded = false;
+
+    bool has_mipmaps = false;
+
+    int id;
+
+    int type;
+
+    std::string texture_location;
+
+    cl_uint get_largest_num(int);
+
+    sf::Image& get_texture_level(int);
+
+    void set_texture_location(std::string);
+
+    bool exists();
+
+    cl_uint get_active_id();
+
+    void push();
+
+    void generate_mipmaps();
+
+    void activate();
+    void inactivate();
+
+    void load();
+
+//private:
+    cl_uint get_largest_dimension();
+
+
+
+    /*std::string location;
 
     static std::vector<texture> texturelist;
     static std::vector<cl_uint> active_textures;
@@ -44,7 +82,7 @@ struct texture
 
     cl_uint get_largest_dimension();
 
-    void set_texture_location(std::string);
+
 
     void set_load_func(boost::function<void (texture*)>);
     void call_load_func(texture* tex);
@@ -53,7 +91,7 @@ struct texture
     cl_uint push();
     cl_uint set_active(bool);
 
-    void unload();
+    void unload();*/
 };
 
 

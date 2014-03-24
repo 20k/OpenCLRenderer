@@ -4,6 +4,7 @@
 #include "obj_mem_manager.hpp"
 #include "objects_container.hpp"
 #include <iostream>
+#include "texture_manager.hpp"
 
 int obj_null_vis(object* obj, cl_float4 c_pos)
 {
@@ -20,7 +21,7 @@ object::object()
     pos.x=0, pos.y=0, pos.z=0;
     rot.x=0, rot.y=0, rot.z=0;
     tid = 0;
-    atid = 0;
+    //atid = 0;
     isactive = false;
     has_bump = 0;
     isloaded = false;
@@ -36,14 +37,17 @@ void object::set_active(bool param)
         if(!isactive)
         {
             ///if object ! initialised, error
+
+            //std::cout << tid << std::endl;
+
             isactive = param;
-            texture::texturelist[tid].type = 0;
-            atid = texture::texturelist[tid].set_active(true);
+            texture_manager::all_textures[tid].type = 0;
+            texture_manager::all_textures[tid].activate();
 
             if(has_bump)
             {
-                texture::texturelist[bid].type = 1;
-                abid = texture::texturelist[bid].set_active(true);
+                texture_manager::all_textures[bid].type = 1;
+                texture_manager::all_textures[bid].activate();
             }
         }
         else
@@ -57,25 +61,11 @@ void object::set_active(bool param)
         {
             isactive = param;
 
-            std::vector<cl_uint>::iterator it = texture::active_textures.begin();
-            for(unsigned int i=0; i<atid; i++)
-            {
-                it++;
-            }
-            ///remove from active texturelist
-            texture::active_textures.erase(it);
-            atid = 0;
+            texture_manager::all_textures[tid].inactivate();
 
             if(has_bump)
             {
-                std::vector<cl_uint>::iterator it2 = texture::active_textures.begin();
-                for(unsigned int i=0; i<abid; i++)
-                {
-                    it2++;
-                }
-                ///remove from active texturelist
-                texture::active_textures.erase(it2);
-                abid = 0;
+                texture_manager::all_textures[bid].inactivate();
             }
         }
         else
