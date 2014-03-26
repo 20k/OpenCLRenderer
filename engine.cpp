@@ -566,10 +566,11 @@ void engine::draw_bulk_objs_n()
     compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
 
     compute::buffer *p3arglist[]= {&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &image_wrapper, &texture_wrapper,
-                          &screen_wrapper, &texture_manager::g_texture_numbers, &texture_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf};
+                          &screen_wrapper, &texture_manager::g_texture_numbers, &texture_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num,
+                          &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf, &obj_mem_manager::g_cut_tri_mem};
 
 
-    run_kernel_with_args(cl::kernel3, p3global_ws, p3local_ws, 2, p3arglist, 17, true);
+    run_kernel_with_args(cl::kernel3, p3global_ws, p3local_ws, 2, p3arglist, 18, true);
 
 
 
