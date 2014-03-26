@@ -15,7 +15,7 @@ struct obj_g_descriptor
     cl_uint mip_level_ids[MIP_LEVELS];
     cl_uint has_bump;
     cl_uint cumulative_bump;
-    cl_uint pad[2];
+    //cl_uint pad[2];
 };
 
 #endif // INCLUDED_H_OBJ_G_DESCRIPTOR

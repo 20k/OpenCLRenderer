@@ -379,11 +379,25 @@ int backface_cull(struct triangle *tri, int fov, float w, float h)
 }
 
 
-void rot_3(__global struct triangle *triangle, float4 c_pos, float4 c_rot, float4 offset, float4 ret[3])
+void rot_3(__global struct triangle *triangle, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float4 ret[3])
 {
-    ret[0]=rot(triangle->vertices[0].pos + offset, c_pos, c_rot);
-    ret[1]=rot(triangle->vertices[1].pos + offset, c_pos, c_rot);
-    ret[2]=rot(triangle->vertices[2].pos + offset, c_pos, c_rot);
+    if(rotation_offset.x == 0.0f && rotation_offset.y == 0.0f && rotation_offset.z == 0.0f)
+    {
+        ret[0]=rot(triangle->vertices[0].pos + offset, c_pos, c_rot);
+        ret[1]=rot(triangle->vertices[1].pos + offset, c_pos, c_rot);
+        ret[2]=rot(triangle->vertices[2].pos + offset, c_pos, c_rot);
+    }
+    else
+    {
+        float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
+        ret[0] = rot(triangle->vertices[0].pos, zero, rotation_offset);
+        ret[1] = rot(triangle->vertices[1].pos, zero, rotation_offset);
+        ret[2] = rot(triangle->vertices[2].pos, zero, rotation_offset);
+
+        ret[0]=rot(ret[0] + offset, c_pos, c_rot);
+        ret[1]=rot(ret[1] + offset, c_pos, c_rot);
+        ret[2]=rot(ret[2] + offset, c_pos, c_rot);
+    }
 }
 
 void rot_3_normal(__global struct triangle *triangle, float4 c_rot, float4 ret[3])
@@ -392,6 +406,14 @@ void rot_3_normal(__global struct triangle *triangle, float4 c_rot, float4 ret[3
     ret[0]=rot(triangle->vertices[0].normal, centre, c_rot);
     ret[1]=rot(triangle->vertices[1].normal, centre, c_rot);
     ret[2]=rot(triangle->vertices[2].normal, centre, c_rot);
+}
+
+void rot_3_raw(float4 raw[3], float4 rotation, float4 ret[3])
+{
+    float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
+    ret[0]=rot(raw[0], zero, rotation);
+    ret[1]=rot(raw[1], zero, rotation);
+    ret[2]=rot(raw[2], zero, rotation);
 }
 
 
@@ -490,7 +512,6 @@ void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *
     rconst[0] = r1;
     rconst[1] = r2;
 
-
     if(n_behind==1)
     {
         c1 = points[g2];
@@ -515,7 +536,7 @@ void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *
     }
 }
 
-void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][3], int *num, float4 c_pos, float4 c_rot, float4 offset, float fovc, int width, int height)
+void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][3], int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height)
 {
     ///void rot_3(__global struct triangle *triangle, float4 c_pos, float4 c_rot, float4 ret[3])
     ///void generate_new_triangles(float4 points[3], int ids[3], float lconst[2], int *num, float4 ret[2][3])
@@ -529,7 +550,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 
     float rconst[2];
 
-    rot_3(triangle, c_pos, c_rot, offset, pr);
+    rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
 
     int n = 0;
 
@@ -566,17 +587,25 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 }*/
 
 
-void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float fovc, int width, int height)
+void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height, float4 normalrot[3])
 {
 
     __global struct triangle *T=triangle;
 
     float4 rotpoints[3];
-    rot_3(T, c_pos, c_rot, offset, rotpoints);
+    rot_3(T, c_pos, c_rot, offset, rotation_offset, rotpoints);
 
     ///this will cause errors, need to fix lighting to use rotated normals rather than globals
-    float4 normalrot[3];
-    rot_3_normal(T, c_rot, normalrot);
+    ///did i fix this?
+    //float4 normalrot[3];
+    //rot_3_normal(T, c_rot, normalrot);
+
+    normalrot[0] = T->vertices[0].normal;
+    normalrot[1] = T->vertices[1].normal;
+    normalrot[2] = T->vertices[2].normal;
+
+    //if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
+    //    rot_3_raw(normalrot, rotation_offset, normalrot);
 
 
 
@@ -1561,7 +1590,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
     __global struct obj_g_descriptor *G =  &gobj[o_id];
 
 
-    full_rotate_n_extra(T, tris_proj, &num, *c_pos, *c_rot, G->world_pos, efov, ewidth, eheight);
+    full_rotate_n_extra(T, tris_proj, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     if(num == 0)
@@ -1963,6 +1992,13 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
     if(x < SCREENWIDTH && y < SCREENHEIGHT)
     {
+
+        int2 scoord1 = {x, y};
+
+        float4 clear_col = (float4){0.0, 0.0, 0.0, 1.0};
+
+        write_imagef(screen, scoord1, clear_col);
+
         __global uint *ftc=&to_clear[y*SCREENWIDTH + x];
         *ftc = mulint;
 
@@ -1975,12 +2011,13 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         uint id_val = id_val4.x;
 
+        float4 normals_out[3];
 
 
-        /*if(*ft==mulint)
+        if(*ft==mulint)
         {
             return;
-        }*/
+        }
 
 
         struct interp_container icontainer;
@@ -2001,10 +2038,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         __global struct obj_g_descriptor *G = &gobj[o_id];
 
-        full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, FOV_CONST, SCREENWIDTH, SCREENHEIGHT);
-
-        //full_rotate_n_extra(T, tris, &num, *c_pos, *c_rot, G->world_pos, FOV_CONST, SCREENWIDTH, SCREENHEIGHT);
-
+        full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, normals_out);
 
 
         uint wtri = fragment_id_buffer[id_val*4 + 2];
@@ -2015,9 +2049,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         struct triangle *c_tri = &tris[wtri];
 
         //uint pid = fragment_id_buffer[id_val*4];
-
-
-
 
 
 
@@ -2041,10 +2072,18 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         vt *= ldepth;
 
+        float rotated_normalsx[3] = {normals_out[0].x, normals_out[1].x, normals_out[2].x};
+        float rotated_normalsy[3] = {normals_out[0].y, normals_out[1].y, normals_out[2].y};
+        float rotated_normalsz[3] = {normals_out[0].z, normals_out[1].z, normals_out[2].z};
 
-        float normalsx[3]= {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
-        float normalsy[3]= {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
-        float normalsz[3]= {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
+
+
+        float normalsx[3]= {rotated_normalsx[0]/cz[0], rotated_normalsx[1]/cz[1], rotated_normalsx[2]/cz[2]};
+        float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
+        float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
+
+        //float normalsy[3]= {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
+        //float normalsz[3]= {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
 
         float4 normal;
 
@@ -2108,19 +2147,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             int skip=0;
 
-            //float specialocc=0;
-
-            //float occ[5];
-
             float average_occ = 0;
-
-            //int ldepth_map_id;
-
 
             if(lights[i].shadow==1 && ret_cubeface(global_position, lpos)!=-1)
             {
-
-                //float err;
 
                 if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) >= 0)
                 {

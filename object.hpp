@@ -48,7 +48,7 @@ struct object
 
     void try_load(cl_float4); ///try and get the object, dependent on its visibility
 
-    void g_flush(cl_uint); ///flush position (currently just) etc to gpu memory
+    void g_flush(); ///flush position (currently just) etc to gpu memory
 };
 
 

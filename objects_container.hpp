@@ -28,6 +28,7 @@ struct objects_container
     cl_uint push();
 
     void    set_pos(cl_float4);
+    void    set_rot(cl_float4);
     void    set_file(std::string);
     cl_uint set_active(bool param);
     void    set_active_subobjs(bool);

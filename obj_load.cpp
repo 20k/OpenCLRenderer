@@ -312,7 +312,8 @@ void obj_load(objects_container* pobj)
 
     usemtl_pos.push_back(tris.size());
 
-    for(unsigned int i=0; i<usemtl_pos.size()-1; i++)
+    //for(unsigned int i=0; i<usemtl_pos.size()-1; i++)///?
+    for(unsigned int i=0; i<usemtl_pos.size()-1; i++)///?
     {
         std::string texture_name = retrieve_diffuse_new(mtlf_contents, usemtl_name[i]);
         std::string bumpmap_name = retrieve_bumpmap    (mtlf_contents, usemtl_name[i]);

@@ -34,7 +34,25 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
         obj_container_list[id].pos = _pos;
         for(unsigned int i=0; i<obj_container_list[id].objs.size(); i++)
         {
-            obj_container_list[id].objs[i].pos = _pos;
+            obj_container_list[id].objs[i].set_pos(_pos);
+        }
+    }
+}
+
+void objects_container::set_rot(cl_float4 _rot) ///both remote and local
+{
+    rot = _rot;
+    for(unsigned int i=0; i<objs.size(); i++)
+    {
+        objs[i].rot = _rot;
+    }
+
+    if(isactive)
+    {
+        obj_container_list[id].rot = _rot;
+        for(unsigned int i=0; i<obj_container_list[id].objs.size(); i++)
+        {
+            obj_container_list[id].objs[i].set_rot(_rot);
         }
     }
 }
@@ -137,15 +155,15 @@ void objects_container::g_flush_objects()
     {
         objects_container *T = &objects_container::obj_container_list[id];
 
-        for(unsigned int i=0; i<T->objs.size(); i++)
+        /*for(unsigned int i=0; i<T->objs.size(); i++)
         {
             T->objs[i].object_g_id = id;
             T->objs[i].object_sub_position = i;
-        }
+        }*/
 
         for(unsigned int i=0; i<T->objs.size(); i++)
         {
-            T->objs[i].g_flush(arrange_id);
+            T->objs[i].g_flush();
         }
     }
     else

@@ -14,11 +14,9 @@ int main(int argc, char *argv[])
     objects_container sponza;
     objects_container sponza2;
 
-
-    sponza.set_file("Sp2/sp2.obj");
+    sponza.set_file("sp2/sp2.obj");
     sponza.set_active(true);
 
-    sponza2.set_file("Sp2/boringroom.obj");
 
 
     engine window;
@@ -43,9 +41,8 @@ int main(int argc, char *argv[])
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     l.set_shadow_bright(1, 1);
-    //l.set_pos((cl_float4){0, 1000, 0, 0});
-    //l.set_pos((cl_float4){-800, 150, -800, 0});
     l.set_pos((cl_float4){-200, 200, -100, 0});
+    l.shadow = 0;
     window.add_light(l);
 
     //l.set_pos((cl_float4){-200, 700, -100, 0});
@@ -54,13 +51,10 @@ int main(int argc, char *argv[])
 
 
 
-    //window.add_light(l);
+    window.add_light(l);
 
     window.construct_shadowmaps();
 
-
-
-    int g_size = 1024;
 
     while(window.window.isOpen())
     {
@@ -78,7 +72,40 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        //window.check_obj_visibility();
+
+
+        sf::Keyboard k;
+        if(k.isKeyPressed(sf::Keyboard::I))
+        {
+            sponza.set_pos((cl_float4){sponza.pos.x + 10, sponza.pos.y, sponza.pos.z, 0.0f});
+            sponza.g_flush_objects();
+        }
+        if(k.isKeyPressed(sf::Keyboard::J))
+        {
+            sponza.set_pos((cl_float4){sponza.pos.x, sponza.pos.y, sponza.pos.z+10, 0.0f});
+            sponza.g_flush_objects();
+        }
+        if(k.isKeyPressed(sf::Keyboard::K))
+        {
+            sponza.set_pos((cl_float4){sponza.pos.x - 10, sponza.pos.y, sponza.pos.z, 0.0f});
+            sponza.g_flush_objects();
+        }
+        if(k.isKeyPressed(sf::Keyboard::L))
+        {
+            sponza.set_pos((cl_float4){sponza.pos.x, sponza.pos.y, sponza.pos.z-10, 0.0f});
+            sponza.g_flush_objects();
+        }
+        if(k.isKeyPressed(sf::Keyboard::U))
+        {
+            sponza.set_rot((cl_float4){sponza.rot.x, sponza.rot.y - 0.01, sponza.rot.z, 0.0f});
+            sponza.g_flush_objects();
+        }
+        if(k.isKeyPressed(sf::Keyboard::O))
+        {
+            sponza.set_rot((cl_float4){sponza.rot.x, sponza.rot.y + 0.01, sponza.rot.z, 0.0f});
+            sponza.g_flush_objects();
+        }
+
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

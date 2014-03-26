@@ -602,6 +602,8 @@ void engine::render_buffers()
     glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
+    //glClear(GL_COLOR_BUFFER_BIT);
+
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     window.display();

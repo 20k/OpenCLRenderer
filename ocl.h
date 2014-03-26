@@ -281,9 +281,16 @@ void oclstuff(std::string file)
 
     std::string buildoptions = "-cl-fast-relaxed-math";
 
+    try
+    {
+        program.build(buildoptions.c_str());
+    }
+    catch(...)
+    {
+       std::cout << program.build_log() << std::endl;
 
-    program.build(buildoptions.c_str());
-
+        exit(1232345);
+    }
 
     cl::kernel1 = compute::kernel(program, "part1");
     cl::kernel2 = compute::kernel(program, "part2");
