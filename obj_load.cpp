@@ -323,18 +323,20 @@ void obj_load(objects_container* pobj)
         tex.set_texture_location(full);
         tex.push();
 
-        cl_uint isbump = 0;
+        bool isbump = false;
         cl_uint b_id = -1;
 
         if(bumpmap_name!=std::string("None"))
         {
-            isbump = 1;
+            isbump = true;
             texture bumpmap;
             std::string bump_full = dir + std::string("/") + bumpmap_name;
 
             bumpmap.type = 1;
             bumpmap.set_texture_location(bump_full);
             bumpmap.push();
+
+            b_id = bumpmap.id;
         }
 
         object obj;

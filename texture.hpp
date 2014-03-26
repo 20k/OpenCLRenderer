@@ -49,8 +49,14 @@ struct texture
 
     void load();
 
+    texture();
+
 //private:
     cl_uint get_largest_dimension();
+
+    void set_load_func(boost::function<void (texture*)>);
+    boost::function<void (texture*)> fp;
+
 
 
 

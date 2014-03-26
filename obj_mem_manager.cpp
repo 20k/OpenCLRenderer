@@ -124,16 +124,16 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
 void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start, cl_uint trianglecount)
 {
 
-    cl_uint number_of_textures = texture_manager::texture_sizes.size();
+    cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
     cl_uint obj_descriptor_size = object_descriptors.size();
 
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
 
     temporaries& t = obj_mem_manager::temporary_objects;
 
-    t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_textures);
+    t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices);
     t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size());
-    t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, imgformat, 2048, 2048, number_of_textures, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+    t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
 
     delete [] texture_manager::c_texture_array;
     texture_manager::c_texture_array = NULL;

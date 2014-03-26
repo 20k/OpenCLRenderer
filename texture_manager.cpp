@@ -247,7 +247,7 @@ void generate_textures_and_mipmaps()//(std::vector<cl_uint> &texture_number_id)
             texture_manager::new_texture_id.push_back(t);
 
             texture_manager::texture_nums_id.push_back(b);
-            texture_manager::texture_active_id.push_back(texture_manager::active_textures[i]->get_active_id());
+            texture_manager::texture_active_id.push_back(texture_manager::active_textures[i]->id);
 
             for(int n=0; n<MIP_LEVELS; n++)
             {
@@ -388,4 +388,17 @@ bool texture_manager::exists_by_location(std::string loc)
         }
     }
     return false;
+}
+
+int texture_manager::id_by_location(std::string loc)
+{
+    for(int i=0; i<texture_manager::all_textures.size(); i++)
+    {
+        if(texture_manager::all_textures[i].texture_location == loc)
+        {
+            return i;
+        }
+    }
+    std::cout << "could not find texture" << std::endl;
+    exit(123232);
 }

@@ -21,9 +21,6 @@ int main(int argc, char *argv[])
     sponza2.set_file("Sp2/boringroom.obj");
 
 
-    //obj_mem_manager g_manage;
-    //texture_manager t_manage;
-
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("cl2.cl");
@@ -31,15 +28,15 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
+    ///write a opencl kernel to generate mipmaps because it is ungodly slow?
+    ///Or is this important because textures 1gen?
+
     obj_mem_manager::load_active_objects();
 
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
-
-    //g_manage.g_arrange_mem();
-    //g_manage.g_changeover();
 
     sf::Event Event;
 
@@ -55,9 +52,13 @@ int main(int argc, char *argv[])
     l.set_pos((cl_float4){0, 200, -450, 0});
     l.shadow=0;
 
+
+
     //window.add_light(l);
 
     window.construct_shadowmaps();
+
+
 
     int g_size = 1024;
 

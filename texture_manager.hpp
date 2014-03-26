@@ -45,6 +45,8 @@ struct texture_manager
     //static bool does_texture_exist_by_location(std::string);
 
     static bool exists(int texture_id);
+
+    static int id_by_location(std::string);
 };
 
 

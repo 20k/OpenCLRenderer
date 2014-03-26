@@ -16,7 +16,7 @@ void obj_null_load(object* obj)
 
 }
 
-object::object()
+object::object() : tri_list(0)
 {
     pos.x=0, pos.y=0, pos.z=0;
     rot.x=0, rot.y=0, rot.z=0;
@@ -37,9 +37,6 @@ void object::set_active(bool param)
         if(!isactive)
         {
             ///if object ! initialised, error
-
-            //std::cout << tid << std::endl;
-
             isactive = param;
             texture_manager::all_textures[tid].type = 0;
             texture_manager::all_textures[tid].activate();

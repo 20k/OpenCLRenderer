@@ -5,17 +5,18 @@
 #include <boost/bind.hpp>
 #include "texture_manager.hpp"
 
+texture::texture()
+{
+    set_load_func(boost::bind(texture_load, _1));
+}
+
 /*cl_uint texture::gidc=0;
 
 std::vector<texture> texture::texturelist;
 std::vector<cl_uint> texture::active_textures;
 
 
-texture::texture()
-{
-    loaded=false;
-    set_load_func(boost::bind(texture_load, _1));
-}
+
 
 cl_int texture::idquerystring(std::string name)
 {
@@ -203,17 +204,15 @@ void texture::push()
     {
         id = texture_manager::add_texture(*this);
     }
+    else
+    {
+        id = texture_manager::id_by_location(texture_location);
+    }
 }
 
 void texture::load()
 {
-    c_image.loadFromFile(texture_location);
-    is_loaded = true;
-
-    if(get_largest_dimension() > max_tex_size)
-    {
-        std::cout << "Error, texture larger than max texture size @" << __LINE__ << " @" << __FILE__ << std::endl;
-    }
+    fp(this);
 }
 
 
@@ -291,11 +290,6 @@ void texture::generate_mipmaps()
 {
     if(!has_mipmaps)
     {
-        //gen_miplevel(*this, 0);
-        //gen_miplevel(*this, 1);
-        //gen_miplevel(*this, 2);
-        //gen_miplevel(*this, 3);
-
         has_mipmaps = true;
 
         for(int i=0; i<MIP_LEVELS; i++)
@@ -303,9 +297,15 @@ void texture::generate_mipmaps()
     }
 }
 
-/*void texture_load(texture* tex)
+void texture_load(texture* tex)
 {
+    tex->c_image.loadFromFile(tex->texture_location);
+    tex->is_loaded = true;
 
+    if(tex->get_largest_dimension() > max_tex_size)
+    {
+        std::cout << "Error, texture larger than max texture size @" << __LINE__ << " @" << __FILE__ << std::endl;
+    }
 }
 
 void texture::set_load_func(boost::function<void (texture*)> func)
@@ -313,7 +313,7 @@ void texture::set_load_func(boost::function<void (texture*)> func)
     fp = func;
 }
 
-void texture::call_load_func(texture* tex)
+/*void texture::call_load_func(texture* tex)
 {
     fp(tex);
 }*/
