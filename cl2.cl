@@ -592,22 +592,24 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 }*/
 
 
-void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height, float4 normalrot[3], int is_clipped, int id, __global float4* cutdown_tris)
+void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height, int is_clipped, int id, __global float4* cutdown_tris)
 {
 
     __global struct triangle *T=triangle;
+
+    float4 normalrot[3];
 
     normalrot[0] = T->vertices[0].normal;
     normalrot[1] = T->vertices[1].normal;
     normalrot[2] = T->vertices[2].normal;
 
-    //if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
-    //    rot_3_raw(normalrot, rotation_offset, normalrot);
+    if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
+        rot_3_raw(normalrot, rotation_offset, normalrot);
 
 
     if(is_clipped == 0)
     {
-        /*__global float4* t_pos1 = &cutdown_tris[id*3];
+        __global float4* t_pos1 = &cutdown_tris[id*3];
         __global float4* t_pos2 = &cutdown_tris[id*3 + 1];
         __global float4* t_pos3 = &cutdown_tris[id*3 + 2];
 
@@ -629,7 +631,7 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         *num = 1;
 
-        return;*/
+        return;
     }
 
 
@@ -2070,7 +2072,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         __global struct obj_g_descriptor *G = &gobj[o_id];
 
-        full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, normals_out, is_clipped, local_id, cutdown_tris);
+        full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
 
 
         uint wtri = fragment_id_buffer[id_val*5 + 2];
@@ -2101,18 +2103,19 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         vt *= ldepth;
 
-        float rotated_normalsx[3] = {normals_out[0].x, normals_out[1].x, normals_out[2].x};
-        float rotated_normalsy[3] = {normals_out[0].y, normals_out[1].y, normals_out[2].y};
-        float rotated_normalsz[3] = {normals_out[0].z, normals_out[1].z, normals_out[2].z};
+        //float rotated_normalsx[3] = {normals_out[0].x, normals_out[1].x, normals_out[2].x};
+        //float rotated_normalsy[3] = {normals_out[0].y, normals_out[1].y, normals_out[2].y};
+        //float rotated_normalsz[3] = {normals_out[0].z, normals_out[1].z, normals_out[2].z};
 
 
 
-        float normalsx[3]= {rotated_normalsx[0]/cz[0], rotated_normalsx[1]/cz[1], rotated_normalsx[2]/cz[2]};
-        float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
-        float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
+        //float normalsx[3]= {rotated_normalsx[0]/cz[0], rotated_normalsx[1]/cz[1], rotated_normalsx[2]/cz[2]};
+        //float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
+        //float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
 
-        //float normalsy[3]= {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
-        //float normalsz[3]= {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
+        float normalsy[3]= {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
+        float normalsz[3]= {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
+        float normalsx[3]= {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
 
         float4 normal;
 
