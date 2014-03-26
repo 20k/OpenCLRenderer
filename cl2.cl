@@ -601,13 +601,13 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     normalrot[1] = T->vertices[1].normal;
     normalrot[2] = T->vertices[2].normal;
 
-    if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
-        rot_3_raw(normalrot, rotation_offset, normalrot);
+    //if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
+    //    rot_3_raw(normalrot, rotation_offset, normalrot);
 
 
     if(is_clipped == 0)
     {
-        __global float4* t_pos1 = &cutdown_tris[id*3];
+        /*__global float4* t_pos1 = &cutdown_tris[id*3];
         __global float4* t_pos2 = &cutdown_tris[id*3 + 1];
         __global float4* t_pos3 = &cutdown_tris[id*3 + 2];
 
@@ -629,7 +629,7 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         *num = 1;
 
-        return;
+        return;*/
     }
 
 
