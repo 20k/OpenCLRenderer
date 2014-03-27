@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
     objects_container sponza;
     objects_container sponza2;
 
+    //sponza.set_file("objects/shittyspaceship.obj");
     sponza.set_file("sp2/sp2.obj");
     sponza.set_active(true);
 
@@ -42,7 +43,7 @@ int main(int argc, char *argv[])
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     l.set_shadow_bright(1, 1);
     l.set_pos((cl_float4){-200, 200, -100, 0});
-    //l.shadow = 0;
+    //l.shadow = 1;
     window.add_light(l);
 
     //l.set_pos((cl_float4){-200, 700, -100, 0});

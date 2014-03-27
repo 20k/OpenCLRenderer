@@ -165,7 +165,7 @@ float idcalc(float value)
 
 float calc_rconstant(int x[3], int y[3])
 {
-    return 1.0/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
+    return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
 float interpolate_2(float vals[3], struct interp_container c, int x, int y)
@@ -206,7 +206,7 @@ float interpolate_p(float f[3], int xn, int yn, int x[3], int y[3], float rconst
 
 float interpolate_r(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3)
 {
-    float rconstant=1.0/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
+    float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
     return interpolate_i(f1, f2, f3, x, y, x1, x2, x3, y1, y2, y3, rconstant);
 }
 
@@ -324,7 +324,7 @@ struct interp_container construct_interpolation(struct triangle tri, int width, 
     maxx=min(maxx, width);
 
 
-    float rconstant=1.0/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
+    float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
 
     float area=calc_third_area(x1, y1, x2, y2, x3, y3, 0, 0, 0);
 
@@ -928,7 +928,7 @@ float return_bilinear_shadf(float2 coord, float values[4])
     mx = coord.x*1 - 0.5;
     my = coord.y*1 - 0.5;
     float2 uvratio = {mx - floor(mx), my - floor(my)};
-    float2 buvr = {1.0-uvratio.x, 1.0-uvratio.y};
+    float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
 
     float result;
     result=(values[0]*buvr.x + values[1]*uvratio.x)*buvr.y + (values[2]*buvr.x + values[3]*uvratio.x)*uvratio.y;
@@ -972,7 +972,7 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     float2 uvratio= {mcoord.x-pos.x, mcoord.y-pos.y};
 
-    float2 buvr= {1.0-uvratio.x, 1.0-uvratio.y};
+    float2 buvr= {1.0f-uvratio.x, 1.0f-uvratio.y};
 
     float4 result;
     result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
@@ -1031,22 +1031,22 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     if(vtm.x > 1)
     {
-        vtm.x = 1.0 - modf(vtm.x, &ipart);
+        vtm.x = 1.0f - modf(vtm.x, &ipart);
     }
 
     if(vtm.x < 0)
     {
-        vtm.x = 1.0 + modf(vtm.x, &ipart);
+        vtm.x = 1.0f + modf(vtm.x, &ipart);
     }
 
     if(vtm.y > 1)
     {
-        vtm.y = 1.0 - modf(vtm.y, &ipart);
+        vtm.y = 1.0f - modf(vtm.y, &ipart);
     }
 
     if(vtm.y < 0)
     {
-        vtm.y = 1.0 + modf(vtm.y, &ipart);
+        vtm.y = 1.0f + modf(vtm.y, &ipart);
     }
 
 
@@ -1065,7 +1065,7 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     for(int i=0; i<MIP_LEVELS+1; i++)
     {
-        tpp[i] = pow(2.0, i);
+        tpp[i] = pow(2.0f, i);
     }
 
     ///if < 1 bilinear, but nvm
@@ -1120,7 +1120,7 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     float4 col2=return_bilinear_col(vtm, tids[mip_higher], nums, sizes, array);
 
-    float4 finalcol = col1*(1.0-fmd) + col2*(fmd);
+    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
 
     return finalcol;
@@ -1285,7 +1285,7 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
     ///depth is linear between 0 and 1
     //now, instead of taking the horizon because i'm not entirely sure how to calc that, going to use highest point in filtering
 
-    float radius = 8.0; //AO radius
+    float radius = 8.0f; //AO radius
 
     //radius = radius / (dcalc(depth); ///err?
     //radius = radius / (idcalc(depth));
@@ -1320,11 +1320,11 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
     ///my sources tell me this is the right thing. Ie stolen from backface culling. Right. the tangent to that is -1.0/it
 
-    float4 tang = -1.0/cr;
+    float4 tang = -1.0f/cr;
 
     //tang = normalize(tang);
 
-    //tang = -1.0/normal;
+    //tang = -1.0f/normal;
 
 
     float tangle = atan2(tang.z, length((float2){tang.x, tang.y}));
@@ -1345,7 +1345,7 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
         float angle = atan2(fabs(h - cdepth), distance);
 
-        if(angle > 0.05)
+        if(angle > 0.05f)
         {
             accum += max((float)sin(angle), 0.0f);// + max(sin(tangle), 0.0);
             //accum += max((float)sin(tangle), 0.0f);
@@ -1426,11 +1426,11 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
 
     float4 global_position = rot(local_position,  zero, (float4)
     {
-        -lc_rot.x, 0.0, 0.0, 0.0
+        -lc_rot.x, 0.0f, 0.0f, 0.0f
     });
     global_position        = rot(global_position, zero, (float4)
     {
-        0.0, -lc_rot.y, 0.0, 0.0
+        0.0f, -lc_rot.y, 0.0f, 0.0f
     });
 
 
@@ -1515,7 +1515,7 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
 
     for(int i=0; i<4; i++)
     {
-        pass_arr[i]=0.0;
+        pass_arr[i]=0.0f;
 
         if(dpth > near[i] + len)
         {
@@ -1526,7 +1526,7 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
 
     for(int i=0; i<4; i++)
     {
-        cpass_arr[i] = 0.0;
+        cpass_arr[i] = 0.0f;
 
         if(dpth > cnear[i] + len)
         {
@@ -1542,9 +1542,9 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
         float fx = postrotate_pos.x - floor(postrotate_pos.x);
         float fy = postrotate_pos.y - floor(postrotate_pos.y);
 
-        float dx1 = fx * cpass_arr[3] + (1.0-fx) * cpass_arr[2];
-        float dx2 = fx * cpass_arr[0] + (1.0-fx) * cpass_arr[1];
-        float fin = fy * dx2 + (1.0-fy) * dx1;
+        float dx1 = fx * cpass_arr[3] + (1.0f-fx) * cpass_arr[2];
+        float dx2 = fx * cpass_arr[0] + (1.0f-fx) * cpass_arr[1];
+        float fin = fy * dx2 + (1.0f-fy) * dx1;
 
 
         occamount+=fin;
@@ -1554,8 +1554,8 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
         float fx = postrotate_pos.x - floor(postrotate_pos.x);
         float fy = postrotate_pos.y - floor(postrotate_pos.y);
 
-        float dx = fx*pass_arr[2] + (1.0-fx)*pass_arr[3];
-        float dy = fy*pass_arr[0] + (1.0-fy)*pass_arr[1];
+        float dx = fx*pass_arr[2] + (1.0f-fx)*pass_arr[3];
+        float dy = fy*pass_arr[0] + (1.0f-fy)*pass_arr[1];
 
         occamount += dx*dy;
     }
@@ -1812,7 +1812,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
 
-    float depths[3]= {1.0/dcalc(tris_proj_n[0].z), 1.0/dcalc(tris_proj_n[1].z), 1.0/dcalc(tris_proj_n[2].z)};
+    float depths[3]= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
 
     float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
 
@@ -1850,7 +1850,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             float fmydepth = interpolate_p(depths, x, y, xp, yp, rconst);
 
-            fmydepth = 1.0 / fmydepth;
+            fmydepth = 1.0f / fmydepth;
 
             if(isnan(fmydepth) || fmydepth > 1)
             {
@@ -1939,7 +1939,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
 
-    float depths[3]= {1.0/dcalc(tris_proj_n[0].z), 1.0/dcalc(tris_proj_n[1].z), 1.0/dcalc(tris_proj_n[2].z)};
+    float depths[3]= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
 
     float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
 
@@ -1975,7 +1975,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             //float fmydepth = interpolate_i(depths[0], depths[1], depths[2], x, y, xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], rconst);
             float fmydepth = interpolate_p(depths, x, y, xp, yp, rconst);
 
-            fmydepth = 1.0 / fmydepth;
+            fmydepth = 1.0f / fmydepth;
 
             if(isnan(fmydepth) || fmydepth > 1)
             {
@@ -2025,7 +2025,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         int2 scoord1 = {x, y};
 
-        float4 clear_col = (float4){0.0, 0.0, 0.0, 1.0};
+        float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
 
         write_imagef(screen, scoord1, clear_col);
 
@@ -2140,11 +2140,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         float4 global_position = rot(local_position,  zero, (float4)
         {
-            -lc_rot.x, 0.0, 0.0, 0.0
+            -lc_rot.x, 0.0f, 0.0f, 0.0f
         });
         global_position        = rot(global_position, zero, (float4)
         {
-            0.0, -lc_rot.y, 0.0, 0.0
+            0.0f, -lc_rot.y, 0.0f, 0.0f
         });
 
         global_position.x += lc_pos.x;
@@ -2198,10 +2198,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             //thisocc = 0;
 
-            float ambient = 0.2;
+            float ambient = 0.2f;
 
             if(light>0)
-                lightaccum+=(1.0-ambient)*light*light*lights[i].col*lights[i].brightness*(1.0-skip)*(1.0-average_occ) + ambient*1.0f;
+                lightaccum+=(1.0f-ambient)*light*light*lights[i].col*lights[i].brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f;
             else
                 lightaccum+=ambient*1.0f;
 
@@ -2236,7 +2236,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         //float4 dcol = {dcalc(ldepth), dcalc(ldepth), dcalc(ldepth), 0};
 
-        write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao));
+        write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao));
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0});
     }
 
