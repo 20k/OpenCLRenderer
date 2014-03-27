@@ -86,6 +86,15 @@ void object::set_rot(cl_float4 _rot)
 void object::translate_centre(cl_float4 _centre)
 {
     centre = _centre;
+    for(int i=0; i<tri_list.size(); i++)
+    {
+        for(int j=0; j<3; j++)
+        {
+            tri_list[i].vertices[j].pos[0] += centre.x;
+            tri_list[i].vertices[j].pos[1] += centre.y;
+            tri_list[i].vertices[j].pos[2] += centre.z;
+        }
+    }
 }
 
 void object::set_vis_func(boost::function<int (object*, cl_float4)> vis)

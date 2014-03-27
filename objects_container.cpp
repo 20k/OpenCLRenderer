@@ -4,7 +4,10 @@
 #include "obj_load.hpp"
 
 cl_uint objects_container::gid = 0;
-std::vector<objects_container> objects_container::obj_container_list;
+std::vector<objects_container*> objects_container::obj_container_list;
+
+///id system is broken if someone removes object
+
 
 objects_container::objects_container()
 {
@@ -17,7 +20,7 @@ objects_container::objects_container()
 
 cl_uint objects_container::push()
 {
-    obj_container_list.push_back(*this);
+    obj_container_list.push_back(this);
     return obj_container_list.size() - 1;
 }
 
@@ -31,10 +34,10 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
     if(isactive)
     {
-        obj_container_list[id].pos = _pos;
-        for(unsigned int i=0; i<obj_container_list[id].objs.size(); i++)
+        obj_container_list[id]->pos = _pos;
+        for(unsigned int i=0; i<obj_container_list[id]->objs.size(); i++)
         {
-            obj_container_list[id].objs[i].set_pos(_pos);
+            obj_container_list[id]->objs[i].set_pos(_pos);
         }
     }
 }
@@ -49,10 +52,10 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 
     if(isactive)
     {
-        obj_container_list[id].rot = _rot;
-        for(unsigned int i=0; i<obj_container_list[id].objs.size(); i++)
+        obj_container_list[id]->rot = _rot;
+        for(unsigned int i=0; i<obj_container_list[id]->objs.size(); i++)
         {
-            obj_container_list[id].objs[i].set_rot(_rot);
+            obj_container_list[id]->objs[i].set_rot(_rot);
         }
     }
 }
@@ -85,7 +88,7 @@ cl_uint objects_container::set_active(bool param)
 
     if(isactive && !param)
     {
-        std::vector<objects_container>::iterator it = objects_container::obj_container_list.begin();
+        std::vector<objects_container*>::iterator it = objects_container::obj_container_list.begin();
         for(unsigned int i=0; i<id; i++)
         {
             it++;
@@ -161,7 +164,7 @@ void objects_container::g_flush_objects()
 {
     if(isactive)
     {
-        objects_container *T = &objects_container::obj_container_list[id];
+        objects_container *T = objects_container::obj_container_list[id];
 
         /*for(unsigned int i=0; i<T->objs.size(); i++)
         {

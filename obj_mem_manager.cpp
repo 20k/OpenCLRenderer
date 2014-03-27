@@ -55,10 +55,10 @@ void obj_mem_manager::load_active_objects()
     ///process loaded objects
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {
-        objects_container *obj = &objects_container::obj_container_list[i];
+        objects_container *obj = objects_container::obj_container_list[i];
         if(obj->isloaded == false)
         {
-            obj->call_load_func(&objects_container::obj_container_list[i]);
+            obj->call_load_func(objects_container::obj_container_list[i]);
             obj->set_active_subobjs(true);
         }
     }
@@ -75,7 +75,7 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
 
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {
-        objects_container* obj = &objects_container::obj_container_list[i];
+        objects_container* obj = objects_container::obj_container_list[i];
         obj_mem_manager::obj_sub_nums.push_back(obj->objs.size());
         obj->arrange_id = i;
 
@@ -170,9 +170,9 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     int p=0;
 
-    for(std::vector<objects_container>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); it2++)
+    for(std::vector<objects_container*>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); it2++)
     {
-        objects_container* obj = &(*it2);
+        objects_container* obj = (*it2);
         for(std::vector<object>::iterator it=obj->objs.begin(); it!=obj->objs.end(); it++)
         {
             for(int i=0; i<(*it).tri_num; i++)

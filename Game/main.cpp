@@ -17,8 +17,6 @@ int main(int argc, char *argv[])
     sponza.set_file("../objects/shittyspaceship.obj");
     sponza.set_active(true);
 
-
-
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("../cl2.cl");
@@ -30,11 +28,13 @@ int main(int argc, char *argv[])
     ///Or is this important because textures 1gen?
 
     obj_mem_manager::load_active_objects();
+    sponza.translate_centre((cl_float4){400,0,0,0});
 
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
+
 
     sf::Event Event;
 
@@ -71,7 +71,6 @@ int main(int argc, char *argv[])
         window.draw_bulk_objs_n();
 
         window.render_buffers();
-
 
 
         sf::Keyboard k;

@@ -634,7 +634,7 @@ void engine::check_obj_visibility()
 {
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {
-        objects_container *T = &objects_container::obj_container_list[i];
+        objects_container *T = objects_container::obj_container_list[i];
         //T->call_obj_vis_load(c_pos);
         for(int j=0; j<T->objs.size(); j++)
         {

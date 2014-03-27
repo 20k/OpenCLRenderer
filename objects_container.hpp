@@ -22,7 +22,7 @@ struct objects_container
     cl_float4 rot;
 
     std::vector<object> objs;
-    static std::vector<objects_container> obj_container_list;
+    static std::vector<objects_container*> obj_container_list;
 
     objects_container();
     cl_uint push();
