@@ -72,7 +72,7 @@ struct obj_g_descriptor
 {
     float4 world_pos;   ///w is blaenk
     float4 world_rot;   ///w is blaenk
-    float4 world_centre;
+    //float4 world_centre;
     uint start;         ///internally used value
     uint tri_num;
     uint tid;           ///texture id
@@ -1432,6 +1432,10 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
     global_position        = rot(global_position, zero, (float4)
     {
         0.0f, -lc_rot.y, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, 0.0f, -lc_rot.z, 0.0f
     });
 
 

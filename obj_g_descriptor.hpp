@@ -8,7 +8,7 @@ struct obj_g_descriptor
 {
     cl_float4 world_pos; ///w is blaenk
     cl_float4 world_rot; ///w is blaenk
-    cl_float4 world_centre;
+    //cl_float4 world_centre;
     cl_uint start; ///start triangle num
     cl_uint tri_num; ///length of triangles (ie start; i < start + tri_num; i++)
     cl_uint tid; ///texture id
