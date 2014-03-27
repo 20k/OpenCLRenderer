@@ -1733,11 +1733,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
                 int ey = ((pixel_along + op_size) / width) + min_max[2];*/
 
                 uint f = atomic_inc(id_buffer_atomc);
-                fragment_id_buffer[f*5] = id;
-                fragment_id_buffer[f*5+1] = c;
-                fragment_id_buffer[f*5+2] = i;
-                fragment_id_buffer[f*5+3] = c_id;
-                fragment_id_buffer[f*5+4] = is_clipped;
+                fragment_id_buffer[f*3] = id;
+                fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | c;
+                fragment_id_buffer[f*3+2] = c_id;
                 c++;
             }
 
@@ -1777,9 +1775,9 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     uint distance = 0;
 
-    distance = fragment_id_buffer[id*5 + 1];
+    distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
 
-    uint ctri = fragment_id_buffer[id*5 + 3];
+    uint ctri = fragment_id_buffer[id*3 + 2];
 
 
     float4 tris_proj_n[3];
@@ -2055,11 +2053,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         struct interp_container icontainer;
         //float odepth[3];
 
-        int is_clipped = fragment_id_buffer[id_val*5 + 4];
+        //int is_clipped = fragment_id_buffer[id_val*3 + 4];
 
-        int local_id = fragment_id_buffer[id_val*5 + 3];
+        int local_id = fragment_id_buffer[id_val*3 + 2];
 
-        __global struct triangle* T = &triangles[fragment_id_buffer[id_val*5]];
+        __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
 
 
         ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
@@ -2072,10 +2070,12 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         __global struct obj_g_descriptor *G = &gobj[o_id];
 
+        int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
+
         full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
 
 
-        uint wtri = fragment_id_buffer[id_val*5 + 2];
+        uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
 
         icontainer = construct_interpolation(tris[wtri], SCREENWIDTH, SCREENHEIGHT);
 
