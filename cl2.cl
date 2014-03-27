@@ -380,7 +380,7 @@ int backface_cull(struct triangle *tri, int fov, float w, float h)
 }
 
 
-void rot_3(__global struct triangle *triangle, const float4 c_pos, const float4 c_rot, const float4 offset, const float4 rotation_offset, const float4 obj_centre, float4 ret[3])
+void rot_3(__global struct triangle *triangle, const float4 c_pos, const float4 c_rot, const float4 offset, const float4 rotation_offset, float4 ret[3])
 {
     if(rotation_offset.x == 0.0f && rotation_offset.y == 0.0f && rotation_offset.z == 0.0f)
     {
@@ -390,10 +390,10 @@ void rot_3(__global struct triangle *triangle, const float4 c_pos, const float4 
     }
     else
     {
-        //float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
-        ret[0] = rot(triangle->vertices[0].pos, obj_centre, rotation_offset);
-        ret[1] = rot(triangle->vertices[1].pos, obj_centre, rotation_offset);
-        ret[2] = rot(triangle->vertices[2].pos, obj_centre, rotation_offset);
+        float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
+        ret[0] = rot(triangle->vertices[0].pos, zero, rotation_offset);
+        ret[1] = rot(triangle->vertices[1].pos, zero, rotation_offset);
+        ret[2] = rot(triangle->vertices[2].pos, zero, rotation_offset);
 
         ret[0]=rot(ret[0] + offset, c_pos, c_rot);
         ret[1]=rot(ret[1] + offset, c_pos, c_rot);
@@ -542,7 +542,7 @@ void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *
     }
 }
 
-void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][3], int *num, const float4 c_pos, const float4 c_rot, const float4 offset, const float4 rotation_offset, const float4 obj_centre, const float fovc, const int width, const int height, int* clip)
+void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][3], int *num, const float4 c_pos, const float4 c_rot, const float4 offset, const float4 rotation_offset, const float fovc, const int width, const int height, int* clip)
 {
     ///void rot_3(__global struct triangle *triangle, float4 c_pos, float4 c_rot, float4 ret[3])
     ///void generate_new_triangles(float4 points[3], int ids[3], float lconst[2], int *num, float4 ret[2][3])
@@ -556,7 +556,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 
     float rconst[2];
 
-    rot_3(triangle, c_pos, c_rot, offset, rotation_offset, obj_centre, pr);
+    rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
 
     int n = 0;
 
@@ -593,7 +593,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 }*/
 
 
-void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float4 obj_centre, float fovc, int width, int height, int is_clipped, int id, __global float4* cutdown_tris)
+void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height, int is_clipped, int id, __global float4* cutdown_tris)
 {
 
     __global struct triangle *T=triangle;
@@ -638,7 +638,7 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
 
     float4 rotpoints[3];
-    rot_3(T, c_pos, c_rot, offset, rotation_offset, obj_centre, rotpoints);
+    rot_3(T, c_pos, c_rot, offset, rotation_offset, rotpoints);
 
     ///this will cause errors, need to fix lighting to use rotated normals rather than globals
     ///did i fix this?
@@ -1630,7 +1630,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
     int is_clipped = 0;
 
 
-    full_rotate_n_extra(T, tris_proj, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, G->world_centre, efov, ewidth, eheight, &is_clipped);
+    full_rotate_n_extra(T, tris_proj, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, efov, ewidth, eheight, &is_clipped);
     ///can replace rotation with a swizzle for shadowing
 
     if(num == 0)
@@ -2073,7 +2073,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
 
-        full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, G->world_centre, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
+        full_rotate(T, tris, &num, *c_pos, *c_rot, G->world_pos, G->world_rot, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
 
 
         uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
