@@ -34,6 +34,8 @@ struct objects_container
     void    set_active_subobjs(bool);
     void    unload_tris();
 
+    void translate_centre(cl_float4);
+
     void    set_load_func  (boost::function<void (objects_container*)>);
     void    call_load_func (objects_container*);
 

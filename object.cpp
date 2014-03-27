@@ -20,6 +20,7 @@ object::object() : tri_list(0)
 {
     pos.x=0, pos.y=0, pos.z=0;
     rot.x=0, rot.y=0, rot.z=0;
+    centre.x = 0, centre.y = 0, centre.z = 0, centre.w = 0;
     tid = 0;
     //atid = 0;
     isactive = false;
@@ -80,6 +81,11 @@ void object::set_pos(cl_float4 _pos)
 void object::set_rot(cl_float4 _rot)
 {
     rot = _rot;
+}
+
+void object::translate_centre(cl_float4 _centre)
+{
+    centre = _centre;
 }
 
 void object::set_vis_func(boost::function<int (object*, cl_float4)> vis)

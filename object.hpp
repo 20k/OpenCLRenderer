@@ -9,6 +9,7 @@ struct object
 {
     cl_float4 pos;
     cl_float4 rot;
+    cl_float4 centre;
 
     bool isactive;
     int tri_num;
@@ -39,6 +40,8 @@ struct object
     void set_active    (bool param);
     void set_pos       (cl_float4);
     void set_rot       (cl_float4);
+
+    void translate_centre(cl_float4);
 
     void set_vis_func  (boost::function<int (object*, cl_float4)>);
     int  call_vis_func (object*, cl_float4);

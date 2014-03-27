@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     //sponza.set_file("objects/shittyspaceship.obj");
     sponza.set_file("sp2/sp2.obj");
     sponza.set_active(true);
+    sponza.translate_centre((cl_float4){0,0,-100,0});
 
 
 

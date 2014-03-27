@@ -106,6 +106,14 @@ void objects_container::unload_tris()
     }
 }
 
+void objects_container::translate_centre(cl_float4 amount)
+{
+    for(unsigned int i=0; i<objs.size(); i++)
+    {
+        objs[i].translate_centre(amount);
+    }
+}
+
 
 void objects_container::set_load_func(boost::function<void (objects_container*)> func)
 {
