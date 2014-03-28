@@ -1,6 +1,7 @@
 #include "../proj.hpp"
 #include "../ocl.h"
 #include "../texture_manager.hpp"
+#include "ship.hpp"
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -29,6 +30,7 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
     sponza.translate_centre((cl_float4){400,0,0,0});
+    sponza.swap_90();
 
     texture_manager::allocate_textures();
 
@@ -50,11 +52,16 @@ int main(int argc, char *argv[])
     l.shadow=0;
 
 
-
     window.add_light(l);
 
     window.construct_shadowmaps();
 
+    newtonian_body ship;
+    ship.obj = &sponza;
+    ship.thruster_force = 0.1;
+    ship.thruster_distance = 1;
+    ship.thruster_forward = 4;
+    ship.mass = 1;
 
     while(window.window.isOpen())
     {
@@ -72,39 +79,38 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
+        ship.set_rotation_direction((cl_float4){0,0,0,0});
+        ship.set_linear_force_direction((cl_float4){0,0,0,0});
+
 
         sf::Keyboard k;
         if(k.isKeyPressed(sf::Keyboard::I))
         {
-            sponza.set_pos((cl_float4){sponza.pos.x + 10, sponza.pos.y, sponza.pos.z, 0.0f});
-            sponza.g_flush_objects();
+            ship.set_linear_force_direction((cl_float4){1, 0, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::J))
         {
-            sponza.set_pos((cl_float4){sponza.pos.x, sponza.pos.y, sponza.pos.z+10, 0.0f});
-            sponza.g_flush_objects();
+            ship.set_linear_force_direction((cl_float4){0, 0, 1, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::K))
         {
-            sponza.set_pos((cl_float4){sponza.pos.x - 10, sponza.pos.y, sponza.pos.z, 0.0f});
-            sponza.g_flush_objects();
+            ship.set_linear_force_direction((cl_float4){-1, 0, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::L))
         {
-            sponza.set_pos((cl_float4){sponza.pos.x, sponza.pos.y, sponza.pos.z-10, 0.0f});
-            sponza.g_flush_objects();
-        }
-        if(k.isKeyPressed(sf::Keyboard::U))
-        {
-            sponza.set_rot((cl_float4){sponza.rot.x, sponza.rot.y - 0.01, sponza.rot.z, 0.0f});
-            sponza.g_flush_objects();
+            ship.set_linear_force_direction((cl_float4){0, 0, -1, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::O))
         {
-            sponza.set_rot((cl_float4){sponza.rot.x, sponza.rot.y + 0.01, sponza.rot.z, 0.0f});
-            sponza.g_flush_objects();
+            ship.set_rotation_direction((cl_float4){0, -1, 0, 0});
+        }
+        if(k.isKeyPressed(sf::Keyboard::U))
+        {
+            ship.set_rotation_direction((cl_float4){0, 1, 0, 0});
         }
 
+        ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
+        sponza.g_flush_objects();
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

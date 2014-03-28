@@ -77,6 +77,8 @@
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
 		<Unit filename="main.cpp" />
+		<Unit filename="ship.cpp" />
+		<Unit filename="ship.hpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
