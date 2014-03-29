@@ -64,7 +64,7 @@ struct light
     float4 col;
     uint shadow;
     float brightness;
-    float2 pad;
+    //float2 pad;
 };
 
 
@@ -169,7 +169,7 @@ float calc_rconstant(int x[3], int y[3])
     return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
-float interpolate_2(float vals[3], struct interp_container c, int x, int y)
+float interpolate_2(float4 vals, struct interp_container c, int x, int y)
 {
     ///x1, y1, x2, y2, x3, y3, x, y, which
 
@@ -182,7 +182,7 @@ float interpolate_2(float vals[3], struct interp_container c, int x, int y)
 
     //float area = c.area;
 
-    return (vals[0]*a[2] + vals[1]*a[0] + vals[2]*a[1])/(a[0] + a[1] + a[2]);
+    return (vals.x*a[2] + vals.y*a[0] + vals.z*a[1])/(a[0] + a[1] + a[2]);
 }
 
 
@@ -436,6 +436,22 @@ void depth_project(float4 rotated[3], int width, int height, float fovc, float4 
     }
 }
 
+
+void depth_project_singular(float4 rotated, int width, int height, float fovc, float4* ret)
+{
+    float rx;
+    rx=(rotated.x) * (fovc/(rotated.z));
+    float ry;
+    ry=(rotated.y) * (fovc/(rotated.z));
+
+    rx+=width/2;
+    ry+=height/2;
+
+    (*ret).x = rx;
+    (*ret).y = ry;
+    (*ret).z = rotated.z;
+}
+
 void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *num, float4 ret[2][3], int* clip)
 {
     int id_valid;
@@ -592,7 +608,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 
 }*/
 
-
+///change width/height to be defines by compiler
 void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height, int is_clipped, int id, __global float4* cutdown_tris)
 {
 
@@ -1060,7 +1076,9 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     float2 tex_per_pix = {tdiff.x / vdiff.x, tdiff.y / vdiff.y};
 
-    float worst = max(tex_per_pix.x, tex_per_pix.y);
+    //float worst = max(tex_per_pix.x, tex_per_pix.y);
+
+    float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
     int tpp[MIP_LEVELS+1];
 
@@ -2030,9 +2048,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         int2 scoord1 = {x, y};
 
-        float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
+        //float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
 
-        write_imagef(screen, scoord1, clear_col);
+        //write_imagef(screen, scoord1, clear_col);
 
         __global uint *ftc=&to_clear[y*SCREENWIDTH + x];
         *ftc = mulint;
@@ -2051,14 +2069,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         if(*ft==mulint)
         {
-            return;
+            //return;
         }
 
 
         struct interp_container icontainer;
-        //float odepth[3];
-
-        //int is_clipped = fragment_id_buffer[id_val*3 + 4];
 
         int local_id = fragment_id_buffer[id_val*3 + 2];
 
@@ -2087,10 +2102,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         struct triangle *c_tri = &tris[wtri];
 
-
-        //int4 coord= {x, y, 0, 0};
-
-        ///cz is corrupt somehow?
         float cz[3] = {c_tri->vertices[0].pos.z, c_tri->vertices[1].pos.z, c_tri->vertices[2].pos.z};
 
 
@@ -2118,9 +2129,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         //float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
         //float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
 
+        float normalsx[3]= {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
         float normalsy[3]= {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
         float normalsz[3]= {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
-        float normalsx[3]= {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
+
 
         float4 normal;
 
@@ -2151,15 +2163,14 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         {
             0.0f, -lc_rot.y, 0.0f, 0.0f
         });
+        //global_position        = rot(global_position, zero, (float4)
+        //{
+        //    0.0f, 0.0f, -lc_rot.z, 0.0f
+        //});
 
-        global_position.x += lc_pos.x;
-        global_position.y += lc_pos.y;
-        global_position.z += lc_pos.z;
-
-
+        global_position += lc_pos;
 
         float4 lightaccum= {0,0,0,0};
-
 
         int shnum=0;
 
@@ -2169,6 +2180,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         //float occamount=0;
 
+        float4 mandatory_light = {0,0,0,0};
+
+        ///rewite lighting to be in screenspace
 
         for(int i=0; i<*(lnum); i++)
         {
@@ -2178,9 +2192,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float light=dot(fast_normalize(l2c), fast_normalize(normal));
 
-
-            //float thisocc=0;
-
+            ///do light radius
 
             int skip=0;
 
@@ -2201,15 +2213,37 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
                 shnum++;
             }
 
-            //thisocc = 0;
+
+            if(lights[i].pos.w == 1.0f) ///check light within screen
+            {
+                float4 light_rotated = rot(lpos, *c_pos, *c_rot);
+
+                float4 projected_out;
+
+                depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
+
+                if(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff)
+                    continue;
+
+                float radius = 14000 / projected_out.z; /// obviously temporary
+
+                ///this is actually a solid light
+                float dist = fast_distance(projected_out.xy, (float2){x, y});
+
+                float4 actual_light = clamp((radius - dist)/radius, 0.0f, 1.0f)*lights[i].col*lights[i].brightness;
+
+                if(fast_distance(lpos, *c_pos) < fast_distance(global_position, *c_pos) || *ft == mulint)
+                {
+                    mandatory_light += actual_light;
+                }
+            }
+
 
             float ambient = 0.2f;
 
-            if(light>0)
-                lightaccum+=(1.0f-ambient)*light*light*lights[i].col*lights[i].brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f;
-            else
-                lightaccum+=ambient*1.0f;
+            light = max(0.0f, light);
 
+            lightaccum+=(1.0f-ambient)*light*light*lights[i].col*lights[i].brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f; //wrong, change ambient to colour
         }
 
 
@@ -2225,23 +2259,30 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         //lightaccum = (float4){1.0, 1.0, 1.0, 0.0};
 
 
-        lightaccum.x=clamp(lightaccum.x, 0.0f, 1.0f/col.x);
-        lightaccum.y=clamp(lightaccum.y, 0.0f, 1.0f/col.y);
-        lightaccum.z=clamp(lightaccum.z, 0.0f, 1.0f/col.z);
+        //lightaccum.x=clamp(lightaccum.x, 0.0f, 1.0f/col.x);
+        //lightaccum.y=clamp(lightaccum.y, 0.0f, 1.0f/col.y);
+        //lightaccum.z=clamp(lightaccum.z, 0.0f, 1.0f/col.z);
+
+        lightaccum = clamp(lightaccum, (float4)(0,0,0,0), (float4){1.0f/col.x, 1.0f/col.y, 1.0f/col.z, 0.0f});
 
         //float hbao = generate_hbao(c_tri, scoord, depth_buffer);
 
         float hbao = 0;
 
-        float lightdepth = light_depth_buffer[(y)*LIGHTBUFFERDIM + x + 2*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
+        //float lightdepth = light_depth_buffer[(y)*LIGHTBUFFERDIM + x + 2*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
-        lightdepth=(lightdepth/mulint);
+        //lightdepth=(lightdepth/mulint);
 
         //float4 lcol = {lightdepth, lightdepth, lightdepth, 0};
 
         //float4 dcol = {dcalc(ldepth), dcalc(ldepth), dcalc(ldepth), 0};
 
-        write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao));
+        if(*ft == mulint)
+        {
+            col = (float4){0,0,0,0};
+        }
+
+        write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0});
     }
 

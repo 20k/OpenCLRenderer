@@ -16,6 +16,7 @@ struct obj_g_descriptor
     cl_uint mip_level_ids[MIP_LEVELS];
     cl_uint has_bump;
     cl_uint cumulative_bump;
+    ///add in a type here for shaders?
     //cl_uint pad[2];
 };
 

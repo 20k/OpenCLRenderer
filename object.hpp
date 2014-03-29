@@ -40,6 +40,7 @@ struct object
     void set_active    (bool param);
     void set_pos       (cl_float4);
     void set_rot       (cl_float4);
+    void swap_90       ();
 
     void translate_centre(cl_float4);
 

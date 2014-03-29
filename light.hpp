@@ -10,7 +10,7 @@ struct light
     cl_float4 col;
     cl_uint shadow;
     cl_float brightness;
-    cl_float2 pad;
+    //cl_float2 pad;
 
     light();
 

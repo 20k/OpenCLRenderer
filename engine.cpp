@@ -146,13 +146,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
 }
 
-void engine::update_lights() ///enqueuewritebuffer blah blah blah
-{
-
-
-
-
-}
 
 void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 {
@@ -165,7 +158,7 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     ///sacrifice soul to chaos gods, allocate light buffers here
     ///g_light_buf
 
-    obj_mem_manager::g_light_buf=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, light::lightlist.data());
+    //obj_mem_manager::g_light_buf=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, light::lightlist.data());
 
     int ln=0;
 
@@ -205,6 +198,19 @@ int engine::add_light(light &l)
     id=light::lightlist.size()-1;
     realloc_light_gmem();
     return id;
+}
+
+void engine::set_light_pos(int id, cl_float4 by_how_much)
+{
+    light& l = light::lightlist[id];
+    l.pos.x = by_how_much.x;
+    l.pos.y = by_how_much.y;
+    l.pos.z = by_how_much.z;
+}
+
+void engine::g_flush_light(int id)
+{
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*id, sizeof(light), &light::lightlist[id]);
 }
 
 cl_float4 rot(double x, double y, double z, cl_float4 rotation)

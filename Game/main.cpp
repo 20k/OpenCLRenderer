@@ -43,15 +43,15 @@ int main(int argc, char *argv[])
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     l.set_shadow_bright(1, 1);
-    l.set_pos((cl_float4){-200, 200, -100, 0});
+    l.set_pos((cl_float4){-200, 200, -100, 1.0f});
     l.shadow = 0;
-    window.add_light(l);
+    int lid = window.add_light(l);
 
     //l.set_pos((cl_float4){-200, 700, -100, 0});
-    l.set_pos((cl_float4){0, 200, -450, 0});
-    l.shadow=0;
+    //l.set_pos((cl_float4){0, 200, -450, 0});
+    //l.shadow=0;
 
-
+    l.pos.w = 0.0f;
     window.add_light(l);
 
     window.construct_shadowmaps();
@@ -62,6 +62,11 @@ int main(int argc, char *argv[])
     ship.thruster_distance = 1;
     ship.thruster_forward = 4;
     ship.mass = 1;
+
+    newtonian_body l1;
+    l1.obj = NULL;
+    l1.linear_momentum = (cl_float4){10, 0, 0, 0};
+
 
     while(window.window.isOpen())
     {
@@ -112,6 +117,9 @@ int main(int argc, char *argv[])
         ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
         sponza.g_flush_objects();
 
+        l1.tick(c.getElapsedTime().asMicroseconds()/1000.0);
+        window.set_light_pos(lid, l1.position);
+        window.g_flush_light(lid);
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

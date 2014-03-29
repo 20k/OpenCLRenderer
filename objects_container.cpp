@@ -182,3 +182,11 @@ void objects_container::g_flush_objects()
         std::cout << "Warning (objects_container.hpp) " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
     }
 }
+
+void objects_container::swap_90()
+{
+    for(int i=0; i<objs.size(); i++)
+    {
+        objs[i].swap_90();
+    }
+}

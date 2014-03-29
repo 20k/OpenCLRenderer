@@ -63,7 +63,9 @@ struct engine
     void load(cl_uint, cl_uint, cl_uint, std::string);
 
     int add_light(light&);
-    void update_lights(); ///not implemented
+    void set_light_pos(int, cl_float4);
+    void g_flush_lights(); ///not implemented
+    void g_flush_light(int);
     void realloc_light_gmem();
 
     void construct_shadowmaps();

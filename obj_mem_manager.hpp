@@ -50,7 +50,7 @@ struct obj_mem_manager
     ///screenspace depth buffer for shadow casting lights. This is going to be slow
     static compute::buffer g_light_mem;
     static compute::buffer g_light_num;
-    static compute::buffer g_light_buf;
+    //static compute::buffer g_light_buf;
     ///array of lights in g_mem
 
     static compute::buffer g_cut_tri_mem;

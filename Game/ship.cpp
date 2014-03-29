@@ -96,6 +96,9 @@ void newtonian_body::tick(float timestep)
     position.y += linear_momentum.y*timestep/500;
     position.z += linear_momentum.z*timestep/500;
 
-    obj->set_rot(rotation);
-    obj->set_pos(position);
+    if(obj!=NULL)
+    {
+        obj->set_rot(rotation);
+        obj->set_pos(position);
+    }
 }

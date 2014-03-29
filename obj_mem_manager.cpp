@@ -26,7 +26,7 @@ compute::buffer obj_mem_manager::g_obj_desc;
 compute::buffer obj_mem_manager::g_obj_num;
 compute::buffer obj_mem_manager::g_light_mem;
 compute::buffer obj_mem_manager::g_light_num;
-compute::buffer obj_mem_manager::g_light_buf;
+//compute::buffer obj_mem_manager::g_light_buf;
 
 bool obj_mem_manager::ready = false;
 

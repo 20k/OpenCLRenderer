@@ -44,6 +44,8 @@ struct objects_container
 
     void    call_obj_vis_load(cl_float4 c_pos);
 
+    void    swap_90();
+
 
     void g_flush_objects(); ///calls g_flush for all objects
 };

@@ -97,6 +97,24 @@ void object::translate_centre(cl_float4 _centre)
     }
 }
 
+void object::swap_90()
+{
+    for(int i=0; i<tri_list.size(); i++)
+    {
+        for(int j=0; j<3; j++)
+        {
+            float temp = tri_list[i].vertices[j].pos[0];
+            tri_list[i].vertices[j].pos[0] = -tri_list[i].vertices[j].pos[2];
+            tri_list[i].vertices[j].pos[2] = temp;
+
+            temp = tri_list[i].vertices[j].normal[0];
+            tri_list[i].vertices[j].normal[0] = -tri_list[i].vertices[j].normal[2];
+            tri_list[i].vertices[j].normal[2] = temp;
+            //tri_list[i].vertices[j].pos[2] += centre.z;
+        }
+    }
+}
+
 void object::set_vis_func(boost::function<int (object*, cl_float4)> vis)
 {
     obj_vis = vis;
