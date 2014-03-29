@@ -52,7 +52,8 @@ int main(int argc, char *argv[])
     //l.shadow=0;
 
     l.pos.w = 0.0f;
-    window.add_light(l);
+    //for(int i=0; i<100; i++)
+    //window.add_light(l);
 
     window.construct_shadowmaps();
 
@@ -65,7 +66,7 @@ int main(int argc, char *argv[])
 
     newtonian_body l1;
     l1.obj = NULL;
-    l1.linear_momentum = (cl_float4){10, 0, 0, 0};
+    l1.linear_momentum = (cl_float4){50, 0, 0, 0};
 
 
     while(window.window.isOpen())

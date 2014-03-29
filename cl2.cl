@@ -132,13 +132,16 @@ float calc_third_areas(struct interp_container *C, int x, int y)
     //return calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 1) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 2) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 3);
 }
 
-///store coses and sines
+///rotates point about camera
 float4 rot(float4 point, float4 c_pos, float4 c_rot)
 {
+    float4 cos_rot = native_cos(c_rot);
+    float4 sin_rot = native_sin(c_rot);
+
     float4 ret;
-    ret.x=      native_cos(c_rot.y)*(native_sin(c_rot.z)+native_cos(c_rot.z)*(point.x-c_pos.x))-native_sin(c_rot.y)*(point.z-c_pos.z);
-    ret.y=      native_sin(c_rot.x)*(native_cos(c_rot.y)*(point.z-c_pos.z)+native_sin(c_rot.y)*(native_sin(c_rot.z)*(point.y-c_pos.y)+native_cos(c_rot.z)*(point.x-c_pos.x)))+native_cos(c_rot.x)*(native_cos(c_rot.z)*(point.y-c_pos.y)-native_sin(c_rot.z)*(point.x-c_pos.x));
-    ret.z=      native_cos(c_rot.x)*(native_cos(c_rot.y)*(point.z-c_pos.z)+native_sin(c_rot.y)*(native_sin(c_rot.z)*(point.y-c_pos.y)+native_cos(c_rot.z)*(point.x-c_pos.x)))-native_sin(c_rot.x)*(native_cos(c_rot.z)*(point.y-c_pos.y)-native_sin(c_rot.z)*(point.x-c_pos.x));
+    ret.x=      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
+    ret.y=      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    ret.z=      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
     return ret;
 }
 
@@ -2222,19 +2225,19 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
                 depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
 
-                if(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff)
-                    continue;
-
-                float radius = 14000 / projected_out.z; /// obviously temporary
-
-                ///this is actually a solid light
-                float dist = fast_distance(projected_out.xy, (float2){x, y});
-
-                float4 actual_light = clamp((radius - dist)/radius, 0.0f, 1.0f)*lights[i].col*lights[i].brightness;
-
-                if(fast_distance(lpos, *c_pos) < fast_distance(global_position, *c_pos) || *ft == mulint)
+                if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
                 {
-                    mandatory_light += actual_light;
+                    float radius = 14000 / projected_out.z; /// obviously temporary
+
+                    ///this is actually a solid light
+                    float dist = fast_distance(projected_out.xy, (float2){x, y});
+
+                    float4 actual_light = clamp((radius - dist)/radius, 0.0f, 1.0f)*lights[i].col*lights[i].brightness;
+
+                    if(fast_distance(lpos, *c_pos) < fast_distance(global_position, *c_pos) || *ft == mulint)
+                    {
+                        mandatory_light += actual_light;
+                    }
                 }
             }
 

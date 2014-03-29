@@ -24,6 +24,18 @@
     return interp;
 }*/
 
+struct newtonian_body;
+
+struct newtonian_manager
+{
+    std::vector<newtonian_body*> body_list;
+
+    void add_body(newtonian_body&);
+    void remove_body(newtonian_body&);
+
+    void tick_all();
+};
+
 struct newtonian_body
 {
     cl_float4 position;
@@ -44,10 +56,10 @@ struct newtonian_body
 
     float thruster_forward;
 
-    void tick(float);
+    virtual void tick(float);
 
-    void set_rotation_direction(cl_float4 _dest);
-    void set_linear_force_direction(cl_float4 _dir);
+    virtual void set_rotation_direction(cl_float4 _dest);
+    virtual void set_linear_force_direction(cl_float4 _dir);
 
     newtonian_body();
 
@@ -55,7 +67,13 @@ struct newtonian_body
     //std::vector<cl_float4> thrusters_force;
 };
 
-struct ship
+struct ship : newtonian_body
+{
+    ///put weapon in here
+    void fire();
+};
+
+struct projectile : newtonian_body
 {
 
 };

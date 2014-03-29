@@ -11,6 +11,8 @@ newtonian_body::newtonian_body()
     attempted_rotation_direction = (cl_float4){0,0,0,0};
     attempted_force_direction = (cl_float4){0,0,0,0};
 
+    obj = NULL;
+
     //mass = 1;
 }
 
@@ -81,8 +83,6 @@ void newtonian_body::tick(float timestep)
 
 
 
-
-
     if(sqrt(rotation.x*rotation.x + rotation.y*rotation.y + rotation.z*rotation.z) > MAX_ANGULAR)
     {
         //fix
@@ -101,4 +101,10 @@ void newtonian_body::tick(float timestep)
         obj->set_rot(rotation);
         obj->set_pos(position);
     }
+}
+
+void ship::fire()
+{
+    if(obj == NULL)
+        return;
 }
