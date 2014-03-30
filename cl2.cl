@@ -142,6 +142,7 @@ float4 rot(float4 point, float4 c_pos, float4 c_rot)
     ret.x=      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
     ret.y=      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
     ret.z=      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    ret.w = 0;
 
     return ret;
 }
@@ -1090,7 +1091,7 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     float2 tex_per_pix = {tdiff.x / vdiff.x, tdiff.y / vdiff.y};
 
-    //float worst = max(tex_per_pix.x, tex_per_pix.y);
+    //float worst = min(tex_per_pix.x, tex_per_pix.y);
 
     float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
@@ -2222,6 +2223,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float average_occ = 0;
 
+            float ambient = 0.2f;
+
             if(lights[i].shadow==1 && ret_cubeface(global_position, lpos)!=-1)
             {
 
@@ -2260,14 +2263,16 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
                         mandatory_light += actual_light;
                     }
                 }
+
+                ambient = 0;
             }
 
 
-            float ambient = 0.2f;
+
 
             light = max(0.0f, light);
 
-            lightaccum+=(1.0f-ambient)*light*light*lights[i].col*lights[i].brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f; //wrong, change ambient to colour
+            lightaccum+=(1.0f-ambient)*light*light*lights[i].col*lights[i].brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f*lights[i].col; //wrong, change ambient to colour
         }
 
 

@@ -31,8 +31,8 @@ struct newtonian_manager
 {
     static std::vector<newtonian_body*> body_list;
 
-    static void add_body(newtonian_body&);
-    static void remove_body(newtonian_body&);
+    static void add_body(newtonian_body*);
+    static void remove_body(newtonian_body*);
 
     static void tick_all(float);
 };
@@ -72,6 +72,10 @@ struct newtonian_body
 
     newtonian_body();
 
+    virtual void fire();
+
+    virtual newtonian_body* clone();
+
     //std::vector<cl_float4> thrusters_pos;
     //std::vector<cl_float4> thrusters_force;
 };
@@ -80,6 +84,10 @@ struct ship : newtonian_body
 {
     ///put weapon in here
     void fire();
+
+    ship* clone();
+
+    newtonian_body* push();
 };
 
 struct projectile : newtonian_body

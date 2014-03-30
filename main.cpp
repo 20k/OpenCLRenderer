@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 
 
 
-    window.add_light(&l);
+    //window.add_light(&l);
 
     window.construct_shadowmaps();
 

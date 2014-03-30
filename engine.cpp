@@ -20,6 +20,14 @@ unsigned int engine::gl_screen_id=0;
 
 
 
+cl_uint* engine::blank_light_buf;
+cl_uint engine::shadow_light_num;
+
+compute::buffer engine::g_shadow_light_buffer;
+cl_uint engine::l_size;
+
+
+
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name)
 {
 

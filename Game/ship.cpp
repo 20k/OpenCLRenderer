@@ -111,24 +111,38 @@ void newtonian_body::tick(float timestep)
     }
 }
 
+void newtonian_body::fire()
+{
+    std::cout << "Error: Not called on correct class" << std::endl;
+}
+
 newtonian_body* newtonian_body::push()
 {
     type = 0;
-    newtonian_manager::add_body(*this);
+    newtonian_manager::add_body(this);
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
 }
+
+newtonian_body* ship::push()
+{
+    type = 0;
+    newtonian_manager::add_body(this);
+    return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
+}
+
 newtonian_body* newtonian_body::push_laser(int _lid)
 {
     lid = _lid;
     laser = light::lightlist[lid];
     type = 1;
-    newtonian_manager::add_body(*this);
+    newtonian_manager::add_body(this);
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
 }
 
-void newtonian_manager::add_body(newtonian_body& n)
+void newtonian_manager::add_body(newtonian_body* n)
 {
-    newtonian_body* to_add = new newtonian_body(n);
+    newtonian_body* to_add = n->clone();
+
     body_list.push_back(to_add);
 }
 
@@ -146,6 +160,45 @@ void newtonian_manager::tick_all(float val)
 
 void ship::fire()
 {
-    if(obj == NULL)
+    if(obj == NULL || type!=0)
         return;
+
+    float speed = 500.0f;
+
+    cl_float4 pos = position;
+    cl_float4 dir = rotation;
+
+    float x1 = sin(-rotation.y)*cos(-rotation.x);
+    float y1 = sin(-rotation.y)*sin(-rotation.x);
+    float z1 = cos(-rotation.y);
+
+    x1 *= speed;
+    y1 *= speed;
+    z1 *= speed;
+
+    light l;
+    l.col = (cl_float4){1.0f, 0.0f, 0.0f, 0.0f};
+    l.set_shadow_bright(0, 1);
+    l.set_type(1);
+
+    l.add_light(&l);
+    engine::realloc_light_gmem();
+    int id = light::lightlist.size()-1;
+
+    newtonian_body new_bullet;
+    new_bullet.position = pos;
+    new_bullet.linear_momentum = (cl_float4){x1, y1, z1, 0.0f};
+    new_bullet.mass = 1;
+
+    new_bullet.push_laser(id);
+}
+
+newtonian_body* newtonian_body::clone()
+{
+    return new newtonian_body(*this);
+}
+
+ship* ship::clone()
+{
+    return new ship(*this);
 }

@@ -20,7 +20,7 @@ struct engine
 
     cl_uint width, height, depth;
     cl_uint g_size; /// height > width rounded up to nearest power of 2
-    cl_uint l_size;
+    static cl_uint l_size;
     cl_float4 c_pos;
     cl_float4 c_rot;
 
@@ -35,7 +35,7 @@ struct engine
     compute::image2d g_id_screen_tex;
     compute::buffer g_normals_screen;
     compute::buffer g_texture_screen;
-    compute::buffer g_shadow_light_buffer;
+    static compute::buffer g_shadow_light_buffer;
     compute::buffer g_shadow_occlusion_screen;
 
     compute::buffer g_tid_buf;
@@ -53,8 +53,8 @@ struct engine
     static unsigned int gl_screen_id;
     static unsigned int gl_framebuffer_id;
 
-    cl_uint *blank_light_buf;
-    cl_uint shadow_light_num;
+    static cl_uint *blank_light_buf;
+    static cl_uint shadow_light_num;
 
     sf::RenderWindow window;
 
@@ -62,11 +62,11 @@ struct engine
 
     void load(cl_uint, cl_uint, cl_uint, std::string);
 
-    int add_light(light*);
-    void set_light_pos(int, cl_float4);
-    void g_flush_lights(); ///not implemented
-    void g_flush_light(int);
-    void realloc_light_gmem(); ///lighting needs to be its own class
+    static int add_light(light*);
+    static void set_light_pos(int, cl_float4);
+    static void g_flush_lights(); ///not implemented
+    static void g_flush_light(int);
+    static void realloc_light_gmem(); ///lighting needs to be its own class
     ///need a get light id
 
     void construct_shadowmaps();

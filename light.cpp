@@ -5,7 +5,14 @@ std::vector<light*> light::lightlist;
 
 void light::set_pos(cl_float4 p)
 {
-    pos=p;
+    pos.x=p.x;
+    pos.y=p.y;
+    pos.z=p.z;
+}
+
+void light::set_type(cl_float t)
+{
+    pos.w = t;
 }
 
 void light::set_col(cl_float4 c)
@@ -22,6 +29,7 @@ light::light()
 {
     shadow=0;
     col = (cl_float4){1.0, 1.0, 1.0, 0.0};
+    pos = (cl_float4){0.0,0.0,0.0,0.0};
 }
 
 light* light::add_light(light* l)

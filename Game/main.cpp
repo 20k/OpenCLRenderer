@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     l.set_shadow_bright(1, 1);
-    l.set_pos((cl_float4){-200, 200, -100, 1.0f});
+    //l.set_pos((cl_float4){-200, 200, -100, 0});
+    l.set_type(1.0f);
     l.shadow = 0;
     int lid = window.add_light(&l);
 
@@ -53,25 +54,27 @@ int main(int argc, char *argv[])
 
     l.pos.w = 0.0f;
     //for(int i=0; i<100; i++)
-    //window.add_light(l);
+    window.add_light(&l);
 
     window.construct_shadowmaps();
 
-    newtonian_body ship1;
+    ship ship1;
     ship1.obj = &sponza;
     ship1.thruster_force = 0.1;
     ship1.thruster_distance = 1;
     ship1.thruster_forward = 4;
     ship1.mass = 1;
 
-    newtonian_body& ship = *ship1.push();
+    newtonian_body* ship = ship1.push();
 
     newtonian_body l1;
     l1.obj = NULL;
     l1.linear_momentum = (cl_float4){50, 0, 0, 0};
+    l1.position = (cl_float4){0,200,0,0};
 
     newtonian_body& light_newt = *l1.push_laser(lid);
 
+    bool lastp = false;
 
     while(window.window.isOpen())
     {
@@ -89,39 +92,48 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        ship.set_rotation_direction((cl_float4){0,0,0,0});
-        ship.set_linear_force_direction((cl_float4){0,0,0,0});
+        ship->set_rotation_direction((cl_float4){0,0,0,0});
+        ship->set_linear_force_direction((cl_float4){0,0,0,0});
 
 
         sf::Keyboard k;
         if(k.isKeyPressed(sf::Keyboard::I))
         {
-            ship.set_linear_force_direction((cl_float4){1, 0, 0, 0});
+            ship->set_linear_force_direction((cl_float4){1, 0, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::J))
         {
-            ship.set_linear_force_direction((cl_float4){0, 0, 1, 0});
+            ship->set_linear_force_direction((cl_float4){0, 0, 1, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::K))
         {
-            ship.set_linear_force_direction((cl_float4){-1, 0, 0, 0});
+            ship->set_linear_force_direction((cl_float4){-1, 0, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::L))
         {
-            ship.set_linear_force_direction((cl_float4){0, 0, -1, 0});
+            ship->set_linear_force_direction((cl_float4){0, 0, -1, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::O))
         {
-            ship.set_rotation_direction((cl_float4){0, -1, 0, 0});
+            ship->set_rotation_direction((cl_float4){0, -1, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::U))
         {
-            ship.set_rotation_direction((cl_float4){0, 1, 0, 0});
+            ship->set_rotation_direction((cl_float4){0, 1, 0, 0});
+        }
+        if(k.isKeyPressed(sf::Keyboard::P) && !lastp)
+        {
+            ship->fire();
+            lastp = true;
+        }
+        if(!k.isKeyPressed(sf::Keyboard::P))
+        {
+            lastp = false;
         }
 
         //ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
 
-        //newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
+        newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
 
         for(int i=0; i<newtonian_manager::body_list.size(); i++)
         {
@@ -130,6 +142,8 @@ int main(int argc, char *argv[])
                 b->obj->g_flush_objects();
             if(b->type==1)
                 window.g_flush_light(b->lid);
+
+            window.realloc_light_gmem();
         }
 
         //sponza.g_flush_objects();
