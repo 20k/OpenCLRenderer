@@ -151,7 +151,13 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 {
     cl_uint lnum=light::lightlist.size();
 
-    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, light::lightlist.data());
+    std::vector<light> light_straight;
+    for(int i=0; i<light::lightlist.size(); i++)
+    {
+        light_straight.push_back(*light::lightlist[i]);
+    }
+
+    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, light_straight.data());
 
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &lnum);
 
@@ -166,7 +172,7 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     ///needs to dirty if any light buffer is changed
     for(unsigned int i=0; i<light::lightlist.size(); i++)
     {
-        if(light::lightlist[i].shadow==1)
+        if(light::lightlist[i]->shadow==1)
         {
             ln++;
         }
@@ -191,26 +197,26 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     }
 }
 
-int engine::add_light(light &l)
+int engine::add_light(light* l)
 {
     int id;
-    light::lightlist.push_back(l);
+    light::add_light(l);
     id=light::lightlist.size()-1;
     realloc_light_gmem();
     return id;
 }
 
-void engine::set_light_pos(int id, cl_float4 by_how_much)
+void engine::set_light_pos(int lid, cl_float4 by_how_much)
 {
-    light& l = light::lightlist[id];
-    l.pos.x = by_how_much.x;
-    l.pos.y = by_how_much.y;
-    l.pos.z = by_how_much.z;
+    light* l = light::lightlist[lid];
+    l->pos.x = by_how_much.x;
+    l->pos.y = by_how_much.y;
+    l->pos.z = by_how_much.z;
 }
 
-void engine::g_flush_light(int id)
+void engine::g_flush_light(int lid) ///just position?
 {
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*id, sizeof(light), &light::lightlist[id]);
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*lid, sizeof(light), light::lightlist[lid]);
 }
 
 cl_float4 rot(double x, double y, double z, cl_float4 rotation)
@@ -390,7 +396,7 @@ void engine::construct_shadowmaps()
 
     for(unsigned int i=0, n=0; i<light::lightlist.size(); i++)
     {
-        if(light::lightlist[i].shadow==1)
+        if(light::lightlist[i]->shadow==1)
         {
             for(int j=0; j<6; j++)
             {
@@ -405,7 +411,7 @@ void engine::construct_shadowmaps()
                 buf_reg.origin = n*sizeof(cl_uint)*l_size*l_size*6 + j*sizeof(cl_uint)*l_size*l_size;
                 buf_reg.size   = sizeof(cl_uint)*l_size*l_size;
 
-                l_pos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &light::lightlist[i].pos);
+                l_pos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &light::lightlist[i]->pos);
                 l_rot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &r_struct[j]);
                 temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
 

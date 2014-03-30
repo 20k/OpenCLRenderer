@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     l.set_shadow_bright(1, 1);
     l.set_pos((cl_float4){-200, 200, -100, 1.0f});
     l.shadow = 0;
-    int lid = window.add_light(l);
+    int lid = window.add_light(&l);
 
     //l.set_pos((cl_float4){-200, 700, -100, 0});
     //l.set_pos((cl_float4){0, 200, -450, 0});
@@ -57,16 +57,20 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
-    newtonian_body ship;
-    ship.obj = &sponza;
-    ship.thruster_force = 0.1;
-    ship.thruster_distance = 1;
-    ship.thruster_forward = 4;
-    ship.mass = 1;
+    newtonian_body ship1;
+    ship1.obj = &sponza;
+    ship1.thruster_force = 0.1;
+    ship1.thruster_distance = 1;
+    ship1.thruster_forward = 4;
+    ship1.mass = 1;
+
+    newtonian_body& ship = *ship1.push();
 
     newtonian_body l1;
     l1.obj = NULL;
     l1.linear_momentum = (cl_float4){50, 0, 0, 0};
+
+    newtonian_body& light_newt = *l1.push_laser(lid);
 
 
     while(window.window.isOpen())
@@ -115,12 +119,24 @@ int main(int argc, char *argv[])
             ship.set_rotation_direction((cl_float4){0, 1, 0, 0});
         }
 
-        ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
-        sponza.g_flush_objects();
+        //ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
 
-        l1.tick(c.getElapsedTime().asMicroseconds()/1000.0);
-        window.set_light_pos(lid, l1.position);
-        window.g_flush_light(lid);
+        //newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
+
+        for(int i=0; i<newtonian_manager::body_list.size(); i++)
+        {
+            newtonian_body* b = newtonian_manager::body_list[i];
+            if(b->type==0)
+                b->obj->g_flush_objects();
+            if(b->type==1)
+                window.g_flush_light(b->lid);
+        }
+
+        //sponza.g_flush_objects();
+
+        //l.tick(c.getElapsedTime().asMicroseconds()/1000.0);
+        //window.set_light_pos(lid, light_newt.position);
+        //window.g_flush_light(lid);
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

@@ -1,6 +1,7 @@
 #include "light.hpp"
+#include <iostream>
 
-std::vector<light> light::lightlist;
+std::vector<light*> light::lightlist;
 
 void light::set_pos(cl_float4 p)
 {
@@ -21,4 +22,11 @@ light::light()
 {
     shadow=0;
     col = (cl_float4){1.0, 1.0, 1.0, 0.0};
+}
+
+light* light::add_light(light* l)
+{
+    light* new_light = new light(*l);
+    lightlist.push_back(new_light);
+    return new_light;
 }

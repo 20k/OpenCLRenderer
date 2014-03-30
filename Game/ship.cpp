@@ -1,4 +1,7 @@
 #include "ship.hpp"
+#include "../engine.hpp"
+
+std::vector<newtonian_body*> newtonian_manager::body_list;
 
 newtonian_body::newtonian_body()
 {
@@ -96,10 +99,48 @@ void newtonian_body::tick(float timestep)
     position.y += linear_momentum.y*timestep/500;
     position.z += linear_momentum.z*timestep/500;
 
-    if(obj!=NULL)
+    if(obj!=NULL && type == 0)
     {
         obj->set_rot(rotation);
         obj->set_pos(position);
+    }
+    if(type == 1)
+    {
+        //engine::set_light_pos(lid, position);
+        laser->set_pos(position);
+    }
+}
+
+newtonian_body* newtonian_body::push()
+{
+    type = 0;
+    newtonian_manager::add_body(*this);
+    return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
+}
+newtonian_body* newtonian_body::push_laser(int _lid)
+{
+    lid = _lid;
+    laser = light::lightlist[lid];
+    type = 1;
+    newtonian_manager::add_body(*this);
+    return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
+}
+
+void newtonian_manager::add_body(newtonian_body& n)
+{
+    newtonian_body* to_add = new newtonian_body(n);
+    body_list.push_back(to_add);
+}
+
+void newtonian_manager::tick_all(float val)
+{
+    for(int i=0; i<body_list.size(); i++)
+    {
+        body_list[i]->tick(val);
+        //if(body_list[i]->type == 0)
+        //    body_list[i]->obj->g_flush_objects();
+        //if(body_list[i]->type == 1)
+        //    light::g_flush_light(body_list[i]->lid);
     }
 }
 

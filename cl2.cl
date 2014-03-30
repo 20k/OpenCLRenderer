@@ -142,6 +142,7 @@ float4 rot(float4 point, float4 c_pos, float4 c_rot)
     ret.x=      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
     ret.y=      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
     ret.z=      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+
     return ret;
 }
 
@@ -420,6 +421,13 @@ void rot_3_raw(float4 raw[3], float4 rotation, float4 ret[3])
     ret[2]=rot(raw[2], zero, rotation);
 }
 
+void rot_3_pos(float4 raw[3], float4 pos, float4 rotation, float4 ret[3])
+{
+    ret[0]=rot(raw[0], pos, rotation);
+    ret[1]=rot(raw[1], pos, rotation);
+    ret[2]=rot(raw[2], pos, rotation);
+}
+
 
 void depth_project(float4 rotated[3], int width, int height, float fovc, float4 ret[3])
 {
@@ -623,8 +631,11 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     normalrot[1] = T->vertices[1].normal;
     normalrot[2] = T->vertices[2].normal;
 
+    //rot_3_raw(normalrot, c_rot, normalrot);
+
     if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
         rot_3_raw(normalrot, rotation_offset, normalrot);
+
 
 
     if(is_clipped == 0)
@@ -2166,10 +2177,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         {
             0.0f, -lc_rot.y, 0.0f, 0.0f
         });
-        //global_position        = rot(global_position, zero, (float4)
-        //{
-        //    0.0f, 0.0f, -lc_rot.z, 0.0f
-        //});
+        global_position        = rot(global_position, zero, (float4)
+        {
+            0.0f, 0.0f, -lc_rot.z, 0.0f
+        });
 
         global_position += lc_pos;
 
@@ -2193,7 +2204,17 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float4 l2c=lpos-global_position;
 
-            float light=dot(fast_normalize(l2c), fast_normalize(normal));
+            float light=dot(normalize(l2c), normalize(normal));
+
+            float4 light_rotated = rot(lpos, *c_pos, *c_rot);
+
+            //float4 l2c = light_rotated - local_position;
+
+            //float light = dot(normalize(l2c), normalize(rot((float4){1, 0, 0, 0}, zero, *c_rot)));
+
+            float4 projected_out;
+            depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
+
 
             ///do light radius
 
@@ -2219,11 +2240,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             if(lights[i].pos.w == 1.0f) ///check light within screen
             {
-                float4 light_rotated = rot(lpos, *c_pos, *c_rot);
+                //float4 light_rotated = rot(lpos, *c_pos, *c_rot);
 
-                float4 projected_out;
+                //float4 projected_out;
 
-                depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
+                //depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
 
                 if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
                 {
@@ -2271,14 +2292,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         //float hbao = generate_hbao(c_tri, scoord, depth_buffer);
 
         float hbao = 0;
-
-        //float lightdepth = light_depth_buffer[(y)*LIGHTBUFFERDIM + x + 2*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
-
-        //lightdepth=(lightdepth/mulint);
-
-        //float4 lcol = {lightdepth, lightdepth, lightdepth, 0};
-
-        //float4 dcol = {dcalc(ldepth), dcalc(ldepth), dcalc(ldepth), 0};
 
         if(*ft == mulint)
         {

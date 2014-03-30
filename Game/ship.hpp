@@ -3,6 +3,7 @@
 #include <cl/cl.h>
 #include <math.h>
 #include "../objects_container.hpp"
+#include "../light.hpp"
 
 #define MAX_ANGULAR 1.0f
 
@@ -28,16 +29,20 @@ struct newtonian_body;
 
 struct newtonian_manager
 {
-    std::vector<newtonian_body*> body_list;
+    static std::vector<newtonian_body*> body_list;
 
-    void add_body(newtonian_body&);
-    void remove_body(newtonian_body&);
+    static void add_body(newtonian_body&);
+    static void remove_body(newtonian_body&);
 
-    void tick_all();
+    static void tick_all(float);
 };
 
 struct newtonian_body
 {
+    int type; ///0 is regular object, 1 is laser
+
+    int lid;
+
     cl_float4 position;
     cl_float4 rotation;
 
@@ -48,6 +53,7 @@ struct newtonian_body
     cl_float4 attempted_force_direction;
 
     objects_container* obj;
+    light* laser;
 
     float mass;
 
@@ -60,6 +66,9 @@ struct newtonian_body
 
     virtual void set_rotation_direction(cl_float4 _dest);
     virtual void set_linear_force_direction(cl_float4 _dir);
+
+    newtonian_body* push();
+    newtonian_body* push_laser(int lid);
 
     newtonian_body();
 

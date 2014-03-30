@@ -18,7 +18,9 @@ struct light
     void set_col(cl_float4);
     void set_shadow_bright(cl_uint shadow, cl_float bright);
 
-    static std::vector<light> lightlist;
+    static std::vector<light*> lightlist;
+
+    static light* add_light(light* l);
 };
 
 
