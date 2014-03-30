@@ -130,10 +130,11 @@ newtonian_body* ship::push()
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
 }
 
-newtonian_body* newtonian_body::push_laser(int _lid)
+///must be pushed as global inengine light
+newtonian_body* newtonian_body::push_laser(light* l)
 {
-    lid = _lid;
-    laser = light::lightlist[lid];
+    //lid = light::get_light_id(l);
+    laser = l;
     type = 1;
     newtonian_manager::add_body(this);
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
@@ -163,7 +164,7 @@ void ship::fire()
     if(obj == NULL || type!=0)
         return;
 
-    float speed = 500.0f;
+    float speed = 5000.0f;
 
     cl_float4 pos = position;
     cl_float4 dir = rotation;
@@ -181,16 +182,16 @@ void ship::fire()
     l.set_shadow_bright(0, 1);
     l.set_type(1);
 
-    l.add_light(&l);
+    light* new_light = l.add_light(&l);
     engine::realloc_light_gmem();
-    int id = light::lightlist.size()-1;
+    //int id = light::lightlist.size()-1;
 
     newtonian_body new_bullet;
     new_bullet.position = pos;
     new_bullet.linear_momentum = (cl_float4){x1, y1, z1, 0.0f};
     new_bullet.mass = 1;
 
-    new_bullet.push_laser(id);
+    new_bullet.push_laser(new_light);
 }
 
 newtonian_body* newtonian_body::clone()

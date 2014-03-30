@@ -205,25 +205,27 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     }
 }
 
-int engine::add_light(light* l)
+light* engine::add_light(light* l)
 {
-    int id;
-    light::add_light(l);
-    id=light::lightlist.size()-1;
+    //int id;
+    light* new_light = light::add_light(l);
+    //id=light::lightlist.size()-1;
     realloc_light_gmem();
-    return id;
+    //return id;
+    return new_light;
 }
 
-void engine::set_light_pos(int lid, cl_float4 by_how_much)
+void engine::set_light_pos(light* l, cl_float4 by_how_much)
 {
-    light* l = light::lightlist[lid];
+    //light* l = light::lightlist[lid];
     l->pos.x = by_how_much.x;
     l->pos.y = by_how_much.y;
     l->pos.z = by_how_much.z;
 }
 
-void engine::g_flush_light(int lid) ///just position?
+void engine::g_flush_light(light* l) ///just position?
 {
+    int lid = light::get_light_id(l);
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*lid, sizeof(light), light::lightlist[lid]);
 }
 

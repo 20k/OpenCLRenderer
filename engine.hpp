@@ -62,10 +62,10 @@ struct engine
 
     void load(cl_uint, cl_uint, cl_uint, std::string);
 
-    static int add_light(light*);
-    static void set_light_pos(int, cl_float4);
+    static light* add_light(light*);
+    static void set_light_pos(light*, cl_float4);
     static void g_flush_lights(); ///not implemented
-    static void g_flush_light(int);
+    static void g_flush_light(light*);
     static void realloc_light_gmem(); ///lighting needs to be its own class
     ///need a get light id
 

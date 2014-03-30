@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){-200, 200, -100, 0});
     l.set_type(1.0f);
     l.shadow = 0;
-    int lid = window.add_light(&l);
+    light* start_light = window.add_light(&l);
 
     //l.set_pos((cl_float4){-200, 700, -100, 0});
     //l.set_pos((cl_float4){0, 200, -450, 0});
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     l1.linear_momentum = (cl_float4){50, 0, 0, 0};
     l1.position = (cl_float4){0,200,0,0};
 
-    newtonian_body& light_newt = *l1.push_laser(lid);
+    newtonian_body& light_newt = *l1.push_laser(start_light);
 
     bool lastp = false;
 
@@ -141,16 +141,11 @@ int main(int argc, char *argv[])
             if(b->type==0)
                 b->obj->g_flush_objects();
             if(b->type==1)
-                window.g_flush_light(b->lid);
+                window.g_flush_light(b->laser);
 
-            window.realloc_light_gmem();
+            //window.realloc_light_gmem();
         }
-
-        //sponza.g_flush_objects();
-
-        //l.tick(c.getElapsedTime().asMicroseconds()/1000.0);
-        //window.set_light_pos(lid, light_newt.position);
-        //window.g_flush_light(lid);
+;
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

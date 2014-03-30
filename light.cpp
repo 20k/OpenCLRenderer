@@ -32,6 +32,16 @@ light::light()
     pos = (cl_float4){0.0,0.0,0.0,0.0};
 }
 
+int light::get_light_id(light* l)
+{
+    for(int i=0; i<lightlist.size(); i++)
+    {
+        if(lightlist[i] == l)
+            return i;
+    }
+    return -1;
+}
+
 light* light::add_light(light* l)
 {
     light* new_light = new light(*l);

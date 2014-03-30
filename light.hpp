@@ -21,6 +21,7 @@ struct light
 
     static std::vector<light*> lightlist;
 
+    static int get_light_id(light*);
     static light* add_light(light* l);
 };
 

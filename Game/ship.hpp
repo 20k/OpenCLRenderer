@@ -41,7 +41,7 @@ struct newtonian_body
 {
     int type; ///0 is regular object, 1 is laser
 
-    int lid;
+    //int lid;
 
     cl_float4 position;
     cl_float4 rotation;
@@ -68,7 +68,7 @@ struct newtonian_body
     virtual void set_linear_force_direction(cl_float4 _dir);
 
     newtonian_body* push();
-    newtonian_body* push_laser(int lid);
+    newtonian_body* push_laser(light*);
 
     newtonian_body();
 
