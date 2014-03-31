@@ -2,6 +2,7 @@
 #include "../ocl.h"
 #include "../texture_manager.hpp"
 #include "ship.hpp"
+#include "collision.hpp"
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -28,9 +29,12 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures 1gen?
 
+    collision_object ship_collision_model;
+
     obj_mem_manager::load_active_objects();
     sponza.translate_centre((cl_float4){400,0,0,0});
     sponza.swap_90();
+    ship_collision_model.calculate_collision_ellipsoid(&sponza);
 
     texture_manager::allocate_textures();
 
@@ -48,10 +52,6 @@ int main(int argc, char *argv[])
     l.shadow = 0;
     light* start_light = window.add_light(&l);
 
-    //l.set_pos((cl_float4){-200, 700, -100, 0});
-    //l.set_pos((cl_float4){0, 200, -450, 0});
-    //l.shadow=0;
-
     l.pos.w = 0.0f;
     //for(int i=0; i<100; i++)
     window.add_light(&l);
@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
     ship1.mass = 1;
 
     newtonian_body* ship = ship1.push();
+    ship->add_collision_object(ship_collision_model);
 
     newtonian_body l1;
     l1.obj = NULL;
@@ -134,6 +135,7 @@ int main(int argc, char *argv[])
         //ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
 
         newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
+        newtonian_manager::collide_lasers_with_ships();
 
         for(int i=0; i<newtonian_manager::body_list.size(); i++)
         {

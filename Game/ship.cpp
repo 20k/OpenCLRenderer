@@ -2,6 +2,7 @@
 #include "../engine.hpp"
 
 std::vector<newtonian_body*> newtonian_manager::body_list;
+std::vector<std::pair<newtonian_body*, collision_object> > newtonian_manager::collision_bodies;
 
 newtonian_body::newtonian_body()
 {
@@ -13,6 +14,8 @@ newtonian_body::newtonian_body()
 
     attempted_rotation_direction = (cl_float4){0,0,0,0};
     attempted_force_direction = (cl_float4){0,0,0,0};
+
+    collision_object_id = -1;
 
     obj = NULL;
 
@@ -130,6 +133,11 @@ newtonian_body* ship::push()
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
 }
 
+void newtonian_body::add_collision_object(collision_object& c)
+{
+    newtonian_manager::collision_bodies.push_back(std::pair<newtonian_body*, collision_object>(this, c));
+}
+
 ///must be pushed as global inengine light
 newtonian_body* newtonian_body::push_laser(light* l)
 {
@@ -146,6 +154,7 @@ void newtonian_manager::add_body(newtonian_body* n)
 
     body_list.push_back(to_add);
 }
+
 
 void newtonian_manager::tick_all(float val)
 {
@@ -202,4 +211,38 @@ newtonian_body* newtonian_body::clone()
 ship* ship::clone()
 {
     return new ship(*this);
+}
+
+void newtonian_manager::collide_lasers_with_ships()
+{
+    for(int i=0; i<body_list.size(); i++)
+    {
+        newtonian_body* b = body_list[i];
+        if(b->type == 1)
+        {
+            for(int i=0; i<collision_bodies.size(); i++)
+            {
+                collision_object& c = collision_bodies[i].second;
+                newtonian_body* other = collision_bodies[i].first;
+
+                float val = c.evaluate(b->position.x, b->position.y, b->position.z);
+
+                if(val <= 1)
+                {
+                    other->collided(b);
+                    std::cout << "collision" << std::endl; ///ermagerd works. Now we need to also rotate the ellipse, then done
+                }
+            }
+        }
+    }
+}
+
+void newtonian_body::collided(newtonian_body* other)
+{
+    std::cout << "this shouldn't really have happened" << std::endl;
+}
+
+void ship::collided(newtonian_body* other)
+{
+
 }

@@ -4,6 +4,9 @@
 #include <math.h>
 #include "../objects_container.hpp"
 #include "../light.hpp"
+#include "collision.hpp"
+#include <map>
+#include <utility>
 
 #define MAX_ANGULAR 1.0f
 
@@ -35,13 +38,15 @@ struct newtonian_manager
     static void remove_body(newtonian_body*);
 
     static void tick_all(float);
+
+    static std::vector<std::pair<newtonian_body*, collision_object> > collision_bodies;
+
+    static void collide_lasers_with_ships();
 };
 
 struct newtonian_body
 {
     int type; ///0 is regular object, 1 is laser
-
-    //int lid;
 
     cl_float4 position;
     cl_float4 rotation;
@@ -51,6 +56,8 @@ struct newtonian_body
 
     cl_float4 attempted_rotation_direction;
     cl_float4 attempted_force_direction;
+
+    int collision_object_id;
 
     objects_container* obj;
     light* laser;
@@ -67,6 +74,8 @@ struct newtonian_body
     virtual void set_rotation_direction(cl_float4 _dest);
     virtual void set_linear_force_direction(cl_float4 _dir);
 
+    void add_collision_object(collision_object&);
+
     newtonian_body* push();
     newtonian_body* push_laser(light*);
 
@@ -75,6 +84,8 @@ struct newtonian_body
     virtual void fire();
 
     virtual newtonian_body* clone();
+
+    virtual void collided(newtonian_body*);
 
     //std::vector<cl_float4> thrusters_pos;
     //std::vector<cl_float4> thrusters_force;
@@ -88,6 +99,8 @@ struct ship : newtonian_body
     ship* clone();
 
     newtonian_body* push();
+
+    void collided(newtonian_body*);
 };
 
 struct projectile : newtonian_body
