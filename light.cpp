@@ -1,5 +1,6 @@
 #include "light.hpp"
 #include <iostream>
+#include <float.h>
 
 std::vector<light*> light::lightlist;
 
@@ -25,11 +26,17 @@ void light::set_shadow_bright(cl_uint isshadowcasting, cl_float bright)
     shadow=isshadowcasting, brightness=bright;
 }
 
+void light::set_radius(cl_float r)
+{
+    radius = r;
+}
+
 light::light()
 {
     shadow=0;
     col = (cl_float4){1.0, 1.0, 1.0, 0.0};
     pos = (cl_float4){0.0,0.0,0.0,0.0};
+    radius = FLT_MAX/100000.0f;
 }
 
 int light::get_light_id(light* l)
@@ -47,4 +54,13 @@ light* light::add_light(light* l)
     light* new_light = new light(*l);
     lightlist.push_back(new_light);
     return new_light;
+}
+
+void light::remove_light(light* l)
+{
+    int lid = get_light_id(l);
+    std::vector<light*>::iterator it = lightlist.begin();
+    std::advance(it, lid);
+    lightlist.erase(it);
+    delete l;
 }

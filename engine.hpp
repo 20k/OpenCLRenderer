@@ -63,6 +63,7 @@ struct engine
     void load(cl_uint, cl_uint, cl_uint, std::string);
 
     static light* add_light(light*);
+    static void remove_light(light*);
     static void set_light_pos(light*, cl_float4);
     static void g_flush_lights(); ///not implemented
     static void g_flush_light(light*);

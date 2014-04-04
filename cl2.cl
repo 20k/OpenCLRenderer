@@ -17,7 +17,7 @@
 
 //#define MAXDEPTH 100000
 
-__constant float depth_far=35000;
+__constant float depth_far=350000;
 __constant uint mulint=UINT_MAX;
 __constant int depth_icutoff=150;
 
@@ -64,6 +64,7 @@ struct light
     float4 col;
     uint shadow;
     float brightness;
+    float radius;
     //float2 pad;
 };
 
@@ -2205,7 +2206,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float4 l2c=lpos-global_position;
 
-            float light=dot(normalize(l2c), normalize(normal));
+            float light=dot(fast_normalize(l2c), fast_normalize(normal));
 
             float4 light_rotated = rot(lpos, *c_pos, *c_rot);
 
@@ -2215,6 +2216,19 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float4 projected_out;
             depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
+
+            float dist_to_pixel = fast_distance(projected_out, (float4){x, y, ldepth, 0.0f});
+
+            float rad = lights[i].radius;
+
+            float disteq = (rad - dist_to_pixel) / rad;
+            disteq = clamp(disteq, 0.0f, 1.0f);
+
+            disteq = pow(disteq, 2);
+
+            disteq = clamp(disteq, 0.0f, 1.0f);
+
+            light *= disteq;
 
 
             ///do light radius
@@ -2256,7 +2270,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
                     ///this is actually a solid light
                     float dist = fast_distance(projected_out.xy, (float2){x, y});
 
-                    float4 actual_light = clamp((radius - dist)/radius, 0.0f, 1.0f)*lights[i].col*lights[i].brightness;
+                    float radius_frac = (radius - dist)/radius;
+
+                    float4 actual_light = clamp(radius_frac, 0.0f, 1.0f)*lights[i].col*lights[i].brightness;
 
                     if(fast_distance(lpos, *c_pos) < fast_distance(global_position, *c_pos) || *ft == mulint)
                     {

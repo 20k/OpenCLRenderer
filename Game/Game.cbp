@@ -76,6 +76,8 @@
 		<Unit filename="../triangle.hpp" />
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
+		<Unit filename="collision.cpp" />
+		<Unit filename="collision.hpp" />
 		<Unit filename="main.cpp" />
 		<Unit filename="ship.cpp" />
 		<Unit filename="ship.hpp" />

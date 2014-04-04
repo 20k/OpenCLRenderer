@@ -13,7 +13,9 @@ struct collision_object
     ///will not be updated by any static rotations, though presumably will have to be rotated for dynamic ones
     void calculate_collision_ellipsoid(objects_container*);
 
-    float evaluate(float x, float y, float z);
+    float evaluate(float x, float y, float z, cl_float4 centre, cl_float4 rotation);
+
+    //collision_object get_rotation(cl_float4 centre, cl_float4 rotation);
 };
 
 

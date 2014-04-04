@@ -215,6 +215,11 @@ light* engine::add_light(light* l)
     return new_light;
 }
 
+void engine::remove_light(light* l)
+{
+    light::remove_light(l);
+}
+
 void engine::set_light_pos(light* l, cl_float4 by_how_much)
 {
     //light* l = light::lightlist[lid];

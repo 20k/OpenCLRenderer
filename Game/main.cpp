@@ -9,15 +9,21 @@
 ///todo
 ///fix memory management to not be atrocious
 
+
+///fix into different runtime classes - specify ship attributes as vec
+
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
     objects_container sponza;
-    objects_container sponza2;
+    objects_container second_ship;
 
     sponza.set_file("../objects/shittyspaceship.obj");
     sponza.set_active(true);
+
+    second_ship.set_file("../objects/shittyspaceship.obj");
+    second_ship.set_active(true);
 
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
@@ -30,11 +36,17 @@ int main(int argc, char *argv[])
     ///Or is this important because textures 1gen?
 
     collision_object ship_collision_model;
+    collision_object ship_collision_model2;
 
     obj_mem_manager::load_active_objects();
+
     sponza.translate_centre((cl_float4){400,0,0,0});
     sponza.swap_90();
     ship_collision_model.calculate_collision_ellipsoid(&sponza);
+
+    second_ship.translate_centre((cl_float4){400,0,0,0});
+    second_ship.swap_90();
+    ship_collision_model2.calculate_collision_ellipsoid(&second_ship);
 
     texture_manager::allocate_textures();
 
@@ -53,7 +65,7 @@ int main(int argc, char *argv[])
     light* start_light = window.add_light(&l);
 
     l.pos.w = 0.0f;
-    //for(int i=0; i<100; i++)
+
     window.add_light(&l);
 
     window.construct_shadowmaps();
@@ -65,8 +77,19 @@ int main(int argc, char *argv[])
     ship1.thruster_forward = 4;
     ship1.mass = 1;
 
-    newtonian_body* ship = ship1.push();
-    ship->add_collision_object(ship_collision_model);
+    newtonian_body* player_ship = ship1.push();
+    player_ship->add_collision_object(ship_collision_model);
+
+    ship ship2;
+    ship2.obj = &second_ship;
+    ship2.thruster_force = 0.1;
+    ship2.thruster_distance = 1;
+    ship2.thruster_forward = 4;
+    ship2.mass = 1;
+    ship2.position = (cl_float4){0,-200,0,0};
+
+    newtonian_body* ship_2 = ship2.push();
+    ship_2->add_collision_object(ship_collision_model2);
 
     newtonian_body l1;
     l1.obj = NULL;
@@ -93,38 +116,38 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        ship->set_rotation_direction((cl_float4){0,0,0,0});
-        ship->set_linear_force_direction((cl_float4){0,0,0,0});
+        player_ship->set_rotation_direction((cl_float4){0,0,0,0});
+        player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
 
 
         sf::Keyboard k;
         if(k.isKeyPressed(sf::Keyboard::I))
         {
-            ship->set_linear_force_direction((cl_float4){1, 0, 0, 0});
+            player_ship->set_linear_force_direction((cl_float4){1, 0, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::J))
         {
-            ship->set_linear_force_direction((cl_float4){0, 0, 1, 0});
+            player_ship->set_linear_force_direction((cl_float4){0, 0, 1, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::K))
         {
-            ship->set_linear_force_direction((cl_float4){-1, 0, 0, 0});
+            player_ship->set_linear_force_direction((cl_float4){-1, 0, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::L))
         {
-            ship->set_linear_force_direction((cl_float4){0, 0, -1, 0});
+            player_ship->set_linear_force_direction((cl_float4){0, 0, -1, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::O))
         {
-            ship->set_rotation_direction((cl_float4){0, -1, 0, 0});
+            player_ship->set_rotation_direction((cl_float4){0, -1, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::U))
         {
-            ship->set_rotation_direction((cl_float4){0, 1, 0, 0});
+            player_ship->set_rotation_direction((cl_float4){0, 1, 0, 0});
         }
         if(k.isKeyPressed(sf::Keyboard::P) && !lastp)
         {
-            ship->fire();
+            player_ship->fire();
             lastp = true;
         }
         if(!k.isKeyPressed(sf::Keyboard::P))
@@ -142,10 +165,10 @@ int main(int argc, char *argv[])
             newtonian_body* b = newtonian_manager::body_list[i];
             if(b->type==0)
                 b->obj->g_flush_objects();
-            if(b->type==1)
-                window.g_flush_light(b->laser);
+            //if(b->type==1)
+            //    window.g_flush_light(b->laser);
 
-            //window.realloc_light_gmem();
+            window.realloc_light_gmem();
         }
 ;
 

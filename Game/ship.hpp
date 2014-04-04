@@ -42,11 +42,20 @@ struct newtonian_manager
     static std::vector<std::pair<newtonian_body*, collision_object> > collision_bodies;
 
     static void collide_lasers_with_ships();
+
+    static int get_id(newtonian_body*);
 };
 
 struct newtonian_body
 {
+    newtonian_body* parent;
+
     int type; ///0 is regular object, 1 is laser
+
+    float ttl;
+
+    bool expires;
+    bool collides;
 
     cl_float4 position;
     cl_float4 rotation;

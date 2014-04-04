@@ -19,6 +19,13 @@ newtonian_body::newtonian_body()
 
     obj = NULL;
 
+    parent = NULL;
+
+    ttl = -1;
+
+    collides = false;
+    expires = false;
+
     //mass = 1;
 }
 
@@ -107,11 +114,14 @@ void newtonian_body::tick(float timestep)
         obj->set_rot(rotation);
         obj->set_pos(position);
     }
-    if(type == 1)
+    if(laser!=NULL && type == 1) ///laser == null impossible
     {
         //engine::set_light_pos(lid, position);
         laser->set_pos(position);
     }
+
+    if(ttl > 0)
+        ttl-=timestep;
 }
 
 void newtonian_body::fire()
@@ -148,6 +158,19 @@ newtonian_body* newtonian_body::push_laser(light* l)
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
 }
 
+int newtonian_manager::get_id(newtonian_body* n)
+{
+    for(int i=0; i<body_list.size(); i++)
+    {
+        if(body_list[i] == n)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 void newtonian_manager::add_body(newtonian_body* n)
 {
     newtonian_body* to_add = n->clone();
@@ -155,12 +178,35 @@ void newtonian_manager::add_body(newtonian_body* n)
     body_list.push_back(to_add);
 }
 
+void newtonian_manager::remove_body(newtonian_body* n)
+{
+    if(n->type==1)
+    {
+        light::remove_light(n->laser);
+    }
+
+    int id = get_id(n);
+
+    std::vector<newtonian_body*>::iterator it = body_list.begin();
+    std::advance(it, id);
+
+    body_list.erase(it);
+
+    delete n;
+}
 
 void newtonian_manager::tick_all(float val)
 {
     for(int i=0; i<body_list.size(); i++)
     {
         body_list[i]->tick(val);
+        if(body_list[i]->ttl <= 0 && body_list[i]->type == 1 && body_list[i]->expires)
+        {
+            std::cout << "ttl erase" << std::endl;
+
+            newtonian_manager::remove_body(body_list[i]);
+            i--;
+        }
         //if(body_list[i]->type == 0)
         //    body_list[i]->obj->g_flush_objects();
         //if(body_list[i]->type == 1)
@@ -187,9 +233,10 @@ void ship::fire()
     z1 *= speed;
 
     light l;
-    l.col = (cl_float4){1.0f, 0.0f, 0.0f, 0.0f};
-    l.set_shadow_bright(0, 1);
+    l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
+    l.set_shadow_bright(0, 2);
     l.set_type(1);
+    l.set_radius(4000.0f);
 
     light* new_light = l.add_light(&l);
     engine::realloc_light_gmem();
@@ -199,6 +246,10 @@ void ship::fire()
     new_bullet.position = pos;
     new_bullet.linear_momentum = (cl_float4){x1, y1, z1, 0.0f};
     new_bullet.mass = 1;
+    new_bullet.parent = this;
+    new_bullet.ttl = 10*1000; ///10 seconds
+    new_bullet.collides = true;
+    new_bullet.expires = true;
 
     new_bullet.push_laser(new_light);
 }
@@ -220,17 +271,24 @@ void newtonian_manager::collide_lasers_with_ships()
         newtonian_body* b = body_list[i];
         if(b->type == 1)
         {
-            for(int i=0; i<collision_bodies.size(); i++)
+            for(int j=0; j<collision_bodies.size(); j++)
             {
-                collision_object& c = collision_bodies[i].second;
-                newtonian_body* other = collision_bodies[i].first;
+                collision_object& c = collision_bodies[j].second;
+                newtonian_body* other = collision_bodies[j].first;
 
-                float val = c.evaluate(b->position.x, b->position.y, b->position.z);
+                float val = c.evaluate(b->position.x, b->position.y, b->position.z, other->position, other->rotation);
 
-                if(val <= 1)
+                if(val <= 1 && b->parent!=other && b->collides)
                 {
                     other->collided(b);
+
                     std::cout << "collision" << std::endl; ///ermagerd works. Now we need to also rotate the ellipse, then done
+
+                    newtonian_manager::remove_body(b);
+                    i--;
+                    break;
+
+
                 }
             }
         }
