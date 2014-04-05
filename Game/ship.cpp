@@ -234,9 +234,9 @@ void ship::fire()
 
     light l;
     l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
-    l.set_shadow_bright(0, 2);
+    l.set_shadow_bright(0, 3);
     l.set_type(1);
-    l.set_radius(4000.0f);
+    l.set_radius(1000.0f);
 
     light* new_light = l.add_light(&l);
     engine::realloc_light_gmem();

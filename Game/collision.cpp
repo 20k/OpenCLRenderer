@@ -59,9 +59,15 @@ void collision_object::calculate_collision_ellipsoid(objects_container* objs)
         }
     }
 
+    float fudge = 1.1f;
+
     a = (xmax - xmin) / 2.0f;
     b = (ymax - ymin) / 2.0f;
     c = (zmax - zmin) / 2.0f;
+
+    a*=fudge;
+    b*=fudge;
+    b*=fudge;
 
     centre.x = (xmax + xmin) / 2.0f;
     centre.y = (ymax + ymin) / 2.0f;
