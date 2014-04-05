@@ -81,13 +81,13 @@ struct obj_g_descriptor
 };
 
 
-
 struct vertex
 {
     float4 pos;
     float4 normal;
     float2 vt;
-    float2 pad;
+    uint pad;
+    uint pad2;
 };
 
 struct triangle
@@ -97,22 +97,12 @@ struct triangle
 
 struct interp_container
 {
-    int x[3];
-    int y[3];
+    int4 x;
+    int4 y;
     int xbounds[2];
     int ybounds[2];
     float rconstant;
-    float area;
-    int side;
-    int sg[3];
 };
-
-struct t_c
-{
-    struct triangle t[2];
-    int c;
-};
-
 
 float calc_third_areas_i(int x1, int x2, int x3, int y1, int y2, int y3, int x, int y)
 {
@@ -123,7 +113,7 @@ float calc_third_areas_i(int x1, int x2, int x3, int y1, int y2, int y3, int x, 
 
 float calc_third_areas(struct interp_container *C, int x, int y)
 {
-    return calc_third_areas_i(C->x[0], C->x[1], C->x[2], C->y[0], C->y[1], C->y[2], x, y);
+    return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
     //return calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 1) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 2) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 3);
 }
 
@@ -177,7 +167,7 @@ float interpolate_2(float4 vals, struct interp_container c, int x, int y)
 
     for(int i=0; i<3; i++)
     {
-        a[i] = calc_third_area(c.x[0], c.y[0], c.x[1], c.y[1], c.x[2], c.y[2], x, y, i+1);
+        a[i] = calc_third_area(c.x.x, c.y.x, c.x.y, c.y.y, c.x.z, c.y.z, x, y, i+1);
     }
 
     //float area = c.area;
@@ -196,11 +186,11 @@ float interpolate_i(float f1, float f2, float f3, int x, int y, int x1, int x2, 
     return (float)(A*x + B*y + C);
 }
 
-float interpolate_p(float f[3], int xn, int yn, int x[3], int y[3], float rconstant)
+float interpolate_p(float4 f, int xn, int yn, int4 x, int4 y, float rconstant)
 {
-    float A=((f[1]*y[2]+f[0]*(y[1]-y[2])-f[2]*y[1]+(f[2]-f[1])*y[0]) * rconstant);
-    float B=(-(f[1]*x[2]+f[0]*(x[1]-x[2])-f[2]*x[1]+(f[2]-f[1])*x[0]) * rconstant);
-    float C=f[0]-A*x[0] - B*y[0];
+    float A=((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
+    float B=(-(f.y*x.z+f.x*(x.y-x.z)-f.z*x.y+(f.z-f.y)*x.x) * rconstant);
+    float C=f.x-A*x.x - B*y.x;
 
     return (float)(A*xn + B*yn + C);
 }
@@ -219,7 +209,7 @@ float2 interpolate_r_pair(float2 f[3], float2 xy, float2 bounds[3])
     return ip;
 }
 
-float interpolate(float f[3], struct interp_container *c, int x, int y)
+float interpolate(float4 f, struct interp_container *c, int x, int y)
 {
     return interpolate_p(f, x, y, c->x, c->y, c->rconstant);
 }
@@ -294,18 +284,17 @@ void calc_min_max(float4 points[3], int width, int height, int ret[4])
 }
 
 
-struct interp_container construct_interpolation(struct triangle tri, int width, int height)
+struct interp_container construct_interpolation(struct triangle* tri, int width, int height)
 {
     struct interp_container C;
 
-    int y1 = round(tri.vertices[0].pos.y);
-    int y2 = round(tri.vertices[1].pos.y);
-    int y3 = round(tri.vertices[2].pos.y);
+    int y1 = round(tri->vertices[0].pos.y);
+    int y2 = round(tri->vertices[1].pos.y);
+    int y3 = round(tri->vertices[2].pos.y);
 
-
-    int x1 = round(tri.vertices[0].pos.x);
-    int x2 = round(tri.vertices[1].pos.x);
-    int x3 = round(tri.vertices[2].pos.x);
+    int x1 = round(tri->vertices[0].pos.x);
+    int x2 = round(tri->vertices[1].pos.x);
+    int x3 = round(tri->vertices[2].pos.x);
 
     int miny=min3(y1, y2, y3)-1; ///oh, wow
     int maxy=max3(y1, y2, y3);
@@ -324,19 +313,16 @@ struct interp_container construct_interpolation(struct triangle tri, int width, 
     maxx=max(maxx, 0);
     maxx=min(maxx, width);
 
-
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
 
-    float area=calc_third_area(x1, y1, x2, y2, x3, y3, 0, 0, 0);
 
+    C.x.x=x1;
+    C.x.y=x2;
+    C.x.z=x3;
 
-    C.x[0]=x1;
-    C.x[1]=x2;
-    C.x[2]=x3;
-
-    C.y[0]=y1;
-    C.y[1]=y2;
-    C.y[2]=y3;
+    C.y.x=y1;
+    C.y.y=y2;
+    C.y.z=y3;
 
     C.xbounds[0]=minx;
     C.xbounds[1]=maxx;
@@ -345,14 +331,6 @@ struct interp_container construct_interpolation(struct triangle tri, int width, 
     C.ybounds[1]=maxy;
 
     C.rconstant=rconstant;
-
-
-    float x = x1 + x2 + x3;
-    x/=3.0f;
-    float y = y1 + y2 + y3;
-    y/=3.0f;
-
-    C.area=area;
 
     return C;
 }
@@ -855,8 +833,8 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         for(int i=0; i<3; i++)
         {
-            passback[1].vertices[i].pad.x = T->vertices[i].pad.x;
-            passback[1].vertices[i].pad.y = T->vertices[i].pad.y;
+            passback[1].vertices[i].pad = T->vertices[i].pad;
+            //passback[1].vertices[i].pad.y = T->vertices[i].pad.y;
         }
 
         *num = 2;
@@ -1629,7 +1607,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
     __global struct triangle *T=&triangles[id];
 
-    int o_id = T->vertices[0].pad.y;
+    int o_id = T->vertices[0].pad;
 
     ///this is the 3d projection 'pipeline'
 
@@ -1809,9 +1787,12 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         yp[i] = round(tris_proj_n[i].y);
     }
 
+    int4 xpv = {xp[0], xp[1], xp[2], 0.0f};
+    int4 ypv = {yp[0], yp[1], yp[2], 0.0f};
+
 
     ///have to interpolate inverse to be perspective correct
-    float depths[3]= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
+    float4 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z), 0.0f};
 
 
     ///calculate area by triangle 3rd area method
@@ -1851,7 +1832,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         {
             __global uint *ft=&depth_buffer[y*(int)ewidth + x];
 
-            float fmydepth = interpolate_p(depths, x, y, xp, yp, rconst);
+            float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
             fmydepth = 1.0f / fmydepth;
             ///retrieve original depth
@@ -1939,7 +1920,13 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
 
-    float depths[3]= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
+    int4 xpv = {xp[0], xp[1], xp[2], 0.0f};
+    int4 ypv = {yp[0], yp[1], yp[2], 0.0f};
+
+
+    ///have to interpolate inverse to be perspective correct
+    float4 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z), 0.0f};
+
 
     float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
 
@@ -1972,7 +1959,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         {
             __global uint *ft=&depth_buffer[y*SCREENWIDTH + x];
 
-            float fmydepth = interpolate_p(depths, x, y, xp, yp, rconst);
+            float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
             fmydepth = 1.0f / fmydepth;
 
@@ -2061,7 +2048,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         int num = 0;
 
-        int o_id=T->vertices[0].pad.y;
+        int o_id=T->vertices[0].pad;
 
         __global struct obj_g_descriptor *G = &gobj[o_id];
 
@@ -2072,7 +2059,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
 
-        icontainer = construct_interpolation(tris[wtri], SCREENWIDTH, SCREENHEIGHT);
+        icontainer = construct_interpolation(&tris[wtri], SCREENWIDTH, SCREENHEIGHT);
 
 
         struct triangle *c_tri = &tris[wtri];
@@ -2086,10 +2073,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         float4 vt;
 
 
-        float xvt[3]= {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2]};
+        float4 xvt= {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2], 0.0f};
         vt.x=interpolate(xvt, &icontainer, x, y);
 
-        float yvt[3]= {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2]};
+        float4 yvt= {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2], 0.0f};
         vt.y=interpolate(yvt, &icontainer, x, y);
 
         vt *= ldepth;
@@ -2103,9 +2090,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         //float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
 
         ///perspective correct normals
-        float normalsx[3]= {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
-        float normalsy[3]= {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
-        float normalsz[3]= {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
+        float4 normalsx = {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2], 0.0f};
+        float4 normalsy = {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2], 0.0f};
+        float4 normalsz = {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2], 0.0f};
 
         ///interpolated normal
         float4 normal;

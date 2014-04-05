@@ -6,7 +6,8 @@ struct vertex
     cl_float pos[4];
     cl_float normal[4]; ///xyz
     cl_float vt[2];
-    cl_float pad[2];
+    cl_uint pad;
+    cl_uint pad2;
 };
 
 
