@@ -65,25 +65,19 @@ struct light
     uint shadow;
     float brightness;
     float radius;
-    //float2 pad;
 };
 
 
 struct obj_g_descriptor
 {
-    float4 world_pos;   ///w is blaenk
-    float4 world_rot;   ///w is blaenk
-    //float4 world_centre;
-    uint start;         ///internally used value
-    uint tri_num;
+    float4 world_pos;   ///w is 0
+    float4 world_rot;   ///w is 0
+    uint start;         ///where the triangles start in the triangle buffer
+    uint tri_num;       ///number of triangles
     uint tid;           ///texture id
-    uint size;
     uint mip_level_ids[MIP_LEVELS];
     uint has_bump;
     uint cumulative_bump;
-    uint pad[2];
-    ///cumulative id for how many have bumps before it so can be found in 3d texture. Just create another 3d texture. Is easier
-    ///in fact, do that.
 };
 
 

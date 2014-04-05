@@ -12,7 +12,6 @@ struct obj_g_descriptor
     cl_uint start; ///start triangle num
     cl_uint tri_num; ///length of triangles (ie start; i < start + tri_num; i++)
     cl_uint tid; ///texture id
-    cl_uint size; ///length
     cl_uint mip_level_ids[MIP_LEVELS];
     cl_uint has_bump;
     cl_uint cumulative_bump;
