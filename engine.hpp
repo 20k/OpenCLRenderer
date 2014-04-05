@@ -20,36 +20,37 @@ struct engine
 
     cl_uint width, height, depth;
     cl_uint g_size; /// height > width rounded up to nearest power of 2
-    static cl_uint l_size;
-    cl_float4 c_pos;
+    static cl_uint l_size; ///light cubemap size
+    cl_float4 c_pos; ///camera position, rotation
     cl_float4 c_rot;
 
     compute::opengl_renderbuffer g_screen;
 
+    ///gpu side camera position and rotation
     compute::buffer g_c_pos;
     compute::buffer g_c_rot;
 
-    compute::buffer depth_buffer[2]; ///switches between the two every frame ///make this a 2d image?
-    //cl_mem g_depth_screen;
-    compute::buffer g_id_screen;
-    compute::image2d g_id_screen_tex;
-    compute::buffer g_normals_screen;
-    compute::buffer g_texture_screen;
-    static compute::buffer g_shadow_light_buffer;
-    compute::buffer g_shadow_occlusion_screen;
+    ///switches between the two every frame
+    compute::buffer depth_buffer[2];
+    compute::image2d g_id_screen_tex; ///2d screen id texture
+    compute::buffer g_normals_screen; ///unused 2d normal buffer
+    compute::buffer g_texture_screen; ///unused 2d texture coordinate buffer
+    static compute::buffer g_shadow_light_buffer; ///buffer for light cubemaps for shadows
 
-    compute::buffer g_tid_buf;
-    compute::buffer g_tid_buf_max_len;
-    compute::buffer g_tid_buf_atomic_count;
+    compute::buffer g_tid_buf; ///triangle id buffer for fragments
+    compute::buffer g_tid_buf_max_len; ///max length
+    compute::buffer g_tid_buf_atomic_count; ///atomic counter for kernel
     int c_tid_buf_len;
 
-    compute::buffer g_valid_fragment_mem;
-    compute::buffer g_valid_fragment_num;
+    compute::buffer g_valid_fragment_mem; ///memory storage for valid fragments
+    compute::buffer g_valid_fragment_num; ///number of valid fragments
 
+    ///debugging declarations
     cl_uint* d_depth_buf;
     compute::buffer d_triangle_buf;
     triangle *dc_triangle_buf;
 
+    ///opengl ids
     static unsigned int gl_screen_id;
     static unsigned int gl_framebuffer_id;
 
@@ -66,12 +67,12 @@ struct engine
     static void remove_light(light*);
     static void set_light_pos(light*, cl_float4);
     static void g_flush_lights(); ///not implemented
-    static void g_flush_light(light*);
-    static void realloc_light_gmem(); ///lighting needs to be its own class
-    ///need a get light id
+    static void g_flush_light(light*); ///flushes a particular light to the gpu
+    static void realloc_light_gmem(); ///reallocates all lights
+    ///lighting needs to be its own class
 
     void construct_shadowmaps();
-    void draw_bulk_objs_n();
+    void draw_bulk_objs_n(); ///draw objects to scene
     void render_buffers();
 
     void input();
@@ -81,10 +82,10 @@ struct engine
     void set_camera_pos(cl_float4);
     void set_camera_rot(cl_float4);
 
-    void check_obj_visibility();
+    void check_obj_visibility(); ///unused, likely ot be removed
 };
 
-
+///runs a kernel with a particular set of arguments
 static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     for(int i=0; i<argc; i++)

@@ -5,11 +5,12 @@
 #include <string>
 #include <cl/cl.h>
 #include <boost/function.hpp>
+
 struct object
 {
     cl_float4 pos;
     cl_float4 rot;
-    cl_float4 centre;
+    cl_float4 centre; ///unused
 
     bool isactive;
     int tri_num;
@@ -22,35 +23,29 @@ struct object
     boost::function<void (object*)> obj_load_func;
 
     cl_uint tid; ///texture id
-    //cl_uint atid; ///texture id in the active texturelist
     cl_uint bid; ///bumpmap_id
-    //cl_uint abid; ///active bumpmap_id
 
     cl_uint object_g_id; ///obj_g_descriptor id
 
-    cl_uint object_sub_position; ///position in array
-
-    cl_mem g_mem;
-    cl_mem g_tri_num;
-
-    cl_uint has_bump;
+    cl_uint has_bump; ///does this object have a bumpmap
 
     object();
 
-    void set_active    (bool param);
-    void set_pos       (cl_float4);
-    void set_rot       (cl_float4);
-    void swap_90       ();
+    void set_active(bool param);
+    void set_pos(cl_float4);
+    void set_rot(cl_float4);
+    void swap_90();
 
     void translate_centre(cl_float4);
 
-    void set_vis_func  (boost::function<int (object*, cl_float4)>);
-    int  call_vis_func (object*, cl_float4);
+    void set_vis_func(boost::function<int (object*, cl_float4)>);
+    int  call_vis_func(object*, cl_float4);
 
-    void set_load_func (boost::function<void (object*)>);
+    void set_load_func(boost::function<void (object*)>);
     void call_load_func(object*);
 
     void try_load(cl_float4); ///try and get the object, dependent on its visibility
+    ///unused, probably removing visibility system due to complete infeasibility of automatic object loading based on anything useful
 
     void g_flush(); ///flush position (currently just) etc to gpu memory
 };

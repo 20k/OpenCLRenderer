@@ -22,7 +22,6 @@ object::object() : tri_list(0)
     rot.x=0, rot.y=0, rot.z=0;
     centre.x = 0, centre.y = 0, centre.z = 0, centre.w = 0;
     tid = 0;
-    //atid = 0;
     isactive = false;
     has_bump = 0;
     isloaded = false;
@@ -37,7 +36,7 @@ void object::set_active(bool param)
     {
         if(!isactive)
         {
-            ///if object ! initialised, error
+            ///if object !initialised, should probably error out, or throw
             isactive = param;
             texture_manager::all_textures[tid].type = 0;
             texture_manager::all_textures[tid].activate();
@@ -83,6 +82,7 @@ void object::set_rot(cl_float4 _rot)
     rot = _rot;
 }
 
+///static full mesh translation
 void object::translate_centre(cl_float4 _centre)
 {
     centre = _centre;
@@ -97,6 +97,7 @@ void object::translate_centre(cl_float4 _centre)
     }
 }
 
+///static full mesh and normal rotation
 void object::swap_90()
 {
     for(int i=0; i<tri_list.size(); i++)
@@ -110,7 +111,6 @@ void object::swap_90()
             temp = tri_list[i].vertices[j].normal[0];
             tri_list[i].vertices[j].normal[0] = -tri_list[i].vertices[j].normal[2];
             tri_list[i].vertices[j].normal[2] = temp;
-            //tri_list[i].vertices[j].pos[2] += centre.z;
         }
     }
 }
@@ -143,17 +143,10 @@ void object::try_load(cl_float4 pos)
     }
 }
 
+///flush rotation and position information to relevant subobject descriptor
+///if scene updated behind objects back will not work
 void object::g_flush()
 {
-    //int cumulative = 0;
-
-    //for(unsigned int i=0; i<arrange_id; i++)
-    //{
-    //    cumulative+=obj_mem_manager::obj_sub_nums[i];
-    //}
-
-    //clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc, CL_FALSE, sizeof(obj_g_descriptor)*(cumulative + object_sub_position), sizeof(cl_float4), &pos, 0, NULL, NULL);
-
     cl_float8 posrot;
 
     posrot.lo = pos;

@@ -8,7 +8,7 @@ std::vector<objects_container*> objects_container::obj_container_list;
 
 ///id system is broken if someone removes object
 
-
+///this class is essentially a wrapper around the subobjects, most functions simply pass through
 objects_container::objects_container()
 {
     isactive = false;
@@ -62,7 +62,6 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 
 void objects_container::set_file(std::string f)
 {
-    //std::cout << "hello" << std::endl;
     file = f;
 }
 
@@ -165,12 +164,6 @@ void objects_container::g_flush_objects()
     if(isactive)
     {
         objects_container *T = objects_container::obj_container_list[id];
-
-        /*for(unsigned int i=0; i<T->objs.size(); i++)
-        {
-            T->objs[i].object_g_id = id;
-            T->objs[i].object_sub_position = i;
-        }*/
 
         for(unsigned int i=0; i<T->objs.size(); i++)
         {

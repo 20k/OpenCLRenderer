@@ -12,6 +12,7 @@
 #include <list>
 #include <boost/bind.hpp>
 
+///get diffuse name
 std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name)
 {
     bool found = false;
@@ -29,6 +30,7 @@ std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name
     return std::string("");
 }
 
+///get bumpmap name
 std::string retrieve_bumpmap(std::vector<std::string> file, std::string name)
 {
     bool found = false;
@@ -57,11 +59,12 @@ std::string retrieve_bumpmap(std::vector<std::string> file, std::string name)
 ///vertex, texture coordinate, normal
 ///remember, offset by one for faces
 
+///gets attributes
 template <typename T>
 void decompose_attribute(const std::string &str, T a[], int n)
 {
     size_t pos = str.find(".");
-    int s[n+1];
+    int s[n+1]; ///probably fix using varargs
     ///initialise first element to be initial position
     s[0]={str.find(" ")};
     for(int i=1; i<n+1; i++)
@@ -80,6 +83,7 @@ void decompose_attribute(const std::string &str, T a[], int n)
     }
 }
 
+///decompose face into vertex ids, texture coordinate ids, and normal ids
 void decompose_face(const std::string &str, int v[3], int vt[3], int vn[3])
 {
     ///assume valid str because there is no sensible fail case where this isn't a bug
@@ -115,12 +119,15 @@ struct indices
     int vn[3];
 };
 
+///hastily and poorly written object loader
+///requires triangulated faces, and explicit texture coordinates, normals, usemtl statements, and a diffuse texture specified
 void obj_load(objects_container* pobj)
 {
     std::string filename = pobj->file;
     std::string mtlname;
     int tp = filename.find_last_of(".");
     mtlname = filename.substr(0, tp) + std::string(".mtl");
+    ///get mtlname
 
     int lslash = filename.find_last_of("/");
 
@@ -146,6 +153,7 @@ void obj_load(objects_container* pobj)
         std::cout << mtlname << " could not be found" << std::endl;
     }
 
+    ///load .obj file contents
     while(file.good())
     {
         std::string str;
@@ -153,6 +161,7 @@ void obj_load(objects_container* pobj)
         file_contents.push_back(str);
     }
 
+    ///load mtl file contents
     while(mtlfile.good())
     {
         std::string str;

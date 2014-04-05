@@ -9,8 +9,7 @@
 
 namespace compute = boost::compute;
 
-struct texture_array_descriptor;
-
+///temporary objects when switching buffers
 struct temporaries
 {
     cl_uint tri_num;
@@ -33,7 +32,7 @@ struct temporaries
     compute::buffer g_texture_nums;
 };
 
-
+///storage for non texture graphics side information, such as triangles, object descriptors, light memory, and triangles (+ extra triangles produced by clipping) memory
 struct obj_mem_manager
 {
     static temporaries temporary_objects;
@@ -47,24 +46,16 @@ struct obj_mem_manager
     static compute::buffer g_obj_desc;
     static compute::buffer g_obj_num;
 
-    ///screenspace depth buffer for shadow casting lights. This is going to be slow
     static compute::buffer g_light_mem;
     static compute::buffer g_light_num;
-    //static compute::buffer g_light_buf;
-    ///array of lights in g_mem
 
     static compute::buffer g_cut_tri_mem;
     static compute::buffer g_cut_tri_num;
 
-
-    static int which_temp_object;
-
     static bool ready;
 
-    static void g_arrange_textures();
     static void g_arrange_mem();
     static void g_changeover();
-    static void g_update_obj(object*);
 
     static void load_active_objects();
 };

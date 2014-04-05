@@ -1,5 +1,7 @@
 #include "clstate.h"
 
+///kernel information and opencl stuff
+
 compute::device cl::device;
 compute::command_queue cl::cqueue;
 compute::context cl::context;

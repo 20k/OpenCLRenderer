@@ -7,6 +7,8 @@
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
 
+///kernels and opencl stuff
+
 namespace compute = boost::compute;
 
 namespace cl

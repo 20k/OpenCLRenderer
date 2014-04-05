@@ -26,30 +26,12 @@ compute::buffer obj_mem_manager::g_obj_desc;
 compute::buffer obj_mem_manager::g_obj_num;
 compute::buffer obj_mem_manager::g_light_mem;
 compute::buffer obj_mem_manager::g_light_num;
-//compute::buffer obj_mem_manager::g_light_buf;
 
 bool obj_mem_manager::ready = false;
 
-//compute::image3d obj_mem_manager::g_texture_array;
-//compute::buffer obj_mem_manager::g_texture_sizes;
-//compute::buffer obj_mem_manager::g_texture_nums;
-
-//cl_uchar4* obj_mem_manager::c_texture_array = NULL;
-
-int obj_mem_manager::which_temp_object = 0;
-
 temporaries obj_mem_manager::temporary_objects;
 
-struct texture_array_descriptor
-{
-
-    std::vector<int> texture_nums;
-    std::vector<int> texture_sizes;
-
-} tad;
-
-//texture_array_descriptor obj_mem_manager::tdescrip;
-
+///loads every active object in the scene
 void obj_mem_manager::load_active_objects()
 {
     ///process loaded objects
@@ -64,13 +46,14 @@ void obj_mem_manager::load_active_objects()
     }
 }
 
-
+///fills the object descriptors for the objects contained within object_containers
 int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start)
 {
     cl_uint cumulative_bump = 0;
 
     int n=0;
 
+    ///cumulative triangle count
     cl_uint trianglecount = 0;
 
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
@@ -99,6 +82,7 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
                 }
             }
 
+            ///fill texture and mipmap ids
             object_descriptors[n].tid = num_id;
 
             for(int i=0; i<MIP_LEVELS; i++)
@@ -106,9 +90,9 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
                 object_descriptors[n].mip_level_ids[i]=mipmap_start + object_descriptors[n].tid*MIP_LEVELS + i;
             }
 
+            ///fill other information in
             object_descriptors[n].world_pos=(it)->pos;
             object_descriptors[n].world_rot=(it)->rot;
-            //object_descriptors[n].world_centre = (it)->centre;
             object_descriptors[n].has_bump = it->has_bump;
             object_descriptors[n].cumulative_bump = cumulative_bump;
 
@@ -134,6 +118,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices);
     t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size());
+    ///3d texture array
     t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
 
     delete [] texture_manager::c_texture_array;
@@ -166,10 +151,8 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     int obj_id=0;
 
+
     ///write triangle data to gpu
-
-    int p=0;
-
     for(std::vector<objects_container*>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); it2++)
     {
         objects_container* obj = (*it2);
@@ -178,9 +161,9 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
             for(int i=0; i<(*it).tri_num; i++)
             {
                 (*it).tri_list[i].vertices[0].pad[1]=obj_id;
-                p++;
             }
 
+            ///boost::compute fails an assertion if tri_num == 0
             if((*it).tri_num>0)
                 cl::cqueue.enqueue_write_buffer(t.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_num, (*it).tri_list.data());
 
@@ -195,8 +178,6 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
 void obj_mem_manager::g_arrange_mem()
 {
-    //std::vector<int>().swap(texture_manager::texture_numbers);
-    //std::vector<int>().swap(texture_manager::texture_sizes);
     std::vector<int>().swap(obj_mem_manager::obj_sub_nums);
 
 
@@ -204,23 +185,7 @@ void obj_mem_manager::g_arrange_mem()
 
     std::vector<obj_g_descriptor> object_descriptors;
 
-    //std::vector<int> new_texture_ids;
-    //std::vector<int> mipmap_texture_ids;
-
-
     load_active_objects();
-
-    //texture_manager::allocate_textures();
-
-
-    //std::vector<std::pair<int, int> > unique_sizes = generate_unique_size_table();
-
-    //allocate_cpu_texture_array(unique_sizes);
-
-    //std::vector<cl_uint> texture_number_ids;
-    //std::vector<cl_uint> texture_active_ids;
-
-    //int mipmap_start = generate_textures_and_mipmaps(texture_number_ids, texture_active_ids, mipmap_texture_ids, new_texture_ids);
 
     triangle_count = fill_subobject_descriptors(object_descriptors, texture_manager::mipmap_start);
 
@@ -228,14 +193,13 @@ void obj_mem_manager::g_arrange_mem()
     allocate_gpu(object_descriptors, texture_manager::mipmap_start, triangle_count);
 
     texture_manager::c_texture_array = NULL;
-    obj_mem_manager::ready = true;
+    obj_mem_manager::ready = true; ///unnecessary at the moment, more useful when concurrency comes into play
 }
 
 
 void obj_mem_manager::g_changeover()
 {
     ///changeover is accomplished as a swapping of variables so that it can be done in parallel
-
 
     temporaries *T = &temporary_objects;
 
@@ -249,7 +213,6 @@ void obj_mem_manager::g_changeover()
     g_cut_tri_num   = T->g_cut_tri_num;
     texture_manager::g_texture_array = T->g_texture_array;
     tri_num         = T->tri_num;
-
 
     obj_mem_manager::ready = false;
 }

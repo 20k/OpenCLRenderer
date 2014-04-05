@@ -20,7 +20,7 @@ compute::buffer texture_manager::g_texture_sizes;
 
 int texture_manager::mipmap_start;
 
-
+///this file provides texture gpu allocation functionality, its essentially a gigantic hack around the lack of texture array support in opencl 1.1
 
 float bilinear_filter(cl_float2 coord, float values[4])
 {
@@ -36,13 +36,15 @@ float bilinear_filter(cl_float2 coord, float values[4])
     return result;
 }
 
+///maximum number of textures that may fit into a max_tex_size (2048) * max_tex_size slice
 cl_uint return_max_num(int size)
 {
     return (max_tex_size/size) * (max_tex_size/size);
 }
 
 ///this may resize obj_mem_manager::c_texture_array
-cl_uchar4 * return_first_free(int size, int &num) ///texture ids need to be embedded in texture
+///returns the first free chunk of memory for texture of size, and gives the position of that texture in memory slice
+cl_uchar4 * return_first_free(int size, int &num)
 {
     int maxnum=return_max_num(size);
 
@@ -69,9 +71,11 @@ cl_uchar4 * return_first_free(int size, int &num) ///texture ids need to be embe
     delete [] texture_manager::c_texture_array;
     texture_manager::c_texture_array=newarray;
 
+    ///create new texture slice with size size, and there are no new textures in it
     texture_manager::texture_sizes.push_back(size);
     texture_manager::texture_numbers.push_back(0);
 
+    ///recall this function now that there is definitely a free space
     return return_first_free(size, num);
 }
 
@@ -83,6 +87,7 @@ void setpixel(cl_uchar4 *buf, sf::Color &col, int x, int y, int lx, int ly)
     buf[x + y*lx].z=col.b;
 }
 
+///averages out 4 pixel values
 static sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &p3)
 {
     sf::Color ret;
@@ -93,7 +98,7 @@ static sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &
     return ret;
 }
 
-
+///adds a texture to the 3d texture array
 void add_texture(texture &tex, int &newid, int mlevel = 0)
 {
     int size=tex.get_largest_num(mlevel);
@@ -125,10 +130,12 @@ void add_texture(texture &tex, int &newid, int mlevel = 0)
     ///so, num represents which slice its in
     ///Td->texture_nums[i] represents which position it is in within the slice;
 
+    ///bit of an unnecessary hack
     int mod=(num << 16) | texture_manager::texture_numbers[num];
     newid=mod;
     ///so, now the upper half represents which slice its in, and the lower half, the number within the slice
 
+    ///texture placed in block num
     texture_manager::texture_numbers[num]++;
 }
 
@@ -173,11 +180,11 @@ int calc_num_slices(int tsize, int tnum)
     return pages;
 }
 
+///this logic appears to be faulty to try and generate the texture size num structure
 std::vector<std::pair<int, int> > generate_unique_size_table()
 {
     std::vector<std::pair<int, int> > unique_sizes;
 
-    ///obj_mem_manager::c_texture_array
 
     for(unsigned int i=0; i<texture_manager::active_textures.size(); i++)
     {
@@ -201,6 +208,8 @@ std::vector<std::pair<int, int> > generate_unique_size_table()
     return unique_sizes;
 }
 
+///unique size table generation may be wrong, thats why there is some memory reallocation
+///fix but not important because it works, just slower than necessary
 void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
 {
     unsigned int final_memory_size = 0; ///doesn't do mipmaps, eh
@@ -222,14 +231,15 @@ void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
 
     delete [] texture_manager::c_texture_array;
     texture_manager::c_texture_array = new cl_uchar4[max_tex_size*max_tex_size*final_memory_size];
-    ///barrier to parallelism. Can this extend the existing without removing it? Some sort of cpu side array?
-    ///change to autofree array?
+    ///bit of a barrier to good parallelism
 }
 
-void generate_textures_and_mipmaps()//(std::vector<cl_uint> &texture_number_id)
+///generates the textures as well as the mipmaps
+void generate_textures_and_mipmaps()
 {
     int b = 0;
 
+    ///start information from scratch
     std::vector<int>().swap(texture_manager::texture_active_id);
     std::vector<int>().swap(texture_manager::texture_nums_id);
     std::vector<int>().swap(texture_manager::new_texture_id);
@@ -243,10 +253,14 @@ void generate_textures_and_mipmaps()//(std::vector<cl_uint> &texture_number_id)
         {
             int t=0;
             int mipmaps[MIP_LEVELS];
+            ///add textures and mipmaps to 3d array and return their ids
             add_texture_and_mipmaps(*texture_manager::active_textures[i], mipmaps, t);
-            texture_manager::new_texture_id.push_back(t);
 
+            ///b is location within array, t is texture id, basically these two map ids -> array position information
+            texture_manager::new_texture_id.push_back(t);
             texture_manager::texture_nums_id.push_back(b);
+
+            ///textures id in active texture list
             texture_manager::texture_active_id.push_back(texture_manager::active_textures[i]->id);
 
             for(int n=0; n<MIP_LEVELS; n++)
@@ -258,6 +272,8 @@ void generate_textures_and_mipmaps()//(std::vector<cl_uint> &texture_number_id)
         }
     }
 
+
+    ///mipmaps get pushed onto the end of the id list
     int mipbegin=texture_manager::new_texture_id.size();
 
     for(unsigned int i=0; i<mipmap_texture_id.size(); i++)
@@ -266,7 +282,6 @@ void generate_textures_and_mipmaps()//(std::vector<cl_uint> &texture_number_id)
     }
 
     texture_manager::mipmap_start = mipbegin;
-    //return mipbegin;
 }
 
 
@@ -277,7 +292,6 @@ void load_active_textures()
         texture *tex = texture_manager::active_textures[i];
         if(!tex->is_loaded)
         {
-            //tex->call_load_func(tex);
             tex->load();
         }
     }
@@ -329,6 +343,7 @@ int texture_manager::inactivate_texture(int texture_id)
 
 void texture_manager::allocate_textures()
 {
+    ///remove any not active texture from active texture list
     for(int i=0; i<active_textures.size(); i++)
     {
         if(active_textures[i]->is_active == false)
@@ -340,6 +355,7 @@ void texture_manager::allocate_textures()
         }
     }
 
+    ///remove any active textures from inactive texture list
     for(int i=0; i<inactive_textures.size(); i++)
     {
         if(inactive_textures[i]->is_active == true)
@@ -377,7 +393,7 @@ bool texture_manager::exists(int texture_id)
     return false;
 }
 
-
+///checks if a texture exists by using its location as comparison string
 bool texture_manager::exists_by_location(std::string loc)
 {
     for(int i=0; i<texture_manager::all_textures.size(); i++)
@@ -390,6 +406,7 @@ bool texture_manager::exists_by_location(std::string loc)
     return false;
 }
 
+///returns id based on location as comparison
 int texture_manager::id_by_location(std::string loc)
 {
     for(int i=0; i<texture_manager::all_textures.size(); i++)

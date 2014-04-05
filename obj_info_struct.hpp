@@ -3,7 +3,7 @@
 #include <cl/cl.h>
 #include <vector>
 
-struct obj_info_struct
+/*struct obj_info_struct
 {
     cl_float4 pos;
     cl_float4 rot;
@@ -16,9 +16,8 @@ struct obj_info_struct
 
     void g_push();
     void g_pull();
-};
-
-
+};*/
+///unused, remove
 
 
 #endif
