@@ -2035,6 +2035,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         }
 
 
+
         struct interp_container icontainer;
 
         int local_id = fragment_id_buffer[id_val*3 + 2];
