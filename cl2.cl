@@ -284,9 +284,9 @@ void calc_min_max(float4 points[3], int width, int height, int ret[4])
 }
 
 
-struct interp_container construct_interpolation(struct triangle* tri, int width, int height)
+void construct_interpolation(struct triangle* tri, struct interp_container* C, int width, int height)
 {
-    struct interp_container C;
+    //struct interp_container C;
 
     int y1 = round(tri->vertices[0].pos.y);
     int y2 = round(tri->vertices[1].pos.y);
@@ -316,23 +316,23 @@ struct interp_container construct_interpolation(struct triangle* tri, int width,
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
 
 
-    C.x.x=x1;
-    C.x.y=x2;
-    C.x.z=x3;
+    C->x.x=x1;
+    C->x.y=x2;
+    C->x.z=x3;
 
-    C.y.x=y1;
-    C.y.y=y2;
-    C.y.z=y3;
+    C->y.x=y1;
+    C->y.y=y2;
+    C->y.z=y3;
 
-    C.xbounds[0]=minx;
-    C.xbounds[1]=maxx;
+    C->xbounds[0]=minx;
+    C->xbounds[1]=maxx;
 
-    C.ybounds[0]=miny;
-    C.ybounds[1]=maxy;
+    C->ybounds[0]=miny;
+    C->ybounds[1]=maxy;
 
-    C.rconstant=rconstant;
+    C->rconstant=rconstant;
 
-    return C;
+    //return C;
 }
 
 int backface_cull_expanded(float4 p0, float4 p1, float4 p2, int fov, float width, float height)
@@ -2035,7 +2035,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         }
 
 
-
         struct interp_container icontainer;
 
         int local_id = fragment_id_buffer[id_val*3 + 2];
@@ -2060,7 +2059,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
 
-        icontainer = construct_interpolation(&tris[wtri], SCREENWIDTH, SCREENHEIGHT);
+        construct_interpolation(&tris[wtri], &icontainer, SCREENWIDTH, SCREENHEIGHT);
 
 
         struct triangle *c_tri = &tris[wtri];
