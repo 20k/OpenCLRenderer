@@ -46,6 +46,14 @@ struct newtonian_manager
     static int get_id(newtonian_body*);
 };
 
+struct weapon
+{
+    float refire_time;
+    float damage;
+
+    float time_since_last_refire;
+};
+
 struct newtonian_body
 {
     newtonian_body* parent;
