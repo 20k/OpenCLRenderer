@@ -2183,8 +2183,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
             float disteq = (rad - dist_to_pixel) / rad; ///light attenuation based on pixel from light distance/radius
 
             disteq = clamp(disteq, 0.0f, 1.0f);
-            //disteq = pow(disteq, 2);
-            //disteq = clamp(disteq, 0.0f, 1.0f);
 
             light *= disteq;
 
