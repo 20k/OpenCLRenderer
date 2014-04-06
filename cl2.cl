@@ -118,7 +118,7 @@ float calc_third_areas(struct interp_container *C, int x, int y)
 }
 
 ///rotates point about camera
-float4 rot(float4 point, float4 c_pos, float4 c_rot)
+float4 rot(const float4 point, const float4 c_pos, const float4 c_rot)
 {
     float4 cos_rot = native_cos(c_rot);
     float4 sin_rot = native_sin(c_rot);
@@ -286,8 +286,6 @@ void calc_min_max(float4 points[3], int width, int height, int ret[4])
 
 void construct_interpolation(struct triangle* tri, struct interp_container* C, int width, int height)
 {
-    //struct interp_container C;
-
     int y1 = round(tri->vertices[0].pos.y);
     int y2 = round(tri->vertices[1].pos.y);
     int y3 = round(tri->vertices[2].pos.y);
@@ -331,8 +329,6 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, i
     C->ybounds[1]=maxy;
 
     C->rconstant=rconstant;
-
-    //return C;
 }
 
 int backface_cull_expanded(float4 p0, float4 p1, float4 p2, int fov, float width, float height)
@@ -387,7 +383,7 @@ void rot_3_normal(__global struct triangle *triangle, float4 c_rot, float4 ret[3
     ret[2]=rot(triangle->vertices[2].normal, centre, c_rot);
 }
 
-void rot_3_raw(float4 raw[3], float4 rotation, float4 ret[3])
+void rot_3_raw(const float4 raw[3], const float4 rotation, float4 ret[3])
 {
     float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
     ret[0]=rot(raw[0], zero, rotation);
@@ -395,7 +391,7 @@ void rot_3_raw(float4 raw[3], float4 rotation, float4 ret[3])
     ret[2]=rot(raw[2], zero, rotation);
 }
 
-void rot_3_pos(float4 raw[3], float4 pos, float4 rotation, float4 ret[3])
+void rot_3_pos(const float4 raw[3], const float4 pos, const float4 rotation, float4 ret[3])
 {
     ret[0]=rot(raw[0], pos, rotation);
     ret[1]=rot(raw[1], pos, rotation);
