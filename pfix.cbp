@@ -57,6 +57,7 @@
 		<Unit filename="clstate.h" />
 		<Unit filename="engine.cpp" />
 		<Unit filename="engine.hpp" />
+		<Unit filename="interact_manager.cpp" />
 		<Unit filename="light.cpp" />
 		<Unit filename="light.hpp" />
 		<Unit filename="main.cpp" />

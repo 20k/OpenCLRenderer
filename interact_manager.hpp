@@ -5,11 +5,17 @@
 #include <vector>
 #include <utility>
 
+struct point
+{
+    int x, y;
+};
+
 struct interact
 {
     static sf::RenderWindow* render_window;
 
     static void draw_pixel(int, int);
+    static void draw_rect(int, int, int, int);
 
     static void set_render_window(sf::RenderWindow*);
 
@@ -22,6 +28,7 @@ private:
     static sf::Texture texture_pixel;
     static bool is_loaded;
     static std::vector<std::pair<int,int> > pixel_stack;
+    static std::vector<std::pair<point, point> > rectangle_stack;
 };
 
 #endif // INCLUDED_INTERACT_MANAGER_HPP

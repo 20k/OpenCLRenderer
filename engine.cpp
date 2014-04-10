@@ -252,7 +252,7 @@ cl_float4 rot(double x, double y, double z, cl_float4 rotation)
     return ret;
 }
 
-static cl_float4 rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
+cl_float4 engine::rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
 {
     cl_float4 cos_rot;
     cos_rot.x = cos(c_rot.x);
@@ -271,6 +271,11 @@ static cl_float4 rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
     ret.w = 0;
 
     return ret;
+}
+
+cl_float4 engine::rot_about_camera(cl_float4 val)
+{
+    return rot_about(val, c_pos, c_rot);
 }
 
 cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float fovc)

@@ -7,6 +7,7 @@ sf::Image interact::pixel;
 sf::Texture interact::texture_pixel;
 sf::RenderWindow* interact::render_window;
 std::vector<std::pair<int,int> > interact::pixel_stack;
+std::vector<std::pair<point,point> > interact::rectangle_stack;
 
 void interact::set_render_window(sf::RenderWindow* win)
 {
@@ -33,6 +34,14 @@ void interact::draw_pixel(int x, int y)
     pixel_stack.push_back(std::make_pair(x, engine::height - y));
 }
 
+void interact::draw_rect(int x1, int y1, int x2, int y2)
+{
+    point one = {x1, engine::height - y1};
+    point two = {x2, engine::height - y2};
+
+    rectangle_stack.push_back(std::make_pair<point, point>(one, two));
+}
+
 void interact::deplete_stack()
 {
     sf::Sprite spr;
@@ -49,5 +58,44 @@ void interact::deplete_stack()
         render_window->draw(spr);
     }
 
+    for(int i=0; i<rectangle_stack.size(); i++)
+    {
+        point one, two;
+        one = rectangle_stack[i].first;
+        two = rectangle_stack[i].second;
+
+        ///must be specified tl tr
+
+        sf::RectangleShape rshape;
+
+        rshape.setPosition(one.x, one.y);
+        rshape.setSize(sf::Vector2f(1, 5));
+        render_window->draw(rshape);
+
+        rshape.setPosition(two.x, one.y);
+        render_window->draw(rshape);
+
+        rshape.setPosition(one.x, two.y - 4);
+        render_window->draw(rshape);
+
+        rshape.setPosition(two.x, two.y - 4);
+        render_window->draw(rshape);
+
+        rshape.setSize(sf::Vector2f(5, 1));
+        rshape.setPosition(one.x, one.y);
+        render_window->draw(rshape);
+
+        rshape.setPosition(two.x - 4, one.y);
+        render_window->draw(rshape);
+
+        rshape.setPosition(one.x, two.y);
+        render_window->draw(rshape);
+
+        rshape.setPosition(two.x - 4, two.y);
+        render_window->draw(rshape);
+    }
+
+
     pixel_stack.clear();
+    rectangle_stack.clear();
 }
