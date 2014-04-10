@@ -18,11 +18,11 @@ struct engine
 {
     sf::Mouse mouse;
 
-    cl_uint width, height, depth;
-    cl_uint g_size; /// height > width rounded up to nearest power of 2
+    static cl_uint width, height, depth;
+    static cl_uint g_size; /// height > width rounded up to nearest power of 2
     static cl_uint l_size; ///light cubemap size
-    cl_float4 c_pos; ///camera position, rotation
-    cl_float4 c_rot;
+    static cl_float4 c_pos; ///camera position, rotation
+    static cl_float4 c_rot;
 
     compute::opengl_renderbuffer g_screen;
 
@@ -59,9 +59,11 @@ struct engine
 
     sf::RenderWindow window;
 
-    std::vector<object*> objects;
+    std::vector<object*> objects; ///obsolete?
 
     void load(cl_uint, cl_uint, cl_uint, std::string);
+
+    static cl_float4 project(cl_float4);
 
     static light* add_light(light*);
     static void remove_light(light*);

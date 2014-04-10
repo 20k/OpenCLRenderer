@@ -51,7 +51,12 @@ struct weapon
     float refire_time;
     float damage;
 
+    float projectile_speed;
+
     float time_since_last_refire;
+    cl_float4 pos;
+
+    weapon();
 };
 
 struct newtonian_body
@@ -110,6 +115,7 @@ struct newtonian_body
 
 struct ship : newtonian_body
 {
+    std::vector<weapon> weapon_list;
     ///put weapon in here
     void fire();
 

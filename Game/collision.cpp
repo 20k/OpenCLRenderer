@@ -4,7 +4,7 @@
 
 #include <math.h>
 
-cl_float4 rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
+static cl_float4 rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
 {
     cl_float4 cos_rot;
     cos_rot.x = cos(c_rot.x);
@@ -59,7 +59,7 @@ void collision_object::calculate_collision_ellipsoid(objects_container* objs)
         }
     }
 
-    float fudge = 1.1f;
+    float fudge = 1.0f;
 
     a = (xmax - xmin) / 2.0f;
     b = (ymax - ymin) / 2.0f;

@@ -14,6 +14,10 @@
 #include <stdio.h>
 #include <limits.h>
 #include "texture_manager.hpp"
+#include "interact_manager.hpp" ///Separatation of church and state hlp
+
+#define FOV_CONST 400.0f
+///this needs changing
 
 ///opengl ids
 unsigned int engine::gl_framebuffer_id=0;
@@ -27,6 +31,14 @@ cl_uint engine::shadow_light_num;
 ///gpuside light buffer, and lightmap cubemap resolution
 compute::buffer engine::g_shadow_light_buffer;
 cl_uint engine::l_size;
+
+cl_uint engine::height;
+cl_uint engine::width;
+cl_float4 engine::c_pos;
+cl_float4 engine::c_rot;
+cl_uint engine::depth;
+cl_uint engine::g_size;
+
 
 
 
@@ -238,6 +250,55 @@ cl_float4 rot(double x, double y, double z, cl_float4 rotation)
     ret.z=i3z;
 
     return ret;
+}
+
+static cl_float4 rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
+{
+    cl_float4 cos_rot;
+    cos_rot.x = cos(c_rot.x);
+    cos_rot.y = cos(c_rot.y);
+    cos_rot.z = cos(c_rot.z);
+
+    cl_float4 sin_rot;
+    sin_rot.x = sin(c_rot.x);
+    sin_rot.y = sin(c_rot.y);
+    sin_rot.z = sin(c_rot.z);
+
+    cl_float4 ret;
+    ret.x=      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
+    ret.y=      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    ret.z=      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    ret.w = 0;
+
+    return ret;
+}
+
+cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float fovc)
+{
+    float rx;
+    rx=(rotated.x) * (fovc/(rotated.z));
+    float ry;
+    ry=(rotated.y) * (fovc/(rotated.z));
+
+    rx+=width/2;
+    ry+=height/2;
+
+    cl_float4 ret;
+
+    ret.x = rx;
+    ret.y = ry;
+    ret.z = rotated.z;
+    ret.w = 0;
+    return ret;
+}
+
+cl_float4 engine::project(cl_float4 val)
+{
+    cl_float4 rotated = rot_about(val, c_pos, c_rot);
+
+    cl_float4 projected = depth_project_singular(rotated, width, height, FOV_CONST);
+
+    return projected;
 }
 
 void engine::input()
@@ -608,6 +669,8 @@ void engine::render_buffers()
 
     ///blit buffer to screen
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+    interact::deplete_stack();
 
     window.display();
 }

@@ -3,6 +3,7 @@
 #include "../texture_manager.hpp"
 #include "ship.hpp"
 #include "collision.hpp"
+#include "../interact_manager.hpp"
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -29,6 +30,8 @@ int main(int argc, char *argv[])
     window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
+
+    interact::set_render_window(&window.window);
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
@@ -170,7 +173,20 @@ int main(int argc, char *argv[])
 
             window.realloc_light_gmem();
         }
-;
+
+        for(int i=0; i<objects_container::obj_container_list.size(); i++)
+        {
+            objects_container* o = objects_container::obj_container_list[i];
+
+            cl_float4 projected = engine::project(o->pos);
+
+            if(projected.z < 0)
+                continue;
+
+            interact::draw_pixel(projected.x, projected.y);
+
+            std::cout << projected.x << " " << projected.y << std::endl;
+        }
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

@@ -4,6 +4,12 @@
 std::vector<newtonian_body*> newtonian_manager::body_list;
 std::vector<std::pair<newtonian_body*, collision_object> > newtonian_manager::collision_bodies;
 
+weapon::weapon()
+{
+    pos = (cl_float4){0,0,0,0};
+    time_since_last_refire = 0;
+}
+
 newtonian_body::newtonian_body()
 {
     position = (cl_float4){0,0,0,0};

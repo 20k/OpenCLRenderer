@@ -431,6 +431,7 @@ void depth_project_singular(float4 rotated, int width, int height, float fovc, f
     (*ret).x = rx;
     (*ret).y = ry;
     (*ret).z = rotated.z;
+    (*ret).w = 0.0f;
 }
 
 void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *num, float4 ret[2][3], int* clip)
