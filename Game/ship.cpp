@@ -1,5 +1,6 @@
 #include "ship.hpp"
 #include "../engine.hpp"
+#include "../interact_manager.hpp"
 
 std::vector<newtonian_body*> newtonian_manager::body_list;
 std::vector<std::pair<newtonian_body*, collision_object> > newtonian_manager::collision_bodies;
@@ -8,6 +9,115 @@ weapon::weapon()
 {
     pos = (cl_float4){0,0,0,0};
     time_since_last_refire = 0;
+}
+
+void newtonian_manager::draw_all_box()
+{
+    for(int i=0; i<collision_bodies.size(); i++)
+    {
+        collision_object* obj = &collision_bodies[i].second;
+        newtonian_body* nobj = collision_bodies[i].first;
+
+
+        cl_float4 collision_points[6] =
+        {
+            (cl_float4){
+                obj->a, 0.0f, 0.0f, 0.0f
+            },
+            (cl_float4){
+                -obj->a, 0.0f, 0.0f, 0.0f
+            },
+            (cl_float4){
+                0.0f, obj->b, 0.0f, 0.0f
+            },
+            (cl_float4){
+                0.0f, -obj->b, 0.0f, 0.0f
+            },
+            (cl_float4){
+                0.0f, 0.0f, obj->c, 0.0f
+            },
+            (cl_float4){
+                0.0f, 0.0f, -obj->c, 0.0f
+            }
+        };
+
+        for(int i=0; i<6; i++)
+        {
+            collision_points[i].x *= 1.5f;
+            collision_points[i].y *= 1.5f;
+            collision_points[i].z *= 1.5f;
+        }
+
+        for(int i=0; i<6; i++)
+        {
+            collision_points[i].x += obj->centre.x;
+            collision_points[i].y += obj->centre.y;
+            collision_points[i].z += obj->centre.z;
+        }
+
+        cl_float4 collisions_postship_rotated_world[6];
+
+        for(int i=0; i<6; i++)
+        {
+            collisions_postship_rotated_world[i] = engine::rot_about(collision_points[i], obj->centre, nobj->rotation);
+            collisions_postship_rotated_world[i].x += nobj->position.x;
+            collisions_postship_rotated_world[i].y += nobj->position.y;
+            collisions_postship_rotated_world[i].z += nobj->position.z;
+        }
+
+        cl_float4 collisions_postcamera_rotated[6];
+
+        for(int i=0; i<6; i++)
+        {
+            collisions_postship_rotated_world[i] = engine::project(collisions_postship_rotated_world[i]);
+        }
+
+        float maxx=-10000, minx=10000, maxy=-10000, miny = 10000;
+
+        bool any = false;
+
+        for(int i=0; i<6; i++)
+        {
+            cl_float4 projected = collisions_postship_rotated_world[i];
+
+            if(projected.z < 0.01)
+                continue;
+
+            if(projected.x > maxx)
+                maxx = projected.x;
+
+            if(projected.x < minx)
+                minx = projected.x;
+
+            if(projected.y > maxy)
+                maxy = projected.y;
+
+            if(projected.y < miny)
+                miny = projected.y;
+
+            any = true;
+        }
+
+        int least_x = 20;
+        int least_y = 20;
+
+        if(maxx - minx < least_x)
+        {
+            int xdiff = least_x - (maxx - minx);
+            minx -= xdiff / 2.0f;
+            maxx += xdiff / 2.0f;
+        }
+
+        if(maxy - miny < least_y)
+        {
+            int ydiff = least_y - (maxy - miny);
+            miny -= ydiff / 2.0f;
+            maxy += ydiff / 2.0f;
+        }
+
+        if(any)
+            interact::draw_rect(minx - 5, maxy + 5, maxx + 5, miny - 5);
+    }
 }
 
 newtonian_body::newtonian_body()

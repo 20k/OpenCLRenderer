@@ -41,6 +41,8 @@ struct newtonian_manager
 
     static std::vector<std::pair<newtonian_body*, collision_object> > collision_bodies;
 
+    static void draw_all_box();
+
     static void collide_lasers_with_ships();
 
     static int get_id(newtonian_body*);
