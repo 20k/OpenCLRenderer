@@ -2172,7 +2172,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float average_occ = 0;
 
-            float ambient = 0.2f;
+            float ambient = 0.05f;
 
             if(lights[i].shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
             {

@@ -42,13 +42,13 @@ int main(int argc, char *argv[])
     l.set_pos((cl_float4){-200, 2000, -100, 0});
     window.add_light(&l);
 
-    l.set_pos((cl_float4){0, 200, -450, 0});
-    l.shadow=0;
+    //l.set_pos((cl_float4){0, 200, -450, 0});
+    l.set_pos((cl_float4){-1200, 150, 0, 0});
+    l.shadow=1;
 
-    //window.add_light(&l);
+    window.add_light(&l);
 
     window.construct_shadowmaps();
-
 
     while(window.window.isOpen())
     {

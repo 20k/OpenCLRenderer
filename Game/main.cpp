@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     l.set_shadow_bright(1, 1);
-    //l.set_pos((cl_float4){-200, 200, -100, 0});
-    l.set_type(1.0f);
+    l.set_pos((cl_float4){2000, 200, -100, 0});
+    l.set_type(0.0f);
     l.shadow = 0;
     light* start_light = window.add_light(&l);
 
@@ -94,12 +94,12 @@ int main(int argc, char *argv[])
     newtonian_body* ship_2 = ship2.push();
     ship_2->add_collision_object(ship_collision_model2);
 
-    newtonian_body l1;
-    l1.obj = NULL;
-    l1.linear_momentum = (cl_float4){50, 0, 0, 0};
-    l1.position = (cl_float4){0,200,0,0};
+    //newtonian_body l1;
+    //l1.obj = NULL;
+    //l1.linear_momentum = (cl_float4){50, 0, 0, 0};
+    //l1.position = (cl_float4){0,200,0,0};
 
-    newtonian_body& light_newt = *l1.push_laser(start_light);
+    //newtonian_body& light_newt = *l1.push_laser(start_light);
 
     bool lastp = false;
 

@@ -120,6 +120,26 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size());
     ///3d texture array
     t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+    //t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, NULL);
+
+    cl_image_format form;
+    form.image_channel_order = CL_RGBA;
+    form.image_channel_data_type = CL_UNSIGNED_INT8;
+
+    //cl_int er = 0;
+
+    //cl_mem m = clCreateImage3D(cl::context.get(), CL_MEM_READ_WRITE, &form, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, NULL, &er);
+
+    //size_t origin[3] = {0,0,0};
+    //size_t region[3] = {2048, 2048, number_of_texture_slices};
+
+    //cl::cqueue.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+
+    //clEnqueueWriteImage(cl::cqueue.get(), m, CL_TRUE, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array, 0, NULL, NULL);
+
+    //exit(er);
+
+    //t.g_texture_array = compute::buffer(m);
 
     delete [] texture_manager::c_texture_array;
     texture_manager::c_texture_array = NULL;
