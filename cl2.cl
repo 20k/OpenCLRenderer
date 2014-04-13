@@ -329,14 +329,14 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, i
     C->rconstant=rconstant;
 }
 
-int backface_cull_expanded(float4 p0, float4 p1, float4 p2, int fov, float width, float height)
+int backface_cull_expanded(float4 p0, float4 p1, float4 p2)
 {
     return cross(p1-p0, p2-p0).z < 0;
 }
 
-int backface_cull(struct triangle *tri, int fov, float w, float h)
+int backface_cull(struct triangle *tri)
 {
-    return backface_cull_expanded(tri->vertices[0].pos, tri->vertices[1].pos, tri->vertices[2].pos, fov, w, h);
+    return backface_cull_expanded(tri->vertices[0].pos, tri->vertices[1].pos, tri->vertices[2].pos);
 }
 
 
@@ -420,7 +420,7 @@ void depth_project_singular(float4 rotated, int width, int height, float fovc, f
     (*ret).w = 0.0f;
 }
 
-void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *num, float4 ret[2][3], int* clip)
+void generate_new_triangles(float4 points[3], int ids[3], int *num, float4 ret[2][3], int* clip)
 {
     int id_valid;
     int ids_behind[2];
@@ -498,9 +498,8 @@ void generate_new_triangles(float4 points[3], int ids[3], float rconst[2], int *
     float r2 = length(p2 - points[g1])/length(points[g3] - points[g1]);
 
 
-
-    rconst[0] = r1;
-    rconst[1] = r2;
+    //rconst[0] = r1;
+    //rconst[1] = r2;
 
     if(n_behind==1)
     {
@@ -538,13 +537,14 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 
     int ids[3];
 
-    float rconst[2];
+    //float rconst[2];
 
     rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
 
     int n = 0;
 
-    generate_new_triangles(pr, ids, rconst, &n, tris, clip);
+    //generate_new_triangles(pr, ids, rconst, &n, tris, clip);
+    generate_new_triangles(pr, ids, &n, tris, clip);
 
     depth_project(tris[0], width, height, fovc, passback[0]);
 
@@ -1622,7 +1622,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
     for(int i=0; i<num; i++)
     {
-        ooany[i] = backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2], efov, ewidth, eheight);
+        ooany[i] = backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
     }
 
     ///cull bad tris
