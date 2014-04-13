@@ -19,7 +19,7 @@
 
 __constant float depth_far=350000;
 __constant uint mulint=UINT_MAX;
-__constant int depth_icutoff=150;
+__constant int depth_icutoff=125;
 
 
 struct interp_container;
@@ -888,7 +888,7 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     x*=width;
     y*=width;
 
-    if(x<0)
+    /*if(x<0)
         x=0;
 
     if(x>=width)
@@ -898,7 +898,7 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
         y=0;
 
     if(y>=width)
-        y=width - 1;
+        y=width - 1;*/
 
 
     int hnum=max_tex_size/width;
@@ -988,22 +988,8 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
 float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth, float4 c_pos, float4 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
-
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
-
-    //float dropdistance=FOV_CONST;
-
-
-    int tids[MIP_LEVELS+1];
-    tids[0]=tid2;
-
-    for(int i=1; i<MIP_LEVELS+1; i++)
-    {
-        tids[i]=mipd[i-1];
-    }
-
-
 
     float4 rotpoints[3];
     rotpoints[0]=c_tri->vertices[0].pos;
@@ -1023,8 +1009,6 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     float minty=min3(c_tri->vertices[0].vt.y, c_tri->vertices[1].vt.y, c_tri->vertices[2].vt.y);
     float maxty=max3(c_tri->vertices[0].vt.y, c_tri->vertices[1].vt.y, c_tri->vertices[2].vt.y);
-
-
 
 
     float2 vtm = {vt.x, vt.y};
@@ -1065,45 +1049,47 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
-    int tpp[MIP_LEVELS+1];
-
-    for(int i=0; i<MIP_LEVELS+1; i++)
-    {
-        tpp[i] = pow(2.0f, i);
-    }
-
-    ///if < 1 bilinear, but nvm
-
-
     int mip_lower=0;
     int mip_higher=0;
     float fractional_mipmap_distance = 0;
-    //int end_level = 0;
 
-    bool mip_found = false;
+    bool invalid_mipmap = false;
 
-    for(int i=1; i<MIP_LEVELS+1; i++)
+    //float is_valid = 1.0f;
+
+    mip_lower = floor(native_log2(worst));
+
+    mip_lower = max(mip_lower, 0);
+
+    mip_higher = mip_lower + 1;
+
+    /*if(mip_higher >= MIP_LEVELS)
     {
-        if(worst < tpp[i-1])
-        {
-            mip_found = true;
-            break;
-        }
-        if(worst < tpp[i] && worst > tpp[i-1])
-        {
-           mip_lower = i-1;
-           mip_higher = i;
-           fractional_mipmap_distance = fabs(worst - tpp[i-1]) / fabs((float)(tpp[i] - tpp[i-1]));
-           mip_found = true;
-           break;
-        }
+        mip_higher = MIP_LEVELS;
+        //invalid_mipmap = true;
+        is_valid = 0.0f;
     }
 
-    ///off the end of mipmap scale, use highest res
-    if(!mip_found)
+    if(mip_lower >= MIP_LEVELS)
     {
         mip_lower = MIP_LEVELS;
-        mip_higher = MIP_LEVELS;
+        //invalid_mipmap = true;
+        is_valid = 0.0f;
+    }*/
+
+    mip_lower = min(mip_lower, MIP_LEVELS);
+    mip_higher = min(mip_higher, MIP_LEVELS);
+
+    if(mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS)
+        invalid_mipmap = true;
+
+    int lower_size = exp2((float)mip_lower);
+    int higher_size= exp2((float)mip_higher);
+
+    fractional_mipmap_distance = fabs(worst - lower_size) / abs(higher_size - lower_size);
+
+    if(invalid_mipmap)
+    {
         fractional_mipmap_distance = 0;
     }
 
@@ -1112,17 +1098,19 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
     {
         mip_lower = 0;
         mip_higher = 0;
-        fractional_mipmap_distance = 0;
+        fractional_mipmap_distance = 0.0f;
     }
 
+    int tid_lower = mip_lower == 0 ? tid2 : mipd[mip_lower-1];
+    int tid_higher = mip_higher == 0 ? tid2 : mipd[mip_higher-1];
 
 
     float fmd = fractional_mipmap_distance;
 
 
-    float4 col1=return_bilinear_col(vtm, tids[mip_lower], nums, sizes, array);
+    float4 col1=return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
-    float4 col2=return_bilinear_col(vtm, tids[mip_higher], nums, sizes, array);
+    float4 col2=return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
     float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
@@ -2172,7 +2160,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             float average_occ = 0;
 
-            float ambient = 0.15f;
+            float ambient = 0.20f;
 
             if(lights[i].shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
             {
