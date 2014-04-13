@@ -1,7 +1,3 @@
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
-
-
 #define MIP_LEVELS 4
 
 #define FOV_CONST 400.0f
@@ -14,6 +10,8 @@
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
 #define MTRI_SIZE 50
+
+#define M_PI 3.141592653f
 
 //#define MAXDEPTH 100000
 
@@ -333,19 +331,7 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, i
 
 int backface_cull_expanded(float4 p0, float4 p1, float4 p2, int fov, float width, float height)
 {
-    float4 p1p0=p1-p0;
-    float4 p2p0=p2-p0;
-
-    float4 cr=cross(p1p0, p2p0);
-
-    int cond=0;
-
-    if(cr.z < 0)
-    {
-        cond=1;
-    }
-
-    return cond;
+    return cross(p1-p0, p2-p0).z < 0;
 }
 
 int backface_cull(struct triangle *tri, int fov, float w, float h)
@@ -742,8 +728,8 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
 
 
-    float r1 = length(p1 - rotpoints[g1])/length(rotpoints[g2] - rotpoints[g1]);
-    float r2 = length(p2 - rotpoints[g1])/length(rotpoints[g3] - rotpoints[g1]);
+    float r1 = fast_length(p1 - rotpoints[g1])/fast_length(rotpoints[g2] - rotpoints[g1]);
+    float r2 = fast_length(p2 - rotpoints[g1])/fast_length(rotpoints[g3] - rotpoints[g1]);
 
     float2 vv1 = T->vertices[g2].vt - T->vertices[g1].vt;
     float2 vv2 = T->vertices[g3].vt - T->vertices[g1].vt;
@@ -927,8 +913,8 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 float return_bilinear_shadf(float2 coord, float values[4])
 {
     float mx, my;
-    mx = coord.x*1 - 0.5;
-    my = coord.y*1 - 0.5;
+    mx = coord.x*1 - 0.5f;
+    my = coord.y*1 - 0.5f;
     float2 uvratio = {mx - floor(mx), my - floor(my)};
     float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
 
@@ -946,8 +932,8 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     int which=nums[tid];
     float width=sizes[which >> 16];
 
-    mcoord.x=coord.x*width - 0.5;
-    mcoord.y=coord.y*width - 0.5;
+    mcoord.x=coord.x*width - 0.5f;
+    mcoord.y=coord.y*width - 0.5f;
     //mcoord.z=coord.z;
 
     float2 coords[4];
@@ -1390,27 +1376,27 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
     float4 r_struct[6];
     r_struct[0]=(float4)
     {
-        0.0,            0.0,            0.0,0.0
+        0.0f,            0.0f,            0.0f,0.0f
     };
     r_struct[1]=(float4)
     {
-        M_PI/2.0,       0.0,            0.0,0.0
+        M_PI/2.0f,       0.0f,            0.0f,0.0f
     };
     r_struct[2]=(float4)
     {
-        0.0,            M_PI,           0.0,0.0
+        0.0f,            M_PI,           0.0f,0.0f
     };
     r_struct[3]=(float4)
     {
-        3.0*M_PI/2.0,   0.0,            0.0,0.0
+        3.0f*M_PI/2.0f,   0.0f,            0.0f,0.0f
     };
     r_struct[4]=(float4)
     {
-        0.0,            3.0*M_PI/2.0,   0.0,0.0
+        0.0f,            3.0f*M_PI/2.0f,   0.0f,0.0f
     };
     r_struct[5]=(float4)
     {
-        0.0,            M_PI/2.0,       0.0,0.0
+        0.0f,            M_PI/2.0f,       0.0f,0.0f
     };
 
     float4 lc_rot = *c_rot;
@@ -1676,7 +1662,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         }
     }
 
-    for(uint i=0; i<num; i++)
+    for(int i=0; i<num; i++)
     {
         if(ooany[i]!=1) ///skip bad tris
         {
@@ -1995,8 +1981,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
     if(x < SCREENWIDTH && y < SCREENHEIGHT)
     {
-
-        int2 scoord1 = {x, y};
+        //int2 scoord1 = {x, y};
 
         //float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
 
@@ -2011,7 +1996,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         uint id_val = id_val4.x;
 
-        float4 normals_out[3];
+        //float4 normals_out[3];
 
 
         if(*ft==mulint)
