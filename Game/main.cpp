@@ -21,9 +21,11 @@ int main(int argc, char *argv[])
     objects_container second_ship;
 
     sponza.set_file("../objects/shittyspaceship.obj");
+    //sponza.set_file("../objects/test.obj");
     sponza.set_active(true);
 
     second_ship.set_file("../objects/shittyspaceship.obj");
+    //second_ship.set_file("../objects/test.obj");
     second_ship.set_active(true);
 
     engine window;
@@ -42,6 +44,8 @@ int main(int argc, char *argv[])
     collision_object ship_collision_model2;
 
     obj_mem_manager::load_active_objects();
+    //sponza.scale(3.0f);
+    //second_ship.scale(3.0f);
 
     sponza.translate_centre((cl_float4){400,0,0,0});
     sponza.swap_90();

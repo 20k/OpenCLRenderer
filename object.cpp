@@ -115,6 +115,19 @@ void object::swap_90()
     }
 }
 
+void object::scale(float f)
+{
+    for(int i=0; i<tri_list.size(); i++)
+    {
+        for(int j=0; j<3; j++)
+        {
+            tri_list[i].vertices[j].pos[0] *= f;
+            tri_list[i].vertices[j].pos[1] *= f;
+            tri_list[i].vertices[j].pos[2] *= f;
+        }
+    }
+}
+
 void object::set_vis_func(boost::function<int (object*, cl_float4)> vis)
 {
     obj_vis = vis;
