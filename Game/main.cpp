@@ -4,6 +4,7 @@
 #include "newtonian_body.hpp"
 #include "collision.hpp"
 #include "../interact_manager.hpp"
+#include "game_object.hpp"
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -17,16 +18,25 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    objects_container sponza;
+    //objects_container sponza;
     objects_container second_ship;
 
-    sponza.set_file("../objects/shittyspaceship.obj");
+    //sponza.set_file("../objects/shittyspaceship.obj");
     //sponza.set_file("../objects/ship_with_uvs_2.obj");
-    sponza.set_active(true);
+    //sponza.set_active(true);
 
     second_ship.set_file("../objects/shittyspaceship.obj");
     //second_ship.set_file("../objects/ship_with_uvs_2.obj");
     second_ship.set_active(true);
+
+    //second_ship.translate_centre((cl_float4){400,0,0,0});
+
+    game_object ship;
+    ship.set_file("../objects/shittyspaceship.obj");
+    ship.set_active(true);
+
+    ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
+    ship.add_transform(ROTATE90);
 
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
@@ -40,16 +50,19 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures 1gen?
 
-    collision_object ship_collision_model;
+    //collision_object ship_collision_model;
     collision_object ship_collision_model2;
 
     obj_mem_manager::load_active_objects();
     //sponza.scale(3.0f);
     //second_ship.scale(3.0f);
 
-    sponza.translate_centre((cl_float4){400,0,0,0});
-    sponza.swap_90();
-    ship_collision_model.calculate_collision_ellipsoid(&sponza);
+    //sponza.translate_centre((cl_float4){400,0,0,0});
+    //sponza.swap_90();
+    //ship_collision_model.calculate_collision_ellipsoid(&sponza);
+
+    ship.process_transformations();
+    ship.calc_push_physics_info((cl_float4){0,-200,0,0});
 
     second_ship.translate_centre((cl_float4){400,0,0,0});
     second_ship.swap_90();
@@ -77,15 +90,17 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
-    ship_newtonian ship1;
-    ship1.obj = &sponza;
-    ship1.thruster_force = 0.1;
-    ship1.thruster_distance = 1;
-    ship1.thruster_forward = 4;
-    ship1.mass = 1;
+    //ship_newtonian ship1;
+    //ship1.obj = &sponza;
+    //ship1.thruster_force = 0.1;
+    //ship1.thruster_distance = 1;
+    //ship1.thruster_forward = 4;
+    //ship1.mass = 1;
 
-    newtonian_body* player_ship = ship1.push();
-    player_ship->add_collision_object(ship_collision_model);
+    //newtonian_body* player_ship = ship1.push();
+    //player_ship->add_collision_object(ship_collision_model);
+
+    newtonian_body* player_ship = ship.get_newtonian();
 
     ship_newtonian ship2;
     ship2.obj = &second_ship;
