@@ -1,7 +1,7 @@
 #include "../proj.hpp"
 #include "../ocl.h"
 #include "../texture_manager.hpp"
-#include "ship.hpp"
+#include "newtonian_body.hpp"
 #include "collision.hpp"
 #include "../interact_manager.hpp"
 ///todo eventually

@@ -1,4 +1,4 @@
-#include "ship.hpp"
+#include "newtonian_body.hpp"
 #include "../engine.hpp"
 #include "../interact_manager.hpp"
 
