@@ -13,6 +13,7 @@
 #include <utility>
 #include <iostream>
 #include "texture_manager.hpp"
+#include "engine.hpp"
 
 std::vector<int> obj_mem_manager::obj_sub_nums;
 
@@ -193,6 +194,16 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     }
 
     t.tri_num=trianglecount;
+
+    cl_uint gl_ws = 256;
+
+    compute::buffer one(cl::context, sizeof(cl_uint)*1);
+
+    compute::buffer wrap(t.g_texture_array.get());
+
+    compute::buffer* args[] = {&t.g_tri_mem, &wrap, &one};
+
+    run_kernel_with_args(cl::trivial, &gl_ws, &gl_ws, 1, args, 3, true);
 }
 
 

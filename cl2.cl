@@ -11,9 +11,11 @@
 
 #define MTRI_SIZE 50
 
-#define M_PI 3.141592653f
+#define M_PI 3.1415927f
 
 //#define MAXDEPTH 100000
+
+///change calc_third_area functions to be packed
 
 __constant float depth_far=350000;
 __constant uint mulint=UINT_MAX;
@@ -105,7 +107,7 @@ struct interp_container
 float calc_third_areas_i(int x1, int x2, int x3, int y1, int y2, int y3, int x, int y)
 {
     //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
-    return (fabs((float)x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs((float)x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs((float)x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1))/2.0f;
+    return (fabs((float)(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y)) + fabs((float)(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1)) + fabs((float)(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)))/2.0f;
     ///form was written for this, i think
 }
 
@@ -143,8 +145,7 @@ float4 optirot(float4 point, float4 c_pos, float4 sin_c_rot, float4 cos_c_rot)
 float dcalc(float value)
 {
     //value=(log(value + 1)/(log(depth_far + 1)));
-    value = value / depth_far;
-    return value;
+    return value / depth_far;
 }
 
 float idcalc(float value)
@@ -175,14 +176,14 @@ float interpolate_2(float4 vals, struct interp_container c, int x, int y)
 
 
 
-float interpolate_i(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3, float rconstant)
+/*float interpolate_i(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3, float rconstant)
 {
     float A=((f2*y3+f1*(y2-y3)-f3*y2+(f3-f2)*y1) * rconstant);
     float B=(-(f2*x3+f1*(x2-x3)-f3*x2+(f3-f2)*x1) * rconstant);
     float C=f1-A*x1 - B*y1;
 
     return (float)(A*x + B*y + C);
-}
+}*/
 
 float interpolate_p(float4 f, int xn, int yn, int4 x, int4 y, float rconstant)
 {
@@ -193,7 +194,7 @@ float interpolate_p(float4 f, int xn, int yn, int4 x, int4 y, float rconstant)
     return (float)(A*xn + B*yn + C);
 }
 
-float interpolate_r(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3)
+/*float interpolate_r(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3)
 {
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
     return interpolate_i(f1, f2, f3, x, y, x1, x2, x3, y1, y2, y3, rconstant);
@@ -205,7 +206,7 @@ float2 interpolate_r_pair(float2 f[3], float2 xy, float2 bounds[3])
     ip.x = interpolate_r(f[0].x, f[1].x, f[2].x, xy.x, xy.y, bounds[0].x, bounds[1].x, bounds[2].x, bounds[0].y, bounds[1].y, bounds[2].y);
     ip.y = interpolate_r(f[0].y, f[1].y, f[2].y, xy.x, xy.y, bounds[0].x, bounds[1].x, bounds[2].x, bounds[0].y, bounds[1].y, bounds[2].y);
     return ip;
-}
+}*/
 
 float interpolate(float4 f, struct interp_container *c, int x, int y)
 {
@@ -1562,7 +1563,7 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
 }
 
 ///fragment size in pixels
-__constant int op_size = 200;
+#define op_size 200
 
 ///split triangles into fragments
 __kernel
@@ -1625,40 +1626,15 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         ooany[i] = backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
     }
 
-    ///cull bad tris
+    ///out of bounds checking for triangles
     for(int j=0; j<num; j++)
     {
-        int ooxmin = 0;
-        int ooxmax = 0;
-        int ooymin = 0;
-        int ooymax = 0;
-
-        for(int i=0; i<3; i++)
+        if((tris_proj[j][0].x < 0 && tris_proj[j][1].x < 0 && tris_proj[j][2].x < 0)  ||
+            (tris_proj[j][0].x >= ewidth && tris_proj[j][1].x >= ewidth && tris_proj[j][2].x >= ewidth) ||
+            (tris_proj[j][0].y < 0 && tris_proj[j][1].y < 0 && tris_proj[j][2].y < 0) ||
+            (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight))
         {
-            if(tris_proj[j][i].x < 0)
-            {
-                ooxmin++;
-            }
-
-            if(tris_proj[j][i].x >= ewidth)
-            {
-                ooxmax++;
-            }
-
-            if(tris_proj[j][i].y < 0)
-            {
-                ooymin++;
-            }
-
-            if(tris_proj[j][i].y >= eheight)
-            {
-                ooymax++;
-            }
-        }
-
-        if(ooxmin >= 3 || ooxmax >= 3 || ooymin >= 3 || ooymax >= 3)
-        {
-            ooany[j]=0;
+            ooany[j] = 0;
         }
     }
 
@@ -1725,10 +1701,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         eheight = LIGHTBUFFERDIM;
     }
 
-
-    uint distance = 0;
-
-    distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
+    uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
 
     uint ctri = fragment_id_buffer[id*3 + 2];
 

@@ -22,6 +22,7 @@ namespace cl
     extern compute::kernel kernel2;
     extern compute::kernel kernel3;
     extern compute::kernel prearrange;
+    extern compute::kernel trivial;
 }
 
 

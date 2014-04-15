@@ -21,11 +21,11 @@ int main(int argc, char *argv[])
     objects_container second_ship;
 
     sponza.set_file("../objects/shittyspaceship.obj");
-    //sponza.set_file("../objects/test.obj");
+    //sponza.set_file("../objects/ship_with_uvs_2.obj");
     sponza.set_active(true);
 
     second_ship.set_file("../objects/shittyspaceship.obj");
-    //second_ship.set_file("../objects/test.obj");
+    //second_ship.set_file("../objects/ship_with_uvs_2.obj");
     second_ship.set_active(true);
 
     engine window;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
-    ship ship1;
+    ship_newtonian ship1;
     ship1.obj = &sponza;
     ship1.thruster_force = 0.1;
     ship1.thruster_distance = 1;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
     newtonian_body* player_ship = ship1.push();
     player_ship->add_collision_object(ship_collision_model);
 
-    ship ship2;
+    ship_newtonian ship2;
     ship2.obj = &second_ship;
     ship2.thruster_force = 0.1;
     ship2.thruster_distance = 1;

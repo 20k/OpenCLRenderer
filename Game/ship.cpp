@@ -252,7 +252,7 @@ newtonian_body* newtonian_body::push()
     return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
 }
 
-newtonian_body* ship::push()
+newtonian_body* ship_newtonian::push()
 {
     type = 0;
     newtonian_manager::add_body(this);
@@ -330,7 +330,7 @@ void newtonian_manager::tick_all(float val)
     }
 }
 
-void ship::fire()
+void ship_newtonian::fire()
 {
     if(obj == NULL || type!=0)
         return;
@@ -375,9 +375,9 @@ newtonian_body* newtonian_body::clone()
     return new newtonian_body(*this);
 }
 
-ship* ship::clone()
+ship_newtonian* ship_newtonian::clone()
 {
-    return new ship(*this);
+    return new ship_newtonian(*this);
 }
 
 void newtonian_manager::collide_lasers_with_ships()
@@ -416,7 +416,7 @@ void newtonian_body::collided(newtonian_body* other)
     std::cout << "this shouldn't really have happened" << std::endl;
 }
 
-void ship::collided(newtonian_body* other)
+void ship_newtonian::collided(newtonian_body* other)
 {
 
 }

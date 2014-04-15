@@ -191,6 +191,7 @@ void oclstuff(std::string file)
     cl::kernel2 = compute::kernel(program, "part2");
     cl::kernel3 = compute::kernel(program, "part3");
     cl::prearrange = compute::kernel(program, "prearrange");
+    cl::trivial = compute::kernel(program, "trivial_kernel");
 }
 
 

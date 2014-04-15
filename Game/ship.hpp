@@ -115,13 +115,13 @@ struct newtonian_body
     //std::vector<cl_float4> thrusters_force;
 };
 
-struct ship : newtonian_body
+struct ship_newtonian : newtonian_body
 {
     std::vector<weapon> weapon_list;
     ///put weapon in here
     void fire();
 
-    ship* clone();
+    ship_newtonian* clone();
 
     newtonian_body* push();
 
