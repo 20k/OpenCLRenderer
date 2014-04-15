@@ -18,16 +18,11 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    //objects_container sponza;
-    objects_container second_ship;
+    //objects_container second_ship;
 
-    //sponza.set_file("../objects/shittyspaceship.obj");
-    //sponza.set_file("../objects/ship_with_uvs_2.obj");
-    //sponza.set_active(true);
-
-    second_ship.set_file("../objects/shittyspaceship.obj");
+    //second_ship.set_file("../objects/shittyspaceship.obj");
     //second_ship.set_file("../objects/ship_with_uvs_2.obj");
-    second_ship.set_active(true);
+    //second_ship.set_active(true);
 
     //second_ship.translate_centre((cl_float4){400,0,0,0});
 
@@ -38,8 +33,16 @@ int main(int argc, char *argv[])
     ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     ship.add_transform(ROTATE90);
 
+    game_object ship2;
+    ship2.set_file("../objects/shittyspaceship.obj");
+    ship2.set_active(true);
+
+    ship2.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
+    ship2.add_transform(ROTATE90);
+
+
     engine window;
-    window.window.create(sf::VideoMode(800, 600), "hmm");
+    window.window.create(sf::VideoMode(800, 600), "fixthisfixthisfixthis");
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
 
@@ -50,23 +53,15 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures 1gen?
 
-    //collision_object ship_collision_model;
-    collision_object ship_collision_model2;
-
     obj_mem_manager::load_active_objects();
-    //sponza.scale(3.0f);
-    //second_ship.scale(3.0f);
 
-    //sponza.translate_centre((cl_float4){400,0,0,0});
-    //sponza.swap_90();
-    //ship_collision_model.calculate_collision_ellipsoid(&sponza);
 
     ship.process_transformations();
-    ship.calc_push_physics_info((cl_float4){0,-200,0,0});
+    ship.calc_push_physics_info(); ///separate into separate pos call?
 
-    second_ship.translate_centre((cl_float4){400,0,0,0});
-    second_ship.swap_90();
-    ship_collision_model2.calculate_collision_ellipsoid(&second_ship);
+    ship2.process_transformations();
+    ship2.calc_push_physics_info((cl_float4){0,-200,0,0});
+
 
     texture_manager::allocate_textures();
 
@@ -74,44 +69,27 @@ int main(int argc, char *argv[])
     obj_mem_manager::g_changeover();
 
 
+
     sf::Event Event;
 
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
-    l.set_shadow_bright(1, 1);
+    l.set_shadow_casting(1);
+    l.set_brightness(1.0f);
     l.set_pos((cl_float4){2000, 200, -100, 0});
     l.set_type(0.0f);
     l.shadow = 0;
     light* start_light = window.add_light(&l);
 
-    l.pos.w = 0.0f;
+    //l.pos.w = 0.0f;
 
     window.add_light(&l);
 
     window.construct_shadowmaps();
 
-    //ship_newtonian ship1;
-    //ship1.obj = &sponza;
-    //ship1.thruster_force = 0.1;
-    //ship1.thruster_distance = 1;
-    //ship1.thruster_forward = 4;
-    //ship1.mass = 1;
-
-    //newtonian_body* player_ship = ship1.push();
-    //player_ship->add_collision_object(ship_collision_model);
 
     newtonian_body* player_ship = ship.get_newtonian();
 
-    ship_newtonian ship2;
-    ship2.obj = &second_ship;
-    ship2.thruster_force = 0.1;
-    ship2.thruster_distance = 1;
-    ship2.thruster_forward = 4;
-    ship2.mass = 1;
-    ship2.position = (cl_float4){0,-200,0,0};
-
-    newtonian_body* ship_2 = ship2.push();
-    ship_2->add_collision_object(ship_collision_model2);
 
     //newtonian_body l1;
     //l1.obj = NULL;

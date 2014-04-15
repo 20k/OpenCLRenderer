@@ -16,7 +16,8 @@ struct light
 
     void set_pos(cl_float4);
     void set_col(cl_float4);
-    void set_shadow_bright(cl_uint shadow, cl_float bright); ///does it cast shadows, and how bright is the light. Should be split into two functions now
+    void set_shadow_casting(cl_uint shadow);
+    void set_brightness(cl_float intensity);
     void set_type(cl_float); ///ie do we want the shader effect? 0 = no, 1 = yes. Useful only for the game, eventually extensible into more light shader effects
     void set_radius(cl_float);
 

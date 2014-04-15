@@ -78,6 +78,7 @@ void game_object::calc_push_physics_info(cl_float4 pos)
     ship.thruster_distance = 1;
     ship.thruster_forward = 4;
     ship.mass = 1;
+    ship.position = pos;
 
     newtonian = ship.push();
     newtonian->add_collision_object(collision);

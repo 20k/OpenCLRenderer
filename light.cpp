@@ -21,9 +21,14 @@ void light::set_col(cl_float4 c)
     col=c;
 }
 
-void light::set_shadow_bright(cl_uint isshadowcasting, cl_float bright)
+void light::set_shadow_casting(cl_uint isshadowcasting)
 {
-    shadow=isshadowcasting, brightness=bright;
+    shadow=isshadowcasting;
+}
+
+void light::set_brightness(cl_float bright)
+{
+    brightness=bright;
 }
 
 void light::set_radius(cl_float r)

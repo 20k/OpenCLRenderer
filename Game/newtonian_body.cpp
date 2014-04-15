@@ -350,7 +350,8 @@ void ship_newtonian::fire()
 
     light l;
     l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
-    l.set_shadow_bright(0, 3);
+    l.set_shadow_casting(0);
+    l.set_brightness(3.0f);
     l.set_type(1);
     l.set_radius(1000.0f);
 
