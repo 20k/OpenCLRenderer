@@ -85,9 +85,11 @@
 		<Unit filename="../vertex.hpp" />
 		<Unit filename="collision.cpp" />
 		<Unit filename="collision.hpp" />
+		<Unit filename="game_object.cpp" />
+		<Unit filename="game_object.hpp" />
 		<Unit filename="main.cpp" />
-		<Unit filename="ship.cpp" />
-		<Unit filename="ship.hpp" />
+		<Unit filename="newtonian_body.cpp" />
+		<Unit filename="newtonian_body.hpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

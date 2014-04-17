@@ -48,19 +48,6 @@ struct newtonian_manager
     static int get_id(newtonian_body*);
 };
 
-struct weapon
-{
-    float refire_time;
-    float damage;
-
-    float projectile_speed;
-
-    float time_since_last_refire;
-    cl_float4 pos;
-
-    weapon();
-};
-
 struct newtonian_body
 {
     newtonian_body* parent;
@@ -105,7 +92,7 @@ struct newtonian_body
 
     newtonian_body();
 
-    virtual void fire();
+    //virtual void fire();
 
     virtual newtonian_body* clone();
 
@@ -117,9 +104,9 @@ struct newtonian_body
 
 struct ship_newtonian : newtonian_body
 {
-    std::vector<weapon> weapon_list;
+    //std::vector<weapon> weapon_list;
     ///put weapon in here
-    void fire();
+    //void fire();
 
     ship_newtonian* clone();
 

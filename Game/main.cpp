@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
 
     //second_ship.translate_centre((cl_float4){400,0,0,0});
 
+    weapon temporary_weapon;
+
     game_object ship;
     ship.set_file("../objects/shittyspaceship.obj");
     ship.set_active(true);
@@ -33,12 +35,29 @@ int main(int argc, char *argv[])
     ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     ship.add_transform(ROTATE90);
 
+    ship.weapons.push_back(temporary_weapon);
+    ship.weapons.push_back(temporary_weapon);
+
+    ship.add_weapon_to_group(0, 0);
+    ship.add_weapon_to_group(1, 1);
+
     game_object ship2;
     ship2.set_file("../objects/shittyspaceship.obj");
     ship2.set_active(true);
 
     ship2.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     ship2.add_transform(ROTATE90);
+
+    game_object ship3;
+    ship3.set_file("../objects/shittyspaceship.obj");
+    ship3.set_active(true);
+
+    ship3.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
+    ship3.add_transform(ROTATE90);
+
+
+    ship.add_target(&ship2, 0);
+    ship.add_target(&ship3, 1);
 
 
     engine window;
@@ -61,6 +80,9 @@ int main(int argc, char *argv[])
 
     ship2.process_transformations();
     ship2.calc_push_physics_info((cl_float4){0,-200,0,0});
+
+    ship3.process_transformations();
+    ship3.calc_push_physics_info((cl_float4){2000,-200,0,0});
 
 
     texture_manager::allocate_textures();
@@ -147,7 +169,8 @@ int main(int argc, char *argv[])
         }
         if(k.isKeyPressed(sf::Keyboard::P) && !lastp)
         {
-            player_ship->fire();
+            //player_ship->fire();
+            ship.fire_all();
             lastp = true;
         }
         if(!k.isKeyPressed(sf::Keyboard::P))

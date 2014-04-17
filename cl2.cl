@@ -840,8 +840,6 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         *num = 1;
     }
-
-
 }
 
 

@@ -5,12 +5,6 @@
 std::vector<newtonian_body*> newtonian_manager::body_list;
 std::vector<std::pair<newtonian_body*, collision_object> > newtonian_manager::collision_bodies;
 
-weapon::weapon()
-{
-    pos = (cl_float4){0,0,0,0};
-    time_since_last_refire = 0;
-}
-
 void newtonian_manager::draw_all_box()
 {
     for(int i=0; i<collision_bodies.size(); i++)
@@ -240,10 +234,10 @@ void newtonian_body::tick(float timestep)
         ttl-=timestep;
 }
 
-void newtonian_body::fire()
+/*void newtonian_body::fire()
 {
     std::cout << "Error: Not called on correct class" << std::endl;
-}
+}*/
 
 newtonian_body* newtonian_body::push()
 {
@@ -330,46 +324,6 @@ void newtonian_manager::tick_all(float val)
     }
 }
 
-void ship_newtonian::fire()
-{
-    if(obj == NULL || type!=0)
-        return;
-
-    float speed = 5000.0f;
-
-    cl_float4 pos = position;
-    cl_float4 dir = rotation;
-
-    float x1 = sin(-rotation.y)*cos(-rotation.x);
-    float y1 = sin(-rotation.y)*sin(-rotation.x);
-    float z1 = cos(-rotation.y);
-
-    x1 *= speed;
-    y1 *= speed;
-    z1 *= speed;
-
-    light l;
-    l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
-    l.set_shadow_casting(0);
-    l.set_brightness(3.0f);
-    l.set_type(1);
-    l.set_radius(1000.0f);
-
-    light* new_light = l.add_light(&l);
-    engine::realloc_light_gmem();
-    //int id = light::lightlist.size()-1;
-
-    newtonian_body new_bullet;
-    new_bullet.position = pos;
-    new_bullet.linear_momentum = (cl_float4){x1, y1, z1, 0.0f};
-    new_bullet.mass = 1;
-    new_bullet.parent = this;
-    new_bullet.ttl = 10*1000; ///10 seconds
-    new_bullet.collides = true;
-    new_bullet.expires = true;
-
-    new_bullet.push_laser(new_light);
-}
 
 newtonian_body* newtonian_body::clone()
 {
