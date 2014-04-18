@@ -16,7 +16,6 @@ int main(int argc, char *argv[])
     sponza.set_file("sp2/sp2.obj");
     sponza.set_active(true);
 
-
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("cl2.cl");
@@ -38,7 +37,9 @@ int main(int argc, char *argv[])
 
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
-    l.set_shadow_bright(1, 1);
+    //l.set_shadow_bright(1, 1);
+    l.set_shadow_casting(1);
+    l.set_brightness(1);
     l.set_pos((cl_float4){-150, 150, 0});
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
