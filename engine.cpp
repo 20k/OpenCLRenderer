@@ -15,6 +15,7 @@
 #include <limits.h>
 #include "texture_manager.hpp"
 #include "interact_manager.hpp" ///Separatation of church and state hlp
+#include "text_handler.hpp"
 
 #define FOV_CONST 400.0f
 ///this needs changing
@@ -676,6 +677,8 @@ void engine::render_buffers()
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     interact::deplete_stack();
+
+    text_handler::render();
 
     window.display();
 }

@@ -5,6 +5,9 @@
 #include "collision.hpp"
 #include "../interact_manager.hpp"
 #include "game_object.hpp"
+
+#include "../text_handler.hpp"
+#include <sstream>
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -27,6 +30,7 @@ int main(int argc, char *argv[])
     //second_ship.translate_centre((cl_float4){400,0,0,0});
 
     weapon temporary_weapon;
+    temporary_weapon.name = "Laser";
 
     game_object ship;
     ship.set_file("../objects/shittyspaceship.obj");
@@ -54,6 +58,19 @@ int main(int argc, char *argv[])
 
     ship3.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     ship3.add_transform(ROTATE90);
+
+    //ship.add_transform(SCALE, 100.0f);
+    //ship2.add_transform(SCALE, 100.0f);
+    //ship3.add_transform(SCALE, 100.0f);
+
+    //ship.add_transform(ROTATE90);
+    //ship.add_transform(ROTATE90);
+
+    //ship2.add_transform(ROTATE90);
+    //ship2.add_transform(ROTATE90);
+
+    //ship3.add_transform(ROTATE90);
+    //ship3.add_transform(ROTATE90);
 
 
     ship.add_target(&ship2, 0);
@@ -111,6 +128,10 @@ int main(int argc, char *argv[])
 
 
     newtonian_body* player_ship = ship.get_newtonian();
+
+    text_handler::set_render_window(&window.window);
+
+    text_handler::load_font();
 
 
     //newtonian_body l1;
@@ -195,6 +216,25 @@ int main(int argc, char *argv[])
         }
 
         newtonian_manager::draw_all_box();
+
+        text_list t_weps;
+
+        for(int i=0; i<ship.weapons.size(); i++)
+        {
+            std::string nam = ship.weapons[i].name;
+
+            std::ostringstream convert;
+
+            convert << i;
+
+            nam = convert.str() + " " + nam;
+
+            t_weps.elements.push_back(nam);
+        }
+
+        t_weps.set_pos(10, 10);
+
+        text_handler::queue_text_block(t_weps);
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
