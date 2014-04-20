@@ -9,6 +9,8 @@
 #include <cl/cl.h>
 #include <set>
 
+#include <SFML/Graphics.hpp>
+
 enum transform_type
 {
     ROTATE90,
@@ -49,6 +51,8 @@ struct game_object
 
     std::set<game_object*> targeting_me;
 
+    static sf::Clock time;
+
     void process_transformations();
 
     void add_transform(transform_type type);
@@ -77,6 +81,8 @@ struct game_object
     void set_active(bool);
 
     void fire_all();
+
+    bool can_fire(int weapon_id);
 
     newtonian_body* get_newtonian();
 };

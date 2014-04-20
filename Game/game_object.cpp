@@ -4,6 +4,8 @@
 
 #include "../engine.hpp"
 
+sf::Clock game_object::time;
+
 weapon::weapon()
 {
     pos = (cl_float4){0,0,0,0};
@@ -144,6 +146,28 @@ void game_object::notify_destroyed()
     targeting_me.clear();
 }
 
+bool game_object::can_fire(int weapon_id)
+{
+    if(weapon_id >= weapons.size())
+    {
+        std::cout << "warning: Invalid weapon ID" << std::endl;
+        return false;
+    }
+
+    weapon& w = weapons[weapon_id];
+
+    float milli_time = time.getElapsedTime().asMilliseconds();
+
+    if(milli_time > w.time_since_last_refire + w.refire_time)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void game_object::fire_all()
 {
     /*for(int i=0; i<targets.size(); i++)
@@ -215,6 +239,13 @@ void game_object::fire_all()
         for(int j=0; j<weapon_list.size(); j++)
         {
             int weapon_id = weapon_list[j];
+
+            if(!can_fire(weapon_id))
+                continue;
+
+            weapon& w = weapons[weapon_id];
+
+            w.time_since_last_refire = time.getElapsedTime().asMilliseconds();
 
 
             float speed = 5000.0f;

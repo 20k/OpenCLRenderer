@@ -10,6 +10,7 @@ struct text_list
 {
     int x, y;
     std::vector<std::string> elements;
+    std::vector<sf::Color> colours;
 
     void set_pos(int, int);
 };

@@ -75,6 +75,8 @@
 		<Unit filename="../objects_container.hpp" />
 		<Unit filename="../ocl.h" />
 		<Unit filename="../proj.hpp" />
+		<Unit filename="../text_handler.cpp" />
+		<Unit filename="../text_handler.hpp" />
 		<Unit filename="../texture.cpp" />
 		<Unit filename="../texture.hpp" />
 		<Unit filename="../texture_manager.cpp" />

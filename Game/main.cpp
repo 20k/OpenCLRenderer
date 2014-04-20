@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 
     weapon temporary_weapon;
     temporary_weapon.name = "Laser";
+    temporary_weapon.refire_time = 250; /// milliseconds
 
     game_object ship;
     ship.set_file("../objects/shittyspaceship.obj");
@@ -143,6 +144,8 @@ int main(int argc, char *argv[])
 
     bool lastp = false;
 
+    sf::Mouse mouse;
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -221,6 +224,15 @@ int main(int argc, char *argv[])
 
         for(int i=0; i<ship.weapons.size(); i++)
         {
+            sf::Color col(50, 255, 50, 255);
+
+            if(!ship.can_fire(i))
+            {
+                col.r = 255;
+                col.g = 50;
+                col.b = 50;
+            }
+
             std::string nam = ship.weapons[i].name;
 
             std::ostringstream convert;
@@ -230,7 +242,10 @@ int main(int argc, char *argv[])
             nam = convert.str() + " " + nam;
 
             t_weps.elements.push_back(nam);
+            t_weps.colours.push_back(col);
         }
+
+        interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
 
         t_weps.set_pos(10, 10);
 

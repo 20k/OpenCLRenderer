@@ -8,6 +8,7 @@ sf::Texture interact::texture_pixel;
 sf::RenderWindow* interact::render_window;
 std::vector<std::pair<int,int> > interact::pixel_stack;
 std::vector<std::pair<point,point> > interact::rectangle_stack;
+int interact::selected = -1;
 
 void interact::set_render_window(sf::RenderWindow* win)
 {
@@ -34,12 +35,14 @@ void interact::draw_pixel(int x, int y)
     pixel_stack.push_back(std::make_pair(x, engine::height - y));
 }
 
-void interact::draw_rect(int x1, int y1, int x2, int y2)
+int interact::draw_rect(int x1, int y1, int x2, int y2)
 {
     point one = {x1, engine::height - y1};
     point two = {x2, engine::height - y2};
 
     rectangle_stack.push_back(std::make_pair<point, point>(one, two));
+
+    return rectangle_stack.size()-1;
 }
 
 void interact::deplete_stack()
@@ -67,6 +70,9 @@ void interact::deplete_stack()
         ///must be specified tl tr
 
         sf::RectangleShape rshape;
+
+        if(selected == i)
+            rshape.setFillColor(sf::Color(50, 255, 50));
 
         rshape.setPosition(one.x, one.y);
         rshape.setSize(sf::Vector2f(1, 5));
@@ -98,4 +104,19 @@ void interact::deplete_stack()
 
     pixel_stack.clear();
     rectangle_stack.clear();
+}
+
+int interact::get_mouse_collision_rect(int x, int y)
+{
+    for(int i=0; i<rectangle_stack.size(); i++)
+    {
+        if(x > rectangle_stack[i].first.x && y > rectangle_stack[i].first.y && x < rectangle_stack[i].second.x -1 && y < rectangle_stack[i].second.y -1)
+        {
+            selected = i;
+            return i;
+        }
+    }
+
+    selected = -1;
+    return -1;
 }

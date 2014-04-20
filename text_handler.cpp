@@ -41,6 +41,11 @@ void text_handler::render()
         {
             std::string& txt = tl.elements[j];
 
+            sf::Color col(255, 255, 255, 255);
+
+            if(j < tl.colours.size())
+                col = tl.colours[j];
+
             sf::String str;
 
             str = txt;
@@ -51,6 +56,7 @@ void text_handler::render()
             to_draw.setFont(font);
             to_draw.setPosition(tl.x, running_y);
             to_draw.setCharacterSize(font_size);
+            to_draw.setColor(col);
 
             window->draw(to_draw);
 
