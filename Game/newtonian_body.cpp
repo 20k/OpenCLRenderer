@@ -2,6 +2,8 @@
 #include "../engine.hpp"
 #include "../interact_manager.hpp"
 
+#define POINT_NUM 8
+
 std::vector<newtonian_body*> newtonian_manager::body_list;
 std::vector<std::pair<newtonian_body*, collision_object> > newtonian_manager::collision_bodies;
 
@@ -13,7 +15,7 @@ void newtonian_manager::draw_all_box()
         newtonian_body* nobj = collision_bodies[i].first;
 
 
-        cl_float4 collision_points[6] =
+        /*cl_float4 collision_points[6] =f
         {
             (cl_float4){
                 obj->a, 0.0f, 0.0f, 0.0f
@@ -33,25 +35,53 @@ void newtonian_manager::draw_all_box()
             (cl_float4){
                 0.0f, 0.0f, -obj->c, 0.0f
             }
+        };*/
+
+        cl_float4 collision_points[POINT_NUM] =
+        {
+            (cl_float4){
+                obj->a, obj->b, obj->c, 0.0f
+            },
+            (cl_float4){
+                -obj->a, obj->b, obj->c, 0.0f
+            },
+            (cl_float4){
+                obj->a, -obj->b, obj->c, 0.0f
+            },
+            (cl_float4){
+                -obj->a, -obj->b, obj->c, 0.0f
+            },
+            (cl_float4){
+                obj->a, obj->b, -obj->c, 0.0f
+            },
+            (cl_float4){
+                -obj->a, obj->b, -obj->c, 0.0f
+            },
+            (cl_float4){
+                obj->a, -obj->b, -obj->c, 0.0f
+            },
+            (cl_float4){
+                -obj->a, -obj->b, -obj->c, 0.0f
+            }
         };
 
-        for(int i=0; i<6; i++)
+        for(int i=0; i<POINT_NUM; i++)
         {
             collision_points[i].x *= 1.5f;
             collision_points[i].y *= 1.5f;
             collision_points[i].z *= 1.5f;
         }
 
-        for(int i=0; i<6; i++)
+        for(int i=0; i<POINT_NUM; i++)
         {
             collision_points[i].x += obj->centre.x;
             collision_points[i].y += obj->centre.y;
             collision_points[i].z += obj->centre.z;
         }
 
-        cl_float4 collisions_postship_rotated_world[6];
+        cl_float4 collisions_postship_rotated_world[POINT_NUM];
 
-        for(int i=0; i<6; i++)
+        for(int i=0; i<POINT_NUM; i++)
         {
             collisions_postship_rotated_world[i] = engine::rot_about(collision_points[i], obj->centre, nobj->rotation);
             collisions_postship_rotated_world[i].x += nobj->position.x;
@@ -59,9 +89,9 @@ void newtonian_manager::draw_all_box()
             collisions_postship_rotated_world[i].z += nobj->position.z;
         }
 
-        cl_float4 collisions_postcamera_rotated[6];
+        cl_float4 collisions_postcamera_rotated[POINT_NUM];
 
-        for(int i=0; i<6; i++)
+        for(int i=0; i<POINT_NUM; i++)
         {
             collisions_postship_rotated_world[i] = engine::project(collisions_postship_rotated_world[i]);
         }
@@ -70,7 +100,7 @@ void newtonian_manager::draw_all_box()
 
         bool any = false;
 
-        for(int i=0; i<6; i++)
+        for(int i=0; i<POINT_NUM; i++)
         {
             cl_float4 projected = collisions_postship_rotated_world[i];
 
