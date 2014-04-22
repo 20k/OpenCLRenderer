@@ -65,6 +65,7 @@ struct engine
 
     static cl_float4 rot_about(cl_float4, cl_float4, cl_float4);
     static cl_float4 rot_about_camera(cl_float4);
+    static cl_float4 back_project_about_camera(cl_float4);
     static cl_float4 project(cl_float4);
 
     static light* add_light(light*);

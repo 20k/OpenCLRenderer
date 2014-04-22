@@ -1030,9 +1030,8 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
 
     float2 tex_per_pix = {tdiff.x / vdiff.x, tdiff.y / vdiff.y};
 
-    //float worst = min(tex_per_pix.x, tex_per_pix.y);
-
-    float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
+    float worst = min(tex_per_pix.x, tex_per_pix.y);
+    //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
     int mip_lower=0;
     int mip_higher=0;
@@ -1400,6 +1399,7 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
 
     float4 lc_rot = *c_rot;
     float4 lc_pos = *c_pos;
+    lc_pos.w = 0;
 
     ///backrotate point
     float4 global_position = rot(local_position,  zero, (float4)
@@ -1416,10 +1416,7 @@ float generate_hard_occlusion(float4 spos, float4 normal, float actual_depth, __
     });
 
 
-    global_position.x += lc_pos.x;
-    global_position.y += lc_pos.y;
-    global_position.z += lc_pos.z;
-
+    global_position += lc_pos;
 
     //float odepth[3];
 

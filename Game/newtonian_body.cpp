@@ -110,7 +110,7 @@ void newtonian_manager::draw_all_box()
         }
 
         if(any)
-            interact::draw_rect(minx - 5, maxy + 5, maxx + 5, miny - 5);
+            interact::draw_rect(minx - 5, maxy + 5, maxx + 5, miny - 5, i);
     }
 }
 

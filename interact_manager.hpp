@@ -10,12 +10,17 @@ struct point
     int x, y;
 };
 
+struct rect
+{
+    point tl, br;
+};
+
 struct interact
 {
     static sf::RenderWindow* render_window;
 
     static void draw_pixel(int, int);
-    static int draw_rect(int, int, int, int);
+    static int draw_rect(int, int, int, int, int);
 
     static void set_render_window(sf::RenderWindow*);
 
@@ -23,14 +28,16 @@ struct interact
 
     static void deplete_stack();
 
-    static int get_mouse_collision_rect(int, int);
+    static std::pair<int, int> get_mouse_collision_rect(int, int); ///rectangle id, collision object id
+
+    static void set_selected(int);
 
 private:
     static sf::Image pixel;
     static sf::Texture texture_pixel;
     static bool is_loaded;
     static std::vector<std::pair<int,int> > pixel_stack;
-    static std::vector<std::pair<point, point> > rectangle_stack;
+    static std::vector<std::pair<rect, int> > rectangle_stack;
     static int selected;
 };
 

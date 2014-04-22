@@ -279,6 +279,41 @@ cl_float4 engine::rot_about_camera(cl_float4 val)
     return rot_about(val, c_pos, c_rot);
 }
 
+cl_float4 engine::back_project_about_camera(cl_float4 pos) ///from screenspace to worldspace
+{
+    cl_float4 local_position= {((pos.x - width/2.0f)*pos.z/FOV_CONST), ((pos.y - height/2.0f)*pos.z/FOV_CONST), pos.z, 0};
+
+
+    cl_float4 zero = {0,0,0,0};
+
+    ///backrotate pixel coordinate into globalspace
+    cl_float4 global_position = local_position;
+
+    global_position = rot_about(global_position,  zero, (cl_float4)
+    {
+        -c_rot.x, 0.0f, 0.0f, 0.0f
+    });
+
+    global_position        = rot_about(global_position, zero, (cl_float4)
+    {
+        0.0f, -c_rot.y, 0.0f, 0.0f
+    });
+    global_position        = rot_about(global_position, zero, (cl_float4)
+    {
+        0.0f, 0.0f, -c_rot.z, 0.0f
+    });
+
+
+
+    global_position.x += c_pos.x;
+    global_position.y += c_pos.y;
+    global_position.z += c_pos.z;
+
+    global_position.w = 0;
+
+    return global_position;
+}
+
 cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float fovc)
 {
     float rx;
@@ -286,8 +321,8 @@ cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float
     float ry;
     ry=(rotated.y) * (fovc/(rotated.z));
 
-    rx+=width/2;
-    ry+=height/2;
+    rx+=width/2.0f;
+    ry+=height/2.0f;
 
     cl_float4 ret;
 

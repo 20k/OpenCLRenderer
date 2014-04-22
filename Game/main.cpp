@@ -34,11 +34,11 @@ int main(int argc, char *argv[])
     temporary_weapon.refire_time = 250; /// milliseconds
 
     game_object ship;
-    ship.set_file("../objects/shittyspaceship.obj");
+    ship.set_file("../objects/Pre-ruin.obj");
     ship.set_active(true);
 
-    ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
-    ship.add_transform(ROTATE90);
+    //ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
+    //ship.add_transform(ROTATE90);
 
     ship.weapons.push_back(temporary_weapon);
     ship.weapons.push_back(temporary_weapon);
@@ -47,22 +47,22 @@ int main(int argc, char *argv[])
     ship.add_weapon_to_group(1, 1);
 
     game_object ship2;
-    ship2.set_file("../objects/shittyspaceship.obj");
+    ship2.set_file("../objects/Pre-ruin.obj");
     ship2.set_active(true);
 
-    ship2.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
-    ship2.add_transform(ROTATE90);
+    //ship2.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
+    //ship2.add_transform(ROTATE90);
 
     game_object ship3;
-    ship3.set_file("../objects/shittyspaceship.obj");
+    ship3.set_file("../objects/Pre-ruin.obj");
     ship3.set_active(true);
 
-    ship3.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
-    ship3.add_transform(ROTATE90);
+    //ship3.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
+    //ship3.add_transform(ROTATE90);
 
-    //ship.add_transform(SCALE, 100.0f);
-    //ship2.add_transform(SCALE, 100.0f);
-    //ship3.add_transform(SCALE, 100.0f);
+    ship.add_transform(SCALE, 100.0f);
+    ship2.add_transform(SCALE, 100.0f);
+    ship3.add_transform(SCALE, 100.0f);
 
     //ship.add_transform(ROTATE90);
     //ship.add_transform(ROTATE90);
@@ -145,6 +145,10 @@ int main(int argc, char *argv[])
     bool lastp = false;
 
     sf::Mouse mouse;
+
+    cl_float4 selection_pos = {0,0,0,0};
+
+    int selectx = 0, selecty = 0;
 
     while(window.window.isOpen())
     {
@@ -245,9 +249,44 @@ int main(int argc, char *argv[])
             t_weps.colours.push_back(col);
         }
 
-        interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
+        std::pair<int, int> info = interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
 
-        t_weps.set_pos(10, 10);
+        int rect_id = info.first;
+        int collision_iod = info.second;
+
+        /*if(mouse.isButtonPressed(sf::Mouse::Right) && ship_selected!=-1)
+        {
+            float dist;
+
+            float xd, yd, zd;
+
+            xd = newtonian_manager::collision_bodies[ship_selected].first->position.x - engine::c_pos.x;
+            yd = newtonian_manager::collision_bodies[ship_selected].first->position.y - engine::c_pos.y;
+            zd = newtonian_manager::collision_bodies[ship_selected].first->position.z - engine::c_pos.z;
+
+            dist = sqrt(xd*xd + yd*yd + zd*zd);
+
+
+            selection_pos = engine::back_project_about_camera((cl_float4){mouse.getPosition(window.window).x, engine::height - mouse.getPosition(window.window).y, dist, 0});
+        }
+
+
+        cl_float4 screenpos = engine::project(selection_pos);
+
+        t_weps.set_pos(screenpos.x, engine::height - screenpos.y);*/
+
+
+        ///remember to make green on hover over, and keep other selected too. need multiple set_selections, by id?
+
+        if(mouse.isButtonPressed(sf::Mouse::Right) && rect_id!=-1)
+        {
+            selectx = mouse.getPosition(window.window).x;
+            selecty = mouse.getPosition(window.window).y;
+
+            interact::set_selected(rect_id);
+        }
+
+        t_weps.set_pos(selectx, selecty);
 
         text_handler::queue_text_block(t_weps);
 

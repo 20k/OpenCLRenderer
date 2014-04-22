@@ -7,7 +7,7 @@ sf::Image interact::pixel;
 sf::Texture interact::texture_pixel;
 sf::RenderWindow* interact::render_window;
 std::vector<std::pair<int,int> > interact::pixel_stack;
-std::vector<std::pair<point,point> > interact::rectangle_stack;
+std::vector<std::pair<rect, int> > interact::rectangle_stack;
 int interact::selected = -1;
 
 void interact::set_render_window(sf::RenderWindow* win)
@@ -35,12 +35,16 @@ void interact::draw_pixel(int x, int y)
     pixel_stack.push_back(std::make_pair(x, engine::height - y));
 }
 
-int interact::draw_rect(int x1, int y1, int x2, int y2)
+int interact::draw_rect(int x1, int y1, int x2, int y2, int id)
 {
     point one = {x1, engine::height - y1};
     point two = {x2, engine::height - y2};
 
-    rectangle_stack.push_back(std::make_pair<point, point>(one, two));
+    rect r;
+    r.tl = one;
+    r.br = two;
+
+    rectangle_stack.push_back(std::make_pair<rect, int>(r, id));
 
     return rectangle_stack.size()-1;
 }
@@ -64,8 +68,8 @@ void interact::deplete_stack()
     for(int i=0; i<rectangle_stack.size(); i++)
     {
         point one, two;
-        one = rectangle_stack[i].first;
-        two = rectangle_stack[i].second;
+        one = rectangle_stack[i].first.tl;
+        two = rectangle_stack[i].first.br;
 
         ///must be specified tl tr
 
@@ -106,17 +110,20 @@ void interact::deplete_stack()
     rectangle_stack.clear();
 }
 
-int interact::get_mouse_collision_rect(int x, int y)
+std::pair<int, int> interact::get_mouse_collision_rect(int x, int y)
 {
     for(int i=0; i<rectangle_stack.size(); i++)
     {
-        if(x > rectangle_stack[i].first.x && y > rectangle_stack[i].first.y && x < rectangle_stack[i].second.x -1 && y < rectangle_stack[i].second.y -1)
+        if(x > rectangle_stack[i].first.tl.x && y > rectangle_stack[i].first.tl.y && x < rectangle_stack[i].first.br.x -1 && y < rectangle_stack[i].first.br.y -1)
         {
-            selected = i;
-            return i;
+            return std::make_pair<int, int> (i, rectangle_stack[i].second);
         }
     }
 
-    selected = -1;
-    return -1;
+    return std::make_pair<int, int> (-1, -1);
+}
+
+void interact::set_selected(int s)
+{
+    selected = s;
 }
