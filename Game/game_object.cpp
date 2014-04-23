@@ -251,6 +251,22 @@ bool game_object::can_fire(int weapon_id)
     }
 }
 
+void stagger_fire_time(sf::Clock time, std::vector<weapon>& weapon_list)
+{
+    int weapon_num = weapon_list.size();
+
+    float time_between_shots = 1.0f/weapon_num;
+
+    float ctime = time.getElapsedTime().asMilliseconds();
+
+    for(int i=0; i<weapon_list.size(); i++)
+    {
+        float approx_start_offset = time_between_shots*i*weapon_list[i].refire_time;
+
+        weapon_list[i].time_since_last_refire = ctime - weapon_list[i].refire_time + approx_start_offset - 10;
+    }
+}
+
 void game_object::fire_all()
 {
     /*for(int i=0; i<targets.size(); i++)
@@ -306,6 +322,17 @@ void game_object::fire_all()
 
     if(newtonian->obj == NULL || newtonian->type!=0)
             return;
+
+    bool should_stagger = true;
+
+    for(int i=0;  i<weapons.size(); i++)
+    {
+        if(!can_fire(i))
+            should_stagger = false;
+    }
+
+    if(should_stagger)
+        stagger_fire_time(time, weapons);
 
     for(int i=0; i<weapon_groups.size(); i++)
     {
