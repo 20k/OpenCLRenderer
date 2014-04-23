@@ -4,7 +4,13 @@
 
 #include "../engine.hpp"
 
+#define POINT_NUM 8
+
+#include "../interact_manager.hpp"
+
 sf::Clock game_object::time;
+
+std::vector<game_object*> game_object_manager::object_list;
 
 weapon::weapon()
 {
@@ -80,6 +86,10 @@ void game_object::add_target(game_object* obj, int group_id)
     ///id -1 is global = 0, 1 = 0 etc. Possible confusing, might be worth changing or using a map
 
     ///update size of targets to fit in new size if its too small. Map?
+
+    if(group_id < 0)
+        return;
+
     while(targets.size() <= group_id)
     {
         targets.push_back(std::set<game_object*>());
@@ -110,6 +120,9 @@ void game_object::remove_target(game_object* obj, int group_id)
     if(targets.size() <= group_id)
         return;
 
+    if(group_id < 0)
+        return;
+
     std::set<game_object*>& vec = targets[group_id];
 
     vec.erase(obj);
@@ -133,6 +146,38 @@ void game_object::remove_target_no_remote_update(game_object* obj)
         std::set<game_object*>& vec = targets[i];
 
         vec.erase(obj);
+    }
+}
+
+void conditional_remote_update(game_object* base, game_object* remote)
+{
+    for(int i=0; i<base->targets.size(); i++)
+    {
+        for(std::set<game_object*>::iterator it = base->targets[i].begin(); it!=base->targets[i].end(); it++)
+        {
+            if(*it == remote)
+                return;
+        }
+    }
+
+    remote->targeting_me.erase(base);
+}
+
+void game_object::remove_targets_from_weapon_group(int group_id)
+{
+    if(targets.size() <= group_id)
+        return;
+
+    if(group_id < 0)
+        return;
+
+    std::set<game_object*> vec = targets[group_id];
+
+    targets[group_id].clear();
+
+    for(std::set<game_object*>::iterator it = vec.begin(); it!=vec.end(); it++)
+    {
+        conditional_remote_update(this, (*it));
     }
 }
 
@@ -394,3 +439,174 @@ newtonian_body* game_object::get_newtonian()
     return newtonian;
 }
 
+void game_object::draw_box()
+{
+    collision_object* obj = &collision;
+    newtonian_body* nobj = newtonian;
+
+    ///ellipse bounds
+    /*cl_float4 collision_points[6] =
+    {
+        (cl_float4){
+            obj->a, 0.0f, 0.0f, 0.0f
+        },
+        (cl_float4){
+            -obj->a, 0.0f, 0.0f, 0.0f
+        },
+        (cl_float4){
+            0.0f, obj->b, 0.0f, 0.0f
+        },
+        (cl_float4){
+            0.0f, -obj->b, 0.0f, 0.0f
+        },
+        (cl_float4){
+            0.0f, 0.0f, obj->c, 0.0f
+        },
+        (cl_float4){
+            0.0f, 0.0f, -obj->c, 0.0f
+        }
+    };*/
+
+    ///bounding box bounds
+    cl_float4 collision_points[POINT_NUM] =
+    {
+        (cl_float4){
+            obj->a, obj->b, obj->c, 0.0f
+        },
+        (cl_float4){
+            -obj->a, obj->b, obj->c, 0.0f
+        },
+        (cl_float4){
+            obj->a, -obj->b, obj->c, 0.0f
+        },
+        (cl_float4){
+            -obj->a, -obj->b, obj->c, 0.0f
+        },
+        (cl_float4){
+            obj->a, obj->b, -obj->c, 0.0f
+        },
+        (cl_float4){
+            -obj->a, obj->b, -obj->c, 0.0f
+        },
+        (cl_float4){
+            obj->a, -obj->b, -obj->c, 0.0f
+        },
+        (cl_float4){
+            -obj->a, -obj->b, -obj->c, 0.0f
+        }
+    };
+
+    for(int i=0; i<POINT_NUM; i++)
+    {
+        collision_points[i].x *= 1.5f;
+        collision_points[i].y *= 1.5f;
+        collision_points[i].z *= 1.5f;
+    }
+
+    for(int i=0; i<POINT_NUM; i++)
+    {
+        collision_points[i].x += obj->centre.x;
+        collision_points[i].y += obj->centre.y;
+        collision_points[i].z += obj->centre.z;
+    }
+
+    cl_float4 collisions_postship_rotated_world[POINT_NUM];
+
+    for(int i=0; i<POINT_NUM; i++)
+    {
+        collisions_postship_rotated_world[i] = engine::rot_about(collision_points[i], obj->centre, nobj->rotation);
+        collisions_postship_rotated_world[i].x += nobj->position.x;
+        collisions_postship_rotated_world[i].y += nobj->position.y;
+        collisions_postship_rotated_world[i].z += nobj->position.z;
+    }
+
+    cl_float4 collisions_postcamera_rotated[POINT_NUM];
+
+    for(int i=0; i<POINT_NUM; i++)
+    {
+        collisions_postship_rotated_world[i] = engine::project(collisions_postship_rotated_world[i]);
+    }
+
+    float maxx=-10000, minx=10000, maxy=-10000, miny = 10000;
+
+    bool any = false;
+
+    for(int i=0; i<POINT_NUM; i++)
+    {
+        cl_float4 projected = collisions_postship_rotated_world[i];
+
+        if(projected.z < 0.01)
+            continue;
+
+        if(projected.x > maxx)
+            maxx = projected.x;
+
+        if(projected.x < minx)
+            minx = projected.x;
+
+        if(projected.y > maxy)
+            maxy = projected.y;
+
+        if(projected.y < miny)
+            miny = projected.y;
+
+        any = true;
+    }
+
+    int least_x = 20;
+    int least_y = 20;
+
+    if(maxx - minx < least_x)
+    {
+        int xdiff = least_x - (maxx - minx);
+        minx -= xdiff / 2.0f;
+        maxx += xdiff / 2.0f;
+    }
+
+    if(maxy - miny < least_y)
+    {
+        int ydiff = least_y - (maxy - miny);
+        miny -= ydiff / 2.0f;
+        maxy += ydiff / 2.0f;
+    }
+
+    if(any)
+        interact::draw_rect(minx - 5, maxy + 5, maxx + 5, miny - 5, get_id());
+}
+
+int game_object::get_id()
+{
+    for(int i=0; i<game_object_manager::object_list.size(); i++)
+    {
+        if(game_object_manager::object_list[i] == this)
+            return i;
+    }
+
+    return -1;
+}
+
+game_object* game_object::push()
+{
+    game_object* g = new game_object(*this);
+    game_object_manager::object_list.push_back(g);
+    return game_object_manager::object_list.back();
+}
+
+game_object* game_object_manager::get_new_object()
+{
+    game_object* gobj = new game_object();
+
+    object_list.push_back(gobj);
+
+    return gobj;
+}
+
+void game_object_manager::draw_all_box()
+{
+    for(int i=0; i<object_list.size(); i++)
+    {
+        game_object* o = object_list[i];
+
+        o->draw_box();
+    }
+}

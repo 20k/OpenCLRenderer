@@ -18,7 +18,7 @@ struct rect
 
 struct rect_descriptor
 {
-    int attached_ship_id;
+    int identifier;
     //int selected;
 
     rect_descriptor();
@@ -39,7 +39,7 @@ struct interact
 
     static int get_mouse_collision_rect(int, int); ///rectangle id
 
-    static int get_collision_id(int);
+    static int get_identifier_from_rect(int);
 
     static bool get_is_selected(int);
 

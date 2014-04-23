@@ -11,9 +11,9 @@ std::vector<std::pair<rect, rect_descriptor> > interact::rectangle_stack;
 std::set<int> interact::ids_selected;
 //int interact::selected = -1;
 
-rect_descriptor::rect_descriptor() : attached_ship_id(-1)
+rect_descriptor::rect_descriptor()
 {
-
+    identifier = -1;
 }
 
 void interact::set_render_window(sf::RenderWindow* win)
@@ -51,7 +51,7 @@ int interact::draw_rect(int x1, int y1, int x2, int y2, int id)
     r.br = two;
 
     rect_descriptor r_d;
-    r_d.attached_ship_id = id;
+    r_d.identifier = id;
     //r_d.selected = 0;
 
     rectangle_stack.push_back(std::make_pair<rect, rect_descriptor>(r, r_d));
@@ -135,13 +135,19 @@ int interact::get_mouse_collision_rect(int x, int y)
     return -1;
 }
 
-int interact::get_collision_id(int id)
+int interact::get_identifier_from_rect(int id)
 {
-    return rectangle_stack[id].second.attached_ship_id;
+    if(id < 0 || id >= rectangle_stack.size())
+        return -1;
+
+    return rectangle_stack[id].second.identifier;
 }
 
 bool interact::get_is_selected(int id)
 {
+    if(id < 0 || id >= rectangle_stack.size())
+        return -1;
+
     return ids_selected.find(id)!=ids_selected.end();
 }
 

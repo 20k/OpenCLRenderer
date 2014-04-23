@@ -42,6 +42,8 @@ struct game_object
     objects_container objects;
     newtonian_body* newtonian;
 
+    //static std::set<game_object*> game_object_list;
+
     std::vector<std::pair<transform_type, cl_float4> > transform_list;
 
     std::vector<weapon> weapons; ///static once weapons are initialised, no changing managed through flags
@@ -66,6 +68,7 @@ struct game_object
     void remove_target(game_object*);
     void remove_target(game_object*, int group_id);
     void remove_target_no_remote_update(game_object*);
+    void remove_targets_from_weapon_group(int group_id);
 
     void notify_destroyed();
 
@@ -85,6 +88,21 @@ struct game_object
     bool can_fire(int weapon_id);
 
     newtonian_body* get_newtonian();
+
+    void draw_box();
+
+    int get_id();
+
+    game_object* push();
+};
+
+struct game_object_manager
+{
+    static std::vector<game_object*> object_list;
+
+    static game_object* get_new_object();
+
+    static void draw_all_box();
 };
 
 /*struct targeting

@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     temporary_weapon.name = "Laser";
     temporary_weapon.refire_time = 250; /// milliseconds
 
-    game_object ship;
+    game_object& ship = *game_object_manager::get_new_object();
     ship.set_file("../objects/Pre-ruin.obj");
     ship.set_active(true);
 
@@ -46,14 +46,14 @@ int main(int argc, char *argv[])
     ship.add_weapon_to_group(0, 0);
     ship.add_weapon_to_group(1, 1);
 
-    game_object ship2;
+    game_object& ship2 = *game_object_manager::get_new_object();
     ship2.set_file("../objects/Pre-ruin.obj");
     ship2.set_active(true);
 
     //ship2.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     //ship2.add_transform(ROTATE90);
 
-    game_object ship3;
+    game_object& ship3 = *game_object_manager::get_new_object();
     ship3.set_file("../objects/Pre-ruin.obj");
     ship3.set_active(true);
 
@@ -76,6 +76,8 @@ int main(int argc, char *argv[])
 
     ship.add_target(&ship2, 0);
     ship.add_target(&ship3, 1);
+
+    //ship.remove_targets_from_weapon_group(0);
 
 
     engine window;
@@ -224,7 +226,9 @@ int main(int argc, char *argv[])
             window.realloc_light_gmem();
         }
 
-        newtonian_manager::draw_all_box();
+        //newtonian_manager::draw_all_box();
+
+        game_object_manager::draw_all_box();
 
         text_list t_weps;
 
@@ -253,7 +257,7 @@ int main(int argc, char *argv[])
 
         int rect_id = interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
 
-        int collision_id = interact::get_collision_id(rect_id);
+        int identifier = interact::get_identifier_from_rect(rect_id);
 
         /*if(mouse.isButtonPressed(sf::Mouse::Right) && ship_selected!=-1)
         {
@@ -279,7 +283,7 @@ int main(int argc, char *argv[])
 
         ///remember to make green on hover over, and keep other selected too. need multiple set_selections, by id?
 
-        if(mouse.isButtonPressed(sf::Mouse::Right) && rect_id!=-1)
+        if(mouse.isButtonPressed(sf::Mouse::Right) && rect_id != -1 && identifier != -1)
         {
             selectx = mouse.getPosition(window.window).x;
             selecty = mouse.getPosition(window.window).y;
@@ -290,6 +294,12 @@ int main(int argc, char *argv[])
             interact::set_selected(rect_id);
 
             last_selected = rect_id;
+
+            ship.remove_targets_from_weapon_group(0);
+
+            ship.add_target(game_object_manager::object_list[identifier], 0);
+
+            //ship.remove_
         }
 
         t_weps.set_pos(selectx, selecty);
