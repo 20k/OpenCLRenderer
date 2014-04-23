@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <utility>
+#include <set>
 
 struct point
 {
@@ -13,6 +14,14 @@ struct point
 struct rect
 {
     point tl, br;
+};
+
+struct rect_descriptor
+{
+    int attached_ship_id;
+    //int selected;
+
+    rect_descriptor();
 };
 
 struct interact
@@ -28,17 +37,23 @@ struct interact
 
     static void deplete_stack();
 
-    static std::pair<int, int> get_mouse_collision_rect(int, int); ///rectangle id, collision object id
+    static int get_mouse_collision_rect(int, int); ///rectangle id
+
+    static int get_collision_id(int);
+
+    static bool get_is_selected(int);
 
     static void set_selected(int);
+    static void unset_selected(int);
 
 private:
     static sf::Image pixel;
     static sf::Texture texture_pixel;
     static bool is_loaded;
     static std::vector<std::pair<int,int> > pixel_stack;
-    static std::vector<std::pair<rect, int> > rectangle_stack;
-    static int selected;
+    static std::vector<std::pair<rect, rect_descriptor> > rectangle_stack;
+    static std::set<int> ids_selected;
+    //static int selected;
 };
 
 #endif // INCLUDED_INTERACT_MANAGER_HPP

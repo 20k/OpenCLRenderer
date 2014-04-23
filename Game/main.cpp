@@ -150,6 +150,8 @@ int main(int argc, char *argv[])
 
     int selectx = 0, selecty = 0;
 
+    int last_selected = -1; ///make this a vector
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -249,10 +251,9 @@ int main(int argc, char *argv[])
             t_weps.colours.push_back(col);
         }
 
-        std::pair<int, int> info = interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
+        int rect_id = interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
 
-        int rect_id = info.first;
-        int collision_iod = info.second;
+        int collision_id = interact::get_collision_id(rect_id);
 
         /*if(mouse.isButtonPressed(sf::Mouse::Right) && ship_selected!=-1)
         {
@@ -283,7 +284,12 @@ int main(int argc, char *argv[])
             selectx = mouse.getPosition(window.window).x;
             selecty = mouse.getPosition(window.window).y;
 
+            if(last_selected!=-1)
+                interact::unset_selected(last_selected);
+
             interact::set_selected(rect_id);
+
+            last_selected = rect_id;
         }
 
         t_weps.set_pos(selectx, selecty);

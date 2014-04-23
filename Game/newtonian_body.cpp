@@ -14,8 +14,8 @@ void newtonian_manager::draw_all_box()
         collision_object* obj = &collision_bodies[i].second;
         newtonian_body* nobj = collision_bodies[i].first;
 
-
-        /*cl_float4 collision_points[6] =f
+        ///ellipse bounds
+        /*cl_float4 collision_points[6] =
         {
             (cl_float4){
                 obj->a, 0.0f, 0.0f, 0.0f
@@ -37,6 +37,7 @@ void newtonian_manager::draw_all_box()
             }
         };*/
 
+        ///bounding box bounds
         cl_float4 collision_points[POINT_NUM] =
         {
             (cl_float4){
