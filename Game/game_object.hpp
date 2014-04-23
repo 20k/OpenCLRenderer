@@ -63,6 +63,7 @@ struct game_object
 
     void add_weapon_to_group(int group_id, int weapon_id);
     void remove_weapon_from_group(int group_id, int weapon_id);
+    bool is_weapon_in_group(int group_id, int weapon_id);
 
     void add_target(game_object*, int group_id);
     void remove_target(game_object*);
@@ -71,6 +72,8 @@ struct game_object
     void remove_targets_from_weapon_group(int group_id);
 
     void notify_destroyed();
+
+    std::vector<int> get_weapon_groups_of_weapon_by_id(int);
 
     //void set_type(std::string);
 

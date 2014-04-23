@@ -60,7 +60,7 @@ void game_object::add_weapon_to_group(int g_id, int w_id)
 
 void game_object::remove_weapon_from_group(int g_id, int w_id)
 {
-    if(g_id >= weapon_groups.size())
+    if(g_id >= weapon_groups.size() || g_id < 0)
     {
         std::cout << "warning, invalid group_id" << std::endl;
         return;
@@ -79,6 +79,25 @@ void game_object::remove_weapon_from_group(int g_id, int w_id)
             break;
         }
     }
+}
+
+bool game_object::is_weapon_in_group(int g_id, int w_id)
+{
+    if(g_id >= weapon_groups.size() || g_id < 0)
+    {
+        std::cout << "warning, invalid group_id" << std::endl;
+        return false;
+    }
+
+    std::vector<int>& vec = weapon_groups[g_id];
+
+    for(int i=0; i<vec.size(); i++)
+    {
+        if(w_id == vec[i])
+            return true;
+    }
+
+    return false;
 }
 
 void game_object::add_target(game_object* obj, int group_id)
@@ -189,6 +208,25 @@ void game_object::notify_destroyed()
     }
 
     targeting_me.clear();
+}
+
+std::vector<int> game_object::get_weapon_groups_of_weapon_by_id(int weapon_id)
+{
+    std::vector<int> group_list;
+
+    for(int i=0; i<weapon_groups.size(); i++)
+    {
+        for(int j=0; j<weapon_groups[i].size(); j++)
+        {
+            if(weapon_groups[i][j] == weapon_id)
+            {
+                group_list.push_back(i);
+                break;
+            }
+        }
+    }
+
+    return group_list;
 }
 
 bool game_object::can_fire(int weapon_id)

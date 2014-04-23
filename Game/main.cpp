@@ -156,22 +156,30 @@ int main(int argc, char *argv[])
     //newtonian_body& light_newt = *l1.push_laser(start_light);
 
     bool lastp = false;
+    bool lastg = false;
 
     sf::Mouse mouse;
 
     cl_float4 selection_pos = {0,0,0,0};
 
-    int selectx = 0, selecty = 0;
+    int selectx = 200, selecty = 0;
 
     int last_selected = -1; ///make this a vector
 
     int weapon_group_selected = 0;
 
-    text_list wgs;
-    wgs.elements.push_back(to_str(weapon_group_selected));
+    int weapon_selected = 0;
 
     while(window.window.isOpen())
     {
+        text_list wgs;
+        wgs.elements.push_back(std::string("weapon_group: " + to_str(weapon_group_selected + 1)));
+        wgs.elements.push_back(std::string("weapon_number: " + to_str(weapon_selected + 1)));
+
+        wgs.x = 10;
+        wgs.y = 10;
+
+
         sf::Clock c;
 
         if(window.window.pollEvent(Event))
@@ -182,16 +190,33 @@ int main(int argc, char *argv[])
             if(Event.type == sf::Event::MouseWheelMoved)
             {
                 if(Event.mouseWheel.delta > 0)
-                    weapon_group_selected++;
-                else
-                    weapon_group_selected--;
+                    weapon_selected++;
+                else if(Event.mouseWheel.delta < 0)
+                    weapon_selected--;
 
-                if(weapon_group_selected >= ship.weapon_groups.size())
-                    weapon_group_selected = 0;
-                if(weapon_group_selected < 0)
-                    weapon_group_selected = ship.weapon_groups.size()-1;
+                ///unsigned integer promotion breaks check
+                if(weapon_selected >= (int)ship.weapons.size())
+                    weapon_selected = ship.weapons.size()-1;
+                if(weapon_selected < 0)
+                    weapon_selected = 0;
             }
         }
+
+        sf::Keyboard k;
+        if(k.isKeyPressed(sf::Keyboard::Num1))
+            weapon_group_selected = 0;
+
+        if(k.isKeyPressed(sf::Keyboard::Num2))
+            weapon_group_selected = 1;
+
+        if(k.isKeyPressed(sf::Keyboard::Num3))
+            weapon_group_selected = 2;
+
+        if(k.isKeyPressed(sf::Keyboard::Num4))
+            weapon_group_selected = 3;
+
+        if(k.isKeyPressed(sf::Keyboard::Num5))
+            weapon_group_selected = 4;
 
         window.input();
 
@@ -203,7 +228,6 @@ int main(int argc, char *argv[])
         player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
 
 
-        sf::Keyboard k;
         if(k.isKeyPressed(sf::Keyboard::I))
         {
             player_ship->set_linear_force_direction((cl_float4){1, 0, 0, 0});
@@ -237,6 +261,21 @@ int main(int argc, char *argv[])
         if(!k.isKeyPressed(sf::Keyboard::P))
         {
             lastp = false;
+        }
+
+        if(k.isKeyPressed(sf::Keyboard::G) && !lastg)
+        {
+            if(ship.is_weapon_in_group(weapon_group_selected, weapon_selected))
+                ship.remove_weapon_from_group(weapon_group_selected, weapon_selected);
+            else
+                ship.add_weapon_to_group(weapon_group_selected, weapon_selected);
+
+            lastg = true;
+        }
+
+        if(!k.isKeyPressed(sf::Keyboard::G))
+        {
+            lastg = false;
         }
 
         //ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
@@ -274,9 +313,18 @@ int main(int argc, char *argv[])
 
             std::ostringstream convert;
 
-            convert << i;
+            convert << i + 1 << ".";
 
             nam = convert.str() + " " + nam;
+
+            auto group_list = ship.get_weapon_groups_of_weapon_by_id(i);
+
+            std::ostringstream group_convert;
+
+            for(auto& j : group_list)
+                group_convert << j+1 << " ";
+
+            nam = nam + ". Groups: " + group_convert.str();
 
             t_weps.elements.push_back(nam);
             t_weps.colours.push_back(col);
@@ -322,14 +370,17 @@ int main(int argc, char *argv[])
 
             last_selected = rect_id;
 
-            ship.remove_targets_from_weapon_group(0);
+            ship.remove_targets_from_weapon_group(weapon_group_selected);
 
-            ship.add_target(game_object_manager::object_list[identifier], 0);
+            ship.add_target(game_object_manager::object_list[identifier], weapon_group_selected);
         }
 
-        t_weps.set_pos(selectx, selecty);
+        t_weps.set_pos(10, 40);
+        //t_weps.set_pos(selectx, selecty);
 
         text_handler::queue_text_block(t_weps);
+
+        text_handler::queue_text_block(wgs);
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

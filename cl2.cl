@@ -1031,6 +1031,7 @@ float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth,
     float2 tex_per_pix = {tdiff.x / vdiff.x, tdiff.y / vdiff.y};
 
     float worst = min(tex_per_pix.x, tex_per_pix.y);
+    ///max seems to break spaceships but is apparently correct. What do? Need to actually solve texture filtering because it works pretty shit
     //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
     int mip_lower=0;
