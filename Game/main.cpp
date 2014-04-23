@@ -226,8 +226,6 @@ int main(int argc, char *argv[])
             window.realloc_light_gmem();
         }
 
-        //newtonian_manager::draw_all_box();
-
         game_object_manager::draw_all_box();
 
         text_list t_weps;
@@ -298,8 +296,6 @@ int main(int argc, char *argv[])
             ship.remove_targets_from_weapon_group(0);
 
             ship.add_target(game_object_manager::object_list[identifier], 0);
-
-            //ship.remove_
         }
 
         t_weps.set_pos(selectx, selecty);
