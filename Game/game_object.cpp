@@ -28,7 +28,7 @@ void game_object::add_transform(transform_type type)
     temp.z = 0;
     temp.w = 0;
 
-    transform_list.push_back(std::make_pair<transform_type, cl_float4>(type, temp));
+    transform_list.push_back(std::pair<transform_type, cl_float4>(type, temp));
 }
 
 void game_object::add_transform(transform_type type, float val)
@@ -39,11 +39,11 @@ void game_object::add_transform(transform_type type, float val)
     temp.z = 0;
     temp.w = 0;
 
-    transform_list.push_back(std::make_pair<transform_type, cl_float4>(type, temp));
+    transform_list.push_back(std::pair<transform_type, cl_float4>(type, temp));
 }
 void game_object::add_transform(transform_type type, cl_float4 val)
 {
-    transform_list.push_back(std::make_pair<transform_type, cl_float4>(type, val));
+    transform_list.push_back(std::pair<transform_type, cl_float4>(type, val));
 }
 
 void game_object::add_weapon_to_group(int g_id, int w_id)

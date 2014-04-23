@@ -326,6 +326,9 @@ int texture_manager::activate_texture(int texture_id)
         all_textures[texture_id].is_active = true;
         return active_textures.size()-1;
     }
+
+    std::cout << "warning, could not activate texture, already active" << std::endl;
+    return -1;
 }
 
 
@@ -339,6 +342,9 @@ int texture_manager::inactivate_texture(int texture_id)
         all_textures[texture_id].is_active = false;
         return inactive_textures.size()-1;
     }
+
+    std::cout << "warning, could not deactivate texture, already inactive" << std::endl;
+    return -1;
 }
 
 void texture_manager::allocate_textures()

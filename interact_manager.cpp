@@ -1,6 +1,7 @@
 #include "interact_manager.hpp"
 #include <SFML/Graphics.hpp>
 #include "engine.hpp"
+#include <utility>
 
 bool interact::is_loaded = false;
 sf::Image interact::pixel;
@@ -54,7 +55,7 @@ int interact::draw_rect(int x1, int y1, int x2, int y2, int id)
     r_d.identifier = id;
     //r_d.selected = 0;
 
-    rectangle_stack.push_back(std::make_pair<rect, rect_descriptor>(r, r_d));
+    rectangle_stack.push_back(std::pair<rect, rect_descriptor>(r, r_d));
 
     return rectangle_stack.size()-1;
 }
@@ -81,7 +82,7 @@ void interact::deplete_stack()
         one = rectangle_stack[i].first.tl;
         two = rectangle_stack[i].first.br;
 
-        rect_descriptor r_d = rectangle_stack[i].second;
+        //rect_descriptor r_d = rectangle_stack[i].second;
 
         ///must be specified tl tr
 

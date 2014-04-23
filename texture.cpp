@@ -57,6 +57,8 @@ cl_uint texture::get_active_id()
             return i;
         }
     }
+
+    std::cout << "warning, could not find texture in active textures" << std::endl;
 }
 
 void texture::activate()

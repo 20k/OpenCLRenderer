@@ -8,6 +8,8 @@
 
 #include "../text_handler.hpp"
 #include <sstream>
+#include <string>
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -16,6 +18,15 @@
 
 
 ///fix into different runtime classes - specify ship attributes as vec
+
+std::string to_str(int i)
+{
+    std::ostringstream convert;
+
+    convert << i;
+
+    return convert.str();
+}
 
 int main(int argc, char *argv[])
 {
@@ -154,6 +165,11 @@ int main(int argc, char *argv[])
 
     int last_selected = -1; ///make this a vector
 
+    int weapon_group_selected = 0;
+
+    text_list wgs;
+    wgs.elements.push_back(to_str(weapon_group_selected));
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -162,6 +178,19 @@ int main(int argc, char *argv[])
         {
             if(Event.type == sf::Event::Closed)
                 window.window.close();
+
+            if(Event.type == sf::Event::MouseWheelMoved)
+            {
+                if(Event.mouseWheel.delta > 0)
+                    weapon_group_selected++;
+                else
+                    weapon_group_selected--;
+
+                if(weapon_group_selected >= ship.weapon_groups.size())
+                    weapon_group_selected = 0;
+                if(weapon_group_selected < 0)
+                    weapon_group_selected = ship.weapon_groups.size()-1;
+            }
         }
 
         window.input();

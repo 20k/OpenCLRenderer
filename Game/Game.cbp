@@ -26,7 +26,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-fexpensive-optimizations" />
-					<Add option="-O3" />
+					<Add option="-Ofast" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -36,6 +36,11 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-fstack-protector" />
+			<Add option="-Wformat" />
+			<Add option="-Wformat-security" />
+			<Add option="-std=gnu++11" />
+			<Add option="-D_FORTIFY_SOURCE=2" />
 			<Add option="-DGLEW_STATIC" />
 			<Add option="-DSFML_STATIC" />
 		</Compiler>
@@ -53,6 +58,7 @@
 			<Add option="-lopengl32" />
 			<Add option="-lopencl" />
 			<Add option="-lglew32.dll" />
+			<Add option="-lssp" />
 		</Linker>
 		<Unit filename="../clstate.cpp" />
 		<Unit filename="../clstate.h" />
@@ -92,11 +98,18 @@
 		<Unit filename="main.cpp" />
 		<Unit filename="newtonian_body.cpp" />
 		<Unit filename="newtonian_body.hpp" />
+		<Unit filename="version.hpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
 			<debugger />
 			<lib_finder disable_auto="1" />
+			<AutoVersioning>
+				<Scheme minor_max="10" build_max="0" rev_max="0" rev_rand_max="10" build_times_to_increment_minor="100" />
+				<Settings autoincrement="1" date_declarations="1" use_define="0" update_manifest="1" do_auto_increment="0" ask_to_increment="0" language="C++" svn="0" svn_directory="" header_path="version.hpp" />
+				<Changes_Log show_changes_editor="0" app_title="released version %M.%m.%b of %p" changeslog_path="ChangesLog.txt" />
+				<Code header_guard="VERSION_H" namespace="AutoVersion" prefix="" />
+			</AutoVersioning>
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>
