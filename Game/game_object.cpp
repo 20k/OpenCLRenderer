@@ -19,6 +19,10 @@ weapon::weapon()
     functional = true;
 }
 
+game_object::game_object()
+{
+    destroyed = false;
+}
 
 void game_object::add_transform(transform_type type)
 {
@@ -116,13 +120,13 @@ void game_object::add_target(game_object* obj, int group_id)
 
     std::set<game_object*>& vec = targets[group_id];
 
-    obj->targeting_me.insert(this);
+    //obj->targeting_me.insert(this);
     vec.insert(obj);
 }
 
 void game_object::remove_target(game_object* obj)
 {
-    obj->targeting_me.erase(this);
+    //obj->targeting_me.erase(this);
 
     for(int i=0; i<targets.size(); i++)
     {
@@ -146,7 +150,7 @@ void game_object::remove_target(game_object* obj, int group_id)
 
     vec.erase(obj);
 
-    for(int i=0; i<targets.size(); i++)
+    /*for(int i=0; i<targets.size(); i++)
     {
         std::set<game_object*>& target_group = targets[i];
 
@@ -155,10 +159,10 @@ void game_object::remove_target(game_object* obj, int group_id)
     }
 
     ///no target to obj found
-    obj->targeting_me.erase(this);
+    obj->targeting_me.erase(this);*/
 }
 
-void game_object::remove_target_no_remote_update(game_object* obj)
+/*void game_object::remove_target_no_remote_update(game_object* obj)
 {
     for(int i=0; i<targets.size(); i++)
     {
@@ -166,9 +170,9 @@ void game_object::remove_target_no_remote_update(game_object* obj)
 
         vec.erase(obj);
     }
-}
+}*/
 
-void conditional_remote_update(game_object* base, game_object* remote)
+/*void conditional_remote_update(game_object* base, game_object* remote)
 {
     for(int i=0; i<base->targets.size(); i++)
     {
@@ -180,7 +184,7 @@ void conditional_remote_update(game_object* base, game_object* remote)
     }
 
     remote->targeting_me.erase(base);
-}
+}*/
 
 void game_object::remove_targets_from_weapon_group(int group_id)
 {
@@ -194,20 +198,43 @@ void game_object::remove_targets_from_weapon_group(int group_id)
 
     targets[group_id].clear();
 
-    for(std::set<game_object*>::iterator it = vec.begin(); it!=vec.end(); it++)
+    /*for(std::set<game_object*>::iterator it = vec.begin(); it!=vec.end(); it++)
     {
         conditional_remote_update(this, (*it));
+    }*/
+}
+
+void game_object::update_targeting()
+{
+    for(int i=0; i<targets.size(); i++)
+    {
+        for(int j=0; j<targets[i].size(); j++)
+        {
+            auto it = targets[i].begin();
+
+            std::advance(it, j);
+
+            if((*it)->destroyed)
+            {
+                targets[i].erase(it);
+                j--;
+            }
+        }
     }
 }
 
-void game_object::notify_destroyed()
+void game_object::set_destroyed()
 {
-    for(std::set<game_object*>::iterator it = targeting_me.begin(); it!=targeting_me.end(); it++)
+    /*for(std::set<game_object*>::iterator it = targeting_me.begin(); it!=targeting_me.end(); it++)
     {
         (*it)->remove_target_no_remote_update(this);
     }
 
-    targeting_me.clear();
+    targeting_me.clear();*/
+    destroyed = true;
+    ///going to need to do object removal and stuff. As long as i remove gpu and cpu side bits, probably acceptable
+    ///also need to remove physics from newtonian_manager
+    ///need to fix gpu side memory management finally
 }
 
 std::vector<int> game_object::get_weapon_groups_of_weapon_by_id(int weapon_id)
@@ -673,5 +700,32 @@ void game_object_manager::draw_all_box()
         game_object* o = object_list[i];
 
         o->draw_box();
+    }
+}
+
+void game_object_manager::update_all_targeting()
+{
+    for(int i=0; i<object_list.size(); i++)
+    {
+        game_object* o = object_list[i];
+
+        o->update_targeting();
+    }
+}
+
+void game_object_manager::process_destroyed_ships()
+{
+    for(int i=0; i<object_list.size(); i++)
+    {
+        if(object_list[i]->destroyed)
+        {
+            auto it = object_list.begin();
+
+            std::advance(it, i);
+
+            delete *it;
+
+            object_list.erase(it);
+        }
     }
 }

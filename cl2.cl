@@ -2150,7 +2150,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
                     float radius_frac = (radius - dist)/radius;
 
-                    float4 actual_light = clamp(radius_frac, 0.0f, 1.0f)*lights[i].col*lights[i].brightness;
+                    radius_frac = clamp(radius_frac, 0.0f, 1.0f);
+
+                    radius_frac *= radius_frac;
+
+                    float4 actual_light = radius_frac*lights[i].col*lights[i].brightness;
 
                     if(fast_distance(lpos, *c_pos) < fast_distance(global_position, *c_pos) || *ft == mulint)
                     {

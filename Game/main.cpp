@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     temporary_weapon.refire_time = 250; /// milliseconds
 
     game_object& ship = *game_object_manager::get_new_object();
-    ship.set_file("../objects/Pre-ruin.obj");
+    ship.set_file("../objects/pre-ruin.obj");
     ship.set_active(true);
 
     //ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
@@ -71,6 +71,8 @@ int main(int argc, char *argv[])
     //ship3.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     //ship3.add_transform(ROTATE90);
 
+    //ship.add_transform(ROTATE90);
+    //ship.add_transform(ROTATE90);
     ship.add_transform(SCALE, 100.0f);
     ship2.add_transform(SCALE, 100.0f);
     ship3.add_transform(SCALE, 100.0f);
@@ -218,6 +220,9 @@ int main(int argc, char *argv[])
         if(k.isKeyPressed(sf::Keyboard::Num5))
             weapon_group_selected = 4;
 
+
+        game_object_manager::process_destroyed_ships();
+
         window.input();
 
         window.draw_bulk_objs_n();
@@ -282,6 +287,8 @@ int main(int argc, char *argv[])
 
         newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
         newtonian_manager::collide_lasers_with_ships();
+
+        game_object_manager::update_all_targeting();
 
         for(int i=0; i<newtonian_manager::body_list.size(); i++)
         {

@@ -42,6 +42,8 @@ struct game_object
     objects_container objects;
     newtonian_body* newtonian;
 
+    bool destroyed;
+
     //static std::set<game_object*> game_object_list;
 
     std::vector<std::pair<transform_type, cl_float4> > transform_list;
@@ -51,7 +53,7 @@ struct game_object
     std::vector<std::vector<int> > weapon_groups;
     std::vector<std::set<game_object*> > targets;
 
-    std::set<game_object*> targeting_me;
+    //std::set<game_object*> targeting_me;
 
     static sf::Clock time;
 
@@ -68,10 +70,12 @@ struct game_object
     void add_target(game_object*, int group_id);
     void remove_target(game_object*);
     void remove_target(game_object*, int group_id);
-    void remove_target_no_remote_update(game_object*);
+    //void remove_target_no_remote_update(game_object*);
     void remove_targets_from_weapon_group(int group_id);
 
-    void notify_destroyed();
+    void update_targeting();
+
+    void set_destroyed();
 
     std::vector<int> get_weapon_groups_of_weapon_by_id(int);
 
@@ -97,6 +101,8 @@ struct game_object
     int get_id();
 
     game_object* push();
+
+    game_object();
 };
 
 struct game_object_manager
@@ -106,6 +112,10 @@ struct game_object_manager
     static game_object* get_new_object();
 
     static void draw_all_box();
+
+    static void update_all_targeting();
+
+    static void process_destroyed_ships();
 };
 
 /*struct targeting
