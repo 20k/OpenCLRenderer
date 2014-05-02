@@ -9,6 +9,7 @@
 #include "../text_handler.hpp"
 #include <sstream>
 #include <string>
+#include "../vec.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -224,6 +225,12 @@ int main(int argc, char *argv[])
         game_object_manager::process_destroyed_ships();
 
         window.input();
+        window.set_camera_pos(player_ship->position); ///
+        //window.set_camera_rot(neg(player_ship->rotation));
+        window.c_rot = add(window.c_rot, neg(player_ship->rotation_delta));
+
+        //std::cout << player_ship->rotation_delta.x << std::endl;
+
 
         window.draw_bulk_objs_n();
 

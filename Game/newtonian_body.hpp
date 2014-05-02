@@ -68,6 +68,9 @@ struct newtonian_body
     cl_float4 attempted_rotation_direction;
     cl_float4 attempted_force_direction;
 
+    cl_float4 rotation_delta;
+    cl_float4 position_delta;
+
     int collision_object_id;
 
     objects_container* obj;

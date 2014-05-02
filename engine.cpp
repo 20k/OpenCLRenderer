@@ -439,13 +439,16 @@ void engine::input()
     }
 
     ///update gpu camera
-    cl::cqueue.enqueue_write_buffer(g_c_pos, 0, sizeof(cl_float4), &c_pos);
-    cl::cqueue.enqueue_write_buffer(g_c_rot, 0, sizeof(cl_float4), &c_rot);
+    g_flush_camera();
 }
 
 
 
-
+void engine::g_flush_camera()
+{
+    cl::cqueue.enqueue_write_buffer(g_c_pos, 0, sizeof(cl_float4), &c_pos);
+    cl::cqueue.enqueue_write_buffer(g_c_rot, 0, sizeof(cl_float4), &c_rot);
+}
 
 
 void engine::construct_shadowmaps()

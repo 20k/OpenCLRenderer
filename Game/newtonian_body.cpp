@@ -1,6 +1,7 @@
 #include "newtonian_body.hpp"
 #include "../engine.hpp"
 #include "../interact_manager.hpp"
+#include "../vec.hpp"
 
 
 std::vector<newtonian_body*> newtonian_manager::body_list;
@@ -28,6 +29,9 @@ newtonian_body::newtonian_body()
 
     collides = false;
     expires = false;
+
+    rotation_delta = (cl_float4){0,0,0,0};
+    position_delta = (cl_float4){0,0,0,0};
 
     //mass = 1;
 }
@@ -104,6 +108,9 @@ void newtonian_body::tick(float timestep)
         //fix
     }
 
+    cl_float4 position_old = position;
+    cl_float4 rotation_old = rotation;
+
     rotation.x += rotational_momentum.x*timestep/8000;
     rotation.y += rotational_momentum.y*timestep/8000;
     rotation.z += rotational_momentum.z*timestep/8000;
@@ -111,6 +118,11 @@ void newtonian_body::tick(float timestep)
     position.x += linear_momentum.x*timestep/500;
     position.y += linear_momentum.y*timestep/500;
     position.z += linear_momentum.z*timestep/500;
+
+    position_delta = sub(position, position_old);
+    rotation_delta = sub(rotation, rotation_old);
+
+
 
     if(obj!=NULL && type == 0)
     {

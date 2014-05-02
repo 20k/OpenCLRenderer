@@ -1217,42 +1217,101 @@ int ret_cubeface(float4 point, float4 light)
 }
 
 
-float get_horizon_direction_depth(int2 start, float2 dir, uint nsamples, __global uint * depth_buffer, float cdepth, float radius)
+float get_horizon_direction_depth(const int2 start, const float2 dir, const int nsamples, __global uint * depth_buffer, float cdepth, float radius, float* dist)
 {
-    float h=cdepth;
+    float h = cdepth;
 
-    uint p = 0;
+    int p = 0;
     //uint e = 0;
 
 
     //float2 rdir = {1, 1};
 
-    float2 ndir = (normalize(dir)*radius/nsamples);
+    const float2 ndir = normalize(dir)*radius/nsamples;
 
-    float y = start.y + ndir.y, x = start.x + ndir.x;
-    p=0;
+    float2 st = {start.x, start.y};
+
+    float y = start.y + ndir.y;
+    float x = start.x + ndir.x;
 
     for(; p < nsamples; y+=ndir.y, x += ndir.x, p++)
     {
-        if((int)round(x) < 0 || (int)round(x) >= SCREENWIDTH || (int)round(y) < 0 || (int)round(y) >= SCREENHEIGHT)
+        const int rx = round(x);
+        const int ry = round(y);
+
+        if(rx < 0 || rx >= SCREENWIDTH || ry < 0 || ry >= SCREENHEIGHT)
         {
             return h;
         }
 
-        float dval = (float)depth_buffer[((int)round(y))*SCREENWIDTH + (int)round(x)]/mulint;
+        float dval = (float)depth_buffer[ry*SCREENWIDTH + rx]/mulint;
         dval = idcalc(dval);
 
-        if(dval < h  && fabs(dval - cdepth) < radius)
+        if(dval < h)//  && fabs(dval - cdepth) < radius)
         {
             h = dval;
+            *dist = distance((float2){x, y}, st);
         }
     }
 
     return h;
 }
 
+/*float get_horizon_direction_depth(const int2 start, const float2 dir, const int nsamples, __global uint * depth_buffer, float cdepth, float radius)
+{
+    float h = cdepth;
+
+    int p = 0;
+
+    const float2 ndir = normalize(dir)*radius/nsamples;
+
+    float y = start.y + ndir.y;
+    float x = start.x + ndir.x;
+
+    float last = cdepth;
+
+    float running = 0;
+
+    float dd_last = 0;
+
+    float ddd_running = 0;
+
+    for(; p < nsamples; y+=ndir.y, x += ndir.x, p++)
+    {
+
+        const int rx = round(x);
+        const int ry = round(y);
+
+        if(rx < 0 || rx >= SCREENWIDTH || ry < 0 || ry >= SCREENHEIGHT)
+        {
+            return h;
+        }
+
+        float dval = (float)depth_buffer[ry*SCREENWIDTH + rx]/mulint;
+        dval = idcalc(dval);
+
+
+        float dd = dval - cdepth;
+
+        running += dd;
+
+        if(dd_last!=0)
+        {
+            ddd_running += dd - dd_last;
+        }
+
+        dd_last = dd;
+
+
+    }
+
+    return ddd_running / (nsamples - 2);
+}*/
+
+
+
 ///bad ambient occlusion, not actually hbao whatsoever, disabled for the moment
-float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer)
+float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer, float4 normal)
 {
 
     float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
@@ -1261,7 +1320,7 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
     ///depth is linear between 0 and 1
     //now, instead of taking the horizon because i'm not entirely sure how to calc that, going to use highest point in filtering
 
-    float radius = 8.0f; //AO radius
+    float radius = 4.0f; //AO radius
 
     //radius = radius / (dcalc(depth); ///err?
     //radius = radius / (idcalc(depth));
@@ -1274,56 +1333,73 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
     ///using 4 uniform sample directions like a heretic, with 4 samples from each direction
 
-    uint ndirsamples = 4;
+    const int ndirsamples = 4;
 
-    int ndirs = 4;
+    const int ndirs = 4;
 
     float2 directions[8] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}, {0, 1}, {0, -1}, {-1, 0}, {1, 0}};
 
     float distance = radius;
 
 
-    ///get face normal
+    ///get face normalf
 
-    float4 p0= {tri->vertices[0].pos.x, tri->vertices[0].pos.y, tri->vertices[0].pos.z, 0};
-    float4 p1= {tri->vertices[1].pos.x, tri->vertices[1].pos.y, tri->vertices[1].pos.z, 0};
-    float4 p2= {tri->vertices[2].pos.x, tri->vertices[2].pos.y, tri->vertices[2].pos.z, 0};
+    //float4 p0= {tri->vertices[0].pos.x, tri->vertices[0].pos.y, tri->vertices[0].pos.z, 0};
+    //float4 p1= {tri->vertices[1].pos.x, tri->vertices[1].pos.y, tri->vertices[1].pos.z, 0};
+    //float4 p2= {tri->vertices[2].pos.x, tri->vertices[2].pos.y, tri->vertices[2].pos.z, 0};
 
-    float4 p1p0=p1-p0;
-    float4 p2p0=p2-p0;
+    //float4 p1p0=p1-p0;
+    //float4 p2p0=p2-p0;
 
-    float4 cr=cross(p1p0, p2p0);
+    //float4 cr=cross(p1p0, p2p0);
 
     ///my sources tell me this is the right thing. Ie stolen from backface culling. Right. the tangent to that is -1.0/it
 
-    float4 tang = -1.0f/cr;
+    //float4 tang = -1.0f/cr;
+
+    float4 tang = -1.0f/normal;
 
     //tang = normalize(tang);
 
     //tang = -1.0f/normal;
 
 
-    float tangle = atan2(tang.z, length((float2){tang.x, tang.y}));
+    float tangle = atan2(tang.z, length(tang.xy));
 
+    //tangle = clamp(tangle, 0.0f, 1.0f);
+
+    float odist = 0;
 
 
     float accum=0;
     //int t=0;
+
+
+    ///needs to be using real global distance, not shitty distance
 
     for(int i=0; i<ndirs; i++)
     {
         float cdepth = (float)depth_buffer[spos.y*SCREENWIDTH + spos.x]/mulint;
         cdepth = idcalc(cdepth);
 
-        float h = get_horizon_direction_depth(spos, directions[i], ndirsamples, depth_buffer, cdepth, radius);
+        float h = get_horizon_direction_depth(spos, directions[i], ndirsamples, depth_buffer, cdepth, radius, &odist);
 
         //float tangle = atan2(tang.z, );
 
-        float angle = atan2(fabs(h - cdepth), distance);
+        float angle = atan2(fabs(h - cdepth), odist);
 
-        if(angle > 0.05f)
+        //float angle = fabs(h - cdepth)/1000.0f;
+
+        //float angle = h * 2;
+
+        //if(sin(angle) > 0.0f)
         {
-            accum += max((float)sin(angle), 0.0f);// + max(sin(tangle), 0.0);
+            accum += clamp(sin(angle) - sin(tangle), 0.0f, 1.0f);// + max(sin(tangle), 0.0);
+
+            //if(angle > 0.3)
+            //    angle = 0.3;
+
+            //accum += angle;
             //accum += max((float)sin(tangle), 0.0f);
         }
 
@@ -1331,17 +1407,11 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
     accum/=ndirs;
 
-    if(accum > 1)
-    {
-        accum = 1;
-    }
-
-    if(accum < 0)
-    {
-        accum = 0;
-    }
+    accum = clamp(accum, 0.0f, 1.0f);
 
     return accum;
+
+    //return sin(tangle);
 
 }
 
@@ -2185,7 +2255,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         lightaccum = clamp(lightaccum, (float4)(0,0,0,0), (float4){1.0f/col.x, 1.0f/col.y, 1.0f/col.z, 0.0f});
 
-        //float hbao = generate_hbao(c_tri, scoord, depth_buffer);
+        float4 rot_normal;
+
+        rot_normal = rot(normal, zero, *c_rot);
+
+        //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
 
         float hbao = 0;
 
@@ -2194,7 +2268,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
             col = (float4){0,0,0,0};
         }
 
-        write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
+        //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
+        write_imagef(screen, scoord, col*(lightaccum) + mandatory_light);
+        //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
     }
 

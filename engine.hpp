@@ -88,6 +88,9 @@ struct engine
     void set_camera_rot(cl_float4);
 
     void check_obj_visibility(); ///unused, likely ot be removed
+
+private:
+    void g_flush_camera();
 };
 
 ///runs a kernel with a particular set of arguments
