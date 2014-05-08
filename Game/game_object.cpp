@@ -500,6 +500,7 @@ void game_object::calc_push_physics_info(cl_float4 pos)
     ship.thruster_forward = 4;
     ship.mass = 1;
     ship.position = pos;
+    ship.game_reference = this;
 
     newtonian = ship.push();
     newtonian->add_collision_object(collision);
@@ -665,6 +666,16 @@ void game_object::draw_box()
     if(any)
         interact::draw_rect(minx - 5, maxy + 5, maxx + 5, miny - 5, get_id());
 }
+
+void game_object::damage(float dam)
+{
+    info.health -= dam;
+    if(info.health < 0)
+    {
+        std::cout << "oh no i am explode" << std::endl;
+    }
+}
+
 
 int game_object::get_id()
 {

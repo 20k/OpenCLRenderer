@@ -10,6 +10,8 @@
 
 #define MAX_ANGULAR 1.0f
 
+struct game_object;
+
 /*static cl_float4 slerp(cl_float4 p0, cl_float4 p1, float t)
 {
     float angle = p0.x*p1.x + p0.y*p1.y + p0.z*p1.z;
@@ -110,6 +112,10 @@ struct ship_newtonian : newtonian_body
     //std::vector<weapon> weapon_list;
     ///put weapon in here
     //void fire();
+
+    ship_newtonian();
+
+    game_object* game_reference;
 
     ship_newtonian* clone();
 

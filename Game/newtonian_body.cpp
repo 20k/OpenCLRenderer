@@ -2,6 +2,7 @@
 #include "../engine.hpp"
 #include "../interact_manager.hpp"
 #include "../vec.hpp"
+#include "game_object.hpp"
 
 
 std::vector<newtonian_body*> newtonian_manager::body_list;
@@ -107,6 +108,8 @@ void newtonian_body::tick(float timestep)
     {
         //fix
     }
+
+
 
     cl_float4 position_old = position;
     cl_float4 rotation_old = rotation;
@@ -278,5 +281,13 @@ void newtonian_body::collided(newtonian_body* other)
 
 void ship_newtonian::collided(newtonian_body* other)
 {
+    if(game_reference!=NULL)
+    {
+        game_reference->damage(66.0f);
+    }
+}
 
+ship_newtonian::ship_newtonian() : newtonian_body()
+{
+    game_reference = NULL;
 }

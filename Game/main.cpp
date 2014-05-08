@@ -20,7 +20,8 @@
 
 ///fix into different runtime classes - specify ship attributes as vec
 
-std::string to_str(int i)
+template<typename T>
+std::string to_str(T i)
 {
     std::ostringstream convert;
 
@@ -78,6 +79,10 @@ int main(int argc, char *argv[])
     ship2.add_transform(SCALE, 100.0f);
     ship3.add_transform(SCALE, 100.0f);
 
+    ship.info.health = 100.0f; ///need static ship types, and fast
+    ship2.info.health = 100.0f;
+    ship3.info.health = 100.0f;
+
     //ship.add_transform(ROTATE90);
     //ship.add_transform(ROTATE90);
 
@@ -123,7 +128,6 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
-
 
 
     sf::Event Event;

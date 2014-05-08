@@ -35,12 +35,18 @@ struct weapon
     weapon();
 };
 
+struct ship_info
+{
+    float health;
+};
 
 struct game_object
 {
     collision_object collision;
     objects_container objects;
     newtonian_body* newtonian;
+
+    ship_info info;
 
     bool destroyed;
 
@@ -76,6 +82,7 @@ struct game_object
     void update_targeting();
 
     void set_destroyed();
+    void damage(float);
 
     std::vector<int> get_weapon_groups_of_weapon_by_id(int);
 
