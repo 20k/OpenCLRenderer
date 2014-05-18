@@ -14,8 +14,8 @@ namespace compute = boost::compute;
 struct texture_manager
 {
     static std::vector<texture> all_textures;
-    static std::vector<texture*> active_textures;
-    static std::vector<texture*> inactive_textures;
+    static std::vector<int> active_textures; ///its a pointer but they reallocate... so it needs to be texture_ids instead
+    static std::vector<int> inactive_textures;
 
     static std::vector<int> texture_numbers;
     static std::vector<int> texture_sizes;
@@ -47,6 +47,8 @@ struct texture_manager
     static bool exists(int texture_id);
 
     static int id_by_location(std::string);
+
+    static texture* texture_by_id(int);
 };
 
 

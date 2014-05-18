@@ -5,6 +5,7 @@
 #include <vector>
 #include "obj_g_descriptor.hpp"
 #include <boost/function.hpp>
+#include <functional>
 
 static cl_uint max_tex_size=2048;
 
@@ -54,8 +55,8 @@ struct texture
 //private:
     cl_uint get_largest_dimension();
 
-    void set_load_func(boost::function<void (texture*)>);
-    boost::function<void (texture*)> fp;
+    void set_load_func(std::function<void (texture*)>);
+    std::function<void (texture*)> fp;
 
 
 

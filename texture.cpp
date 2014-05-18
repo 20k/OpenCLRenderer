@@ -7,7 +7,10 @@
 
 texture::texture()
 {
-    set_load_func(boost::bind(texture_load, _1));
+    std::function<void (texture*)> func;
+    func = std::bind(texture_load, std::placeholders::_1);
+
+    set_load_func(func);
 }
 
 cl_uint texture::get_largest_dimension()
@@ -52,13 +55,14 @@ cl_uint texture::get_active_id()
 {
     for(int i=0; i<texture_manager::active_textures.size(); i++)
     {
-        if(texture_manager::active_textures[i]->id == id)
+        if(texture_manager::texture_by_id(texture_manager::active_textures[i])->id == id)
         {
             return i;
         }
     }
 
     std::cout << "warning, could not find texture in active textures" << std::endl;
+    return -1;
 }
 
 void texture::activate()
@@ -160,7 +164,7 @@ void texture_load(texture* tex)
     }
 }
 
-void texture::set_load_func(boost::function<void (texture*)> func)
+void texture::set_load_func(std::function<void (texture*)> func)
 {
     fp = func;
 }

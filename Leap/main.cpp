@@ -28,7 +28,7 @@ bool is_grabbing = false;
 
 objects_container* currently_grabbed;
 
-float yplane = 1500.0f;
+float yplane = 2500.0f;
 
 
 int main(int argc, char *argv[])
@@ -49,6 +49,10 @@ int main(int argc, char *argv[])
     objects_container model2;
     model2.set_file("../objects/pre-ruin.obj");
     model2.set_active(true);
+
+    objects_container base;
+    base.set_file("../objects/square.obj");
+    base.set_active(true);
 
     for(int i=0; i<10; i++)
     {
@@ -77,14 +81,18 @@ int main(int argc, char *argv[])
 
     model.scale(50.0f);
     model2.scale(50.0f);
+    base.scale(100.0f);
 
 
 
     collideable_objects.push_back(&model);
     collideable_objects.push_back(&model2);
 
-    model.set_pos({0.0f, 2000.0f, 0.0f, 0.0f});
-    model2.set_pos({0.0f, 2000.0f, 0.0f, 0.0f});
+    model.set_pos({0.0f, 3000.0f, 0.0f, 0.0f});
+    model2.set_pos({0.0f, 3000.0f, 0.0f, 0.0f});
+    base.set_pos({0.0f, yplane, 0.0f, 0.0f});
+
+
 
 
     texture_manager::allocate_textures();
@@ -153,12 +161,12 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        if(network_state == 1)
+        //if(network_state == 1)
             fdata = get_finger_positions();
 
         int n = 0;
 
-        if(network_state == 1)
+        //if(network_state == 1)
         {
             for(int i=0; i<10; i++)
             {
@@ -256,8 +264,9 @@ int main(int argc, char *argv[])
             //std::string msg = "hi";
             //network::send(network::networked_clients[0], msg);
 
-            network::host_object(&finger[0]);
-            network::host_object(&finger[1]);
+            for(int i=0; i<5; i++)
+                network::host_object(&finger[i]);
+
 
             network_state = 1;
         }
@@ -266,8 +275,8 @@ int main(int argc, char *argv[])
         {
             network::join("127.0.0.1");
 
-            network::slave_object(&finger[0]);
-            network::slave_object(&finger[1]);
+            for(int i=0; i<5; i++)
+                network::slave_object(&finger[i]);
 
             //Sleep(300);
             //std::cout << network::receive(network::networked_clients[0]) << std::endl;
