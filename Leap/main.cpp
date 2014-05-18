@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
     model.scale(50.0f);
     model2.scale(50.0f);
-    base.scale(1000.0f);
+    base.scale(10000.0f);
 
 
 
