@@ -41,8 +41,6 @@ void object::set_active(bool param)
             texture_manager::all_textures[tid].type = 0;
             texture_manager::all_textures[tid].activate();
 
-            std::cout << "hello there" << std::endl;
-
             if(has_bump)
             {
                 texture_manager::all_textures[bid].type = 1;

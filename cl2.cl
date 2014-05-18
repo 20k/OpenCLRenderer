@@ -19,7 +19,7 @@
 
 __constant float depth_far=350000;
 __constant uint mulint=UINT_MAX;
-__constant int depth_icutoff=125;
+__constant int depth_icutoff=25;
 
 
 struct interp_container;
@@ -1823,6 +1823,11 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 1;
     }
 
+    if(area > 60000)
+    {
+        mod = 100;
+    }
+
     ///while more pixels to write
     while(pcount <= op_size)
     {
@@ -1950,6 +1955,11 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     if(area < 50)
     {
         mod = 1;
+    }
+
+    if(area > 60000)
+    {
+        mod = 100;
     }
 
     while(pcount <= op_size)

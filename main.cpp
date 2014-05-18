@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
-    sponza.scale(100.0f);
+    //sponza.scale(100.0f);
 
     texture_manager::allocate_textures();
 

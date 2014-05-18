@@ -305,8 +305,6 @@ void load_active_textures()
         texture *tex = texture_manager::texture_by_id(texture_manager::active_textures[i]);
         if(!tex->is_loaded)
         {
-            std::cout << tex->texture_location << std::endl;
-            std::cout << "HOW DARE" << std::endl;
             tex->load();
         }
     }

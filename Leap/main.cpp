@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
     model.scale(50.0f);
     model2.scale(50.0f);
-    base.scale(100.0f);
+    base.scale(1000.0f);
 
 
 
@@ -90,9 +90,7 @@ int main(int argc, char *argv[])
 
     model.set_pos({0.0f, 3000.0f, 0.0f, 0.0f});
     model2.set_pos({0.0f, 3000.0f, 0.0f, 0.0f});
-    base.set_pos({0.0f, yplane, 0.0f, 0.0f});
-
-
+    base.set_pos({0.0f, yplane-100, 0.0f, 0.0f});
 
 
     texture_manager::allocate_textures();
@@ -294,6 +292,6 @@ int main(int argc, char *argv[])
 
         //Sleep(15.0f);
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }
