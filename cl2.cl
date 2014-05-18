@@ -19,7 +19,7 @@
 
 __constant float depth_far=350000;
 __constant uint mulint=UINT_MAX;
-__constant int depth_icutoff=125;
+__constant int depth_icutoff=75;
 
 
 struct interp_container;
