@@ -48,7 +48,7 @@
 			<Add option="-lopengl32" />
 			<Add option="-lopencl" />
 			<Add option="-lglew32.dll" />
-			<Add option="-lleap" />
+			<Add option="-lws2_32" />
 		</Linker>
 		<Unit filename="../Game/collision.cpp" />
 		<Unit filename="../Game/collision.hpp" />
@@ -65,6 +65,8 @@
 		<Unit filename="../interact_manager.hpp" />
 		<Unit filename="../light.cpp" />
 		<Unit filename="../light.hpp" />
+		<Unit filename="../network.cpp" />
+		<Unit filename="../network.hpp" />
 		<Unit filename="../obj_g_descriptor.hpp" />
 		<Unit filename="../obj_info_struct.cpp" />
 		<Unit filename="../obj_info_struct.hpp" />
@@ -94,6 +96,8 @@
 		<Unit filename="../vec.hpp" />
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
+		<Unit filename="leap_control.cpp" />
+		<Unit filename="leap_control.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

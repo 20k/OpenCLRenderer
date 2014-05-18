@@ -373,6 +373,8 @@ void texture_manager::allocate_textures()
         }
     }
 
+
+
     load_active_textures();
     generate_all_mipmaps();
 

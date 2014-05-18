@@ -1,6 +1,7 @@
 #ifndef INCLUDED_HPP_VEC
 #define INCLUDED_HPP_VEC
 #include <cl/cl.h>
+#include <math.h>
 
 inline cl_float4 neg(cl_float4 v)
 {
@@ -45,6 +46,25 @@ inline cl_float4 mult(cl_float4 v1, float v)
     return nv;
 }
 
+inline float dist(cl_float4 v1, cl_float4 v2) ///w discarded because hmm
+{
+    cl_float4 nv;
+    nv = sub(v1, v2);
+
+    return sqrtf(nv.x*nv.x + nv.y*nv.y + nv.z*nv.z); ///????
+}
+
+inline cl_float4 avg(cl_float4 v1, cl_float4 v2)
+{
+    cl_float4 nv;
+    nv = add(v1, v2);
+    nv.x /= 2.0f;
+    nv.y /= 2.0f;
+    nv.z /= 2.0f;
+    nv.w /= 2.0f;
+
+    return nv;
+}
 
 
 #endif // INCLUDED_HPP_VEC

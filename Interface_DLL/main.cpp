@@ -37,9 +37,9 @@ float* get_finger_positions()
         {
             const Leap::Finger finger = h_fingers[j];
 
-            float mfingerposx = finger.tipPosition().x;
-            float mfingerposy = finger.tipPosition().y;
-            float mfingerposz = finger.tipPosition().z;
+            float mfingerposx = finger.stabilizedTipPosition().x;
+            float mfingerposy = finger.stabilizedTipPosition().y;
+            float mfingerposz = finger.stabilizedTipPosition().z;
 
             //cl_float4 ps = {mfingerposx, mfingerposy, mfingerposz, 0.0f};
             //cl_float4 ps = {mfingerposx, mfingerposy, mfingerposz, 0.0f};
@@ -170,8 +170,8 @@ int main()
 
         WriteFile(pipe, (char*)ret, sizeof(float)*10*4, &word, NULL);
 
-        //std::cout << ret[0] << std::endl;
-
         Sleep(1);
     }
+
+    CloseHandle(pipe);
 }

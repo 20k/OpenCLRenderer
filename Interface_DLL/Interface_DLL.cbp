@@ -40,6 +40,9 @@
 				</Linker>
 			</Target>
 		</Build>
+		<Linker>
+			<Add library="D:\Stuff\Visual studio\VC\lib\Leap.lib" />
+		</Linker>
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
 		<Extensions>

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "leap_control.hpp"
 #include "../vec.hpp"
+#include "../Game/collision.hpp"
+#include "../network.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -12,13 +14,41 @@
 ///todo
 ///fix memory management to not be atrocious
 
+std::vector<objects_container*> collideable_objects;
+
+const float collision_interaction = 200.0f;
+
+const float finger_event = 700.0f;
+
+const float drop_range = 100.0f;
+
+
+
+bool is_grabbing = false;
+
+objects_container* currently_grabbed;
+
+float yplane = 1500.0f;
 
 
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
+    ///something is terribly wrong with texture allocation
+
+    //finger_data fdata = get_finger_positions();
+
     objects_container finger[10];
+    collision_object fingercolliders[10];
+
+    objects_container model;
+    model.set_file("../objects/pre-ruin.obj");
+    model.set_active(true);
+
+    objects_container model2;
+    model2.set_file("../objects/pre-ruin.obj");
+    model2.set_active(true);
 
     for(int i=0; i<10; i++)
     {
@@ -32,23 +62,58 @@ int main(int argc, char *argv[])
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
 
-    window.set_camera_pos((cl_float4){-800,150,-570});
+    //window.set_camera_pos((cl_float4){-800,150,-570});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
     obj_mem_manager::load_active_objects();
+
     for(int i=0; i<10; i++)
     {
         finger[i].scale(100.0f);
+        fingercolliders[i].calculate_collision_ellipsoid(&finger[i]);
     }
+
+    model.scale(50.0f);
+    model2.scale(50.0f);
+
+
+
+    collideable_objects.push_back(&model);
+    collideable_objects.push_back(&model2);
+
+    model.set_pos({0.0f, 2000.0f, 0.0f, 0.0f});
+    model2.set_pos({0.0f, 2000.0f, 0.0f, 0.0f});
+
 
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
 
+
+
     sf::Event Event;
+
+
+    light *lightp[2];
+
+    light lights[2];
+
+    lights[0].set_col((cl_float4){1.0, 0.0, 0.0, 0});
+    lights[1].set_col((cl_float4){0.0, 0.0, 1.0, 0});
+
+    for(int i=0; i<2; i++)
+    {
+
+        lights[i].set_shadow_casting(0);
+        lights[i].set_brightness(1);
+        lights[i].set_pos((cl_float4){0, 0, 0, 0});
+        lightp[i] = window.add_light(&lights[i]);
+    }
+
+
 
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
@@ -62,60 +127,21 @@ int main(int argc, char *argv[])
     window.add_light(&l);
 
     //l.set_pos((cl_float4){0, 200, -450, 0});
-    l.set_pos((cl_float4){-1200, 150, 0, 0});
+    l.set_pos((cl_float4){0, 4000, 0, 0});
     l.shadow=0;
+    window.add_light(&l);
 
     //window.add_light(&l);
 
     window.construct_shadowmaps();
 
+    sf::Keyboard key;
 
-    /*HANDLE pipe = CreateNamedPipe(PNAME, PIPE_ACCESS_INBOUND | PIPE_ACCESS_OUTBOUND , PIPE_WAIT, 1, 1024, 1024, 120 * 1000, NULL);
+    int network_state = 0;
 
+    finger_data fdata;
+    memset(&fdata, 0, sizeof(finger_data));
 
-    float data[10*4];
-    DWORD numRead = 0;
-
-    ConnectNamedPipe(pipe, NULL);
-
-    do
-    {
-        ReadFile(pipe, data, sizeof(float)*10*4, &numRead, NULL);
-
-        if (numRead > 0)
-        {
-            for(int i=0; i<10; i++)
-                if(data[i*4 + 3]!=-1.0f)
-                    printf("%f %f %f\n", data[i*4 + 0], data[i*4 + 1], data[i*4 + 2]);
-        }
-
-        printf("\n");
-
-    } while(1);*/
-
-    // CloseHandle(pipe);
-
-    //float* ret = get_finger_positions();
-
-    //for(int i=0; i<10; i++)
-    //{
-    //    cl_float4 finger = {ret[i*4 + 0], ret[i*4 + 1], ret[i*4 + 2], ret[i*4 + 3]};
-
-    //    std::cout << finger.x << " " << finger.y << " " << finger.z << " " << std::endl;
-    //}
-
-
-    finger_data fdata = get_finger_positions();
-
-    for(int i=0; i<10; i++)
-    {
-        if(fdata.fingers[i].w != -1.0f)
-        {
-            //printf("%f %f %f\n", fdata.fingers[i].x, fdata.fingers[i].y, fdata.fingers[i].z);
-        }
-
-        //printf("\n");
-    }
 
     while(window.window.isOpen())
     {
@@ -127,20 +153,129 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        fdata = get_finger_positions();
+        if(network_state == 1)
+            fdata = get_finger_positions();
 
-        for(int i=0; i<10; i++)
+        int n = 0;
+
+        if(network_state == 1)
         {
-            cl_float4 pos = fdata.fingers[i];
+            for(int i=0; i<10; i++)
+            {
+                cl_float4 pos = fdata.fingers[i];
 
-            pos = mult(pos, 10.0f);
+                if(pos.w != -1.0f)
+                    n++;
 
-            pos.z = -pos.z;
+                pos = mult(pos, 20.0f);
 
-            finger[i].set_pos(pos);
+                pos.z = -pos.z;
 
-            finger[i].g_flush_objects();
+                finger[i].set_pos(pos);
+
+                finger[i].g_flush_objects();
+            }
         }
+
+        if(n == 5)
+        {
+            for(int i=0; i<2; i++)
+            {
+                cl_float4 pos = finger[i].pos;
+
+                lightp[i]->set_pos(pos);
+
+                engine::g_flush_light(lightp[i]);
+            }
+
+            //engine::g_flush_lights();
+
+            cl_float4 post = finger[0].pos;
+            cl_float4 posf = finger[1].pos;
+
+            if(dist(post, posf) < finger_event)
+            {
+                std::cout << "finger_event!" << std::endl;
+
+                if(!is_grabbing)
+                {
+                    for(auto& i : collideable_objects)
+                    {
+                        objects_container* obj = i;
+
+                        cl_float4 object_position = obj->pos;
+
+                        cl_float4 base = avg(post, posf);
+
+                        float rad = dist(base, object_position);
+
+                        if(rad < collision_interaction && base.y > yplane)
+                        {
+                            std::cout << "grab_event" << std::endl;
+                            is_grabbing = true;
+
+                            currently_grabbed = obj;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                is_grabbing = false;
+            }
+        }
+
+        if(n == 5 && is_grabbing)
+        {
+            cl_float4 post = finger[0].pos;
+            cl_float4 posf = finger[1].pos;
+
+            cl_float4 centre = avg(post, posf);
+
+            float rad = dist(centre, currently_grabbed->pos);
+
+            if(rad > drop_range)
+            {
+                is_grabbing = false;
+            }
+
+            if(centre.y < yplane)
+            {
+                centre.y = yplane;
+            }
+
+            currently_grabbed->set_pos(centre);
+
+            currently_grabbed->g_flush_objects();
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::H) && !network_state)
+        {
+            network::host();
+
+            //std::string msg = "hi";
+            //network::send(network::networked_clients[0], msg);
+
+            network::host_object(&finger[0]);
+            network::host_object(&finger[1]);
+
+            network_state = 1;
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::J) && !network_state)
+        {
+            network::join("127.0.0.1");
+
+            network::slave_object(&finger[0]);
+            network::slave_object(&finger[1]);
+
+            //Sleep(300);
+            //std::cout << network::receive(network::networked_clients[0]) << std::endl;
+
+            network_state = 2;
+        }
+
+        network::tick();
 
         window.input();
 
@@ -150,6 +285,6 @@ int main(int argc, char *argv[])
 
         //Sleep(15.0f);
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

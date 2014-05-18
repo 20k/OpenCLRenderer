@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
     objects_container sponza;
 
     sponza.set_file("sp2/sp2.obj");
+    //sponza.set_file("Objects/pre-ruin.obj");
     sponza.set_active(true);
 
     engine window;
@@ -27,6 +28,8 @@ int main(int argc, char *argv[])
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
     obj_mem_manager::load_active_objects();
+
+    sponza.scale(100.0f);
 
     texture_manager::allocate_textures();
 
