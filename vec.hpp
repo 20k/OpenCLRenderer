@@ -66,5 +66,10 @@ inline cl_float4 avg(cl_float4 v1, cl_float4 v2)
     return nv;
 }
 
+inline float dot(cl_float4 v1, cl_float4 v2)
+{
+    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z; ///ignore w?
+}
+
 
 #endif // INCLUDED_HPP_VEC

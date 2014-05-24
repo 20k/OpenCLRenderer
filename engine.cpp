@@ -314,6 +314,32 @@ cl_float4 engine::back_project_about_camera(cl_float4 pos) ///from screenspace t
     return global_position;
 }
 
+cl_float4 engine::rotate(cl_float4 pos, cl_float4 rot)
+{
+    cl_float4 zero = {0,0,0,0};
+
+    return rot_about(pos, zero, rot);
+}
+
+cl_float4 engine::back_rotate(cl_float4 pos, cl_float4 rot)
+{
+    pos = rotate(pos, (cl_float4)
+    {
+        -rot.x, 0.0f, 0.0f, 0.0f
+    });
+
+    pos = rotate(pos, (cl_float4)
+    {
+        0.0f, -rot.y, 0.0f, 0.0f
+    });
+    pos = rotate(pos, (cl_float4)
+    {
+        0.0f, 0.0f, -rot.z, 0.0f
+    });
+
+    return pos;
+}
+
 cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float fovc)
 {
     float rx;

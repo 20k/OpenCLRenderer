@@ -142,8 +142,8 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     //t.g_texture_array = compute::buffer(m);
 
-    delete [] texture_manager::c_texture_array;
-    texture_manager::c_texture_array = NULL;
+    //delete [] texture_manager::c_texture_array;
+    //texture_manager::c_texture_array = NULL;
 
     t.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*obj_descriptor_size);
     t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint));
@@ -223,7 +223,7 @@ void obj_mem_manager::g_arrange_mem()
 
     allocate_gpu(object_descriptors, texture_manager::mipmap_start, triangle_count);
 
-    texture_manager::c_texture_array = NULL;
+    //texture_manager::c_texture_array = NULL;
     obj_mem_manager::ready = true; ///unnecessary at the moment, more useful when concurrency comes into play
 }
 

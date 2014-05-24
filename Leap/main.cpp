@@ -14,7 +14,7 @@
 ///todo
 ///fix memory management to not be atrocious
 
-std::vector<objects_container*> collideable_objects;
+std::vector<objects_container*> collideable_objects; ///dynamically resizing this = death
 
 const float collision_interaction = 200.0f;
 
@@ -30,6 +30,9 @@ objects_container* currently_grabbed;
 
 float yplane = 2500.0f;
 
+const float mouse_cushion = 300.0f;
+
+#define MAX_PLAYERS 3
 
 int main(int argc, char *argv[])
 {
@@ -40,7 +43,9 @@ int main(int argc, char *argv[])
     //finger_data fdata = get_finger_positions();
 
     objects_container finger[10];
-    collision_object fingercolliders[10];
+    //collision_object fingercolliders[10];
+
+    objects_container otherfingers[MAX_PLAYERS];
 
     objects_container model;
     model.set_file("../objects/pre-ruin.obj");
@@ -60,6 +65,12 @@ int main(int argc, char *argv[])
         finger[i].set_active(true);
     }
 
+    for(int i=0; i<MAX_PLAYERS; i++)
+    {
+        otherfingers[i].set_file("../objects/torus.obj");
+        otherfingers[i].set_active(true);
+    }
+
 
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
@@ -76,11 +87,16 @@ int main(int argc, char *argv[])
     for(int i=0; i<10; i++)
     {
         finger[i].scale(100.0f);
-        fingercolliders[i].calculate_collision_ellipsoid(&finger[i]);
+        //fingercolliders[i].calculate_collision_ellipsoid(&finger[i]);
     }
 
-    model.scale(50.0f);
-    model2.scale(50.0f);
+    for(int i=0; i<MAX_PLAYERS; i++)
+    {
+        otherfingers[i].scale(40.0f);
+    }
+
+    model.scale(25.0f);
+    model2.scale(25.0f);
     base.scale(2000.0f);
 
 
@@ -90,15 +106,14 @@ int main(int argc, char *argv[])
 
     model.set_pos({0.0f, 3000.0f, 0.0f, 0.0f});
     model2.set_pos({0.0f, 3000.0f, 0.0f, 0.0f});
-    base.set_pos({0.0f, yplane-100, 0.0f, 0.0f});
+    base.set_pos({0.0f, yplane-50, 0.0f, 0.0f});
 
 
+    texture_manager::allocate_textures();
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
-
-
 
     sf::Event Event;
 
@@ -112,7 +127,6 @@ int main(int argc, char *argv[])
 
     for(int i=0; i<2; i++)
     {
-
         lights[i].set_shadow_casting(0);
         lights[i].set_brightness(1);
         lights[i].set_pos((cl_float4){0, 0, 0, 0});
@@ -148,9 +162,42 @@ int main(int argc, char *argv[])
     finger_data fdata;
     memset(&fdata, 0, sizeof(finger_data));
 
+    ///mouse controls
+
+    cl_float4 mouse_pos = {0,0,0,0};
+
+    bool clicking = false;
+
+    sf::Mouse mouse;
+
+    float lastmx = mouse.getPosition(window.window).x,
+          lastmy = mouse.getPosition(window.window).y;
 
     while(window.window.isOpen())
     {
+        float newmx = mouse.getPosition(window.window).x,
+              newmy = mouse.getPosition(window.window).y;
+
+        float mdx = newmx - lastmx;
+        float mdy = newmy - lastmy;
+
+        lastmx = newmx;
+        lastmy = newmy;
+
+        if(mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            clicking = true;
+        }
+        else
+        {
+            clicking = false;
+        }
+
+        if(clicking)
+        {
+
+        }
+
         sf::Clock c;
 
         if(window.window.pollEvent(Event))
@@ -159,12 +206,14 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        //if(network_state == 1)
+        if(network_state == 1)
             fdata = get_finger_positions();
 
         int n = 0;
 
-        //if(network_state == 1)
+        ///do das fingerclickencontrollen
+
+        if(network_state == 1)
         {
             for(int i=0; i<10; i++)
             {
@@ -253,34 +302,80 @@ int main(int argc, char *argv[])
             currently_grabbed->set_pos(centre);
 
             currently_grabbed->g_flush_objects();
+
+            network::transform_host_object(currently_grabbed); ///don't do this every frame >.>
+        }
+        else
+        {
+            if(currently_grabbed!=NULL)
+                network::transform_slave_object(currently_grabbed);
         }
 
         if(key.isKeyPressed(sf::Keyboard::H) && !network_state)
         {
             network::host();
 
-            //std::string msg = "hi";
-            //network::send(network::networked_clients[0], msg);
-
             for(int i=0; i<5; i++)
                 network::host_object(&finger[i]);
 
+            network::host_object(&otherfingers[0]); ///temp
+            network::slave_object(&otherfingers[1]); ///temp
+
+            //network::host_object(&model);
+            //network::host_object(&model2);
+
+            network::slave_object(&model);
+            network::slave_object(&model2);
 
             network_state = 1;
         }
 
         if(key.isKeyPressed(sf::Keyboard::J) && !network_state)
         {
-            network::join("127.0.0.1");
+            network::join("86.16.134.250");
+            //network::join("127.0.0.1");
 
             for(int i=0; i<5; i++)
                 network::slave_object(&finger[i]);
 
-            //Sleep(300);
-            //std::cout << network::receive(network::networked_clients[0]) << std::endl;
+            network::slave_object(&otherfingers[1]); ///temp
+            network::host_object(&otherfingers[0]); ///temp
+
+            network::slave_object(&model);
+            network::slave_object(&model2);
 
             network_state = 2;
         }
+
+
+
+        if(clicking)
+        {
+            mouse_pos.y = yplane + mouse_cushion / 10.0f;
+        }
+        else
+        {
+            mouse_pos.y = yplane + mouse_cushion;
+        }
+
+        ///rotate mdx and mdy by camera to get ingame movement
+
+        cl_float4 mouse_change = {mdx*10, 0, -mdy*10, 0};
+
+        cl_float4 cam_one_axis = window.c_rot;
+
+        cam_one_axis.x = 0;
+        cam_one_axis.z = 0;
+
+        mouse_change = engine::back_rotate(mouse_change, cam_one_axis);
+
+        mouse_pos.x += mouse_change.x;
+        mouse_pos.z += mouse_change.z;
+
+        otherfingers[0].set_pos(mouse_pos);
+
+        for(int i=0; i<MAX_PLAYERS; i++)
+            otherfingers[i].g_flush_objects();
 
         network::tick();
 
@@ -289,8 +384,6 @@ int main(int argc, char *argv[])
         window.draw_bulk_objs_n();
 
         window.render_buffers();
-
-        //Sleep(15.0f);
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

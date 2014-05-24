@@ -26,8 +26,10 @@ struct network
     static void generate_networked_id(objects_container*);
 
     static void host_object(objects_container*);
-
     static void slave_object(objects_container*);
+
+    static void transform_host_object(objects_container*);
+    static void transform_slave_object(objects_container*);
 
 
     static void broadcast(std::string&);
@@ -43,6 +45,7 @@ struct network
     static bool any_readable();
 
     static objects_container* get_object_by_id(int);
+    static int get_id_by_object(objects_container*);
 
     static void tick();
 };

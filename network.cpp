@@ -307,6 +307,64 @@ void network::slave_object(objects_container* obj)
     slave_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
 }
 
+void network::transform_host_object(objects_container* obj)
+{
+    int id = get_id_by_object(obj);
+
+    if(id < 0)
+        return;
+
+    for(int i=0; i<slave_networked_objects.size(); i++)
+    {
+        if(slave_networked_objects[i].second == id)
+        {
+            auto it = slave_networked_objects.begin();
+            std::advance(it, i);
+            slave_networked_objects.erase(it);
+
+            break;
+        }
+    }
+
+    ///already host
+    for(int i=0; i<host_networked_objects.size(); i++)
+    {
+        if(host_networked_objects[i].second == id)
+            return;
+    }
+
+    host_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+}
+
+void network::transform_slave_object(objects_container* obj)
+{
+    int id = get_id_by_object(obj);
+
+    if(id < 0)
+        return;
+
+    for(int i=0; i<host_networked_objects.size(); i++)
+    {
+        if(host_networked_objects[i].second == id)
+        {
+            auto it = host_networked_objects.begin();
+            std::advance(it, i);
+            host_networked_objects.erase(it);
+
+            break;
+        }
+    }
+
+    ///already slave
+    for(int i=0; i<slave_networked_objects.size(); i++)
+    {
+        if(slave_networked_objects[i].second == id)
+            return;
+    }
+
+    slave_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+}
+
 objects_container* network::get_object_by_id(int id)
 {
     for(auto& i : slave_networked_objects)
@@ -322,6 +380,23 @@ objects_container* network::get_object_by_id(int id)
     }
 
     return NULL;
+}
+
+int network::get_id_by_object(objects_container* obj)
+{
+    for(auto& i : slave_networked_objects)
+    {
+        if(i.first == obj)
+            return i.second;
+    }
+
+    for(auto& i : host_networked_objects)
+    {
+        if(i.first == obj)
+            return i.second;
+    }
+
+    return -1;
 }
 
 ///this function is literally hitler
@@ -366,7 +441,7 @@ void network::tick()
             if(msg.size() < sizeof(int) + sizeof(cl_float4))
             {
                 std::cout << "error, no msg recieved ?????" << std::endl; ///fucking trigraphs
-                continue;
+                break;
             }
 
             int network_id = *(int*)&msg[0];

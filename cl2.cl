@@ -9,8 +9,6 @@
 #define LIGHTBUFFERDIM 1024
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
-#define MTRI_SIZE 50
-
 #define M_PI 3.1415927f
 
 //#define MAXDEPTH 100000

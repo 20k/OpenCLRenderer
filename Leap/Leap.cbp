@@ -16,7 +16,7 @@
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/Leap" prefix_auto="1" extension_auto="1" />
+				<Option output="Leap" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -79,11 +79,6 @@
 		<Unit filename="../objects_container.cpp" />
 		<Unit filename="../objects_container.hpp" />
 		<Unit filename="../ocl.h" />
-		<Unit filename="../planet_gen/cubetables.hpp" />
-		<Unit filename="../planet_gen/marching_cubes.cpp" />
-		<Unit filename="../planet_gen/marching_cubes.hpp" />
-		<Unit filename="../planet_gen/planet_gen.cpp" />
-		<Unit filename="../planet_gen/planet_gen.hpp" />
 		<Unit filename="../proj.hpp" />
 		<Unit filename="../text_handler.cpp" />
 		<Unit filename="../text_handler.hpp" />
