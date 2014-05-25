@@ -238,8 +238,8 @@ int main(int argc, char *argv[])
         game_object_manager::process_destroyed_ships();
 
         window.input();
-        //window.set_camera_pos(player_ship->position); ///
-        //window.c_rot = add(window.c_rot, neg(player_ship->rotation_delta));
+        window.set_camera_pos(player_ship->position); ///
+        window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
 
         window.draw_point_cloud();

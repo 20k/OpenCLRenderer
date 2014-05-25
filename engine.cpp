@@ -41,6 +41,8 @@ cl_float4 engine::c_rot;
 cl_uint engine::depth;
 cl_uint engine::g_size;
 
+bool engine::camera_dirty;
+
 
 static int nbuf=0; ///which depth buffer are we using?
 
@@ -465,9 +467,6 @@ void engine::input()
     {
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
-
-    ///update gpu camera
-    g_flush_camera();
 }
 
 
@@ -617,6 +616,9 @@ void engine::draw_point_cloud()
 ///this function is horrible and needs to be reworked into multiple smaller functions
 void engine::draw_bulk_objs_n()
 {
+    if(camera_dirty)
+        g_flush_camera();
+
     sf::Clock start;
 
 
@@ -756,6 +758,8 @@ void engine::draw_bulk_objs_n()
     ///release opengl stuff
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
+
+    camera_dirty = false;
 }
 
 
@@ -791,11 +795,13 @@ int engine::get_mouse_y()
 void engine::set_camera_pos(cl_float4 p)
 {
     c_pos = p;
+    camera_dirty = true;
 }
 
 void engine::set_camera_rot(cl_float4 r)
 {
     c_rot = r;
+    camera_dirty = true;
 }
 
 ///unused, and due to change in plans may be removed

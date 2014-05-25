@@ -24,6 +24,8 @@ struct engine
     static cl_float4 c_pos; ///camera position, rotation
     static cl_float4 c_rot;
 
+    static bool camera_dirty;
+
     compute::opengl_renderbuffer g_screen;
 
     ///gpu side camera position and rotation
