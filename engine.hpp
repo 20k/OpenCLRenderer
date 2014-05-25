@@ -79,6 +79,7 @@ struct engine
     ///lighting needs to be its own class
 
     void construct_shadowmaps();
+    void draw_point_cloud();
     void draw_bulk_objs_n(); ///draw objects to scene
     void render_buffers();
 

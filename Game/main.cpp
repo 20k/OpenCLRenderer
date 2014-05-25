@@ -11,6 +11,8 @@
 #include <string>
 #include "../vec.hpp"
 
+#include "galaxy/galaxy.hpp"
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -41,6 +43,7 @@ int main(int argc, char *argv[])
     //second_ship.set_active(true);
 
     //second_ship.translate_centre((cl_float4){400,0,0,0});
+
 
     weapon temporary_weapon;
     temporary_weapon.name = "Laser";
@@ -155,6 +158,19 @@ int main(int argc, char *argv[])
     text_handler::load_font();
 
 
+    point_cloud stars = get_starmap(1);
+    point_cloud_manager::set_alloc_point_cloud(stars);
+
+
+    for(auto& i : stars.rgb_colour)
+    {
+        //std::cout << (i >> 24) << std::endl;
+    }
+
+    std::vector<cl_float4>().swap(stars.position);
+    std::vector<cl_uint>().swap(stars.rgb_colour);
+
+
     //newtonian_body l1;
     //l1.obj = NULL;
     //l1.linear_momentum = (cl_float4){50, 0, 0, 0};
@@ -229,12 +245,11 @@ int main(int argc, char *argv[])
         game_object_manager::process_destroyed_ships();
 
         window.input();
-        window.set_camera_pos(player_ship->position); ///
-        //window.set_camera_rot(neg(player_ship->rotation));
-        window.c_rot = add(window.c_rot, neg(player_ship->rotation_delta));
+        //window.set_camera_pos(player_ship->position); ///
+        //window.c_rot = add(window.c_rot, neg(player_ship->rotation_delta));
 
-        //std::cout << player_ship->rotation_delta.x << std::endl;
 
+        window.draw_point_cloud();
 
         window.draw_bulk_objs_n();
 

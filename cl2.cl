@@ -15,9 +15,10 @@
 
 ///change calc_third_area functions to be packed
 
-__constant float depth_far=350000;
-__constant uint mulint=UINT_MAX;
-__constant int depth_icutoff=75;
+__constant float depth_far = 350000;
+__constant uint mulint = UINT_MAX;
+__constant int depth_icutoff = 75;
+#define depth_no_clear (mulint-1)
 
 
 struct interp_container;
@@ -2046,9 +2047,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         //float4 normals_out[3];
 
 
-        if(*ft==mulint)
+        if(*ft==depth_no_clear) ///the thing currently on the depth buffer shouldn't be cleared. There is no overlapping triangle either
         {
-            //return;
+            return;
         }
 
 
@@ -2284,14 +2285,48 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
 }
 
-///sampler for reference
-/*sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-           CLK_ADDRESS_CLAMP_TO_EDGE        |
-           CLK_FILTER_NEAREST;
+///could change this to render AFTER scene, then it would be depth correct. Physics-ish particle effects and the like then too. Doesn't change too much otherwise
+__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+{
+    uint pid = get_global_id(0);
+
+    if(pid > *num)
+        return;
+
+    float4 position = positions[pid];
+    uint colour = colours[pid];
+
+    float4 postrotate = rot(position, *c_pos, *c_rot);
+
+    float4 projected;
+
+    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+
+    float depth = projected.z;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    if(depth < depth_icutoff || depth > depth_far)
+        return;
+
+    //uint idepth = dcalc(depth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+    __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
+
+    *depth_pointer = depth_no_clear; ///eh fuck it, dont clear this on the depth buffer
+                                     ///probably hitler, but I can't think of a good way to signal to the screenspace kernel that this shouldn't be considered writable and terminated
+
+    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
+
+    rgba /= 255;
 
 
-        float4 coord1={0, 0, 0, 0};
+    int2 scoord = {x, y};
 
-        uint4 ucol;
-        ucol=read_imageui(array, sam, coord1);*/
-
+    write_imagef(screen, scoord, rgba);
+}

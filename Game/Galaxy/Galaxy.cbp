@@ -22,6 +22,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O2" />
+					<Add option="-Ofast" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -31,8 +32,26 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-std=gnu++11" />
+			<Add option="-DSFML_STATIC" />
 		</Compiler>
-		<Unit filename="main.cpp" />
+		<Linker>
+			<Add option="-lmingw32" />
+			<Add option="-lsfml-graphics-s" />
+			<Add option="-lsfml-audio-s" />
+			<Add option="-lsfml-network-s" />
+			<Add option="-lsfml-window-s" />
+			<Add option="-lsfml-system-s" />
+			<Add option="-luser32" />
+			<Add option="-lgdi32" />
+			<Add option="-lwinmm" />
+			<Add option="-ldxguid" />
+			<Add option="-lopengl32" />
+			<Add option="-lopencl" />
+			<Add option="-lglew32.dll" />
+			<Add option="-lws2_32" />
+		</Linker>
+		<Unit filename="galaxy.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

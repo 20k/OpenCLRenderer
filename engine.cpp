@@ -16,6 +16,7 @@
 #include "texture_manager.hpp"
 #include "interact_manager.hpp" ///Separatation of church and state hlp
 #include "text_handler.hpp"
+#include "point_cloud.hpp"
 
 #define FOV_CONST 400.0f
 ///this needs changing
@@ -41,6 +42,7 @@ cl_uint engine::depth;
 cl_uint engine::g_size;
 
 
+static int nbuf=0; ///which depth buffer are we using?
 
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name)
@@ -582,6 +584,35 @@ void engine::construct_shadowmaps()
     }
 }
 
+void engine::draw_point_cloud()
+{
+    ///__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
+    ///__write_only image2d_t screen, __global uint* depth_buffer)
+
+    compute::buffer screen_wrapper(g_screen.get(), true);
+
+    compute::buffer *p1arglist[]={&point_cloud_manager::g_len, &point_cloud_manager::g_points_mem, &point_cloud_manager::g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
+
+
+    cl_uint local = 128;
+
+    cl_uint p1global_ws = point_cloud_manager::len;
+    if(p1global_ws % local!=0)
+    {
+        int rem=p1global_ws % local;
+        p1global_ws-=(rem);
+        p1global_ws+=local;
+    }
+
+    if(p1global_ws == 0)
+    {
+        p1global_ws += local;
+    }
+
+    run_kernel_with_args(cl::point_cloud, &p1global_ws, &local, 1, p1arglist, 7, true);
+}
+
+
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
 void engine::draw_bulk_objs_n()
@@ -594,7 +625,7 @@ void engine::draw_bulk_objs_n()
     ///this is not a shadowmapping kernel. This needs to be passed in as a compile time parameter
     compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    static int nbuf=0; ///which depth buffer are we using?
+
 
     ///need a better way to clear light buffer
 

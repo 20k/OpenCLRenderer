@@ -12,3 +12,4 @@ compute::kernel cl::kernel2;
 compute::kernel cl::kernel3;
 compute::kernel cl::prearrange;
 compute::kernel cl::trivial;
+compute::kernel cl::point_cloud;
