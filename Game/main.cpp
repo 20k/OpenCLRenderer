@@ -358,27 +358,6 @@ int main(int argc, char *argv[])
 
         int identifier = interact::get_identifier_from_rect(rect_id);
 
-        /*if(mouse.isButtonPressed(sf::Mouse::Right) && ship_selected!=-1)
-        {
-            float dist;
-
-            float xd, yd, zd;
-
-            xd = newtonian_manager::collision_bodies[ship_selected].first->position.x - engine::c_pos.x;
-            yd = newtonian_manager::collision_bodies[ship_selected].first->position.y - engine::c_pos.y;
-            zd = newtonian_manager::collision_bodies[ship_selected].first->position.z - engine::c_pos.z;
-
-            dist = sqrt(xd*xd + yd*yd + zd*zd);
-
-
-            selection_pos = engine::back_project_about_camera((cl_float4){mouse.getPosition(window.window).x, engine::height - mouse.getPosition(window.window).y, dist, 0});
-        }
-
-
-        cl_float4 screenpos = engine::project(selection_pos);
-
-        t_weps.set_pos(screenpos.x, engine::height - screenpos.y);*/
-
 
         ///remember to make green on hover over, and keep other selected too. need multiple set_selections, by id?
 
