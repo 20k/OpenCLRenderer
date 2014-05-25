@@ -80,6 +80,8 @@
 		<Unit filename="../objects_container.cpp" />
 		<Unit filename="../objects_container.hpp" />
 		<Unit filename="../ocl.h" />
+		<Unit filename="../point_cloud.cpp" />
+		<Unit filename="../point_cloud.hpp" />
 		<Unit filename="../proj.hpp" />
 		<Unit filename="../text_handler.cpp" />
 		<Unit filename="../text_handler.hpp" />
@@ -91,6 +93,8 @@
 		<Unit filename="../triangle.hpp" />
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
+		<Unit filename="Galaxy/galaxy.cpp" />
+		<Unit filename="Galaxy/galaxy.hpp" />
 		<Unit filename="collision.cpp" />
 		<Unit filename="collision.hpp" />
 		<Unit filename="game_object.cpp" />

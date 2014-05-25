@@ -2307,7 +2307,7 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
     if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
         return;
 
-    if(depth < depth_icutoff || depth > depth_far)
+    if(depth < depth_icutoff)// || depth > depth_far)
         return;
 
     //uint idepth = dcalc(depth)*mulint;
