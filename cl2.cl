@@ -2325,6 +2325,14 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
 
     rgba /= 255;
 
+    //depth /= 1000;
+
+    //float brightness = 1000;
+
+    //float relative_brightness = brightness * 1.0f/(depth*depth);
+
+    //relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
+
 
     int2 scoord = {x, y};
 

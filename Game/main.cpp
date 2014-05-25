@@ -144,7 +144,6 @@ int main(int argc, char *argv[])
     l.shadow = 0;
     light* start_light = window.add_light(&l);
 
-    //l.pos.w = 0.0f;
 
     window.add_light(&l);
 
@@ -160,12 +159,6 @@ int main(int argc, char *argv[])
 
     point_cloud stars = get_starmap(1);
     point_cloud_manager::set_alloc_point_cloud(stars);
-
-
-    for(auto& i : stars.rgb_colour)
-    {
-        //std::cout << (i >> 24) << std::endl;
-    }
 
     std::vector<cl_float4>().swap(stars.position);
     std::vector<cl_uint>().swap(stars.rgb_colour);
@@ -308,8 +301,6 @@ int main(int argc, char *argv[])
         {
             lastg = false;
         }
-
-        //ship.tick(c.getElapsedTime().asMicroseconds()/1000.0);
 
         newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
         newtonian_manager::collide_lasers_with_ships();

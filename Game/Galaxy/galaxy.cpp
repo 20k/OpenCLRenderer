@@ -8,7 +8,10 @@
 
 using namespace std;
 
-#define RADIUS 100.0f
+#define RADIUS 200.0f
+
+
+#define MAP_RESOLUTION 1024
 
 float func(float theta)
 {
@@ -20,7 +23,7 @@ float func(float theta)
 
 bool in_bound(int x, int y)
 {
-    if(x < 0 || x >= 800 || y < 0 || y >= 600)
+    if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
         return false;
 
     return true;
@@ -82,17 +85,17 @@ void smooth(int** vals, int** nvals, int n)
 {
     for(int i=0; i<n; i++)
     {
-        for(int y=1; y<600-1; y++)
+        for(int y=1; y<MAP_RESOLUTION-1; y++)
         {
-            for(int x=1; x<800-1; x++)
+            for(int x=1; x<MAP_RESOLUTION-1; x++)
             {
                 nvals[y][x] = (vals[y][x] + vals[y][x+1] + vals[y][x-1] + vals[y-1][x] + vals[y+1][x]) / 5.0f;
             }
         }
 
-        for(int y=1; y<600-1; y++)
+        for(int y=1; y<MAP_RESOLUTION-1; y++)
         {
-            for(int x=1; x<800-1; x++)
+            for(int x=1; x<MAP_RESOLUTION-1; x++)
             {
                 vals[y][x] = (nvals[y][x] + nvals[y][x+1] + nvals[y][x-1] + nvals[y-1][x] + nvals[y+1][x]) / 5.0f;
             }
@@ -116,8 +119,8 @@ void random_points(int** vals, int num)
         float px = rad*cos(angle);
         float py = rad*sin(angle);
 
-        px += 400;
-        py += 300;
+        px += MAP_RESOLUTION/2.0f;
+        py += MAP_RESOLUTION/2.0f;
 
         if(in_bound(px, py))
             vals[(int)py][(int)px] = 2000.0f/1.f;
@@ -125,7 +128,7 @@ void random_points(int** vals, int num)
     }
 }
 
-void random_points_less_edge(int** vals, int num, float mult_fact)
+void random_points_less_edge(int** vals, int num, float mult_fact, bool is_random_z = false)
 {
     for(int i=0; i<num; i++)
     {
@@ -141,22 +144,27 @@ void random_points_less_edge(int** vals, int num, float mult_fact)
         float px = rad*cos(angle);
         float py = rad*sin(angle);
 
-        px += 400;
-        py += 300;
+        px += MAP_RESOLUTION/2.0f;
+        py += MAP_RESOLUTION/2.0f;
+
+        int type = 1;
+
+        if(is_random_z)
+            type = 3;
 
         if(in_bound(px, py))
-            vals[(int)py][(int)px] = 1;
+            vals[(int)py][(int)px] = type;
 
     }
 }
 
 int** shitty_alloc()
 {
-    int** vals = new int*[600];
-    for(int i=0; i<600; i++)
+    int** vals = new int*[MAP_RESOLUTION];
+    for(int i=0; i<MAP_RESOLUTION; i++)
     {
-        vals[i] = new int[800];
-        for(int j=0; j<800; j++)
+        vals[i] = new int[MAP_RESOLUTION];
+        for(int j=0; j<MAP_RESOLUTION; j++)
             vals[i][j] = 0;
     }
 
@@ -165,7 +173,7 @@ int** shitty_alloc()
 
 void shitty_dealloc(int** val)
 {
-    for(int i=0; i<600; i++)
+    for(int i=0; i<MAP_RESOLUTION; i++)
         delete [] val[i];
     delete [] val;
 }
@@ -187,23 +195,23 @@ int** standard_scatter()
         float nx = -val*cos(i);
         float ny = -val*sin(i);
 
-        x += 400;
-        y += 300;
-        nx += 400;
-        ny += 300;
+        x += MAP_RESOLUTION/2.0f;
+        y += MAP_RESOLUTION/2.0f;
+        nx += MAP_RESOLUTION/2.0f;
+        ny += MAP_RESOLUTION/2.0f;
 
         //cout << x << " " << y << " " << val << endl;
 
-        if(x < 0 || x >= 800 || y < 0 || y >= 600)
+        if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
-        if(nx < 0 || nx >= 800 || ny < 0 || ny >= 600)
+        if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
 
         float dist = val;
 
-        different_scatter(x, y, vals, fabs(dist), 4, 0.003);
-        different_scatter(nx, ny, vals, fabs(dist), 4, 0.003);
+        different_scatter(x, y, vals, fabs(dist), 4, 0.001);
+        different_scatter(nx, ny, vals, fabs(dist), 4, 0.001);
     }
 
     for(float i=0; i<2.0*M_PI; i+=0.1)
@@ -215,23 +223,23 @@ int** standard_scatter()
         float nx = -val*cos(i);
         float ny = -val*sin(i);
 
-        x += 400;
-        y += 300;
-        nx += 400;
-        ny += 300;
+        x += MAP_RESOLUTION/2.0f;
+        y += MAP_RESOLUTION/2.0f;
+        nx += MAP_RESOLUTION/2.0f;
+        ny += MAP_RESOLUTION/2.0f;
 
         //cout << x << " " << y << " " << val << endl;
 
-        if(x < 0 || x >= 800 || y < 0 || y >= 600)
+        if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
-        if(nx < 0 || nx >= 800 || ny < 0 || ny >= 600)
+        if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
 
         float dist = val;
 
-        different_scatter(x, y, walk_dots, fabs(dist), 8, 0.003);
-        different_scatter(nx, ny, walk_dots, fabs(dist), 8, 0.003);
+        different_scatter(x, y, walk_dots, fabs(dist), 8, 0.001);
+        different_scatter(nx, ny, walk_dots, fabs(dist), 8, 0.001);
     }
 
     for(float i=0; i<2.0*M_PI; i+=0.02)
@@ -243,36 +251,40 @@ int** standard_scatter()
         float nx = -val*cos(i);
         float ny = -val*sin(i);
 
-        x += 400;
-        y += 300;
-        nx += 400;
-        ny += 300;
+        x += MAP_RESOLUTION/2.0f;
+        y += MAP_RESOLUTION/2.0f;
+        nx += MAP_RESOLUTION/2.0f;
+        ny += MAP_RESOLUTION/2.0f;
 
         //cout << x << " " << y << " " << val << endl;
 
-        if(x < 0 || x >= 800 || y < 0 || y >= 600)
+        if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
-        if(nx < 0 || nx >= 800 || ny < 0 || ny >= 600)
+        if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
 
         float dist = val;
 
-        different_scatter(x, y, vals, fabs(dist), 4, 0.001);
-        different_scatter(nx, ny, vals, fabs(dist), 4, 0.001);
+        different_scatter(x, y, vals, fabs(dist), 4, 0.0003);
+        different_scatter(nx, ny, vals, fabs(dist), 4, 0.0003);
     }
 
 
+    random_points_less_edge(vals, 400, 2.5, true);
     random_points_less_edge(vals, 400, 2.5);
-    random_points_less_edge(vals, 1000, 1.5);
+    random_points_less_edge(vals, 2000, 1.5);
+    random_points_less_edge(vals, 5000, 0.15);
+    random_points_less_edge(vals, 5000, 0.35);
+    random_points_less_edge(vals, 2000, 0.45);
 
     //smooth(vals, nvals, 100);
 
     float max_val = 1000.0f/255.0f;
 
-    for(int y=0; y<600; y++)
+    for(int y=0; y<MAP_RESOLUTION; y++)
     {
-        for(int x=0; x<800; x++)
+        for(int x=0; x<MAP_RESOLUTION; x++)
         {
             /*sf::Color rgb(0,0,0);
 
@@ -340,19 +352,19 @@ int** standard_scatter()
 
 void alt_scatter(sf::Image& img)
 {
-    int**vals = new int*[600];
-    for(int i=0; i<600; i++)
+    int**vals = new int*[MAP_RESOLUTION];
+    for(int i=0; i<MAP_RESOLUTION; i++)
     {
-        vals[i] = new int[800];
-        for(int j=0; j<800; j++)
+        vals[i] = new int[MAP_RESOLUTION];
+        for(int j=0; j<MAP_RESOLUTION; j++)
             vals[i][j] = 0;
     }
 
-    int**nvals = new int*[600];
-    for(int i=0; i<600; i++)
+    int**nvals = new int*[MAP_RESOLUTION];
+    for(int i=0; i<MAP_RESOLUTION; i++)
     {
-        nvals[i] = new int[800];
-        for(int j=0; j<800; j++)
+        nvals[i] = new int[MAP_RESOLUTION];
+        for(int j=0; j<MAP_RESOLUTION; j++)
             nvals[i][j] = 0;
     }
 
@@ -366,16 +378,16 @@ void alt_scatter(sf::Image& img)
         float nx = -val*cos(i);
         float ny = -val*sin(i);
 
-        x += 400;
-        y += 300;
-        nx += 400;
-        ny += 300;
+        x += MAP_RESOLUTION/2.0f;
+        y += MAP_RESOLUTION/2.0f;
+        nx += MAP_RESOLUTION/2.0f;
+        ny += MAP_RESOLUTION/2.0f;
 
         //cout << x << " " << y << " " << val << endl;
 
-        if(x < 0 || x >= 800 || y < 0 || y >= 600)
+        if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
-        if(nx < 0 || nx >= 800 || ny < 0 || ny >= 600)
+        if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
 
@@ -394,9 +406,9 @@ float evaluate_func(float x)
     if(x > 0)
         x = -x;
 
-    x = x*30.0f;
+    x = x*60.0f;
 
-    return pow((tanh(x/2 + 2) + 1)/2, 0.3);
+    return pow((tanh(x/2 + 2) + 1)/2, 0.3)*1.5;
 }
 
 point_cloud construct_starmap(int** vals)
@@ -404,16 +416,22 @@ point_cloud construct_starmap(int** vals)
     vector<cl_float4> positions;
     vector<cl_uint> colours;
 
-    for(int y=0; y<600; y++)
+    const float bluepercent = 0.4;
+
+    const float bluemod = 0.9;
+    const float yellowmod = 0.8;
+    const float redmod = 0.5;
+
+    for(int y=0; y<MAP_RESOLUTION; y++)
     {
-        for(int x=0; x<800; x++)
+        for(int x=0; x<MAP_RESOLUTION; x++)
         {
-            if(vals[y][x] == 1 || vals[y][x] == 2)
+            if(vals[y][x] == 1 || vals[y][x] == 2 || vals[y][x] == 3)
             {
                 float rad = RADIUS*1.5;
 
-                float xd = x - 400;
-                float yd = y - 300;
+                float xd = x - MAP_RESOLUTION/2.0f;
+                float yd = y - MAP_RESOLUTION/2.0f;
 
                 float dist = sqrt(xd*xd + yd*yd);
 
@@ -425,7 +443,7 @@ point_cloud construct_starmap(int** vals)
 
                 z *= (float)rand()/RAND_MAX;
 
-                if(dist > rad)
+                if(dist > rad || vals[y][x]==3)
                 {
                     z = (float)rand()/RAND_MAX;
 
@@ -437,26 +455,57 @@ point_cloud construct_starmap(int** vals)
 
                 float randfrac = (float)rand()/RAND_MAX;
 
-                z += (randfrac)/4.0f;
+                z += (randfrac)/2.0f;
 
                 if(rand()%2) ///hitler
                     z = -z;
 
                 sf::Color col;
 
-                if(vals[y][x]==1)
+                float brightnessmod = (0.8*(float)rand()/RAND_MAX) - 0.3;
+
+                if(vals[y][x]==1 || vals[y][x]==3)
                 {
                     col = sf::Color(255,200,150);
+
+                    float yrand = yellowmod + brightnessmod;
+                    if(yrand > 1)
+                        yrand = 1;
+
+                    col.r *= yrand;
+                    col.g *= yrand;
+                    col.b *= yrand;
+
+                    if((float)rand()/RAND_MAX < bluepercent)
+                    {
+                        col = sf::Color(150, 200, 255);
+
+                        float brand = bluemod + brightnessmod;
+                        if(brand > 1)
+                            brand = 1;
+
+                        col.r *= brand;
+                        col.g *= brand;
+                        col.b *= brand;
+                    }
                 }
                 else if(vals[y][x] == 2)
                 {
                     col = sf::Color(255, 30, 30);
+
+                    float rrand = redmod + brightnessmod;
+                    if(rrand > 1)
+                        rrand = 1;
+
+                    col.r *= rrand;
+                    col.g *= rrand;
+                    col.b *= rrand;
                 }
 
                 cl_float4 pos;
-                pos.x = xd*10;
-                pos.z = yd*10;
-                pos.y = z*100;
+                pos.x = xd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
+                pos.z = yd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
+                pos.y = z*100 + (((float)rand()/RAND_MAX) - 0.5) * 8;
                 pos.w = 0;
 
                 cl_uint colour = (col.r << 24 | col.g << 16 | col.b << 8) & 0xFFFFFF00;
@@ -468,7 +517,7 @@ point_cloud construct_starmap(int** vals)
         }
     }
 
-    float scale_factor = 10.0f;
+    float scale_factor = 10000000.0f;
 
     for(auto& i : positions)
     {
