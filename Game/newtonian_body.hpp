@@ -91,6 +91,7 @@ struct newtonian_body
     virtual void set_linear_force_direction(cl_float4 _dir);
 
     void add_collision_object(collision_object&);
+    void remove_collision_object();
 
     newtonian_body* push();
     newtonian_body* push_laser(light*);

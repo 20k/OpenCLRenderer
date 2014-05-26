@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
 
     ship.process_transformations();
-    ship.calc_push_physics_info(); ///separate into separate pos call?
+    ship.calc_push_physics_info({0, -200, 0, 0}); ///separate into separate pos call?
 
     ship2.process_transformations();
     ship2.calc_push_physics_info((cl_float4){0,-200,0,0});
@@ -319,6 +319,7 @@ int main(int argc, char *argv[])
         }
 
         game_object_manager::draw_all_box();
+        game_object_manager::process_destroyed_ships();
 
         text_list t_weps;
 

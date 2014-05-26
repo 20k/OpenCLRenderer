@@ -166,6 +166,24 @@ void newtonian_body::add_collision_object(collision_object& c)
     newtonian_manager::collision_bodies.push_back(std::pair<newtonian_body*, collision_object>(this, c));
 }
 
+void newtonian_body::remove_collision_object()
+{
+    for(int i=0; i<newtonian_manager::collision_bodies.size(); i++)
+    {
+        newtonian_body* b = newtonian_manager::collision_bodies[i].first;
+        if(b == this)
+        {
+            auto it = newtonian_manager::collision_bodies.begin();
+
+            std::advance(it, i);
+
+            newtonian_manager::collision_bodies.erase(it);
+
+            i--;
+        }
+    }
+}
+
 ///must be pushed as global inengine light
 newtonian_body* newtonian_body::push_laser(light* l)
 {
@@ -203,7 +221,11 @@ void newtonian_manager::remove_body(newtonian_body* n)
         light::remove_light(n->laser);
     }
 
+    n->remove_collision_object();
+
     int id = get_id(n);
+
+    std::cout << "id     " << id << std::endl;
 
     std::vector<newtonian_body*>::iterator it = body_list.begin();
     std::advance(it, id);

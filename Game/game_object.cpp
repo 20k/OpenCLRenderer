@@ -350,7 +350,7 @@ void game_object::fire_all()
     if(newtonian->obj == NULL || newtonian->type!=0)
             return;
 
-    bool should_stagger = true;
+    bool should_stagger = false; ///
 
     for(int i=0;  i<weapons.size(); i++)
     {
@@ -372,6 +372,7 @@ void game_object::fire_all()
             continue;
 
         std::set<game_object*>::iterator t = targets[i].begin(); ///temporarily just use first target and fire at that. Cycle?
+
 
         for(int j=0; j<weapon_list.size(); j++)
         {
@@ -673,6 +674,7 @@ void game_object::damage(float dam)
     if(info.health < 0)
     {
         std::cout << "oh no i am explode" << std::endl;
+        set_destroyed();
     }
 }
 
@@ -730,6 +732,8 @@ void game_object_manager::process_destroyed_ships()
     {
         if(object_list[i]->destroyed)
         {
+            newtonian_manager::remove_body(object_list[i]->get_newtonian());
+
             auto it = object_list.begin();
 
             std::advance(it, i);
@@ -737,6 +741,8 @@ void game_object_manager::process_destroyed_ships()
             delete *it;
 
             object_list.erase(it);
+
+            i--;
         }
     }
 }
