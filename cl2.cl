@@ -2047,10 +2047,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         //float4 normals_out[3];
 
 
-        if(*ft==depth_no_clear) ///the thing currently on the depth buffer shouldn't be cleared. There is no overlapping triangle either
+        /*if(*ft==depth_no_clear) ///the thing currently on the depth buffer shouldn't be cleared. There is no overlapping triangle either
         {
             return;
-        }
+        }*/
 
 
         struct interp_container icontainer;
@@ -2310,7 +2310,9 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
     if(depth < depth_icutoff)// || depth > depth_far)
         return;
 
-    //uint idepth = dcalc(depth)*mulint;
+    float tdepth = depth > depth_far ? depth_far-1 : depth;
+
+    uint idepth = dcalc(tdepth)*mulint;
 
     int x, y;
     x = projected.x;
@@ -2318,24 +2320,28 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
 
     __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
 
-    *depth_pointer = depth_no_clear; ///eh fuck it, dont clear this on the depth buffer
-                                     ///probably hitler, but I can't think of a good way to signal to the screenspace kernel that this shouldn't be considered writable and terminated
+    if(idepth < *depth_pointer)
+    {
+        *depth_pointer = idepth;
+         // ///eh fuck it, dont clear this on the depth buffer
+         // ///probably hitler, but I can't think of a good way to signal to the screenspace kernel that this shouldn't be considered writable and terminated
 
-    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
+        float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 
-    rgba /= 255;
-
-
-    //depth /= 1000;
-
-    //float brightness = 1000;
-
-    //float relative_brightness = brightness * 1.0f/(depth*depth);
-
-    //relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
+        rgba /= 255;
 
 
-    int2 scoord = {x, y};
+        depth /= 10000000;
 
-    write_imagef(screen, scoord, rgba);
+        float brightness = 100000;
+
+        float relative_brightness = brightness * 1.0f/(depth*depth);
+
+        relative_brightness = clamp(relative_brightness, 0.5f, 1.0f);
+
+
+        int2 scoord = {x, y};
+
+        write_imagef(screen, scoord, rgba*relative_brightness);
+    }
 }

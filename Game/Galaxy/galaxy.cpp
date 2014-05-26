@@ -453,9 +453,9 @@ point_cloud construct_starmap(int** vals)
                     z *= 10.0f;
                 }
 
-                float randfrac = (float)rand()/RAND_MAX;
+                float randfrac = ((float)rand()/RAND_MAX) - 0.5;
 
-                z += (randfrac)/2.0f;
+                z += (randfrac)/1.1;
 
                 if(rand()%2) ///hitler
                     z = -z;
@@ -518,6 +518,7 @@ point_cloud construct_starmap(int** vals)
     }
 
     float scale_factor = 10000000.0f;
+    //float scale_factor = 10.0f;
 
     for(auto& i : positions)
     {

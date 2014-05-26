@@ -467,6 +467,8 @@ void engine::input()
     {
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
+
+    camera_dirty = true;
 }
 
 
@@ -590,7 +592,7 @@ void engine::draw_point_cloud()
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&point_cloud_manager::g_len, &point_cloud_manager::g_points_mem, &point_cloud_manager::g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
+    compute::buffer *p1arglist[]={&point_cloud_manager::g_len, &point_cloud_manager::g_points_mem, &point_cloud_manager::g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
 
 
     cl_uint local = 128;

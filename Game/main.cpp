@@ -83,9 +83,9 @@ int main(int argc, char *argv[])
     ship2.add_transform(SCALE, 100.0f);
     ship3.add_transform(SCALE, 100.0f);
 
-    ship.info.health = 100.0f; ///need static ship types, and fast
-    ship2.info.health = 100.0f;
-    ship3.info.health = 100.0f;
+    ship.info.health = 1000.0f; ///need static ship types, and fast
+    ship2.info.health = 1000.0f;
+    ship3.info.health = 1000.0f;
 
     //ship.add_transform(ROTATE90);
     //ship.add_transform(ROTATE90);
@@ -243,9 +243,9 @@ int main(int argc, char *argv[])
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
 
-        window.draw_point_cloud();
-
         window.draw_bulk_objs_n();
+
+        window.draw_point_cloud();
 
         window.render_buffers();
 

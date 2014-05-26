@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 
 
     texture_manager::allocate_textures();
-    texture_manager::allocate_textures();
+    //texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();

@@ -79,6 +79,8 @@
 		<Unit filename="../objects_container.cpp" />
 		<Unit filename="../objects_container.hpp" />
 		<Unit filename="../ocl.h" />
+		<Unit filename="../point_cloud.cpp" />
+		<Unit filename="../point_cloud.hpp" />
 		<Unit filename="../proj.hpp" />
 		<Unit filename="../text_handler.cpp" />
 		<Unit filename="../text_handler.hpp" />
