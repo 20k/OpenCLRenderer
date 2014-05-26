@@ -535,6 +535,9 @@ newtonian_body* game_object::get_newtonian()
 
 void game_object::draw_box()
 {
+    if(!should_draw_box)
+        return;
+
     collision_object* obj = &collision;
     newtonian_body* nobj = newtonian;
 
@@ -630,7 +633,9 @@ void game_object::draw_box()
         cl_float4 projected = collisions_postship_rotated_world[i];
 
         if(projected.z < 0.01)
-            continue;
+        {
+            return;
+        }
 
         if(projected.x > maxx)
             maxx = projected.x;
@@ -730,7 +735,7 @@ void game_object_manager::process_destroyed_ships()
 {
     for(int i=0; i<object_list.size(); i++)
     {
-        if(object_list[i]->destroyed)
+        if(object_list[i]->destroyed) ///need to remove model
         {
             newtonian_manager::remove_body(object_list[i]->get_newtonian());
 

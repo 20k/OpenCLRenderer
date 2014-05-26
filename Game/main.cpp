@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
     game_object& ship = *game_object_manager::get_new_object();
     ship.set_file("../objects/pre-ruin.obj");
     ship.set_active(true);
+    ship.should_draw_box = false;
 
     //ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
     //ship.add_transform(ROTATE90);
@@ -137,11 +138,11 @@ int main(int argc, char *argv[])
 
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
-    l.set_shadow_casting(1);
+    l.set_shadow_casting(0);
     l.set_brightness(1.0f);
     l.set_pos((cl_float4){2000, 200, -100, 0});
     l.set_type(0.0f);
-    l.shadow = 0;
+    //l.shadow = 0;
     light* start_light = window.add_light(&l);
 
 

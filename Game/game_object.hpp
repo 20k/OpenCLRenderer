@@ -50,6 +50,8 @@ struct game_object
 
     bool destroyed;
 
+    bool should_draw_box = true;
+
     //static std::set<game_object*> game_object_list;
 
     std::vector<std::pair<transform_type, cl_float4> > transform_list;
