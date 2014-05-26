@@ -249,6 +249,7 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
+
         player_ship->set_rotation_direction((cl_float4){0,0,0,0});
         player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
 
@@ -337,11 +338,7 @@ int main(int argc, char *argv[])
 
             std::string nam = ship.weapons[i].name;
 
-            std::ostringstream convert;
-
-            convert << i + 1 << ".";
-
-            nam = convert.str() + " " + nam;
+            nam = to_str(i+1) + ". " + nam;
 
             auto group_list = ship.get_weapon_groups_of_weapon_by_id(i);
 
