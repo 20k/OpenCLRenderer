@@ -2323,8 +2323,6 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
     if(idepth < *depth_pointer)
     {
         *depth_pointer = idepth;
-         // ///eh fuck it, dont clear this on the depth buffer
-         // ///probably hitler, but I can't think of a good way to signal to the screenspace kernel that this shouldn't be considered writable and terminated
 
         float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 
