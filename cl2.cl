@@ -2311,7 +2311,7 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
     if(depth < depth_icutoff)// || depth > depth_far)
         return;
 
-    float tdepth = depth > depth_far ? depth_far-1 : depth;
+    float tdepth = depth >= depth_far ? depth_far-1 : depth;
 
     uint idepth = dcalc(tdepth)*mulint;
 

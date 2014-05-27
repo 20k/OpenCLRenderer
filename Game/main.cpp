@@ -304,6 +304,11 @@ int main(int argc, char *argv[])
             lastg = false;
         }
 
+        if(k.isKeyPressed(sf::Keyboard::Space)) ///implications on physics
+        {
+            player_ship->halve_speed();
+        }
+
         newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
         newtonian_manager::collide_lasers_with_ships();
 

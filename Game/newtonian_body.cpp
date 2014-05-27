@@ -313,3 +313,17 @@ ship_newtonian::ship_newtonian() : newtonian_body()
 {
     game_reference = NULL;
 }
+
+void newtonian_body::halve_speed()
+{
+    cl_float4 half_force;
+
+    ///find half force of sum of these
+    half_force.x = linear_momentum.x/100.0f;
+    half_force.y = linear_momentum.y/100.0f;
+    half_force.z = linear_momentum.z/100.0f;
+    half_force.w = linear_momentum.w/100.0f; ///???
+
+    ///turns out, attempted_force is directional
+    linear_momentum = sub(linear_momentum, half_force);
+}
