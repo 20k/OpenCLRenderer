@@ -57,11 +57,17 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
     ///cumulative triangle count
     cl_uint trianglecount = 0;
 
+    int active_count = 0;
+
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {
         objects_container* obj = objects_container::obj_container_list[i];
+
+        if(!obj->isactive)
+            continue;
+
         obj_mem_manager::obj_sub_nums.push_back(obj->objs.size());
-        obj->arrange_id = i;
+        obj->arrange_id = active_count;
 
         for(std::vector<object>::iterator it=obj->objs.begin(); it!=obj->objs.end(); it++) ///if you call this more than once, it will break. Need to store how much it has already done, and start it again from there to prevent issues with mipmaps
         {
@@ -102,6 +108,8 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             trianglecount+=(it)->tri_num;
             n++;
         }
+
+        active_count++;
     }
 
     return trianglecount;
@@ -177,6 +185,10 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     for(std::vector<objects_container*>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); it2++)
     {
         objects_container* obj = (*it2);
+
+        if(!obj->isactive)
+            continue;
+
         for(std::vector<object>::iterator it=obj->objs.begin(); it!=obj->objs.end(); it++)
         {
             for(int i=0; i<(*it).tri_num; i++)

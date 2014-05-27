@@ -8,6 +8,8 @@
 
 #include "../interact_manager.hpp"
 
+#include "../obj_mem_manager.hpp"
+
 sf::Clock game_object::time;
 
 std::vector<game_object*> game_object_manager::object_list;
@@ -22,6 +24,7 @@ weapon::weapon()
 game_object::game_object()
 {
     destroyed = false;
+    newtonian = NULL;
 }
 
 void game_object::add_transform(transform_type type)
@@ -733,6 +736,8 @@ void game_object_manager::update_all_targeting()
 
 void game_object_manager::process_destroyed_ships()
 {
+    bool dirty_state = false;
+
     for(int i=0; i<object_list.size(); i++)
     {
         if(object_list[i]->destroyed) ///need to remove model
@@ -748,6 +753,15 @@ void game_object_manager::process_destroyed_ships()
             object_list.erase(it);
 
             i--;
+
+            dirty_state = true;
         }
+    }
+    ///problem is that ownership of obj_container is stored by game_body, so when it gets deleted the underlying object is also deconstructed. Perhaps get it to autoremove on deconstruct?
+
+    if(dirty_state)
+    {
+        obj_mem_manager::g_arrange_mem();
+        obj_mem_manager::g_changeover();
     }
 }

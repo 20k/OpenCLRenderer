@@ -51,6 +51,10 @@ struct objects_container
 
 
     void    g_flush_objects(); ///calls g_flush for all objects
+
+    static int get_object_by_id(int);
+
+    ~objects_container();
 };
 
 

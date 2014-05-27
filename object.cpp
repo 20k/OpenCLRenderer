@@ -58,11 +58,13 @@ void object::set_active(bool param)
         {
             isactive = param;
 
-            texture_manager::all_textures[tid].inactivate();
+
+            ///other files might be using same texture, incorrect to inactivate it. Reference counting? Oh god
+            //texture_manager::all_textures[tid].inactivate();
 
             if(has_bump)
             {
-                texture_manager::all_textures[bid].inactivate();
+                //texture_manager::all_textures[bid].inactivate();
             }
         }
         else

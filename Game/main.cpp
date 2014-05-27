@@ -83,9 +83,9 @@ int main(int argc, char *argv[])
     ship2.add_transform(SCALE, 100.0f);
     ship3.add_transform(SCALE, 100.0f);
 
-    ship.info.health = 1000.0f; ///need static ship types, and fast
-    ship2.info.health = 1000.0f;
-    ship3.info.health = 1000.0f;
+    ship.info.health = 100.0f; ///need static ship types, and fast
+    ship2.info.health = 100.0f;
+    ship3.info.health = 100.0f;
 
     //ship.add_transform(ROTATE90);
     //ship.add_transform(ROTATE90);

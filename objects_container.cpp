@@ -21,11 +21,13 @@ objects_container::objects_container()
 cl_uint objects_container::push()
 {
     obj_container_list.push_back(this);
-    return obj_container_list.size() - 1;
+    return gid++;
 }
 
 void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 {
+    int tid = get_object_by_id(id);
+
     pos = _pos;
     for(unsigned int i=0; i<objs.size(); i++)
     {
@@ -34,16 +36,18 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
     if(isactive)
     {
-        obj_container_list[id]->pos = _pos;
-        for(unsigned int i=0; i<obj_container_list[id]->objs.size(); i++)
+        obj_container_list[tid]->pos = _pos;
+        for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
         {
-            obj_container_list[id]->objs[i].set_pos(_pos);
+            obj_container_list[tid]->objs[i].set_pos(_pos);
         }
     }
 }
 
 void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 {
+    int tid = get_object_by_id(id);
+
     rot = _rot;
     for(unsigned int i=0; i<objs.size(); i++)
     {
@@ -52,10 +56,10 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 
     if(isactive)
     {
-        obj_container_list[id]->rot = _rot;
-        for(unsigned int i=0; i<obj_container_list[id]->objs.size(); i++)
+        obj_container_list[tid]->rot = _rot;
+        for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
         {
-            obj_container_list[id]->objs[i].set_rot(_rot);
+            obj_container_list[tid]->objs[i].set_rot(_rot);
         }
     }
 }
@@ -88,12 +92,19 @@ cl_uint objects_container::set_active(bool param)
     if(isactive && !param)
     {
         std::vector<objects_container*>::iterator it = objects_container::obj_container_list.begin();
-        for(unsigned int i=0; i<id; i++)
+
+        int tid = get_object_by_id(id);
+
+        if(tid != -1)
         {
-            it++;
+            std::advance(it, tid);
+            objects_container::obj_container_list.erase(it);
+            id = -1;
         }
-        objects_container::obj_container_list.erase(it);
-        id = -1;
+        else
+        {
+            std::cout << "Warning: could not remove object, not found" << std::endl;
+        }
     }
 
     isactive = param;
@@ -161,9 +172,11 @@ void objects_container::call_obj_vis_load(cl_float4 pos)
 
 void objects_container::g_flush_objects()
 {
+    int tid = get_object_by_id(id);
+
     if(isactive)
     {
-        objects_container *T = objects_container::obj_container_list[id];
+        objects_container *T = objects_container::obj_container_list[tid];
 
         for(unsigned int i=0; i<T->objs.size(); i++)
         {
@@ -190,4 +203,23 @@ void objects_container::scale(float f)
     {
         objs[i].scale(f);
     }
+}
+
+int objects_container::get_object_by_id(int in)
+{
+    for(int i=0; i<objects_container::obj_container_list.size(); i++)
+    {
+        if(objects_container::obj_container_list[i]->id == in)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+objects_container::~objects_container()
+{
+    std::cout << "object removed: " << id << std::endl;
+    set_active(false);
 }
