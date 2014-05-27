@@ -2285,7 +2285,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
 }
 
-Renders a point cloud which renders correct wrt the depth buffer
+//Renders a point cloud which renders correct wrt the depth buffer
 
 __kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
