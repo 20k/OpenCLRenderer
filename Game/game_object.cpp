@@ -740,7 +740,7 @@ void game_object_manager::process_destroyed_ships()
 
     for(int i=0; i<object_list.size(); i++)
     {
-        if(object_list[i]->destroyed) ///need to remove model
+        if(object_list[i]->destroyed)
         {
             newtonian_manager::remove_body(object_list[i]->get_newtonian());
 
@@ -757,8 +757,8 @@ void game_object_manager::process_destroyed_ships()
             dirty_state = true;
         }
     }
-    ///problem is that ownership of obj_container is stored by game_body, so when it gets deleted the underlying object is also deconstructed. Perhaps get it to autoremove on deconstruct?
 
+    ///object_containers will successfully autoremove themselves when they destruct
     if(dirty_state)
     {
         obj_mem_manager::g_arrange_mem();
