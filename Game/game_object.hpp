@@ -112,6 +112,8 @@ struct game_object
     game_object* push();
 
     game_object();
+
+    ///destructor to un-push?
 };
 
 struct game_object_manager

@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     temporary_weapon.refire_time = 250; /// milliseconds
 
     game_object& ship = *game_object_manager::get_new_object();
-    ship.set_file("../objects/pre-ruin.obj");
+    ship.set_file("../objects/Pre-ruin.obj");
     ship.set_active(true);
     ship.should_draw_box = false;
 
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
             lastg = false;
         }
 
-        if(k.isKeyPressed(sf::Keyboard::Space)) ///implications on physics
+        if(k.isKeyPressed(sf::Keyboard::Space)) ///implications on physics vs frametime, threading etc. Timestep this?????
         {
             player_ship->halve_speed();
         }
