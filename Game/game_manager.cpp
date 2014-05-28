@@ -1,4 +1,5 @@
 #include "game_manager.hpp"
+#include "../obj_mem_manager.hpp"
 
 game_object* game_manager::spawn_ship()
 {
@@ -28,8 +29,23 @@ void game_manager::spawn_encounter()
 {
     constexpr int num = 5;
 
+    static int batch = 0;
+
     game_object* ships[num];
 
     for(int i=0; i<num; i++)
         ships[i] = game_manager::spawn_ship();
+
+    obj_mem_manager::load_active_objects(); ///sigh
+
+    for(int i=0; i<num; i++)
+    {
+        ships[i]->process_transformations();
+        ships[i]->calc_push_physics_info((cl_float4){batch*400,-200.0f*i,0,0});
+    }
+
+    batch++;
+
+    obj_mem_manager::g_arrange_mem(); ///hitler
+    obj_mem_manager::g_changeover();
 }

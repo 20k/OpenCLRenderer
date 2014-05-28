@@ -34,6 +34,7 @@ std::string to_str(T i)
     return convert.str();
 }
 
+///physics needs to be moved to the gpu
 ///add already_loaded optimisation
 int main(int argc, char *argv[])
 {
@@ -64,7 +65,6 @@ int main(int argc, char *argv[])
     ///Or is this important because textures 1gen?
 
     obj_mem_manager::load_active_objects();
-
 
     ship.process_transformations();
     ship.calc_push_physics_info({0, -200, 0, 0}); ///separate into separate pos call?
@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
 
     bool lastp = false;
     bool lastg = false;
+    bool lastt = false;
 
     sf::Mouse mouse;
 
@@ -190,7 +191,6 @@ int main(int argc, char *argv[])
         window.set_camera_pos(player_ship->position); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
-
         window.draw_bulk_objs_n();
 
         window.draw_point_cloud();
@@ -251,6 +251,15 @@ int main(int argc, char *argv[])
         {
             lastg = false;
         }
+        if(k.isKeyPressed(sf::Keyboard::T))
+        {
+            game_manager::spawn_encounter();
+            lastt = true;
+        }
+        if(!k.isKeyPressed(sf::Keyboard::T))
+        {
+            lastt = false;
+        }
 
         if(k.isKeyPressed(sf::Keyboard::Space)) ///implications on physics vs frametime, threading etc. Timestep this?????
         {
@@ -262,6 +271,7 @@ int main(int argc, char *argv[])
 
         game_object_manager::update_all_targeting();
 
+        sf::Clock clk;
         for(int i=0; i<newtonian_manager::body_list.size(); i++)
         {
             newtonian_body* b = newtonian_manager::body_list[i];
@@ -269,9 +279,9 @@ int main(int argc, char *argv[])
                 b->obj->g_flush_objects();
             //if(b->type==1)
             //    window.g_flush_light(b->laser);
-
-            window.realloc_light_gmem();
         }
+
+        window.realloc_light_gmem();
 
         game_object_manager::draw_all_box();
         game_object_manager::process_destroyed_ships();
