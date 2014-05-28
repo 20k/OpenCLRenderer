@@ -113,7 +113,8 @@ struct game_object
 
     game_object();
 
-    ///destructor to un-push?
+    ~game_object();
+    ///having it un-push itself creates conflicts with process_destroyed_ships. Probably leave it, and have that clean them up
 };
 
 struct game_object_manager

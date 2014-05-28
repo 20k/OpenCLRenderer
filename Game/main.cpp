@@ -39,73 +39,11 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    //objects_container second_ship;
-
-    //second_ship.set_file("../objects/shittyspaceship.obj");
-    //second_ship.set_file("../objects/ship_with_uvs_2.obj");
-    //second_ship.set_active(true);
-
-    //second_ship.translate_centre((cl_float4){400,0,0,0});
-
-
-    /*weapon temporary_weapon;
-    temporary_weapon.name = "Laser";
-    temporary_weapon.refire_time = 250; /// milliseconds
-
-    game_object& ship = *game_object_manager::get_new_object();
-    ship.set_file("../objects/Pre-ruin.obj");
-    ship.set_active(true);
-    ship.should_draw_box = false;
-
-    //ship.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
-    //ship.add_transform(ROTATE90);
-
-    ship.weapons.push_back(temporary_weapon);
-    ship.weapons.push_back(temporary_weapon);
-
-    ship.add_weapon_to_group(0, 0);
-    ship.add_weapon_to_group(1, 1);
-
-    game_object& ship2 = *game_object_manager::get_new_object();
-    ship2.set_file("../objects/Pre-ruin.obj");
-    ship2.set_active(true);
-
-    //ship2.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
-    //ship2.add_transform(ROTATE90);
-
-    game_object& ship3 = *game_object_manager::get_new_object();
-    ship3.set_file("../objects/Pre-ruin.obj");
-    ship3.set_active(true);
-
-    //ship3.add_transform(TRANSLATE, (cl_float4){400,0,0,0});
-    //ship3.add_transform(ROTATE90);
-
-    //ship.add_transform(ROTATE90);
-    //ship.add_transform(ROTATE90);
-    ship.add_transform(SCALE, 100.0f);
-    ship2.add_transform(SCALE, 100.0f);
-    ship3.add_transform(SCALE, 100.0f);
-
-    ship.info.health = 100.0f; ///need static ship types, and fast
-    ship2.info.health = 100.0f;
-    ship3.info.health = 100.0f;*/
-
     game_object& ship = *game_manager::spawn_ship();
     game_object& ship2 = *game_manager::spawn_ship();
     game_object& ship3 = *game_manager::spawn_ship();
 
     ship.should_draw_box = false;
-
-
-    //ship.add_transform(ROTATE90);
-    //ship.add_transform(ROTATE90);
-
-    //ship2.add_transform(ROTATE90);
-    //ship2.add_transform(ROTATE90);
-
-    //ship3.add_transform(ROTATE90);
-    //ship3.add_transform(ROTATE90);
-
 
     ship.add_target(&ship2, 0);
     ship.add_target(&ship3, 1);

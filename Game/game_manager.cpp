@@ -23,3 +23,13 @@ game_object* game_manager::spawn_ship()
 
     return ship;
 }
+
+void game_manager::spawn_encounter()
+{
+    constexpr int num = 5;
+
+    game_object* ships[num];
+
+    for(int i=0; i<num; i++)
+        ships[i] = game_manager::spawn_ship();
+}

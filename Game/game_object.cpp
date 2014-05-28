@@ -512,11 +512,7 @@ void game_object::calc_push_physics_info(cl_float4 pos)
 
 void game_object::calc_push_physics_info()
 {
-    cl_float4 temp;
-    temp.x = 0;
-    temp.y = 0;
-    temp.z = 0;
-    temp.w = 0;
+    cl_float4 temp = {0,0,0,0};
 
     calc_push_physics_info(temp);
 }
@@ -712,6 +708,25 @@ game_object* game_object_manager::get_new_object()
     object_list.push_back(gobj);
 
     return gobj;
+}
+
+game_object::~game_object()
+{
+    /*for(int i=0; i<game_object_manager::object_list.size(); i++)
+    {
+        game_object* obj = game_object_manager::object_list[i];
+
+        if(obj == this)
+        {
+            auto it = game_object_manager::object_list.begin();
+
+            std::advance(it, i);
+
+            game_object_manager::object_list.erase(it);
+
+            return; ///or i-- to ensure that there are no duplicates?
+        }
+    }*/
 }
 
 void game_object_manager::draw_all_box()
