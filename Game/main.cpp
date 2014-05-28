@@ -13,6 +13,8 @@
 
 #include "galaxy/galaxy.hpp"
 
+#include "game_manager.hpp"
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -32,6 +34,7 @@ std::string to_str(T i)
     return convert.str();
 }
 
+///add already_loaded optimisation
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -45,7 +48,7 @@ int main(int argc, char *argv[])
     //second_ship.translate_centre((cl_float4){400,0,0,0});
 
 
-    weapon temporary_weapon;
+    /*weapon temporary_weapon;
     temporary_weapon.name = "Laser";
     temporary_weapon.refire_time = 250; /// milliseconds
 
@@ -85,7 +88,14 @@ int main(int argc, char *argv[])
 
     ship.info.health = 100.0f; ///need static ship types, and fast
     ship2.info.health = 100.0f;
-    ship3.info.health = 100.0f;
+    ship3.info.health = 100.0f;*/
+
+    game_object& ship = *game_manager::spawn_ship();
+    game_object& ship2 = *game_manager::spawn_ship();
+    game_object& ship3 = *game_manager::spawn_ship();
+
+    ship.should_draw_box = false;
+
 
     //ship.add_transform(ROTATE90);
     //ship.add_transform(ROTATE90);
