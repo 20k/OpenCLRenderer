@@ -97,6 +97,8 @@
 		<Unit filename="Galaxy/galaxy.hpp" />
 		<Unit filename="collision.cpp" />
 		<Unit filename="collision.hpp" />
+		<Unit filename="game_manager.cpp" />
+		<Unit filename="game_manager.hpp" />
 		<Unit filename="game_object.cpp" />
 		<Unit filename="game_object.hpp" />
 		<Unit filename="main.cpp" />

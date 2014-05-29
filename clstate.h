@@ -13,7 +13,6 @@ namespace compute = boost::compute;
 
 namespace cl
 {
-
     extern compute::device device;
     extern compute::command_queue cqueue;
     extern compute::context context;

@@ -271,7 +271,10 @@ int main(int argc, char *argv[])
 
         game_object_manager::update_all_targeting();
 
+        ///writing down the pcie bus accounts for most of the frame variation. Fucking pcie and its fucking shit
+
         sf::Clock clk;
+        ///only do this every n frames and interpolate?
         for(int i=0; i<newtonian_manager::body_list.size(); i++)
         {
             newtonian_body* b = newtonian_manager::body_list[i];
@@ -280,6 +283,8 @@ int main(int argc, char *argv[])
             //if(b->type==1)
             //    window.g_flush_light(b->laser);
         }
+
+        std::cout << " " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
         window.realloc_light_gmem();
 

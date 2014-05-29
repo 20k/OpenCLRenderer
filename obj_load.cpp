@@ -66,7 +66,7 @@ void decompose_attribute(const std::string &str, T a[], int n)
     size_t pos = str.find(".");
     int s[n+1]; ///probably fix using varargs
     ///initialise first element to be initial position
-    s[0]={str.find(" ")};
+    s[0]=str.find(" "); ///
     for(int i=1; i<n+1; i++)
     {
         s[i] = str.find(" ", s[i-1]+1); ///implicitly finds end, so correct for n despite no /
