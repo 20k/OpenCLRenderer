@@ -1,5 +1,6 @@
 #include "game_manager.hpp"
 #include "../obj_mem_manager.hpp"
+#include <cstdlib>
 
 game_object* game_manager::spawn_ship()
 {
@@ -38,10 +39,12 @@ void game_manager::spawn_encounter()
 
     obj_mem_manager::load_active_objects(); ///sigh
 
+    float height_variation = 400;
+
     for(int i=0; i<num; i++)
     {
         ships[i]->process_transformations();
-        ships[i]->calc_push_physics_info((cl_float4){batch*400,-200.0f*i,0,0});
+        ships[i]->calc_push_physics_info((cl_float4){i*700 + batch*5*800, height_variation*(float)rand()/RAND_MAX,0,0});
     }
 
     batch++;

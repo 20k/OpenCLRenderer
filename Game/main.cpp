@@ -66,6 +66,8 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
+    //exit(ship.objects.objs[0].tri_list.size());
+
     ship.process_transformations();
     ship.calc_push_physics_info({0, -200, 0, 0}); ///separate into separate pos call?
 
@@ -201,7 +203,7 @@ int main(int argc, char *argv[])
         player_ship->set_rotation_direction((cl_float4){0,0,0,0});
         player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
 
-
+        ///timestep the force you eedjat
         if(k.isKeyPressed(sf::Keyboard::I))
         {
             player_ship->set_linear_force_direction((cl_float4){1, 0, 0, 0});
