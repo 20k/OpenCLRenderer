@@ -1633,7 +1633,7 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
 }
 
 ///fragment size in pixels
-#define op_size 200
+#define op_size 70
 
 ///split triangles into fragments
 __kernel
