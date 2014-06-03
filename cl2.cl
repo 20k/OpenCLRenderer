@@ -1632,6 +1632,7 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
     someout[0] = useless;
 }
 
+///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 #define op_size 70
 
