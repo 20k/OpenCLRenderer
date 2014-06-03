@@ -1731,13 +1731,16 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
         int c = 0;
 
+        uint base = atomic_add(id_buffer_atomc, thread_num);
+
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
             for(uint a = 0; a < thread_num; a++)
             {
                 ///work out if is valid, if not do c++ then continue;
 
-                uint f = atomic_inc(id_buffer_atomc);
+                uint f = a + base;
+
                 fragment_id_buffer[f*3] = id;
                 fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | c; ///for memory reasons, 2^28 is more than enough fragment ids
                 fragment_id_buffer[f*3+2] = c_id;

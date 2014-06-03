@@ -34,8 +34,9 @@ std::string to_str(T i)
     return convert.str();
 }
 
-///physics needs to be moved to the gpu
-///add already_loaded optimisation
+///space dust
+///physics needs to be moved to the gpu ///scrap this, networking makes this impossible
+///add already_loaded optimisation - done
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
