@@ -1729,7 +1729,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         cutdown_tris[c_id*3+1] = tris_proj[i][1];
         cutdown_tris[c_id*3+2] = tris_proj[i][2];
 
-        int c = 0;
+        uint c = 0;
 
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
