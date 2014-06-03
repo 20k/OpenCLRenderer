@@ -38,7 +38,7 @@ float max3(float x,  float y,  float z)
     return max(max(x,y),z);
 }
 
-float calc_third_area(int x1, int y1, int x2, int y2, int x3, int y3, int x, int y, int which)
+float calc_third_area(float x1, float y1, float x2, float y2, float x3, float y3, float x, float y, int which)
 {
     if(which==1)
     {
@@ -96,21 +96,21 @@ struct triangle
 
 struct interp_container
 {
-    int4 x;
-    int4 y;
-    int xbounds[2];
-    int ybounds[2];
+    float4 x;
+    float4 y;
+    float xbounds[2];
+    float ybounds[2];
     float rconstant;
 };
 
-float calc_third_areas_i(int x1, int x2, int x3, int y1, int y2, int y3, int x, int y)
+float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
     //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
     return (fabs((float)(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y)) + fabs((float)(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1)) + fabs((float)(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)))/2.0f;
     ///form was written for this, i think
 }
 
-float calc_third_areas(struct interp_container *C, int x, int y)
+float calc_third_areas(struct interp_container *C, float x, float y)
 {
     return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
     //return calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 1) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 2) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 3);
@@ -152,12 +152,12 @@ float idcalc(float value)
     return value * depth_far;
 }
 
-float calc_rconstant(int x[3], int y[3])
+float calc_rconstant(float x[3], float y[3])
 {
     return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
-float interpolate_2(float4 vals, struct interp_container c, int x, int y)
+float interpolate_2(float4 vals, struct interp_container c, float x, float y)
 {
     ///x1, y1, x2, y2, x3, y3, x, y, which
 
@@ -184,13 +184,13 @@ float interpolate_2(float4 vals, struct interp_container c, int x, int y)
     return (float)(A*x + B*y + C);
 }*/
 
-float interpolate_p(float4 f, int xn, int yn, int4 x, int4 y, float rconstant)
+float interpolate_p(float4 f, float xn, float yn, float4 x, float4 y, float rconstant)
 {
     float A=((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
     float B=(-(f.y*x.z+f.x*(x.y-x.z)-f.z*x.y+(f.z-f.y)*x.x) * rconstant);
     float C=f.x-A*x.x - B*y.x;
 
-    return (float)(A*xn + B*yn + C);
+    return (A*xn + B*yn + C);
 }
 
 /*float interpolate_r(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3)
@@ -207,7 +207,7 @@ float2 interpolate_r_pair(float2 f[3], float2 xy, float2 bounds[3])
     return ip;
 }*/
 
-float interpolate(float4 f, struct interp_container *c, int x, int y)
+float interpolate(float4 f, struct interp_container *c, float x, float y)
 {
     return interpolate_p(f, x, y, c->x, c->y, c->rconstant);
 }
@@ -250,10 +250,10 @@ bool get_intersection(float4 p1, float4 p2, float4 *r)
     return true;
 }
 
-void calc_min_max(float4 points[3], int width, int height, int ret[4])
+void calc_min_max(float4 points[3], float width, float height, float ret[4])
 {
-    int x[3];
-    int y[3];
+    float x[3];
+    float y[3];
 
     for(int i=0; i<3; i++)
     {
@@ -268,45 +268,45 @@ void calc_min_max(float4 points[3], int width, int height, int ret[4])
     ret[3] = max3(y[0], y[1], y[2]);
 
 
-    ret[2]=max(ret[2], 0);
+    ret[2]=max(ret[2], 0.0f);
     ret[2]=min(ret[2], height);
 
-    ret[3]=max(ret[3], 0);
+    ret[3]=max(ret[3], 0.0f);
     ret[3]=min(ret[3], height);
 
-    ret[0]=max(ret[0], 0);
+    ret[0]=max(ret[0], 0.0f);
     ret[0]=min(ret[0], width);
 
-    ret[1]=max(ret[1], 0);
+    ret[1]=max(ret[1], 0.0f);
     ret[1]=min(ret[1], width);
 }
 
 
-void construct_interpolation(struct triangle* tri, struct interp_container* C, int width, int height)
+void construct_interpolation(struct triangle* tri, struct interp_container* C, float width, float height)
 {
-    int y1 = round(tri->vertices[0].pos.y);
-    int y2 = round(tri->vertices[1].pos.y);
-    int y3 = round(tri->vertices[2].pos.y);
+    float y1 = round(tri->vertices[0].pos.y);
+    float y2 = round(tri->vertices[1].pos.y);
+    float y3 = round(tri->vertices[2].pos.y);
 
-    int x1 = round(tri->vertices[0].pos.x);
-    int x2 = round(tri->vertices[1].pos.x);
-    int x3 = round(tri->vertices[2].pos.x);
+    float x1 = round(tri->vertices[0].pos.x);
+    float x2 = round(tri->vertices[1].pos.x);
+    float x3 = round(tri->vertices[2].pos.x);
 
-    int miny=min3(y1, y2, y3)-1; ///oh, wow
-    int maxy=max3(y1, y2, y3);
-    int minx=min3(x1, x2, x3)-1;
-    int maxx=max3(x1, x2, x3);
+    float miny=min3(y1, y2, y3)-1; ///oh, wow
+    float maxy=max3(y1, y2, y3);
+    float minx=min3(x1, x2, x3)-1;
+    float maxx=max3(x1, x2, x3);
 
-    miny=max(miny, 0);
+    miny=max(miny, 0.0f);
     miny=min(miny, height);
 
-    maxy=max(maxy, 0);
+    maxy=max(maxy, 0.0f);
     maxy=min(maxy, height);
 
-    minx=max(minx, 0);
+    minx=max(minx, 0.0f);
     minx=min(minx, width);
 
-    maxx=max(maxx, 0);
+    maxx=max(maxx, 0.0f);
     maxx=min(maxx, width);
 
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
@@ -329,12 +329,12 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, i
     C->rconstant=rconstant;
 }
 
-int backface_cull_expanded(float4 p0, float4 p1, float4 p2)
+float backface_cull_expanded(float4 p0, float4 p1, float4 p2)
 {
     return cross(p1-p0, p2-p0).z < 0;
 }
 
-int backface_cull(struct triangle *tri)
+float backface_cull(struct triangle *tri)
 {
     return backface_cull_expanded(tri->vertices[0].pos, tri->vertices[1].pos, tri->vertices[2].pos);
 }
@@ -385,7 +385,7 @@ void rot_3_pos(const float4 raw[3], const float4 pos, const float4 rotation, flo
 }
 
 
-void depth_project(float4 rotated[3], int width, int height, float fovc, float4 ret[3])
+void depth_project(float4 rotated[3], float width, float height, float fovc, float4 ret[3])
 {
     for(int i=0; i<3; i++)
     {
@@ -404,7 +404,7 @@ void depth_project(float4 rotated[3], int width, int height, float fovc, float4 
 }
 
 
-void depth_project_singular(float4 rotated, int width, int height, float fovc, float4* ret)
+void depth_project_singular(float4 rotated, float width, float height, float fovc, float4* ret)
 {
     float rx;
     rx=(rotated.x) * (fovc/(rotated.z));
@@ -525,7 +525,7 @@ void generate_new_triangles(float4 points[3], int ids[3], int *num, float4 ret[2
     }
 }
 
-void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][3], int *num, const float4 c_pos, const float4 c_rot, const float4 offset, const float4 rotation_offset, const float fovc, const int width, const int height, int* clip)
+void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][3], int *num, const float4 c_pos, const float4 c_rot, const float4 offset, const float4 rotation_offset, const float fovc, const float width, const float height, int* clip)
 {
     ///void rot_3(__global struct triangle *triangle, float4 c_pos, float4 c_rot, float4 ret[3])
     ///void generate_new_triangles(float4 points[3], int ids[3], float lconst[2], int *num, float4 ret[2][3])
@@ -577,7 +577,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float4 passback[2][
 }*/
 
 ///change width/height to be defines by compiler
-void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, int width, int height, int is_clipped, int id, __global float4* cutdown_tris)
+void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float4 c_pos, float4 c_rot, float4 offset, float4 rotation_offset, float fovc, float width, float height, int is_clipped, int id, __global float4* cutdown_tris)
 {
 
     __global struct triangle *T=triangle;
@@ -869,8 +869,10 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     y=1.0f-y;
 
 
-    x*=width;
-    y*=width;
+    float fw = width;
+
+    x*=fw;
+    y*=fw;
 
     /*if(x<0)
         x=0;
@@ -891,11 +893,13 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float tnumx=which % hnum;
     float tnumy=which / hnum;
 
-    float tx=tnumx*width;
-    float ty=tnumy*width;
+
+
+    float tx=tnumx*fw;
+    float ty=tnumy*fw;
 
     ///width - fixes bug
-    float4 coord= {tx + width - x, ty + y, slice, 0};
+    float4 coord= {tx + fw - x, ty + y, slice, 0};
 
     uint4 col;
     col=read_imageui(array, sam, coord);
@@ -970,7 +974,7 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
 }
 
-float4 texture_filter(struct triangle* c_tri, int2 spos, float4 vt, float depth, float4 c_pos, float4 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float4 texture_filter(struct triangle* c_tri, float4 vt, float depth, float4 c_pos, float4 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -1212,6 +1216,7 @@ int ret_cubeface(float4 point, float4 light)
     {
         return 2;
     }
+
     return -1;
 }
 
@@ -1338,7 +1343,7 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
     float2 directions[8] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}, {0, 1}, {0, -1}, {-1, 0}, {1, 0}};
 
-    float distance = radius;
+    //float distance = radius;
 
 
     ///get face normalf
@@ -1710,10 +1715,10 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
             continue;
         }
 
-        int min_max[4];
+        float min_max[4];
         calc_min_max(tris_proj[i], ewidth, eheight, min_max);
 
-        int area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
+        float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
         float thread_num = ceil((float)area/op_size);
         ///threads to render one triangle based on its bounding-box area
@@ -1777,7 +1782,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     tris_proj_n[1] = cutdown_tris[ctri*3 + 1];
     tris_proj_n[2] = cutdown_tris[ctri*3 + 2];
 
-    int min_max[4];
+    float min_max[4];
     calc_min_max(tris_proj_n, ewidth, eheight, min_max);
 
 
@@ -1787,8 +1792,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     int pixel_along = op_size*distance;
 
 
-    int xp[3];
-    int yp[3];
+    float xp[3];
+    float yp[3];
 
     for(int i=0; i<3; i++)
     {
@@ -1796,8 +1801,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         yp[i] = round(tris_proj_n[i].y);
     }
 
-    int4 xpv = {xp[0], xp[1], xp[2], 0.0f};
-    int4 ypv = {yp[0], yp[1], yp[2], 0.0f};
+    float4 xpv = {xp[0], xp[1], xp[2], 0.0f};
+    float4 ypv = {yp[0], yp[1], yp[2], 0.0f};
 
 
     ///have to interpolate inverse to be perspective correct
@@ -1830,8 +1835,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///while more pixels to write
     while(pcount <= op_size)
     {
-        int x = ((pixel_along + pcount) % width) + min_max[0];
-        int y = ((pixel_along + pcount) / width) + min_max[2];
+        float x = ((pixel_along + pcount) % width) + min_max[0];
+        float y = ((pixel_along + pcount) / width) + min_max[2];
 
         if(y < 0 || y >= eheight)
         {
@@ -1844,7 +1849,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(s1 > area - mod && s1 < area + mod)
         {
-            __global uint *ft=&depth_buffer[y*(int)ewidth + x];
+            __global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
@@ -1914,7 +1919,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     tris_proj_n[1] = cutdown_tris[ctri*3 + 1];
     tris_proj_n[2] = cutdown_tris[ctri*3 + 2];
 
-    int min_max[4];
+    float min_max[4];
     calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
 
 
@@ -1923,8 +1928,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     int pixel_along = op_size*distance;
 
 
-    int xp[3];
-    int yp[3];
+    float xp[3];
+    float yp[3];
 
     for(int i=0; i<3; i++)
     {
@@ -1934,8 +1939,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
 
-    int4 xpv = {xp[0], xp[1], xp[2], 0.0f};
-    int4 ypv = {yp[0], yp[1], yp[2], 0.0f};
+    float4 xpv = {xp[0], xp[1], xp[2], 0.0f};
+    float4 ypv = {yp[0], yp[1], yp[2], 0.0f};
 
 
     ///have to interpolate inverse to be perspective correct
@@ -1963,8 +1968,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     while(pcount <= op_size)
     {
-        int x = ((pixel_along + pcount) % width) + min_max[0];
-        int y = ((pixel_along + pcount) / width) + min_max[2];
+        float x = ((pixel_along + pcount) % width) + min_max[0];
+        float y = ((pixel_along + pcount) / width) + min_max[2];
 
         if(y < 0 || y >= SCREENHEIGHT)
         {
@@ -1976,7 +1981,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(s1 > area - mod && s1 < area + mod)
         {
-            __global uint *ft=&depth_buffer[y*SCREENWIDTH + x];
+            __global uint *ft=&depth_buffer[(int)y*SCREENWIDTH + (int)x];
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
@@ -2255,7 +2260,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         int2 scoord= {x, y};
 
-        float4 col=texture_filter(c_tri, scoord, vt, (float)*ft/mulint, *c_pos, *c_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+        float4 col=texture_filter(c_tri, vt, (float)*ft/mulint, *c_pos, *c_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
 
         //float4 col = (float4){ucol.x, ucol.y, ucol.z, 0};
@@ -2264,9 +2269,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         lightaccum = clamp(lightaccum, (float4)(0,0,0,0), (float4){1.0f/col.x, 1.0f/col.y, 1.0f/col.z, 0.0f});
 
-        float4 rot_normal;
+        //float4 rot_normal;
 
-        rot_normal = rot(normal, zero, *c_rot);
+        //rot_normal = rot(normal, zero, *c_rot);
 
         //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
 

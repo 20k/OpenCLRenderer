@@ -55,6 +55,8 @@ struct objects_container
     static int get_object_by_id(int);
 
     ~objects_container();
+
+    bool cache = true;
 };
 
 

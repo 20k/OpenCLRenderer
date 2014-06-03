@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
     sponza.set_active(true);
+    sponza.cache = false;
 
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");

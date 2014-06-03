@@ -45,9 +45,7 @@ void obj_mem_manager::load_active_objects()
         objects_container *obj = objects_container::obj_container_list[i];
         if(obj->isloaded == false)
         {
-            //obj->file;
-
-            if(object_cache.find(obj->file)!=object_cache.end())
+            if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
                 int save_id = obj->id;
                 *obj = object_cache[obj->file];
@@ -58,8 +56,11 @@ void obj_mem_manager::load_active_objects()
                 obj->call_load_func(objects_container::obj_container_list[i]);
                 obj->set_active_subobjs(true);
 
-                object_cache[obj->file] = *obj;
-                object_cache[obj->file].id = -1;
+                if(obj->cache)
+                {
+                    object_cache[obj->file] = *obj;
+                    object_cache[obj->file].id = -1;
+                }
             }
         }
     }
