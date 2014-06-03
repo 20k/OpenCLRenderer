@@ -12,6 +12,8 @@
 #include <list>
 #include <boost/bind.hpp>
 
+std::map<std::string, objects_container> cache_map;
+
 ///get diffuse name
 std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name)
 {
@@ -27,6 +29,7 @@ std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name
             return file[i].substr(file[i].find_last_of(" ")+1, std::string::npos);
         }
     }
+
     return std::string("");
 }
 
@@ -51,6 +54,7 @@ std::string retrieve_bumpmap(std::vector<std::string> file, std::string name)
             return std::string("None");
         }
     }
+
     return std::string("None");
 }
 

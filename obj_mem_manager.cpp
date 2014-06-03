@@ -14,6 +14,7 @@
 #include <iostream>
 #include "texture_manager.hpp"
 #include "engine.hpp"
+#include <map>
 
 std::vector<int> obj_mem_manager::obj_sub_nums;
 
@@ -32,6 +33,9 @@ bool obj_mem_manager::ready = false;
 
 temporaries obj_mem_manager::temporary_objects;
 
+
+std::map<std::string, objects_container> object_cache;
+
 ///loads every active object in the scene
 void obj_mem_manager::load_active_objects()
 {
@@ -41,8 +45,22 @@ void obj_mem_manager::load_active_objects()
         objects_container *obj = objects_container::obj_container_list[i];
         if(obj->isloaded == false)
         {
-            obj->call_load_func(objects_container::obj_container_list[i]);
-            obj->set_active_subobjs(true);
+            //obj->file;
+
+            if(object_cache.find(obj->file)!=object_cache.end())
+            {
+                int save_id = obj->id;
+                *obj = object_cache[obj->file];
+                obj->id = save_id;
+            }
+            else
+            {
+                obj->call_load_func(objects_container::obj_container_list[i]);
+                obj->set_active_subobjs(true);
+
+                object_cache[obj->file] = *obj;
+                object_cache[obj->file].id = -1;
+            }
         }
     }
 }
@@ -125,10 +143,10 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     temporaries& t = obj_mem_manager::temporary_objects;
 
-    t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices);
-    t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size());
+    t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices, CL_MEM_READ_ONLY);
+    t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size(), CL_MEM_READ_ONLY);
     ///3d texture array
-    t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+    t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
     //t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, number_of_texture_slices, 2048*4, 2048*2048*4, NULL);
 
     cl_image_format form;
@@ -153,10 +171,10 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     //delete [] texture_manager::c_texture_array;
     //texture_manager::c_texture_array = NULL;
 
-    t.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*obj_descriptor_size);
-    t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint));
+    t.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*obj_descriptor_size, CL_MEM_READ_ONLY);
+    t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
 
-    t.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*trianglecount);
+    t.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*trianglecount, CL_MEM_READ_ONLY);
     t.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*trianglecount*3);
 
     t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint));

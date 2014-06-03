@@ -185,7 +185,7 @@ void objects_container::g_flush_objects()
     }
     else
     {
-        std::cout << "Warning (objects_container.hpp) " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
+        std::cout << "Warning " __FILE__ << ": " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
     }
 }
 
@@ -220,6 +220,6 @@ int objects_container::get_object_by_id(int in)
 
 objects_container::~objects_container()
 {
-    std::cout << "object removed: " << id << std::endl;
-    set_active(false);
+    ///std::cout << "object removed: " << id << std::endl;
+    set_active(false); ///cache_map object will get removed
 }

@@ -58,6 +58,10 @@ void newtonian_body::tick(float timestep)
     float ymaxf = thruster_force*thruster_distance/mass;
     float zmaxf = thruster_force*thruster_distance/mass;
 
+    xmaxf*=timestep/4;
+    ymaxf*=timestep/4;
+    zmaxf*=timestep/4;
+
     //float magrotation = sqrt(xdir*xdir + ydir*ydir + zdir*zdir);
 
     if(xdir!=0.0f)
@@ -88,6 +92,10 @@ void newtonian_body::tick(float timestep)
     x1 = h*sin(-rotation.y)*cos(-rotation.x);
     y1 = h*sin(-rotation.y)*sin(-rotation.x);
     z1 = h*cos(-rotation.y);
+
+    x1*=timestep/4;
+    y1*=timestep/4;
+    z1*=timestep/4;
 
     //std::cout << rotation.y << std::endl;
 
@@ -140,6 +148,22 @@ void newtonian_body::tick(float timestep)
 
     if(ttl > 0)
         ttl-=timestep;
+
+
+    if(rspeed)
+    {
+        cl_float4 half_force;
+
+        ///find half force of sum of these
+        half_force.x = linear_momentum.x*timestep/400.0f;
+        half_force.y = linear_momentum.y*timestep/400.0f;
+        half_force.z = linear_momentum.z*timestep/400.0f;
+
+        ///turns out, attempted_force is directional
+        linear_momentum = sub(linear_momentum, half_force);
+    }
+
+    rspeed = false;
 }
 
 /*void newtonian_body::fire()
@@ -240,6 +264,7 @@ void newtonian_manager::tick_all(float val)
     for(int i=0; i<body_list.size(); i++)
     {
         body_list[i]->tick(val);
+
         if(body_list[i]->ttl <= 0 && body_list[i]->type == 1 && body_list[i]->expires)
         {
             std::cout << "ttl erase" << std::endl;
@@ -314,16 +339,7 @@ ship_newtonian::ship_newtonian() : newtonian_body()
     game_reference = NULL;
 }
 
-void newtonian_body::halve_speed()
+void newtonian_body::reduce_speed()
 {
-    cl_float4 half_force;
-
-    ///find half force of sum of these
-    half_force.x = linear_momentum.x/100.0f;
-    half_force.y = linear_momentum.y/100.0f;
-    half_force.z = linear_momentum.z/100.0f;
-    half_force.w = linear_momentum.w/100.0f; ///???
-
-    ///turns out, attempted_force is directional
-    linear_momentum = sub(linear_momentum, half_force);
+    rspeed = true;
 }

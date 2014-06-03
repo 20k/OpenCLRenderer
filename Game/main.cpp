@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 
         if(k.isKeyPressed(sf::Keyboard::Space)) ///implications on physics vs frametime, threading etc. Timestep this?????
         {
-            player_ship->halve_speed();
+            player_ship->reduce_speed();
         }
 
         newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);

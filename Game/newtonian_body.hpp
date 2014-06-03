@@ -104,7 +104,9 @@ struct newtonian_body
 
     virtual void collided(newtonian_body*);
 
-    void halve_speed();
+    void reduce_speed();
+
+    bool rspeed = false;
 
     //std::vector<cl_float4> thrusters_pos;
     //std::vector<cl_float4> thrusters_force;

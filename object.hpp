@@ -22,10 +22,10 @@ struct object
     boost::function<int (object*, cl_float4)> obj_vis;
     boost::function<void (object*)> obj_load_func;
 
-    cl_uint tid; ///texture id
+    cl_uint tid; ///texture id ///on load
     cl_uint bid; ///bumpmap_id
 
-    cl_uint object_g_id; ///obj_g_descriptor id
+    cl_uint object_g_id; ///obj_g_descriptor id ///assigned
 
     cl_uint has_bump; ///does this object have a bumpmap
 
