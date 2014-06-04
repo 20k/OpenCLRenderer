@@ -66,17 +66,17 @@ void newtonian_body::tick(float timestep)
 
     if(xdir!=0.0f)
     {
-        rotational_momentum.x += xdir*xmaxf;
+        rotational_momentum.x += copysign(1.0f, xdir)*xmaxf;
     }
 
     if(ydir!=0.0f)
     {
-        rotational_momentum.y += ydir*ymaxf;
+        rotational_momentum.y += copysign(1.0f, ydir)*ymaxf;
     }
 
     if(zdir!=0.0f)
     {
-        rotational_momentum.z += zdir*zmaxf;
+        rotational_momentum.z += copysign(1.0f, zdir)*zmaxf;
     }
 
 
@@ -105,9 +105,9 @@ void newtonian_body::tick(float timestep)
 
     if(attempted_force_direction.x != 0.0)
     {
-        linear_momentum.x += x1*copysign(1.0f, attempted_force_direction.x);
-        linear_momentum.y += y1*copysign(1.0f, attempted_force_direction.x);
-        linear_momentum.z += z1*copysign(1.0f, attempted_force_direction.x);
+        linear_momentum.x += x1*attempted_force_direction.x;
+        linear_momentum.y += y1*attempted_force_direction.x;
+        linear_momentum.z += z1*attempted_force_direction.x;
     }
 
 
