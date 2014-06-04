@@ -2375,42 +2375,43 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     {
         relative_pos.x = fmod(relative_pos.x, max_distance*2);
 
-        relative_pos.x = (-max_distance + relative_pos.x);
+        relative_pos.x = -max_distance + relative_pos.x;
     }
 
     if(relative_pos.y > max_distance)
     {
         relative_pos.y = fmod(relative_pos.y, max_distance*2);
 
-        relative_pos.y = (-max_distance + relative_pos.y);
+        relative_pos.y = -max_distance + relative_pos.y;
     }
 
     if(relative_pos.z > max_distance)
     {
         relative_pos.z = fmod(relative_pos.z, max_distance*2);
 
-        relative_pos.z = (-max_distance + relative_pos.z);
+        relative_pos.z = -max_distance + relative_pos.z;
     }
+
 
     if(relative_pos.x < -max_distance)
     {
         relative_pos.x = fmod(relative_pos.x, max_distance*2);
 
-        relative_pos.x = (max_distance + relative_pos.x);
+        relative_pos.x = max_distance + relative_pos.x;
     }
 
     if(relative_pos.y < -max_distance)
     {
         relative_pos.y = fmod(relative_pos.y, max_distance*2);
 
-        relative_pos.y = (max_distance + relative_pos.y);
+        relative_pos.y = max_distance + relative_pos.y;
     }
 
     if(relative_pos.z < -max_distance)
     {
         relative_pos.z = fmod(relative_pos.z, max_distance*2);
 
-        relative_pos.z = (max_distance + relative_pos.z);
+        relative_pos.z = max_distance + relative_pos.z;
     }
 
     float brightness_mult = fast_length(relative_pos)/max_distance;
