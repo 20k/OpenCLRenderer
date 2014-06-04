@@ -14,7 +14,7 @@ struct game_manager
 
     static game_object* spawn_ship();
 
-    static void spawn_encounter();
+    static void spawn_encounter(cl_float4 base_position);
 };
 
 

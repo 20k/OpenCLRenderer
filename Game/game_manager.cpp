@@ -26,11 +26,11 @@ game_object* game_manager::spawn_ship()
     return ship;
 }
 
-void game_manager::spawn_encounter()
+void game_manager::spawn_encounter(cl_float4 base_position)
 {
     constexpr int num = 5;
 
-    static int batch = 0;
+    //static int batch = 0;
 
     game_object* ships[num];
 
@@ -41,13 +41,16 @@ void game_manager::spawn_encounter()
 
     float height_variation = 400;
 
+    cl_float4 base_offset = {0, 0, 8000, 0};
+
     for(int i=0; i<num; i++)
     {
         ships[i]->process_transformations();
-        ships[i]->calc_push_physics_info((cl_float4){i*700 + batch*5*800, height_variation*(float)rand()/RAND_MAX,0,0});
+        //ships[i]->calc_push_physics_info((cl_float4){i*700 + batch*5*800, height_variation*(float)rand()/RAND_MAX,0,0});
+        ships[i]->calc_push_physics_info((cl_float4){i*700 + base_position.x + base_offset.x, base_position.y + height_variation*(float)rand()/RAND_MAX + base_offset.y, base_position.z + base_offset.z,0});
     }
 
-    batch++;
+    //batch++;
 
     obj_mem_manager::g_arrange_mem(); ///hitler
     obj_mem_manager::g_changeover();

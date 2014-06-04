@@ -34,8 +34,7 @@ std::string to_str(T i)
     return convert.str();
 }
 
-///space dust
-///physics needs to be moved to the gpu ///scrap this, networking makes this impossible
+///space dust ///like really a lot
 ///add already_loaded optimisation - done
 int main(int argc, char *argv[])
 {
@@ -254,7 +253,7 @@ int main(int argc, char *argv[])
         }
         if(k.isKeyPressed(sf::Keyboard::T))
         {
-            game_manager::spawn_encounter();
+            game_manager::spawn_encounter(player_ship->position);
             lastt = true;
         }
         if(!k.isKeyPressed(sf::Keyboard::T))
