@@ -39,6 +39,9 @@ std::string to_str(T i)
 ///add already_loaded optimisation - done
 
 ///swap depth buffer in render_buffers?
+
+///use separate game camera for point rendering?
+///collision_whatever is wrong, do tiny test to fix
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!

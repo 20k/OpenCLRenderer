@@ -590,10 +590,10 @@ void engine::draw_point_cloud(point_cloud_info& pc)
     ///__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
 
+
     compute::buffer screen_wrapper(g_screen.get(), true);
 
     compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
-
 
     cl_uint local = 128;
 
@@ -604,12 +604,10 @@ void engine::draw_point_cloud(point_cloud_info& pc)
         p1global_ws-=(rem);
         p1global_ws+=local;
     }
-
     if(p1global_ws == 0)
     {
         p1global_ws += local;
     }
-
     run_kernel_with_args(cl::point_cloud, &p1global_ws, &local, 1, p1arglist, 7, true);
 }
 
@@ -778,7 +776,7 @@ void engine::draw_bulk_objs_n()
 
 
     #ifdef DEBUGGING
-    clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
+    //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
 
     ///swap depth buffers
