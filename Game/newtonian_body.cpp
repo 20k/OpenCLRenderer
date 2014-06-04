@@ -163,6 +163,43 @@ void newtonian_body::tick(float timestep)
         linear_momentum = sub(linear_momentum, half_force);
     }
 
+    ///slow rotational momentum gradually?
+    rotational_momentum.x -= rotational_momentum.x*timestep/10000.0f;
+    rotational_momentum.y -= rotational_momentum.y*timestep/10000.0f;
+    rotational_momentum.z -= rotational_momentum.z*timestep/10000.0f;
+
+
+    if(fabs(rotational_momentum.x) <= 0.15 && xdir == 0)
+    {
+        rotational_momentum.x -= rotational_momentum.x*timestep / 400.0f;
+    }
+
+    if(fabs(rotational_momentum.y) <= 0.15 && ydir == 0)
+    {
+        rotational_momentum.y -= rotational_momentum.y*timestep / 400.0f;
+    }
+
+    if(fabs(rotational_momentum.z) <= 0.15 && zdir == 0)
+    {
+        rotational_momentum.z -= rotational_momentum.z*timestep / 400.0f;
+    }
+
+
+    if(fabs(rotational_momentum.x) < 0.000001)
+    {
+        rotational_momentum.x = 0;
+    }
+
+    if(fabs(rotational_momentum.y) < 0.000001)
+    {
+        rotational_momentum.y = 0;
+    }
+
+    if(fabs(rotational_momentum.z) < 0.000001)
+    {
+        rotational_momentum.z = 0;
+    }
+
     rspeed = false;
 }
 
