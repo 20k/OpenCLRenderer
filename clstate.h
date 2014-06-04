@@ -23,6 +23,7 @@ namespace cl
     extern compute::kernel prearrange;
     extern compute::kernel trivial;
     extern compute::kernel point_cloud;
+    extern compute::kernel space_dust;
 }
 
 

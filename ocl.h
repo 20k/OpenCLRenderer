@@ -193,6 +193,7 @@ void oclstuff(std::string file)
     cl::prearrange = compute::kernel(program, "prearrange");
     cl::trivial = compute::kernel(program, "trivial_kernel");
     cl::point_cloud = compute::kernel(program, "point_cloud");
+    cl::space_dust = compute::kernel(program, "space_dust");
 }
 
 

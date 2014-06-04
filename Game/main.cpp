@@ -14,6 +14,7 @@
 #include "galaxy/galaxy.hpp"
 
 #include "game_manager.hpp"
+#include "space_dust.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -36,6 +37,8 @@ std::string to_str(T i)
 
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
+
+///swap depth buffer in render_buffers?
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -109,10 +112,13 @@ int main(int argc, char *argv[])
 
 
     point_cloud stars = get_starmap(1);
-    point_cloud_manager::set_alloc_point_cloud(stars);
+    point_cloud_info g_star_cloud = point_cloud_manager::alloc_point_cloud(stars);
 
     std::vector<cl_float4>().swap(stars.position);
     std::vector<cl_uint>().swap(stars.rgb_colour);
+
+
+    point_cloud_info g_space_dust = generate_space_dust();
 
 
     //newtonian_body l1;
@@ -195,7 +201,9 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        window.draw_point_cloud();
+        window.draw_point_cloud(g_star_cloud);
+
+        window.draw_space_dust_cloud(g_space_dust);
 
 
         player_ship->set_rotation_direction((cl_float4){0,0,0,0});
