@@ -198,8 +198,6 @@ int main(int argc, char *argv[])
 
         window.draw_point_cloud();
 
-        window.render_buffers();
-
 
         player_ship->set_rotation_direction((cl_float4){0,0,0,0});
         player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
@@ -354,6 +352,8 @@ int main(int argc, char *argv[])
         text_handler::queue_text_block(t_weps);
 
         text_handler::queue_text_block(wgs);
+
+        window.render_buffers();
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
