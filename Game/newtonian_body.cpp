@@ -66,17 +66,17 @@ void newtonian_body::tick(float timestep)
 
     if(xdir!=0.0f)
     {
-        rotational_momentum.x += copysign(1.0f, xdir)*xmaxf;
+        rotational_momentum.x += xdir*xmaxf;
     }
 
     if(ydir!=0.0f)
     {
-        rotational_momentum.y += copysign(1.0f, ydir)*ymaxf;
+        rotational_momentum.y += ydir*ymaxf;
     }
 
     if(zdir!=0.0f)
     {
-        rotational_momentum.z += copysign(1.0f, zdir)*zmaxf;
+        rotational_momentum.z += zdir*zmaxf;
     }
 
 
