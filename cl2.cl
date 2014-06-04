@@ -2452,13 +2452,6 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 
         rgba /= 255;
 
-
-        depth /= 10000000;
-
-        //float brightness = 100000 * brightness_mult;
-
-        //float relative_brightness = brightness * 1.0f/(depth*depth);
-
         float relative_brightness = 1.0f - brightness_mult;
 
         relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
@@ -2466,6 +2459,6 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 
         int2 scoord = {x, y};
 
-        write_imagef(screen, scoord, rgba*relative_brightness); ///relative_brightness is incorrect, but never mind
+        write_imagef(screen, scoord, rgba*relative_brightness);
     }
 }
