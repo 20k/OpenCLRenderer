@@ -114,8 +114,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     cl_uint zero=0;
 
     ///camera position and rotation gpu side
-    g_c_pos=compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &c_pos);
-    g_c_rot=compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_ONLY, NULL);
+    g_c_pos=compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &c_pos);
+    g_c_rot=compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE , NULL);
 
 
 
@@ -140,9 +140,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     c_tid_buf_len = size_of_uid_buffer;
 
     ///number of lights
-    obj_mem_manager::g_light_num=compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &zero);
+    obj_mem_manager::g_light_num=compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &zero);
+    g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     boost::compute::image_format format(CL_R, CL_UNSIGNED_INT32);
     ///screen ids as a uint32 texture
@@ -164,7 +164,7 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     }
 
     ///gpu light memory
-    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, light_straight.data());
+    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, light_straight.data());
 
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &lnum);
 
@@ -590,6 +590,10 @@ void engine::draw_point_cloud(point_cloud_info& pc)
     ///__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
 
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
@@ -609,17 +613,26 @@ void engine::draw_point_cloud(point_cloud_info& pc)
         p1global_ws += local;
     }
     run_kernel_with_args(cl::point_cloud, &p1global_ws, &local, 1, p1arglist, 7, true);
+
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
 }
 
 void engine::draw_space_dust_cloud(point_cloud_info& pc)
 {
-    ///__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
+    ///__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
+
+
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
     compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
-
 
     cl_uint local = 128;
 
@@ -637,6 +650,10 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc)
     }
 
     run_kernel_with_args(cl::space_dust, &p1global_ws, &local, 1, p1arglist, 7, true);
+
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
 }
 
 
