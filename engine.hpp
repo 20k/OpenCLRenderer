@@ -104,6 +104,9 @@ private:
 ///runs a kernel with a particular set of arguments
 static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
+    if(blocking)
+        cl::cqueue.finish();
+
     for(int i=0; i<argc; i++)
     {
         kernel.set_arg(i, *(argv[i]));

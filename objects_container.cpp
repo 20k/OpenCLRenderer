@@ -100,6 +100,8 @@ cl_uint objects_container::set_active(bool param)
             std::advance(it, tid);
             objects_container::obj_container_list.erase(it);
             id = -1;
+
+            std::cout << "Removed object from object_container_list: " << tid << std::endl;
         }
         else
         {
