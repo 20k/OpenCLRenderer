@@ -422,7 +422,7 @@ void game_object::fire_all()
             l.set_radius(1000.0f);
 
             light* new_light = l.add_light(&l);
-            engine::realloc_light_gmem();
+            engine::realloc_light_gmem(); ///
             //int id = light::lightlist.size()-1;
 
             newtonian_body new_bullet;

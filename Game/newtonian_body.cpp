@@ -286,6 +286,12 @@ void newtonian_manager::remove_body(newtonian_body* n)
 
     int id = get_id(n);
 
+    if(id == -1)
+    {
+        std::cout << "This very much should not have happened: " << __LINE__  << " " << __FILE__ << std::endl;
+        return;
+    }
+
     std::cout << "id     " << id << std::endl;
 
     std::vector<newtonian_body*>::iterator it = body_list.begin();
