@@ -15,6 +15,64 @@ cl_float4 sphere_func(float m, const float M, float n, const float N)
     ///https://stackoverflow.com/questions/4081898/procedurally-generate-a-sphere-mesh
 }
 
+/*inline float noise(int x, int y)
+{
+    int n=x + y*337;
+
+    n = (n<<13)^n;
+
+    int nn=(n*(n*n*41333 +53307781)+1376312589)&0x7fffffff;
+
+    return 1.0f-((float)nn/1073741824.0f);
+}*/
+
+///need smooth noise, which perlin noise is not really good for
+
+
+
+cl_float4 permutate(cl_float4 in, int m, int n, const int M, const int N)
+{
+    ///M, N max
+    cl_float4 mod = in;
+
+
+    float mf, nf;
+    mf = (float)m/M;
+    nf = (float)n/N;
+
+
+    float theta = M_PI*mf; ///or the other way around, but who really cares?
+    float phi = 2*M_PI*nf;
+
+    //std::cout << theta << std::endl;
+
+    float md = sin(theta*13);
+
+    mod = mult(mod, md);
+
+
+
+    /*in.z = in.z*mf*0.4 + in.z*0.6; ///first weighting
+
+    in.y = in.y*nf*0.4 + in.y*0.6;
+
+    //in = add(mult(mult(in, nf), 0.1), mult(in, 0.9));
+
+    mod.y = (mod.y*sin(nf*M_PI));
+
+    mod = avg(in, mod);*/
+
+    //mod = add(mult(mod, cos(nf*M_PI)), mult(mod, sin(nf*M_PI)));
+    //mod = div(mod, 2.0f);
+
+    //mod = mult(mod, 0.5);
+    //mod = avg(mod, in);
+    //mod = div(mod, 2.0f);
+
+
+    return mod;
+}
+
 
 void generate_asteroid(objects_container* pobj, int seed)
 {
@@ -46,7 +104,7 @@ void generate_asteroid(objects_container* pobj, int seed)
         for(int n=0; n<N; n++)
         {
             cl_float4 func = sphere_func(m, M, n, N);
-            mem[m][n] = func;
+            mem[m][n] = permutate(func, m, n, M, N);
         }
     }
 
