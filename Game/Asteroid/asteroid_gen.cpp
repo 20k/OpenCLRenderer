@@ -46,7 +46,7 @@ cl_float4 permutate(cl_float4 in, int m, int n, const int M, const int N)
 
     //std::cout << theta << std::endl;
 
-    float md = sin(theta*13);
+    float md = sin(theta*3) + 1;
 
     mod = mult(mod, md);
 
