@@ -17,6 +17,8 @@ cl_float4 sphere_func(float m, const float M, float n, const float N)
 
 void generate_asteroid(objects_container* pobj, int seed)
 {
+    sf::Clock clk;
+
     srand(seed);
 
     texture tex;
@@ -26,34 +28,16 @@ void generate_asteroid(objects_container* pobj, int seed)
 
     object obj;
 
-    std::vector<triangle> tris;
-
-    /*for(int i=0; i<1; i++)
-    {
-        vertex v[3];
-        for(int j=0; j<3; j++)
-        {
-            v[j].normal = {0,0,0,0}; ///will have to work this out somehow
-            v[j].vt = {0.1,0.1};
-            v[j].pos = {j*1000, j*1000, j==2?j*1000:0, 0};
-        }
-
-        triangle t;
-        for(int j=0; j<3; j++)
-            t.vertices[j] = v[j];
-
-        tris.push_back(t);
-    }*/
-
-    ///generate sphere
-
-    ///(x, y, z) = (sin(Pi * m/M) cos(2Pi * n/N), sin(Pi * m/M) sin(2Pi * n/N), cos(Pi * m/M))
-
 
     const int M = 10;
     const int N = 10;
 
     std::array<std::array<cl_float4, N>, M> mem;
+
+    std::vector<triangle> tris;
+
+    tris.reserve(M*N*2);
+
 
     for(int m=0; m<M; m++)
     {
@@ -181,5 +165,7 @@ void generate_asteroid(objects_container* pobj, int seed)
     pobj->objs.push_back(obj);
     pobj->isloaded = true;
 
-    pobj->scale(1000.0f);
+    pobj->scale(100.0f);
+
+    //exit(clk.getElapsedTime().asMicroseconds());
 }
