@@ -1,8 +1,7 @@
 #ifndef INCLUDED_HPP_OBJECTS_CONTAINER
 #define INCLUDED_HPP_OBJECTS_CONTAINER
 #include "object.hpp"
-#include <boost/function.hpp>
-
+#include <functional>
 struct objects_container
 {
     cl_uint id;
@@ -12,7 +11,7 @@ struct objects_container
 
     std::string file;
 
-    boost::function<void (objects_container*)> fp;
+    std::function<void (objects_container*)> fp;
     //boost::function<void (object*)>            obj_visibility;
 
     bool isactive;
@@ -38,11 +37,11 @@ struct objects_container
 
     void    translate_centre(cl_float4);
 
-    void    set_load_func  (boost::function<void (objects_container*)>);
+    void    set_load_func  (std::function<void (objects_container*)>);
     void    call_load_func (objects_container*);
 
-    void    set_obj_vis(boost::function<int (object*, cl_float4)>);
-    void    set_obj_load_func(boost::function<void (object*)>);
+    void    set_obj_vis(std::function<int (object*, cl_float4)>);
+    void    set_obj_load_func(std::function<void (object*)>);
 
     void    call_obj_vis_load(cl_float4 c_pos);
 

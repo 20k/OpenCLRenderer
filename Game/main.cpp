@@ -15,6 +15,7 @@
 
 #include "game_manager.hpp"
 #include "space_dust.hpp"
+#include "asteroid/asteroid_gen.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -63,6 +64,11 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
+
+    objects_container asteroid;
+
+    asteroid.set_load_func(std::bind(generate_asteroid, std::placeholders::_1, 1));
+    //asteroid.set_active(true);
 
     game_object& ship = *game_manager::spawn_ship();
     game_object& ship2 = *game_manager::spawn_ship();

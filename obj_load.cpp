@@ -203,7 +203,7 @@ void obj_load(objects_container* pobj)
 
     std::vector<int> usemtl_pos;
     std::vector<std::string> usemtl_name;
-    std::vector<component> vl, vnl, vtl;
+    std::vector<cl_float4> vl, vnl, vtl;
     std::vector<indices> fl;
 
     vl.reserve(vc);
@@ -237,10 +237,10 @@ void obj_load(objects_container* pobj)
         {
             float v[3];
             decompose_attribute(file_contents[i], v, 3);
-            component t;
-            t.x = v[0];
-            t.y = v[1];
-            t.z = v[2];
+
+            cl_float4 t;
+            t = {v[0], v[1], v[2], 0};
+
             vl.push_back(t);
             continue;
         }
@@ -248,10 +248,10 @@ void obj_load(objects_container* pobj)
         {
             float vt[3];
             decompose_attribute(file_contents[i], vt, 2);
-            component t;
-            t.x = vt[0];
-            t.y = vt[1];
-            //t.z = vt[2];
+
+            cl_float4 t;
+            t = {vt[0], vt[1], 0, 0};
+
             vtl.push_back(t);
             continue;
         }
@@ -259,10 +259,10 @@ void obj_load(objects_container* pobj)
         {
             float vn[3];
             decompose_attribute(file_contents[i], vn, 3);
-            component t;
-            t.x = vn[0];
-            t.y = vn[1];
-            t.z = vn[2];
+
+            cl_float4 t;
+            t = {vn[0], vn[1], vn[2], 0};
+
             vnl.push_back(t);
             continue;
         }
@@ -291,22 +291,16 @@ void obj_load(objects_container* pobj)
         index = fl[i];
         for(int j=0; j<3; j++)
         {
-            component v, vt, vn;
+            cl_float4 v, vt, vn;
             v  = vl [index.v [j]];
             vt = vtl[index.vt[j]];
             vn = vnl[index.vn[j]];
 
-            vert[j].pos[0] = v.x;
-            vert[j].pos[1] = v.y;
-            vert[j].pos[2] = v.z;
-
-            vert[j].vt[0] = vt.x;
-            vert[j].vt[1] = vt.y;
-
-            vert[j].normal[0] = vn.x;
-            vert[j].normal[1] = vn.y;
-            vert[j].normal[2] = vn.z;
+            vert[j].pos = v;
+            vert[j].vt = {vt.x, vt.y};
+            vert[j].normal = vn;
         }
+
         triangle t;
         t.vertices[0] = vert[0];
         t.vertices[1] = vert[1];
@@ -371,7 +365,7 @@ void obj_load(objects_container* pobj)
 
         obj.isloaded = true;
 
-        c->objs.push_back(obj);
+        c->objs.push_back(obj); ///does this copy get eliminated?
     }
 
     c->isloaded = true;

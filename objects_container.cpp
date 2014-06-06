@@ -1,6 +1,5 @@
 #include "objects_container.hpp"
 #include <iostream>
-#include <boost/bind.hpp>
 #include "obj_load.hpp"
 
 cl_uint objects_container::gid = 0;
@@ -15,7 +14,7 @@ objects_container::objects_container()
     isloaded = false;
     pos = (cl_float4){0,0,0,0};
     rot = (cl_float4){0,0,0,0};
-    set_load_func(boost::bind(obj_load, _1));
+    set_load_func(std::bind(obj_load, std::placeholders::_1));
 }
 
 cl_uint objects_container::push()
@@ -130,7 +129,7 @@ void objects_container::translate_centre(cl_float4 amount)
 }
 
 
-void objects_container::set_load_func(boost::function<void (objects_container*)> func)
+void objects_container::set_load_func(std::function<void (objects_container*)> func)
 {
     fp = func;
 }
@@ -142,7 +141,7 @@ void objects_container::call_load_func(objects_container* c)
 
 
 
-void objects_container::set_obj_vis(boost::function<int (object*, cl_float4)> func)
+void objects_container::set_obj_vis(std::function<int (object*, cl_float4)> func)
 {
     for(int i=0; i<objs.size(); i++)
     {
@@ -152,7 +151,7 @@ void objects_container::set_obj_vis(boost::function<int (object*, cl_float4)> fu
 
 
 
-void objects_container::set_obj_load_func(boost::function<void (object*)> func)
+void objects_container::set_obj_load_func(std::function<void (object*)> func)
 {
     for(int i=0; i<objs.size(); i++)
     {

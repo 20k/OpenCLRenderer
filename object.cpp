@@ -92,9 +92,9 @@ void object::translate_centre(cl_float4 _centre)
     {
         for(int j=0; j<3; j++)
         {
-            tri_list[i].vertices[j].pos[0] += centre.x;
-            tri_list[i].vertices[j].pos[1] += centre.y;
-            tri_list[i].vertices[j].pos[2] += centre.z;
+            tri_list[i].vertices[j].pos.x += centre.x;
+            tri_list[i].vertices[j].pos.y += centre.y;
+            tri_list[i].vertices[j].pos.z += centre.z;
         }
     }
 }
@@ -106,13 +106,13 @@ void object::swap_90()
     {
         for(int j=0; j<3; j++)
         {
-            float temp = tri_list[i].vertices[j].pos[0];
-            tri_list[i].vertices[j].pos[0] = -tri_list[i].vertices[j].pos[2];
-            tri_list[i].vertices[j].pos[2] = temp;
+            float temp = tri_list[i].vertices[j].pos.x;
+            tri_list[i].vertices[j].pos.x = -tri_list[i].vertices[j].pos.z;
+            tri_list[i].vertices[j].pos.z = temp;
 
-            temp = tri_list[i].vertices[j].normal[0];
-            tri_list[i].vertices[j].normal[0] = -tri_list[i].vertices[j].normal[2];
-            tri_list[i].vertices[j].normal[2] = temp;
+            temp = tri_list[i].vertices[j].normal.x;
+            tri_list[i].vertices[j].normal.x = -tri_list[i].vertices[j].normal.z;
+            tri_list[i].vertices[j].normal.z = temp;
         }
     }
 }
@@ -123,9 +123,9 @@ void object::scale(float f)
     {
         for(int j=0; j<3; j++)
         {
-            tri_list[i].vertices[j].pos[0] *= f;
-            tri_list[i].vertices[j].pos[1] *= f;
-            tri_list[i].vertices[j].pos[2] *= f;
+            tri_list[i].vertices[j].pos.x *= f;
+            tri_list[i].vertices[j].pos.y *= f;
+            tri_list[i].vertices[j].pos.z *= f;
         }
     }
 }

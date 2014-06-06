@@ -39,22 +39,22 @@ void collision_object::calculate_collision_ellipsoid(objects_container* objs)
             for(int k=0; k<3; k++)
             {
                 vertex* v = &tri->vertices[k];
-                cl_float* point = v->pos; ///3 useful members, xyz and also w
+                cl_float4 point = v->pos; ///3 useful members, xyz and also w
 
-                if(point[0] < xmin)
-                    xmin = point[0];
-                if(point[0] > xmax)
-                    xmax = point[0];
+                if(point.x < xmin)
+                    xmin = point.x;
+                if(point.x > xmax)
+                    xmax = point.x;
 
-                if(point[1] < ymin)
-                    ymin = point[1];
-                if(point[1] > ymax)
-                    ymax = point[1];
+                if(point.y < ymin)
+                    ymin = point.y;
+                if(point.y > ymax)
+                    ymax = point.y;
 
-                if(point[2] < zmin)
-                    zmin = point[2];
-                if(point[2] > zmax)
-                    zmax = point[2];
+                if(point.z < zmin)
+                    zmin = point.z;
+                if(point.z > zmax)
+                    zmax = point.z;
             }
         }
     }
