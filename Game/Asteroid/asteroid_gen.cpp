@@ -103,13 +103,13 @@ void generate_asteroid(objects_container* pobj, int seed)
         }
     }
 
-    for(int m=0; m<nM; m++)
+    /*for(int m=0; m<nM; m++)
     {
         for(int n=0; n<N; n++)
         {
             normal_list[m][n] = div(normal_list[m][n], 2.0f); ///not necessary/incorrect?
         }
-    }
+    }*/
 
     for(int m=0; m<nM; m++)
     {
