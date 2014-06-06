@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     objects_container asteroid;
 
     asteroid.set_load_func(std::bind(generate_asteroid, std::placeholders::_1, 1));
-    //asteroid.set_active(true);
+    asteroid.set_active(true);
 
     game_object& ship = *game_manager::spawn_ship();
     game_object& ship2 = *game_manager::spawn_ship();
