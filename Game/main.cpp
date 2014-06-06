@@ -35,6 +35,24 @@ std::string to_str(T i)
     return convert.str();
 }
 
+cl_float4 game_cam_position = {0,0,0,0};
+compute::buffer g_game_cam;
+
+void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
+{
+    static cl_float4 old = {NAN,NAN,NAN,NAN};
+    static int first = 1;
+
+    if(pos.x != old.x || pos.y != old.y || pos.z != old.z || first)
+    {
+        std::cout << "Game cam updated" << std::endl;
+        old = pos;
+        g_game_cam = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
+
+        first = 0;
+    }
+}
+
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
 
@@ -117,8 +135,8 @@ int main(int argc, char *argv[])
     point_cloud stars = get_starmap(1);
     point_cloud_info g_star_cloud = point_cloud_manager::alloc_point_cloud(stars);
 
-    std::vector<cl_float4>().swap(stars.position);
-    std::vector<cl_uint>().swap(stars.rgb_colour);
+    //std::vector<cl_float4>().swap(stars.position);
+    //std::vector<cl_uint>().swap(stars.rgb_colour);
 
 
     point_cloud_info g_space_dust = generate_space_dust();
@@ -149,6 +167,9 @@ int main(int argc, char *argv[])
 
     while(window.window.isOpen())
     {
+        flush_game_cam(game_cam_position, g_game_cam);
+        //flush_game_cam(stars.position[5000], g_game_cam);
+
         text_list wgs;
         wgs.elements.push_back(std::string("weapon_group: " + to_str(weapon_group_selected + 1)));
         wgs.elements.push_back(std::string("weapon_number: " + to_str(weapon_selected + 1)));
@@ -204,7 +225,7 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        window.draw_point_cloud(g_star_cloud);
+        window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
         window.draw_space_dust_cloud(g_space_dust);
 

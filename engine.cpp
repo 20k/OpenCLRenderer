@@ -585,7 +585,7 @@ void engine::construct_shadowmaps()
     }
 }
 
-void engine::draw_point_cloud(point_cloud_info& pc)
+void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 {
     ///__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
@@ -597,7 +597,7 @@ void engine::draw_point_cloud(point_cloud_info& pc)
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
+    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
 
     cl_uint local = 128;
 
