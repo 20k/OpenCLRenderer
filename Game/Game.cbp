@@ -93,6 +93,8 @@
 		<Unit filename="../triangle.hpp" />
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
+		<Unit filename="Asteroid/asteroid_gen.cpp" />
+		<Unit filename="Asteroid/asteroid_gen.hpp" />
 		<Unit filename="Galaxy/galaxy.cpp" />
 		<Unit filename="Galaxy/galaxy.hpp" />
 		<Unit filename="collision.cpp" />

@@ -71,5 +71,22 @@ inline float dot(cl_float4 v1, cl_float4 v2)
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z; ///ignore w?
 }
 
+inline cl_float4 cross(cl_float4 v1, cl_float4 v2)
+{
+    cl_float4 nv = {v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x, 0.0f};
+
+    return nv;
+}
+
+inline cl_float4 div(cl_float4 v1, float v)
+{
+    cl_float4 nv;
+    nv.x = v1.x / v;
+    nv.y = v1.y / v;
+    nv.z = v1.z / v;
+    nv.w = v1.w / v;
+
+    return nv;
+}
 
 #endif // INCLUDED_HPP_VEC
