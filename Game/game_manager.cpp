@@ -22,7 +22,7 @@ game_object* game_manager::spawn_ship()
     ship->add_transform(SCALE, 100.0f);
 
     ship->info.health = 100.0f;
-    ship->info.hyperspace_speed = 100000.0f;
+    ship->info.hyperspace_speed = 10.0f;
 
     return ship;
 }

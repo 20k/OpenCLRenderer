@@ -517,7 +517,7 @@ point_cloud construct_starmap(int** vals)
         }
     }
 
-    float scale_factor = 100000.0f;
+    float scale_factor = 10.0f;
     //float scale_factor = 10.0f;
 
     for(auto& i : positions)

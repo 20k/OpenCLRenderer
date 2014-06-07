@@ -2330,7 +2330,9 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
 
     __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
 
-    uint old = atomic_min(depth_pointer, idepth); ///sigh
+
+    ///depth buffering
+    atomic_min(depth_pointer, idepth);
 }
 
 __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
@@ -2367,18 +2369,19 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
 
-    if(idepth > *depth_pointer - 50 && idepth < *depth_pointer + 50)
+    //if(idepth > *depth_pointer - 50 && idepth < *depth_pointer + 50)
+    if(idepth == *depth_pointer)
     {
-        //*depth_pointer = idepth;
+        ///we're on the depth buffer! woo
 
         float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 
         rgba /= 255.0f;
 
 
-        depth /= 100000.0f;
+        depth /= 10.0f;
 
-        float brightness = 1000000.0f;
+        float brightness = 2000000.0f;
 
         float relative_brightness = brightness * 1.0f/(depth*depth);
 
