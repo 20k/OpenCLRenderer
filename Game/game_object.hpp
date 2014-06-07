@@ -38,6 +38,7 @@ struct weapon
 struct ship_info
 {
     float health;
+    float hyperspace_speed;
 };
 
 struct game_object
@@ -45,6 +46,10 @@ struct game_object
     collision_object collision;
     objects_container objects;
     newtonian_body* newtonian;
+
+    ///have game position in here I guess?
+
+    cl_float4 game_position; ///ie GALAXY position, larger overworld view position
 
     ship_info info;
 
@@ -86,6 +91,8 @@ struct game_object
     void set_destroyed();
     void damage(float);
 
+    void set_game_position(cl_float4);
+
     std::vector<int> get_weapon_groups_of_weapon_by_id(int);
 
     //void set_type(std::string);
@@ -108,6 +115,8 @@ struct game_object
     void draw_box();
 
     int get_id();
+
+    void hyperspace();
 
     game_object* push();
 

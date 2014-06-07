@@ -10,6 +10,8 @@
 
 #include "../obj_mem_manager.hpp"
 
+#include "../vec.hpp"
+
 sf::Clock game_object::time;
 
 std::vector<game_object*> game_object_manager::object_list;
@@ -112,6 +114,12 @@ void game_object::add_target(game_object* obj, int group_id)
     ///id -1 is global = 0, 1 = 0 etc. Possible confusing, might be worth changing or using a map
 
     ///update size of targets to fit in new size if its too small. Map?
+
+    if(obj == NULL)
+    {
+        std::cout << "Warning: Very invalid ship attempted to target in line: " << __LINE__ << " " << __FILE__ << std::endl;
+        return;
+    }
 
     if(group_id < 0)
         return;
@@ -680,6 +688,31 @@ void game_object::damage(float dam)
         std::cout << "oh no i am explode" << std::endl;
         set_destroyed();
     }
+}
+
+void game_object::set_game_position(cl_float4 pos)
+{
+    game_position = pos;
+}
+
+///where should this function be?
+void game_object::hyperspace()
+{
+    if(newtonian == NULL)
+    {
+        std::cout << "Warning: Tried to hyperspace on an object with no newtonian representation" << std::endl;
+        return;
+    }
+
+    cl_float4 momentum = newtonian->linear_momentum;
+
+    cl_float4 dir = normalise(momentum);
+
+    cl_float4 game_pos = game_position;
+
+    game_pos = add(game_pos, mult(dir, info.hyperspace_speed));
+
+    game_position = game_pos;
 }
 
 

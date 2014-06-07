@@ -36,7 +36,7 @@ std::string to_str(T i)
     return convert.str();
 }
 
-cl_float4 game_cam_position = {0,0,0,0};
+//cl_float4 game_cam_position = {0,0,0,0};
 compute::buffer g_game_cam;
 
 void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
@@ -54,6 +54,8 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
     }
 }
 
+//bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
+
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
 
@@ -61,18 +63,30 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
 
 ///use separate game camera for point rendering?
 ///collision_whatever is wrong, do tiny test to fix
+
+///need to define entrance into system as relative camera position, but not too hard
+
+///where does hyperspace function go? Its not really a physics concept, so i guess game_object, but doesn't seem that suitable
+
+///add optional linear momentum smoothing in direction to simulate atmospheric flight
+
+///need to sort out ship drawing when the game camera moves. No idea how thats going to work.
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    objects_container asteroid;
+    //objects_container asteroid;
 
-    asteroid.set_load_func(std::bind(generate_asteroid, std::placeholders::_1, 1));
-    asteroid.set_active(true);
+    //asteroid.set_load_func(std::bind(generate_asteroid, std::placeholders::_1, 1));
+    //asteroid.set_active(true);
 
     game_object& ship = *game_manager::spawn_ship();
     game_object& ship2 = *game_manager::spawn_ship();
     game_object& ship3 = *game_manager::spawn_ship();
+
+    ship.set_game_position({0,0,0,0}); ///just a generic starting position
+    ship2.set_game_position({0,0,0,0});
+    ship3.set_game_position({0,0,0,0});
 
     ship.should_draw_box = false;
 
@@ -173,8 +187,10 @@ int main(int argc, char *argv[])
 
     while(window.window.isOpen())
     {
-        flush_game_cam(game_cam_position, g_game_cam);
+        //flush_game_cam(game_cam_position, g_game_cam);
         //flush_game_cam(stars.position[5000], g_game_cam);
+
+        flush_game_cam(ship.game_position, g_game_cam);
 
         text_list wgs;
         wgs.elements.push_back(std::string("weapon_group: " + to_str(weapon_group_selected + 1)));
@@ -221,6 +237,12 @@ int main(int argc, char *argv[])
 
         if(k.isKeyPressed(sf::Keyboard::Num5))
             weapon_group_selected = 4;
+
+        if(k.isKeyPressed(sf::Keyboard::LShift))
+        {
+            ///effects, dust etc
+            ship.hyperspace();
+        }
 
 
         game_object_manager::process_destroyed_ships();

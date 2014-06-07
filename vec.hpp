@@ -89,4 +89,11 @@ inline cl_float4 div(cl_float4 v1, float v)
     return nv;
 }
 
+inline cl_float4 normalise(cl_float4 v1)
+{
+    float length = sqrtf(v1.x*v1.x + v1.y*v1.y + v1.z*v1.z); ///w? What am i doing?
+
+    return div(v1, length);
+}
+
 #endif // INCLUDED_HPP_VEC

@@ -386,3 +386,4 @@ void newtonian_body::reduce_speed()
 {
     rspeed = true;
 }
+
