@@ -1709,22 +1709,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         }
     }
 
-    int functional_num = 0;
-
-    for(int i=0; i<num; i++)
-    {
-        if(ooany[i])
-            functional_num++;
-    }
-
-
-    uint cids[2];
-
-    uint c_id_add = atomic_add(id_cutdown_tris, functional_num);
-
-    //cids[0] = c_id_add;
-    //cids[1] = c_id_add + 1; ///valid because its skilled if num < 2
-
     for(int i=0; i<num; i++)
     {
         if(ooany[i]!=1) ///skip bad tris
@@ -1740,11 +1724,11 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         float thread_num = ceil((float)area/op_size);
         ///threads to render one triangle based on its bounding-box area
 
-        //uint c_id = atomic_inc(id_cutdown_tris);
+        uint c_id = atomic_inc(id_cutdown_tris);
 
-        cutdown_tris[c_id_add*3]   = tris_proj[i][0];
-        cutdown_tris[c_id_add*3+1] = tris_proj[i][1];
-        cutdown_tris[c_id_add*3+2] = tris_proj[i][2];
+        cutdown_tris[c_id*3]   = tris_proj[i][0];
+        cutdown_tris[c_id*3+1] = tris_proj[i][1];
+        cutdown_tris[c_id*3+2] = tris_proj[i][2];
 
         uint c = 0;
 
@@ -1760,13 +1744,12 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
                 fragment_id_buffer[f*3] = id;
                 fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | c; ///for memory reasons, 2^28 is more than enough fragment ids
-                fragment_id_buffer[f*3+2] = c_id_add;
+                fragment_id_buffer[f*3+2] = c_id;
                 c++;
             }
 
         }
 
-        c_id_add++;
     }
 
 }
@@ -1990,7 +1973,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     while(pcount <= op_size)
     {
         float x = ((pixel_along + pcount) % width) + min_max[0];
-        float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesnt need to be calculated every loop iteration
+        float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesn't need to be recalculated every loop
 
         if(y < 0 || y >= SCREENHEIGHT)
         {
