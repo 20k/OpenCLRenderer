@@ -612,7 +612,9 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     {
         p1global_ws += local;
     }
-    run_kernel_with_args(cl::point_cloud, &p1global_ws, &local, 1, p1arglist, 7, true);
+
+    run_kernel_with_args(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arglist, 7, true);
+    run_kernel_with_args(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arglist, 7, true);
 
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);

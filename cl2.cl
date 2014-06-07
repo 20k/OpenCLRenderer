@@ -2296,7 +2296,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
 //Renders a point cloud which renders correct wrt the depth buffer
 
-__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     uint pid = get_global_id(0);
 
@@ -2330,9 +2330,46 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
 
     __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
 
-    if(idepth < *depth_pointer)
+    uint old = atomic_min(depth_pointer, idepth); ///sigh
+}
+
+__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+{
+    uint pid = get_global_id(0);
+
+    if(pid > *num)
+        return;
+
+    float4 position = positions[pid];
+    uint colour = colours[pid];
+
+    float4 postrotate = rot(position, *c_pos, *c_rot);
+
+    float4 projected;
+
+    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+
+    float depth = projected.z;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    if(depth < depth_icutoff)// || depth > depth_far)
+        return;
+
+    float tdepth = depth >= depth_far ? depth_far-1 : depth;
+
+    uint idepth = dcalc(tdepth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+    __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
+
+    if(idepth > *depth_pointer - 50 && idepth < *depth_pointer + 50)
     {
-        *depth_pointer = idepth;
+        //*depth_pointer = idepth;
 
         float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 
@@ -2447,6 +2484,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     if(idepth < *depth_pointer)
     {
         *depth_pointer = idepth;
+
 
         float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 

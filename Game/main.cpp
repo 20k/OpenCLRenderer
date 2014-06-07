@@ -75,6 +75,12 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
 ///visibility flag? Or simply set_active false on EVERYTHANG when you leave a system, and set_active(true) on everything with the same game_coordinates as you hyperspace?
 
 ///Is it a pretend loading screen or fuck that?
+
+///attach object list to stars, have it load when you get 'near'
+
+///next up improve star rendering
+
+///make space dust occluded by galaxy?
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
