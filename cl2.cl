@@ -2336,12 +2336,12 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
 
         float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 
-        rgba /= 255;
+        rgba /= 255.0f;
 
 
-        depth /= 100000;
+        depth /= 100000.0f;
 
-        float brightness = 1000000;
+        float brightness = 1000000.0f;
 
         float relative_brightness = brightness * 1.0f/(depth*depth);
 
@@ -2358,7 +2358,6 @@ __kernel void point_cloud(__global uint* num, __global float4* positions, __glob
 __kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     const int max_distance = 10000;
-
 
     uint pid = get_global_id(0);
 
@@ -2451,7 +2450,8 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 
         float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
 
-        rgba /= 255;
+        rgba /= 255.0f;
+
 
         float relative_brightness = 1.0f - brightness_mult;
 

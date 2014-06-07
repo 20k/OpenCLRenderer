@@ -88,6 +88,7 @@ cl_uint objects_container::set_active(bool param)
         return id;
     }
 
+    ///deactivating an object will cause it to be unallocated next g_arrange_mem
     if(isactive && !param)
     {
         std::vector<objects_container*>::iterator it = objects_container::obj_container_list.begin();
