@@ -621,7 +621,7 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     cl::cqueue.finish();
 }
 
-void engine::draw_space_dust_cloud(point_cloud_info& pc)
+void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 {
     ///__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
@@ -634,7 +634,7 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc)
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
+    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
 
     cl_uint local = 128;
 
@@ -651,7 +651,45 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc)
         p1global_ws += local;
     }
 
-    run_kernel_with_args(cl::space_dust, &p1global_ws, &local, 1, p1arglist, 7, true);
+    run_kernel_with_args(cl::space_dust, &p1global_ws, &local, 1, p1arglist, 8, true);
+
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+}
+
+///merge with above kernel?
+void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offset_pos)
+{
+    ///__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
+    ///__write_only image2d_t screen, __global uint* depth_buffer)
+
+
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
+
+    compute::buffer screen_wrapper(g_screen.get(), true);
+
+    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &offset_pos, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
+
+    cl_uint local = 128;
+
+    cl_uint p1global_ws = pc.len;
+    if(p1global_ws % local!=0)
+    {
+        int rem=p1global_ws % local;
+        p1global_ws-=(rem);
+        p1global_ws+=local;
+    }
+
+    if(p1global_ws == 0)
+    {
+        p1global_ws += local;
+    }
+
+    run_kernel_with_args(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arglist, 8, true);
 
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);

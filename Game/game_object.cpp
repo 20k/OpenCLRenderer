@@ -12,6 +12,8 @@
 
 #include "../vec.hpp"
 
+namespace compute = boost::compute;
+
 sf::Clock game_object::time;
 
 std::vector<game_object*> game_object_manager::object_list;
@@ -718,6 +720,16 @@ void game_object::hyperspace()
     game_position = game_pos;
 }
 
+void game_object::hyperspace_stop()
+{
+    if(newtonian == NULL)
+    {
+        std::cout << "Warning: Tried to end hyperspace on an object with no newtonian representation" << std::endl;
+        return;
+    }
+
+    hyperspace_position_end = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &newtonian->position);
+}
 
 int game_object::get_id()
 {

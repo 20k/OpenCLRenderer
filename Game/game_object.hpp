@@ -11,6 +11,9 @@
 
 #include <SFML/Graphics.hpp>
 
+#include <boost/compute/source.hpp>
+#include <boost/compute/system.hpp>
+
 enum transform_type
 {
     ROTATE90,
@@ -41,6 +44,8 @@ struct ship_info
     float hyperspace_speed;
 };
 
+namespace compute = boost::compute;
+
 struct game_object
 {
     collision_object collision;
@@ -67,6 +72,8 @@ struct game_object
     std::vector<std::set<game_object*> > targets;
 
     //std::set<game_object*> targeting_me;
+
+    compute::buffer hyperspace_position_end;
 
     static sf::Clock time;
 
@@ -117,6 +124,8 @@ struct game_object
     int get_id();
 
     void hyperspace();
+    void hyperspace_stop();
+    //void flush_hyperspace_position();
 
     game_object* push();
 

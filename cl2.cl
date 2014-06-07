@@ -2418,7 +2418,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 }
 
 ///nearly identical to point cloud, but space dust instead
-__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     const int max_distance = 10000;
 
@@ -2430,8 +2430,9 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     float4 position = positions[pid];
     uint colour = colours[pid];
 
+    float4 totalpos = *g_cam + *c_pos;
 
-    float4 relative_pos = position - *c_pos;
+    float4 relative_pos = position - totalpos; ///this doesnt really need to be accurate at all
 
     if(relative_pos.x > max_distance)
     {
@@ -2520,6 +2521,78 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
         float relative_brightness = 1.0f - brightness_mult;
 
         relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
+
+
+        int2 scoord = {x, y};
+
+        write_imagef(screen, scoord, rgba*relative_brightness);
+    }
+}
+
+///make cloud drift with time?
+__kernel void space_dust_no_tiling(__global uint* num, __global float4* positions, __global uint* colours, __global float4* position_offset, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+{
+    const int max_distance = 10000;
+
+    uint pid = get_global_id(0);
+
+    if(pid > *num)
+        return;
+
+    float4 position = positions[pid];
+    uint colour = colours[pid];
+
+    float4 totalpos = -*position_offset + *c_pos;
+
+    float4 relative_pos = position - totalpos;
+
+
+    float brightness_mult = fast_length(relative_pos)/max_distance;
+
+
+    float4 zero = {0,0,0,0};
+
+    float4 postrotate = rot(relative_pos, zero, *c_rot);
+
+
+    float4 projected;
+
+    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+
+
+    float depth = projected.z;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    if(depth < depth_icutoff)// || depth > depth_far)
+        return;
+
+    float tdepth = depth >= depth_far ? depth_far-1 : depth;
+
+    uint idepth = dcalc(tdepth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+    __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
+
+    if(idepth < *depth_pointer)
+    {
+        *depth_pointer = idepth;
+
+
+        float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
+
+        rgba /= 255.0f;
+
+
+        //float relative_brightness = 1.0f - brightness_mult;
+
+        //relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
+
+        float relative_brightness = 1.0f;
 
 
         int2 scoord = {x, y};

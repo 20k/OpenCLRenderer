@@ -171,7 +171,8 @@ int main(int argc, char *argv[])
     //std::vector<cl_uint>().swap(stars.rgb_colour);
 
 
-    point_cloud_info g_space_dust = generate_space_dust();
+    point_cloud_info g_space_dust = generate_space_dust(4000);
+    point_cloud_info g_space_dust_warp = generate_space_warp_dust(50);
 
 
     //newtonian_body l1;
@@ -250,14 +251,28 @@ int main(int argc, char *argv[])
         if(k.isKeyPressed(sf::Keyboard::Num5))
             weapon_group_selected = 4;
 
+        bool lhyper = is_hyperspace;
+
         if(k.isKeyPressed(sf::Keyboard::LShift))
         {
             ///effects, dust etc
             ship.hyperspace();
             is_hyperspace = true;
         }
-        else
+        else if(is_hyperspace)
+        {
+            ship.hyperspace_stop();
             is_hyperspace = false;
+        }
+
+        static bool test = false;
+
+        if(lhyper && !is_hyperspace)
+        {
+            test = true;
+            ///just out of hyperspace, spawn dust cloud which you accelerate into to a stop
+            ///raises a question of how to go to a stop, enforced distance by hyperspace warpage?
+        }
 
 
         game_object_manager::process_destroyed_ships();
@@ -270,8 +285,10 @@ int main(int argc, char *argv[])
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
-        window.draw_space_dust_cloud(g_space_dust);
+        window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
+        if(test)
+            window.draw_space_dust_no_tile(g_space_dust_warp, ship.hyperspace_position_end);
 
         player_ship->set_rotation_direction((cl_float4){0,0,0,0});
         player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
