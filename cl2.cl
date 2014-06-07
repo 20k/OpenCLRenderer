@@ -38,7 +38,7 @@ float max3(float x,  float y,  float z)
     return max(max(x,y),z);
 }
 
-float calc_third_area(float x1, float y1, float x2, float y2, float x3, float y3, float x, float y, int which)
+/*float calc_third_area(float x1, float y1, float x2, float y2, float x3, float y3, float x, float y, int which)
 {
     if(which==1)
     {
@@ -54,6 +54,11 @@ float calc_third_area(float x1, float y1, float x2, float y2, float x3, float y3
     }
 
 
+    return fabs((x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))/2.0f);
+}*/
+
+float calc_area(float x1, float y1, float x2, float y2, float x3, float y3)
+{
     return fabs((x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))/2.0f);
 }
 
@@ -157,7 +162,7 @@ float calc_rconstant(float x[3], float y[3])
     return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
-float interpolate_2(float4 vals, struct interp_container c, float x, float y)
+/*float interpolate_2(float4 vals, struct interp_container c, float x, float y)
 {
     ///x1, y1, x2, y2, x3, y3, x, y, which
 
@@ -171,7 +176,8 @@ float interpolate_2(float4 vals, struct interp_container c, float x, float y)
     //float area = c.area;
 
     return (vals.x*a[2] + vals.y*a[0] + vals.z*a[1])/(a[0] + a[1] + a[2]);
-}
+}*/
+///hitler
 
 
 
@@ -1814,7 +1820,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
     ///calculate area by triangle 3rd area method
-    float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
+    //float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
+    float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
 
 
     int pcount=0;
@@ -1951,8 +1958,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float4 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z), 0.0f};
 
 
-    float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
-
+    //float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
+    float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
 
     int pcount=0;
 
