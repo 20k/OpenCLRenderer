@@ -708,6 +708,9 @@ void game_object::hyperspace()
 
     cl_float4 dir = normalise(momentum);
 
+    if(dir.x!=dir.x || dir.y!=dir.y || dir.z!=dir.z)
+        return;
+
     cl_float4 game_pos = game_position;
 
     game_pos = add(game_pos, mult(dir, info.hyperspace_speed));

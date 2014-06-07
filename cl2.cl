@@ -2304,7 +2304,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
         return;
 
     float4 position = positions[pid];
-    uint colour = colours[pid];
+    //uint colour = colours[pid];
 
     float4 postrotate = rot(position, *c_pos, *c_rot);
 
@@ -2314,7 +2314,8 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
 
     float depth = projected.z;
 
-    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+    ///hitler bounds checking for depth_pointer
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
 
     if(depth < depth_icutoff)// || depth > depth_far)
@@ -2329,10 +2330,18 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     y = projected.y;
 
     __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
+    __global uint* depth_pointer1 = &depth_buffer[(y+1)*SCREENWIDTH + x];
+    __global uint* depth_pointer2 = &depth_buffer[(y-1)*SCREENWIDTH + x];
+    __global uint* depth_pointer3 = &depth_buffer[y*SCREENWIDTH + x + 1];
+    __global uint* depth_pointer4 = &depth_buffer[y*SCREENWIDTH + x - 1];
 
 
     ///depth buffering
     atomic_min(depth_pointer, idepth);
+    atomic_min(depth_pointer1, idepth);
+    atomic_min(depth_pointer2, idepth);
+    atomic_min(depth_pointer3, idepth);
+    atomic_min(depth_pointer4, idepth);
 }
 
 __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
@@ -2368,30 +2377,39 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     y = projected.y;
 
     __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
+    __global uint* depth_pointer1 = &depth_buffer[(y+1)*SCREENWIDTH + x];
+    __global uint* depth_pointer2 = &depth_buffer[(y-1)*SCREENWIDTH + x];
+    __global uint* depth_pointer3 = &depth_buffer[y*SCREENWIDTH + x + 1];
+    __global uint* depth_pointer4 = &depth_buffer[y*SCREENWIDTH + x - 1];
 
-    //if(idepth > *depth_pointer - 50 && idepth < *depth_pointer + 50)
+
+    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
+
+    rgba /= 255.0f;
+
+
+    depth /= 10.0f;
+
+    float brightness = 2000000.0f;
+
+    float relative_brightness = brightness * 1.0f/(depth*depth);
+
+    relative_brightness = clamp(relative_brightness, 0.1f, 1.0f);
+
+    bool main = false;
     if(idepth == *depth_pointer)
     {
-        ///we're on the depth buffer! woo
-
-        float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
-
-        rgba /= 255.0f;
-
-
-        depth /= 10.0f;
-
-        float brightness = 2000000.0f;
-
-        float relative_brightness = brightness * 1.0f/(depth*depth);
-
-        relative_brightness = clamp(relative_brightness, 0.1f, 1.0f);
-
-
-        int2 scoord = {x, y};
-
-        write_imagef(screen, scoord, rgba*relative_brightness);
+        write_imagef(screen, (int2){x, y}, rgba*relative_brightness);
+        main = true;
     }
+    if(main && idepth == *depth_pointer1)
+        write_imagef(screen, (int2){x, y+1}, rgba*relative_brightness/6.0f);
+    if(main && idepth == *depth_pointer2)
+        write_imagef(screen, (int2){x, y-1}, rgba*relative_brightness/6.0f);
+    if(main && idepth == *depth_pointer3)
+        write_imagef(screen, (int2){x+1, y}, rgba*relative_brightness/6.0f);
+    if(main && idepth == *depth_pointer4)
+        write_imagef(screen, (int2){x-1, y}, rgba*relative_brightness/6.0f);
 }
 
 ///nearly identical to point cloud, but space dust instead
