@@ -78,11 +78,14 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 
 ///attach object list to stars, have it load when you get 'near'
 
-///next up improve star rendering
-
 ///make space dust occluded by galaxy?
 
-///create cloud of dust on hyperspace exit
+///create cloud of dust on hyperspace exit ///done
+///make this cloud expand and disappear with time
+
+///need to get warping removing everything working as well
+
+///hyperspace should probably have been part of newtonian, because it gets a tick
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -172,7 +175,7 @@ int main(int argc, char *argv[])
 
 
     point_cloud_info g_space_dust = generate_space_dust(4000);
-    point_cloud_info g_space_dust_warp = generate_space_warp_dust(50);
+    point_cloud_info g_space_dust_warp = generate_space_warp_dust(20);
 
 
     //newtonian_body l1;
@@ -265,7 +268,7 @@ int main(int argc, char *argv[])
             is_hyperspace = false;
         }
 
-        static bool test = false;
+        static bool test = false; ///remove this
 
         if(lhyper && !is_hyperspace)
         {

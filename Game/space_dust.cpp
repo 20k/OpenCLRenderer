@@ -37,7 +37,7 @@ point_cloud_info generate_space_warp_dust(int num)
 {
     point_cloud pcloud;
 
-    float space_dust_constant = 1000.0f*4;
+    float space_dust_constant = 10000.0f*4;
 
     for(int i=0; i<num; i++)
     {

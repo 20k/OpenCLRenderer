@@ -106,7 +106,7 @@ struct interp_container
 float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
     //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
-    return (fabs((float)(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y)) + fabs((float)(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1)) + fabs((float)(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)))/2.0f;
+    return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1))/2.0f;
     ///form was written for this, i think
 }
 
@@ -1709,6 +1709,22 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         }
     }
 
+    int functional_num = 0;
+
+    for(int i=0; i<num; i++)
+    {
+        if(ooany[i])
+            functional_num++;
+    }
+
+
+    uint cids[2];
+
+    uint c_id_add = atomic_add(id_cutdown_tris, functional_num);
+
+    //cids[0] = c_id_add;
+    //cids[1] = c_id_add + 1; ///valid because its skilled if num < 2
+
     for(int i=0; i<num; i++)
     {
         if(ooany[i]!=1) ///skip bad tris
@@ -1724,11 +1740,11 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         float thread_num = ceil((float)area/op_size);
         ///threads to render one triangle based on its bounding-box area
 
-        uint c_id = atomic_inc(id_cutdown_tris);
+        //uint c_id = atomic_inc(id_cutdown_tris);
 
-        cutdown_tris[c_id*3]   = tris_proj[i][0];
-        cutdown_tris[c_id*3+1] = tris_proj[i][1];
-        cutdown_tris[c_id*3+2] = tris_proj[i][2];
+        cutdown_tris[c_id_add*3]   = tris_proj[i][0];
+        cutdown_tris[c_id_add*3+1] = tris_proj[i][1];
+        cutdown_tris[c_id_add*3+2] = tris_proj[i][2];
 
         uint c = 0;
 
@@ -1744,12 +1760,13 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
                 fragment_id_buffer[f*3] = id;
                 fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | c; ///for memory reasons, 2^28 is more than enough fragment ids
-                fragment_id_buffer[f*3+2] = c_id;
+                fragment_id_buffer[f*3+2] = c_id_add;
                 c++;
             }
 
         }
 
+        c_id_add++;
     }
 
 }
@@ -1973,7 +1990,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     while(pcount <= op_size)
     {
         float x = ((pixel_along + pcount) % width) + min_max[0];
-        float y = ((pixel_along + pcount) / width) + min_max[2];
+        float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesnt need to be calculated every loop iteration
 
         if(y < 0 || y >= SCREENHEIGHT)
         {
@@ -2592,7 +2609,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
         //relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
 
-        float relative_brightness = 1.0f;
+        float relative_brightness = 0.4f;
 
 
         int2 scoord = {x, y};
