@@ -2295,7 +2295,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 }
 
 //Renders a point cloud which renders correct wrt the depth buffer
-
+///make a half resolution depth map, then expand?
 __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     uint pid = get_global_id(0);
@@ -2334,6 +2334,11 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     __global uint* depth_pointer2 = &depth_buffer[(y-1)*SCREENWIDTH + x];
     __global uint* depth_pointer3 = &depth_buffer[y*SCREENWIDTH + x + 1];
     __global uint* depth_pointer4 = &depth_buffer[y*SCREENWIDTH + x - 1];
+
+
+
+    if(*depth_pointer!=mulint)
+        return;
 
 
     ///depth buffering
