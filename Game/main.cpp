@@ -54,7 +54,7 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
     }
 }
 
-//bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
+bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
 
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
@@ -81,6 +81,8 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
 ///next up improve star rendering
 
 ///make space dust occluded by galaxy?
+
+///create cloud of dust on hyperspace exit
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -252,7 +254,10 @@ int main(int argc, char *argv[])
         {
             ///effects, dust etc
             ship.hyperspace();
+            is_hyperspace = true;
         }
+        else
+            is_hyperspace = false;
 
 
         game_object_manager::process_destroyed_ships();
