@@ -2590,7 +2590,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
         rgba /= 255.0f;
 
 
-        float relative_brightness = 0.5f;
+        float relative_brightness = 1.0f;
 
 
         int2 scoord = {x, y};

@@ -96,4 +96,30 @@ inline cl_float4 normalise(cl_float4 v1)
     return div(v1, length);
 }
 
+inline float length(cl_float4 v1)
+{
+    return sqrtf(v1.x*v1.x + v1.y*v1.y + v1.z*v1.z);
+}
+
+inline cl_float4 clamp(cl_float4 v1, float _min, float _max)
+{
+    v1.x = std::max(v1.x, _min);
+    v1.y = std::max(v1.y, _min);
+    v1.z = std::max(v1.z, _min);
+
+    v1.x = std::min(v1.x, _max);
+    v1.y = std::min(v1.y, _max);
+    v1.z = std::min(v1.z, _max);
+
+    return v1;
+}
+
+inline float clamp(float v, float _min, float _max)
+{
+    v = std::max(v, _min);
+    v = std::min(v, _max);
+
+    return v;
+}
+
 #endif // INCLUDED_HPP_VEC

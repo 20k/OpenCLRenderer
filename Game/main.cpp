@@ -270,14 +270,14 @@ int main(int argc, char *argv[])
             is_hyperspace = false;
         }
 
-        static bool test = false; ///remove this
+        /*static bool test = false; ///remove this
 
         if(lhyper && !is_hyperspace)
         {
             test = true;
             ///just out of hyperspace, spawn dust cloud which you accelerate into to a stop
             ///raises a question of how to go to a stop, enforced distance by hyperspace warpage?
-        }
+        }*/
 
 
         game_object_manager::process_destroyed_ships();
@@ -293,8 +293,9 @@ int main(int argc, char *argv[])
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
-        if(test)
-            window.draw_space_dust_no_tile(g_space_dust_warp, ship.hyperspace_position_end);
+        //if(test)
+        //    window.draw_space_dust_no_tile(g_space_dust_warp, ship.hyperspace_position_end);
+        ///very much need to figure out what I actually want
 
         player_ship->set_rotation_direction((cl_float4){0,0,0,0});
         player_ship->set_linear_force_direction((cl_float4){0,0,0,0});
