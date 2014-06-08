@@ -108,16 +108,31 @@ struct interp_container
     float rconstant;
 };
 
-float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
+float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float c1, float c2, float c3, float c4, float c5, float c6, float c7, float c8, float c9)
 {
     //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
-    return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1))/2.0f;
+    //return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+
+
+    return (fabs(x*c1 + y*c2 + c3) + fabs(x*c4 + y*c5 + c6) + fabs(x*c7 + y*c8 + c9))*0.5f;
+
+
+    //float4 vec = {(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y), (x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1), (x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1), 0.0f};
+    //vec *= 0.5;
+    //vec = fabs(vec);
+    //return vec.x + vec.y + vec.z;
     ///form was written for this, i think
 }
 
+float calc_third_areas_old(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
+{
+    return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+}
+
+
 float calc_third_areas(struct interp_container *C, float x, float y)
 {
-    return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
+    return calc_third_areas_old(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
     //return calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 1) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 2) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 3);
 }
 
@@ -157,6 +172,7 @@ float idcalc(float value)
     return value * depth_far;
 }
 
+///change to vector maths
 float calc_rconstant(float x[3], float y[3])
 {
     return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
@@ -1843,6 +1859,20 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 100;
     }
 
+    float c1, c2, c3, c4, c5, c6, c7, c8, c9;
+
+    c1 = yp[2] - yp[1];
+    c2 = xp[1] - xp[2];
+    c3 = xp[2]*yp[1] - xp[1]*yp[2];
+
+    c4 = yp[1] - yp[0];
+    c5 = xp[0] - xp[1];
+    c6 = xp[1]*yp[0] - xp[0]*yp[1];
+
+    c7 = yp[0] - yp[2];
+    c8 = xp[2] - xp[0];
+    c9 = xp[0]*yp[2] - xp[2]*yp[0];
+
     ///while more pixels to write
     while(pcount <= op_size)
     {
@@ -1855,7 +1885,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-        float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
+        float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y, c1, c2, c3, c4, c5, c6, c7, c8, c9);
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(s1 > area - mod && s1 < area + mod)
@@ -1977,6 +2007,21 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 100;
     }
 
+    float c1, c2, c3, c4, c5, c6, c7, c8, c9;
+
+    c1 = yp[2] - yp[1];
+    c2 = xp[1] - xp[2];
+    c3 = xp[2]*yp[1] - xp[1]*yp[2];
+
+    c4 = yp[1] - yp[0];
+    c5 = xp[0] - xp[1];
+    c6 = xp[1]*yp[0] - xp[0]*yp[1];
+
+    c7 = yp[0] - yp[2];
+    c8 = xp[2] - xp[0];
+    c9 = xp[0]*yp[2] - xp[2]*yp[0];
+
+
     while(pcount <= op_size)
     {
         float x = ((pixel_along + pcount) % width) + min_max[0];
@@ -1988,7 +2033,9 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-        float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
+        //float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
+        float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y, c1, c2, c3, c4, c5, c6, c7, c8, c9);
+
 
         if(s1 > area - mod && s1 < area + mod)
         {
