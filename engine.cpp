@@ -878,7 +878,7 @@ void engine::draw_ui()
 
     compute::buffer wrap(scr);
 
-    compute::buffer* ui_args[] = {&obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &wrap, &g_c_pos, &g_c_pos};
+    compute::buffer* ui_args[] = {&obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &wrap, &g_c_pos, &g_c_rot};
 
     run_kernel_with_args(cl::draw_ui, &global_ws, &global_ws, 1, ui_args, 5, true);
 
@@ -890,6 +890,10 @@ void engine::draw_ui()
 
 void engine::render_buffers()
 {
+    sf::Clock clk;
+    draw_ui();
+    std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
+
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
@@ -900,12 +904,11 @@ void engine::render_buffers()
     ///blit buffer to screen
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-    sf::Clock clk;
 
-    draw_ui();
+
     ///interact::deplete_stack
 
-    std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
+
 
     text_handler::render();
 
