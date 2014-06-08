@@ -410,7 +410,7 @@ void depth_project(float4 rotated[3], float width, float height, float fovc, flo
 }
 
 
-void depth_project_singular(float4 rotated, float width, float height, float fovc, float4* ret)
+float4 depth_project_singular(float4 rotated, float width, float height, float fovc)
 {
     float rx;
     rx=(rotated.x) * (fovc/(rotated.z));
@@ -420,10 +420,14 @@ void depth_project_singular(float4 rotated, float width, float height, float fov
     rx+=width/2;
     ry+=height/2;
 
-    (*ret).x = rx;
-    (*ret).y = ry;
-    (*ret).z = rotated.z;
-    (*ret).w = 0.0f;
+    float4 ret;
+
+    ret.x = rx;
+    ret.y = ry;
+    ret.z = rotated.z;
+    ret.w = 0.0f;
+
+    return ret;
 }
 
 void generate_new_triangles(float4 points[3], int ids[3], int *num, float4 ret[2][3], int* clip)
@@ -2026,6 +2030,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 }
 
 ///screenspace step, this is slow and needs improving
+///gnum unused, bounds checking?
 __kernel
 __attribute__((reqd_work_group_size(16, 16, 1)))
 void part3(__global struct triangle *triangles,__global uint *tri_num, __global float4 *c_pos, __global float4 *c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
@@ -2188,8 +2193,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
             //float light = dot(normalize(l2c), normalize(rot((float4){1, 0, 0, 0}, zero, *c_rot)));
 
-            float4 projected_out;
-            depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
+
+            float4 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
             float dist_to_pixel = fast_distance(projected_out, (float4){x, y, ldepth, 0.0f});
 
@@ -2315,9 +2320,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
 
     float4 postrotate = rot(position, *c_pos, *c_rot);
 
-    float4 projected;
-
-    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+    float4 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
     float depth = projected.z;
 
@@ -2368,9 +2371,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     float4 postrotate = rot(position, *c_pos, *c_rot);
 
-    float4 projected;
-
-    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+    float4 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
     float depth = projected.z;
 
@@ -2491,10 +2492,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 
     float4 postrotate = rot(relative_pos, zero, *c_rot);
 
-
-    float4 projected;
-
-    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+    float4 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
 
     float depth = projected.z;
@@ -2561,10 +2559,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
     float4 postrotate = rot(relative_pos, zero, *c_rot);
 
-
-    float4 projected;
-
-    depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected);
+    float4 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
 
     float depth = projected.z;
@@ -2606,4 +2601,31 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
         write_imagef(screen, scoord, rgba*relative_brightness);
     }
+}
+
+///will draw for everything in the scene ///reallocate every time..?
+__kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnum, __write_only image2d_t screen, __global float4* c_pos, __global float4* c_rot)
+{
+    uint pid = get_global_id(0);
+
+    if(pid > *gnum)
+        return;
+
+    float4 pos = gobj[pid].world_pos;
+
+    float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    /*cl_float4 postrotate;
+    postrotate = rot(triangle->vertices[0].pos, zero, rotation_offset);
+
+
+    postrotate=rot(postrotate + offset, c_pos, c_rot);*/
+
+    float4 postrotate = rot(pos, *c_pos, *c_rot);
+
+    float4 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float4 col = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    write_imagef(screen, (int2){projected.x, projected.y}, col);
 }

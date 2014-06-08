@@ -847,6 +847,46 @@ void engine::draw_bulk_objs_n()
     camera_dirty = false;
 }
 
+///never going to work, would have to reproject?
+void engine::draw_ui()
+{
+    compute::buffer screen_wrapper(g_screen.get(), true);
+
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
+
+
+    cl_uint global_ws = obj_mem_manager::obj_num;
+
+    cl_uint local2=32;
+
+    if(global_ws % local2!=0)
+    {
+        int rem=global_ws % local2;
+        global_ws-=(rem);
+        global_ws+=local2;
+    }
+
+    if(global_ws == 0)
+    {
+        global_ws += local2;
+    }
+
+    std::cout << "dfdfdf: " << global_ws << std::endl;
+
+    compute::buffer wrap(scr);
+
+    compute::buffer* ui_args[] = {&obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &wrap, &g_c_pos, &g_c_pos};
+
+    run_kernel_with_args(cl::draw_ui, &global_ws, &global_ws, 1, ui_args, 5, true);
+
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
+}
 
 void engine::render_buffers()
 {
@@ -862,7 +902,8 @@ void engine::render_buffers()
 
     sf::Clock clk;
 
-    interact::deplete_stack();
+    draw_ui();
+    ///interact::deplete_stack
 
     std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
 

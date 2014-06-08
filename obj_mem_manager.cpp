@@ -19,6 +19,7 @@
 std::vector<int> obj_mem_manager::obj_sub_nums;
 
 cl_uint obj_mem_manager::tri_num;
+cl_uint obj_mem_manager::obj_num;
 
 compute::buffer obj_mem_manager::g_tri_mem;
 compute::buffer obj_mem_manager::g_tri_num;
@@ -144,6 +145,8 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     temporaries& t = obj_mem_manager::temporary_objects;
 
+    t.obj_num = obj_descriptor_size;
+
     t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices, CL_MEM_READ_ONLY);
     t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size(), CL_MEM_READ_ONLY);
     ///3d texture array
@@ -261,6 +264,7 @@ void obj_mem_manager::g_changeover()
     g_cut_tri_num   = T->g_cut_tri_num;
     texture_manager::g_texture_array = T->g_texture_array;
     tri_num         = T->tri_num;
+    obj_num         = T->obj_num;
 
     obj_mem_manager::ready = false;
 }

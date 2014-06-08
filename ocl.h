@@ -196,6 +196,7 @@ void oclstuff(std::string file)
     cl::point_cloud_recover = compute::kernel(program, "point_cloud_recovery_pass");
     cl::space_dust = compute::kernel(program, "space_dust");
     cl::space_dust_no_tile = compute::kernel(program, "space_dust_no_tiling");
+    cl::draw_ui = compute::kernel(program, "draw_ui");
 }
 
 

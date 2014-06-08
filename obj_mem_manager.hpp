@@ -13,6 +13,7 @@ namespace compute = boost::compute;
 struct temporaries
 {
     cl_uint tri_num;
+    cl_uint obj_num;
 
     compute::buffer g_tri_mem;
     compute::buffer g_tri_num;
@@ -37,6 +38,7 @@ struct obj_mem_manager
 {
     static temporaries temporary_objects;
     static cl_uint tri_num;
+    static cl_uint obj_num;
 
     static std::vector<int> obj_sub_nums; ///after g_arrange
 

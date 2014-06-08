@@ -26,6 +26,7 @@ namespace cl
     extern compute::kernel point_cloud_recover;
     extern compute::kernel space_dust;
     extern compute::kernel space_dust_no_tile;
+    extern compute::kernel draw_ui;
 }
 
 
