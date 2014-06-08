@@ -2613,18 +2613,6 @@ __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnu
 
     float4 pos = gobj[pid].world_pos;
 
-    //float4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
-
-    /*cl_float4 postrotate;
-    postrotate = rot(triangle->vertices[0].pos, zero, rotation_offset);
-
-
-    postrotate=rot(postrotate + offset, c_pos, c_rot);*/
-
-    //if(fast_length(pos - *c_pos) < 1000)
-    //    return;]
-
-
 
     float4 postrotate = rot(pos, *c_pos, *c_rot);
 
@@ -2636,9 +2624,6 @@ __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnu
     float4 col = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
-
-    //printf("p ( %f , %f ) \n", projected.x, projected.y);
-    //printf("s ( %d , %d ) \n", scoord.x, scoord.y);
     int2 scoord = {(int)projected.x, (int)projected.y};
 
     write_imagef(screen, scoord, col);
