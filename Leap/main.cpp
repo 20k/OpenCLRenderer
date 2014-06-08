@@ -206,14 +206,14 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        if(network_state == 1)
+        //if(network_state == 1)
             fdata = get_finger_positions();
 
         int n = 0;
 
         ///do das fingerclickencontrollen
 
-        if(network_state == 1)
+        //if(network_state == 1)
         {
             for(int i=0; i<10; i++)
             {

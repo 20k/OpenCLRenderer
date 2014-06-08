@@ -91,6 +91,7 @@
 		<Unit filename="../texture_manager.hpp" />
 		<Unit filename="../triangle.cpp" />
 		<Unit filename="../triangle.hpp" />
+		<Unit filename="../vec.hpp" />
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
 		<Unit filename="Asteroid/asteroid_gen.cpp" />

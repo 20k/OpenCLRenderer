@@ -284,6 +284,7 @@ int main(int argc, char *argv[])
         window.set_camera_pos(player_ship->position); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
+
         window.draw_bulk_objs_n();
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam);

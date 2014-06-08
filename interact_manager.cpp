@@ -60,6 +60,7 @@ int interact::draw_rect(int x1, int y1, int x2, int y2, int id)
     return rectangle_stack.size()-1;
 }
 
+///takes 1 - 1.5 ms per frame out of 16 ms
 void interact::deplete_stack()
 {
     sf::Sprite spr;

@@ -860,7 +860,11 @@ void engine::render_buffers()
     ///blit buffer to screen
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    sf::Clock clk;
+
     interact::deplete_stack();
+
+    std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
     text_handler::render();
 
