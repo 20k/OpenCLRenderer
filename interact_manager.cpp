@@ -37,6 +37,12 @@ void interact::load()
     is_loaded = true;
 }
 
+void interact::clear()
+{
+    pixel_stack.clear();
+    rectangle_stack.clear();
+}
+
 void interact::draw_pixel(int x, int y)
 {
     pixel_stack.push_back(std::make_pair(x, engine::height - y));
@@ -119,9 +125,7 @@ void interact::deplete_stack()
         render_window->draw(rshape);
     }
 
-
-    pixel_stack.clear();
-    rectangle_stack.clear();
+    clear();
 }
 
 int interact::get_mouse_collision_rect(int x, int y)

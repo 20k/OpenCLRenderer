@@ -34,6 +34,7 @@ struct interact
     static void set_render_window(sf::RenderWindow*);
 
     static void load();
+    static void clear();
 
     static void deplete_stack();
 

@@ -86,6 +86,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///need to get warping removing everything working as well
 
 ///hyperspace should probably have been part of newtonian, because it gets a tick
+
+///Make hyperspace cloud a light?
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!

@@ -47,7 +47,7 @@ point_cloud_info generate_space_warp_dust(int num)
 
             cl_float4 pos = sphere_func(i + (float)rand()/RAND_MAX, num, j + (float)rand()/RAND_MAX, num);
 
-            pos = mult(pos, space_dust_constant*((float)rand()/RAND_MAX) * (float)rand()/RAND_MAX);
+            pos = mult(pos, space_dust_constant*(0.1 + ((float)rand()/RAND_MAX) * (float)rand()/RAND_MAX));
 
             pcloud.position.push_back(pos);
             pcloud.rgb_colour.push_back(col);

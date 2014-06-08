@@ -857,10 +857,9 @@ void engine::draw_ui()
     cl::cqueue.finish();
 
 
-
     cl_uint global_ws = obj_mem_manager::obj_num;
 
-    cl_uint local2=32;
+    cl_uint local2=256;
 
     if(global_ws % local2!=0)
     {
@@ -874,13 +873,11 @@ void engine::draw_ui()
         global_ws += local2;
     }
 
-    std::cout << "dfdfdf: " << global_ws << std::endl;
-
     compute::buffer wrap(scr);
 
     compute::buffer* ui_args[] = {&obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &wrap, &g_c_pos, &g_c_rot};
 
-    run_kernel_with_args(cl::draw_ui, &global_ws, &global_ws, 1, ui_args, 5, true);
+    run_kernel_with_args(cl::draw_ui, &global_ws, &local2, 1, ui_args, 5, true);
 
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
@@ -906,7 +903,8 @@ void engine::render_buffers()
 
 
 
-    ///interact::deplete_stack
+    //interact::deplete_stack();
+    interact::clear();
 
 
 
