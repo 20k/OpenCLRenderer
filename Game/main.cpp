@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
         if(k.isKeyPressed(sf::Keyboard::Num5))
             weapon_group_selected = 4;
 
-        bool lhyper = is_hyperspace;
+        /*bool lhyper = is_hyperspace;
 
         if(k.isKeyPressed(sf::Keyboard::LShift))
         {
@@ -268,7 +268,7 @@ int main(int argc, char *argv[])
         {
             ship.hyperspace_stop();
             is_hyperspace = false;
-        }
+        }*/
 
         /*static bool test = false; ///remove this
 
