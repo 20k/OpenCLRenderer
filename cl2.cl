@@ -2045,8 +2045,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
                     CLK_FILTER_NEAREST;
 
 
-    uint x=get_global_id(0);
-    uint y=get_global_id(1);
+    const uint x=get_global_id(0);
+    const uint y=get_global_id(1);
 
     if(x < SCREENWIDTH && y < SCREENHEIGHT)
     {
@@ -2599,6 +2599,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
     }
 }
 
+///swap this for sfml parallel rendering?
 ///will draw for everything in the scene ///reallocate every time..?
 __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnum, __write_only image2d_t screen, __global float4* c_pos, __global float4* c_rot)
 {
@@ -2617,10 +2618,68 @@ __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnu
     if(projected.z < depth_icutoff)
         return;
 
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
     float4 col = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
     int2 scoord = {(int)projected.x, (int)projected.y};
 
     write_imagef(screen, scoord, col);
+}
+
+///opencl blit texture from one place to another? rotate the pixels round?
+
+/*
+///engine->create_buffer()?
+///or just render elements to sfml::texutre, then only have dynamic mouse? RERENDER IN PARALLEL IN SFML?
+///not like the elements themselves are dynamic...
+///must be a better way to do this
+///only one at a time for computational simplicity?
+///projecting onto holograms and stuff..... double rotation? D: No frame buffer though, just need a colour buffer per-hologram?
+__kernel void holo_project(__global float4* pos, __global float4* rot, __write_only image2d_t screen)
+{
+    ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
+}*/
+
+///change to reverse projection
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
+{
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+
+    const int w = get_image_width(tex);
+    const int h = get_image_height(tex);
+
+    if(x >= w)
+        return;
+
+    if(y >= h)
+        return;
+
+    float4 zero = {0,0,0,0};
+
+    float4 postrotate = rot((float4){x - w/2.0f, y - h/2.0f, 1, 0}, zero, *d_rot);
+
+    float4 world_pos = postrotate + *d_pos;
+
+    float4 post_camera_rotate = rot(world_pos, *c_pos, *c_rot);
+
+    float4 projected = depth_project_singular(post_camera_rotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected.z < depth_icutoff)
+        return;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+                              CLK_ADDRESS_CLAMP           |
+                              CLK_FILTER_NEAREST;
+
+    uint4 col = read_imageui (tex, sampler, (float2){x, y});
+    float4 newcol = convert_float4(col) / 255.0f;
+
+    write_imagef(screen, (int2){projected.x, projected.y}, newcol);
 }

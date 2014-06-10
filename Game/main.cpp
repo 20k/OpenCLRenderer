@@ -1,3 +1,4 @@
+#include "../hologram.hpp"
 #include "../proj.hpp"
 #include "../ocl.h"
 #include "../texture_manager.hpp"
@@ -54,7 +55,7 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
     }
 }
 
-bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
+//bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
 
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
@@ -88,6 +89,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///hyperspace should probably have been part of newtonian, because it gets a tick
 
 ///Make hyperspace cloud a light?
+
+///need some kind of resources manager really
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -117,6 +120,10 @@ int main(int argc, char *argv[])
     window.window.create(sf::VideoMode(800, 600), "fixthisfixthisfixthis");
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
+
+    hologram_manager::load("Res/ui.png");
+    //hologram_manager::load("Res/ui.png");
+    //hologram_manager::load("Res/ui.png");
 
     interact::set_render_window(&window.window);
 
@@ -298,6 +305,8 @@ int main(int argc, char *argv[])
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
+
+        window.draw_holograms();
 
         //if(test)
         //    window.draw_space_dust_no_tile(g_space_dust_warp, ship.hyperspace_position_end);

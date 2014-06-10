@@ -88,6 +88,7 @@ struct engine
     void draw_space_dust_no_tile(point_cloud_info&, compute::buffer& offset_pos); ///separation of church and state?
     void draw_bulk_objs_n(); ///draw objects to scene
     void draw_ui();
+    void draw_holograms();
     void render_buffers();
 
     void input();
@@ -104,17 +105,36 @@ private:
 };
 
 ///runs a kernel with a particular set of arguments
-static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, int dimensions, compute::buffer **argv, int argc, bool blocking)
+static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, const int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     if(blocking)
         cl::cqueue.finish();
+
+    cl_uint g_ws[dimensions];
+
+    for(int i=0; i<dimensions; i++)
+    {
+        g_ws[i] = global_ws[i];
+
+        if(g_ws[i] % local_ws[i]!=0)
+        {
+            int rem=g_ws[i] % local_ws[i];
+            g_ws[i]-=(rem);
+            g_ws[i]+=local_ws[i];
+        }
+
+        if(g_ws[i] == 0)
+        {
+            g_ws[i] += local_ws[i];
+        }
+    }
 
     for(int i=0; i<argc; i++)
     {
         kernel.set_arg(i, *(argv[i]));
     }
 
-    cl::cqueue.enqueue_nd_range_kernel(kernel, dimensions, NULL, global_ws, local_ws);
+    cl::cqueue.enqueue_nd_range_kernel(kernel, dimensions, NULL, g_ws, local_ws);
 
 
     if(blocking)

@@ -17,6 +17,7 @@
 #include "interact_manager.hpp" ///Separatation of church and state hlp
 #include "text_handler.hpp"
 #include "point_cloud.hpp"
+#include "hologram.hpp"
 
 #define FOV_CONST 400.0f
 ///this needs changing
@@ -149,6 +150,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, g_size, g_size, 0, NULL);
 
     delete [] blank;
+
+    //glEnable(GL_TEXTURE2D); ///?
 }
 
 
@@ -882,7 +885,40 @@ void engine::draw_ui()
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
+}
 
+void engine::draw_holograms()
+{
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
+    cl_float4 pos = {200, 0, 300, 0};
+    cl_float4 rot = {0, 1.0, 0.0, 0};
+
+    for(int i=0; i<hologram_manager::tex_id.size(); i++)
+    {
+        hologram_manager::acquire(i);
+
+        compute::buffer wrap_scr(scr);
+        compute::buffer wrap_tex(hologram_manager::g_tex_mem[i]);
+
+        compute::buffer gpos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
+        compute::buffer grot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &rot);
+
+        compute::buffer* holo_args[] = {&wrap_tex, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
+
+        cl_uint num[2] = {hologram_manager::tex_size[i].first, hologram_manager::tex_size[i].second};
+
+        cl_uint ls[2] = {16, 16};
+
+        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 6, true);
+
+        hologram_manager::release(i);
+    }
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
 }
 
 void engine::render_buffers()

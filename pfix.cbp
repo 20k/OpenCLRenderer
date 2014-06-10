@@ -58,6 +58,8 @@
 		<Unit filename="clstate.h" />
 		<Unit filename="engine.cpp" />
 		<Unit filename="engine.hpp" />
+		<Unit filename="hologram.cpp" />
+		<Unit filename="hologram.hpp" />
 		<Unit filename="interact_manager.cpp" />
 		<Unit filename="interact_manager.hpp" />
 		<Unit filename="light.cpp" />

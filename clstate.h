@@ -27,6 +27,7 @@ namespace cl
     extern compute::kernel space_dust;
     extern compute::kernel space_dust_no_tile;
     extern compute::kernel draw_ui;
+    extern compute::kernel draw_hologram;
 }
 
 

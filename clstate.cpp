@@ -17,3 +17,4 @@ compute::kernel cl::point_cloud_recover;
 compute::kernel cl::space_dust;
 compute::kernel cl::space_dust_no_tile;
 compute::kernel cl::draw_ui;
+compute::kernel cl::draw_hologram;
