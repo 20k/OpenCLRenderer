@@ -1644,7 +1644,7 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
-#define op_size 70
+#define op_size 120
 
 ///split triangles into fragments
 __kernel

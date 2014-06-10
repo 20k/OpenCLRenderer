@@ -3,6 +3,7 @@
 #include "../interact_manager.hpp"
 #include "../vec.hpp"
 #include "game_object.hpp"
+#include <chrono>
 
 
 std::vector<newtonian_body*> newtonian_manager::body_list;
@@ -302,11 +303,29 @@ void newtonian_manager::remove_body(newtonian_body* n)
     delete n;
 }
 
-void newtonian_manager::tick_all(float val)
+void newtonian_manager::tick_all()
 {
+    static bool init = false;
+    static std::chrono::time_point<std::chrono::high_resolution_clock> last_time;
+
+    ///finish timer
+    if(!init)
+    {
+        last_time = std::chrono::high_resolution_clock::now();
+        init = true;
+    }
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> current_time = std::chrono::high_resolution_clock::now();
+
+    auto elapsed = current_time - last_time;
+
+    float time = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count(); ///doesnt seem to be actually that accurate...
+
+    last_time = std::chrono::high_resolution_clock::now();
+
     for(int i=0; i<body_list.size(); i++)
     {
-        body_list[i]->tick(val);
+        body_list[i]->tick(time);
 
         if(body_list[i]->ttl <= 0 && body_list[i]->type == 1 && body_list[i]->expires)
         {

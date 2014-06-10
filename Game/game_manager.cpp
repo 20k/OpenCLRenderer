@@ -9,7 +9,7 @@ game_object* game_manager::spawn_ship()
     temporary_weapon.refire_time = 250; /// milliseconds
 
     game_object* ship = game_object_manager::get_new_object();
-    ship->set_file("../objects/Pre-ruin.obj");
+    ship->set_file("../objects/Pre-ruin-2.obj");
     ship->set_active(true);
 
 

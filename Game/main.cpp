@@ -203,11 +203,17 @@ int main(int argc, char *argv[])
 
     int weapon_selected = 0;
 
+    float last_time = 0;
+    float time_since_last_physics = 0;
+
+    //sf::Clock time_clock;
+
     while(window.window.isOpen())
     {
         //flush_game_cam(game_cam_position, g_game_cam);
         //flush_game_cam(stars.position[5000], g_game_cam);
 
+        sf::Clock c;
         flush_game_cam(ship.game_position, g_game_cam);
 
         text_list wgs;
@@ -218,7 +224,7 @@ int main(int argc, char *argv[])
         wgs.y = 10;
 
 
-        sf::Clock c;
+
 
         if(window.window.pollEvent(Event))
         {
@@ -365,7 +371,7 @@ int main(int argc, char *argv[])
             player_ship->reduce_speed();
         }
 
-        newtonian_manager::tick_all(c.getElapsedTime().asMicroseconds()/1000.0);
+        newtonian_manager::tick_all(); ///get this to just bloody manage its own timestep?
         newtonian_manager::collide_lasers_with_ships();
 
         game_object_manager::update_all_targeting();

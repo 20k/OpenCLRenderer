@@ -39,7 +39,7 @@ struct newtonian_manager
     static void add_body(newtonian_body*);
     static void remove_body(newtonian_body*);
 
-    static void tick_all(float);
+    static void tick_all();
 
     static std::vector<std::pair<newtonian_body*, collision_object> > collision_bodies;
 
