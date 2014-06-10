@@ -306,7 +306,9 @@ int main(int argc, char *argv[])
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
+        sf::Clock h_time;
         window.draw_holograms();
+        std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
         //if(test)
         //    window.draw_space_dust_no_tile(g_space_dust_warp, ship.hyperspace_position_end);

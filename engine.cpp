@@ -18,6 +18,7 @@
 #include "text_handler.hpp"
 #include "point_cloud.hpp"
 #include "hologram.hpp"
+#include "vec.hpp"
 
 #define FOV_CONST 400.0f
 ///this needs changing
@@ -893,11 +894,28 @@ void engine::draw_holograms()
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
 
-    cl_float4 pos = {200, 0, 300, 0};
+    cl_float4 pos = {200, -200, 300, 0};
     cl_float4 rot = {0, 1.0, 0.0, 0};
 
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
+        int w = hologram_manager::tex_size[i].first;
+        int h = hologram_manager::tex_size[i].second;
+
+        cl_float4 tl_rot = rot_about({-w/2, -h/2,  0, 0}, {0,0,0,0}, rot);
+        tl_rot = add(tl_rot, pos);
+        cl_float4 tl_projected = project(tl_rot);
+
+        cl_float4 br_rot = rot_about({w/2, h/2,  0, 0}, {0,0,0,0}, rot);
+        br_rot = add(br_rot, pos);
+        cl_float4 br_projected = project(br_rot);
+
+        int g_w = br_projected.x - tl_projected.x;
+        int g_h = br_projected.y - tl_projected.y;
+
+        printf("T %d %d\n",g_w,g_h); ///yay actually correct!
+        ///invoke kernel with this and back project nearest etc
+
         hologram_manager::acquire(i);
 
         compute::buffer wrap_scr(scr);
@@ -908,7 +926,7 @@ void engine::draw_holograms()
 
         compute::buffer* holo_args[] = {&wrap_tex, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
 
-        cl_uint num[2] = {hologram_manager::tex_size[i].first, hologram_manager::tex_size[i].second};
+        cl_uint num[2] = {w, h};
 
         cl_uint ls[2] = {16, 16};
 

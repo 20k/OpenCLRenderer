@@ -2643,7 +2643,6 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
-///change to reverse projection
 __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
 {
     const int x = get_global_id(0);
@@ -2660,7 +2659,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, _
 
     float4 zero = {0,0,0,0};
 
-    float4 postrotate = rot((float4){x - w/2.0f, y - h/2.0f, 1, 0}, zero, *d_rot);
+    float4 postrotate = rot((float4){x - w/2, y - h/2, 1, 0}, zero, *d_rot);
 
     float4 world_pos = postrotate + *d_pos;
 
@@ -2681,5 +2680,63 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, _
     uint4 col = read_imageui (tex, sampler, (float2){x, y});
     float4 newcol = convert_float4(col) / 255.0f;
 
-    write_imagef(screen, (int2){projected.x, projected.y}, newcol);
+    int px = round(projected.x);
+    int py = round(projected.y);
+
+    if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENWIDTH)
+        return;
+
+    write_imagef(screen, (int2){px, py}, newcol);
 }
+
+/*///change to reverse projection
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
+{
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+
+    const int w = get_image_width(tex);
+    const int h = get_image_height(tex);
+
+    if(x >= w)
+        return;
+
+    if(y >= h)
+        return;
+
+    float4 zero = {0,0,0,0};
+
+    float4 postrotate = rot((float4){x - w/2, y - h/2, 1, 0}, zero, *d_rot)*10.0f;
+
+    float4 world_pos = postrotate + *d_pos;
+
+    float4 post_camera_rotate = rot(world_pos, *c_pos, *c_rot);
+
+    float4 projected = depth_project_singular(post_camera_rotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected.z < depth_icutoff)
+        return;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+                              CLK_ADDRESS_CLAMP           |
+                              CLK_FILTER_NEAREST;
+
+    uint4 col = read_imageui (tex, sampler, (float2){x, y});
+    float4 newcol = convert_float4(col) / 255.0f;
+
+    int px = round(projected.x);
+    int py = round(projected.y);
+
+    if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENWIDTH)
+        return;
+
+    if(2*x % 3)
+        return;
+    if(2*y % 3)
+        return;
+
+    write_imagef(screen, (int2){px, py}, newcol);
+}*/
