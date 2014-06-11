@@ -37,6 +37,7 @@
 			<Add option="-fexceptions" />
 			<Add option="-std=gnu++11" />
 			<Add option="-DSFML_STATIC" />
+			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 		</Compiler>
 		<Linker>
 			<Add option="-lmingw32" />

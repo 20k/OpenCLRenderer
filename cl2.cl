@@ -162,6 +162,11 @@ float calc_rconstant(float x[3], float y[3])
     return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
+float calc_rconstant_v(float4 x, float4 y)
+{
+    return 1.0f/(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
+}
+
 /*float interpolate_2(float4 vals, struct interp_container c, float x, float y)
 {
     ///x1, y1, x2, y2, x3, y3, x, y, which
@@ -203,9 +208,9 @@ float interpolate_p(float4 f, float xn, float yn, float4 x, float4 y, float rcon
 {
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
     return interpolate_i(f1, f2, f3, x, y, x1, x2, x3, y1, y2, y3, rconstant);
-}
+}*/
 
-float2 interpolate_r_pair(float2 f[3], float2 xy, float2 bounds[3])
+/*float2 interpolate_r_pair(float2 f[3], float2 xy, float2 bounds[3])
 {
     float2 ip;
     ip.x = interpolate_r(f[0].x, f[1].x, f[2].x, xy.x, xy.y, bounds[0].x, bounds[1].x, bounds[2].x, bounds[0].y, bounds[1].y, bounds[2].y);
@@ -2643,15 +2648,178 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
-__kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
 {
-    const int x = get_global_id(0);
-    const int y = get_global_id(1);
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+                              CLK_ADDRESS_CLAMP           |
+                              CLK_FILTER_LINEAR;
+
+    const int x = get_global_id(0) + points_3d[3].x;
+    const int y = get_global_id(1) + points_3d[3].y;
+
+    const int ws = get_image_width(tex);
+    const int hs = get_image_height(tex);
+
+    //float ws = points_3d[1].x - points_3d[3].x;
+    //float hs = points_3d[1].y - points_3d[3].y;
+
+    //ws = fabs(ws);
+    //hs = fabs(hs);
+
+    /*
+
+    float cx = (float)x/ws;
+    float cy = (float)y/hs;
+
+    //printf("%d\n", w);
 
     const int w = get_image_width(tex);
     const int h = get_image_height(tex);
 
-    if(x >= w)
+    float px, py;
+    px = x + points_3d[2].x;
+    py = y + points_3d[2].y;
+
+    ///need to do actual within bounds
+
+    uint4 col = read_imageui(tex, sampler, (float2){cx, cy});
+    float4 newcol = convert_float4(col) / 255.0f;
+
+    write_imagef(screen, (int2){px, py}, newcol);*/
+
+    ///just do the fucking texture interpolation shit
+
+    float4 points[3];
+    points[0] = points_3d[0];
+    points[1] = points_3d[1];
+    points[2] = points_3d[2];
+
+    //for(int i=0; i<3; i++)
+    //    points[i] = (float4){((points[i].x - SCREENWIDTH/2.0f)*points[i].z/FOV_CONST), ((points[i].y - SCREENHEIGHT/2.0f)*points[i].z/FOV_CONST), points[i].z, 0};
+
+    float y1 = round(points[0].y);
+    float y2 = round(points[1].y);
+    float y3 = round(points[2].y);
+
+    float x1 = round(points[0].x);
+    float x2 = round(points[1].x);
+    float x3 = round(points[2].x);
+
+    float miny=min3(y1, y2, y3)-1; ///oh, wow
+    float maxy=max3(y1, y2, y3);
+    float minx=min3(x1, x2, x3)-1;
+    float maxx=max3(x1, x2, x3);
+
+    miny=max(miny, 0.0f);
+    miny=min(miny, (float)SCREENHEIGHT);
+
+    maxy=max(maxy, 0.0f);
+    maxy=min(maxy, (float)SCREENHEIGHT);
+
+    minx=max(minx, 0.0f);
+    minx=min(minx, (float)SCREENWIDTH);
+
+    maxx=max(maxx, 0.0f);
+    maxx=min(maxx, (float)SCREENWIDTH);
+
+    //float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
+
+    float rconstant = calc_rconstant_v((float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f});
+
+    ///float interpolate_p(float4 f, float xn, float yn, float4 x, float4 y, float rconstant)
+
+
+    float zval = interpolate_p((float4){1.0f / points[0].z, 1.0f / points[1].z, 1.0f / points[2].z, 0.0f}, x, y, (float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f}, rconstant);
+
+    zval = 1.0f / zval;
+
+
+    //if(x==0&&y==0)
+    //printf("%f %f %f %f %f\n", points_3d[0].z, points_3d[1].z, points_3d[2].z, points_3d[3].z, zval);
+
+    ///unprojected pixel coordinate
+    float4 local_position = {((x - SCREENWIDTH/2.0f)*zval/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*zval/FOV_CONST), zval, 0};
+
+    float4 zero = {0,0,0,0};
+
+    float4 lc_rot = *c_rot;
+    float4 lc_pos = *c_pos;
+
+    ///backrotate pixel coordinate into globalspace
+    float4 global_position = rot(local_position,  zero, (float4)
+    {
+        -lc_rot.x, 0.0f, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, -lc_rot.y, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, 0.0f, -lc_rot.z, 0.0f
+    });
+
+    global_position += lc_pos;
+
+    /*global_position -= *d_pos;
+
+
+    lc_rot = *d_rot;
+
+    ///backrotate pixel coordinate into globalspace
+    global_position        = rot(global_position,  zero, (float4)
+    {
+        -lc_rot.x, 0.0f, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, -lc_rot.y, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, 0.0f, -lc_rot.z, 0.0f
+    });*/
+
+    //global_position += *d_pos;
+
+    float xs = global_position.x;
+    float ys = global_position.y;
+
+    float px = xs + ws/2.0f;
+    float py = ys + hs/2.0f;
+
+    //printf("%f %f\n", px, py);
+
+    //if(px < 0 || px >= ws || py < 0 || py >= hs)
+    //    return;
+
+    uint4 col = read_imageui(tex, sampler, (float2){px, py});
+    float4 newcol = convert_float4(col) / 255.0f;
+
+
+
+    //if(x == 0 && y == 0)
+    //printf("LD: %d %d ", px, py);
+
+    //newcol = zval / 1000.0f;
+
+
+
+
+    //write_imagef(screen, (int2){px, py}, newcol);
+    write_imagef(screen, (int2){x, y}, newcol);
+    //write_imagef(screen, (int2){x + round(points_3d[3].x), y + round(points_3d[3].y)}, newcol);
+
+
+
+    write_imagef(screen, (int2){points_3d[3].x, points_3d[3].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    write_imagef(screen, (int2){points_3d[2].x, points_3d[2].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    write_imagef(screen, (int2){points_3d[1].x, points_3d[1].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    write_imagef(screen, (int2){points_3d[0].x, points_3d[0].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+
+
+
+    /*if(x >= w)
         return;
 
     if(y >= h)
@@ -2686,7 +2854,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, _
     if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENWIDTH)
         return;
 
-    write_imagef(screen, (int2){px, py}, newcol);
+    write_imagef(screen, (int2){px, py}, newcol);*/
 }
 
 /*///change to reverse projection
@@ -2731,11 +2899,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, _
     int py = round(projected.y);
 
     if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENWIDTH)
-        return;
-
-    if(2*x % 3)
-        return;
-    if(2*y % 3)
         return;
 
     write_imagef(screen, (int2){px, py}, newcol);

@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     //exit(ship.objects.objs[0].tri_list.size());
 
     ship.process_transformations();
-    ship.calc_push_physics_info({0, -200, 0, 0}); ///separate into separate pos call?
+    ship.calc_push_physics_info({0, -0, 0, 0}); ///separate into separate pos call?
 
     ship2.process_transformations();
     ship2.calc_push_physics_info((cl_float4){0,-200,0,0});
@@ -302,9 +302,9 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
+        //window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
-        window.draw_space_dust_cloud(g_space_dust, g_game_cam);
+        //window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
         sf::Clock h_time;
         window.draw_holograms();

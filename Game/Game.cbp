@@ -43,6 +43,7 @@
 			<Add option="-D_FORTIFY_SOURCE=2" />
 			<Add option="-DGLEW_STATIC" />
 			<Add option="-DSFML_STATIC" />
+			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 		</Compiler>
 		<Linker>
 			<Add option="-lmingw32" />
@@ -60,10 +61,13 @@
 			<Add option="-lglew32.dll" />
 			<Add option="-lssp" />
 		</Linker>
+		<Unit filename="../cl2.cl" />
 		<Unit filename="../clstate.cpp" />
 		<Unit filename="../clstate.h" />
 		<Unit filename="../engine.cpp" />
 		<Unit filename="../engine.hpp" />
+		<Unit filename="../hologram.cpp" />
+		<Unit filename="../hologram.hpp" />
 		<Unit filename="../interact_manager.cpp" />
 		<Unit filename="../interact_manager.hpp" />
 		<Unit filename="../light.cpp" />

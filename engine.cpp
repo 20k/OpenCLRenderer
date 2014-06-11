@@ -894,8 +894,10 @@ void engine::draw_holograms()
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
 
-    cl_float4 pos = {200, -200, 300, 0};
-    cl_float4 rot = {0, 1.0, 0.0, 0};
+    //cl_float4 pos = {200, -200, 300, 0};
+    cl_float4 pos = {0, -0, 0, 0};
+    //cl_float4 rot = {0, 1.0, 0.0, 0};
+    cl_float4 rot = {0, 0.0, 0.0, 0};
 
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
@@ -906,14 +908,38 @@ void engine::draw_holograms()
         tl_rot = add(tl_rot, pos);
         cl_float4 tl_projected = project(tl_rot);
 
+        cl_float4 tr_rot = rot_about({w/2, -h/2,  0, 0}, {0,0,0,0}, rot);
+        tr_rot = add(tr_rot, pos);
+        cl_float4 tr_projected = project(tr_rot);
+
         cl_float4 br_rot = rot_about({w/2, h/2,  0, 0}, {0,0,0,0}, rot);
         br_rot = add(br_rot, pos);
         cl_float4 br_projected = project(br_rot);
 
-        int g_w = br_projected.x - tl_projected.x;
-        int g_h = br_projected.y - tl_projected.y;
+        cl_float4 bl_rot = rot_about({-w/2, h/2,  0, 0}, {0,0,0,0}, rot);
+        bl_rot = add(bl_rot, pos);
+        cl_float4 bl_projected = project(bl_rot);
 
-        printf("T %d %d\n",g_w,g_h); ///yay actually correct!
+        int g_w = ceil(br_projected.x - tl_projected.x);
+        int g_h = ceil(br_projected.y - tl_projected.y);
+
+        printf("%i %i\n", g_w, g_h);
+
+        //if(g_w < 0 || g_h < 0)
+        //    continue;
+
+        g_w = abs(g_w);
+        g_h = abs(g_h);
+
+        if(g_w >= g_size || g_h >= g_size)
+            continue;
+
+        if(bl_projected.z < 50 || br_projected.z < 50 || tl_projected.z < 50 || tr_projected.z < 50)
+            continue;
+
+        cl_float4 points[4] = {tr_projected, br_projected, bl_projected, tl_projected};
+
+        //printf("T %d %d\n",g_w,g_h); ///yay actually correct!
         ///invoke kernel with this and back project nearest etc
 
         hologram_manager::acquire(i);
@@ -923,14 +949,15 @@ void engine::draw_holograms()
 
         compute::buffer gpos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
         compute::buffer grot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &rot);
+        compute::buffer g_br_pos = compute::buffer(cl::context, sizeof(cl_float4)*4, CL_MEM_COPY_HOST_PTR, &points);
 
-        compute::buffer* holo_args[] = {&wrap_tex, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
+        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
 
-        cl_uint num[2] = {w, h};
+        cl_uint num[2] = {g_w, g_h};
 
         cl_uint ls[2] = {16, 16};
 
-        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 6, true);
+        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 7, true);
 
         hologram_manager::release(i);
     }
