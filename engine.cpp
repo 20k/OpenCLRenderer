@@ -888,6 +888,30 @@ void engine::draw_ui()
     cl::cqueue.finish();
 }
 
+template<typename T, typename Q>
+float vmin(T t, Q q)
+{
+    return std::min(t, q);
+}
+
+template<typename T, typename... Args>
+float vmin(T t, Args... args)
+{
+    return std::min(t, vmin(args...));
+}
+
+template<typename T, typename Q>
+float vmax(T t, Q q)
+{
+    return std::max(t, q);
+}
+
+template<typename T, typename... Args>
+float vmax(T t, Args... args)
+{
+    return std::max(t, vmax(args...));
+}
+
 void engine::draw_holograms()
 {
     cl_mem scr = g_screen.get();
@@ -920,10 +944,20 @@ void engine::draw_holograms()
         bl_rot = add(bl_rot, pos);
         cl_float4 bl_projected = project(bl_rot);
 
-        int g_w = ceil(br_projected.x - tl_projected.x);
-        int g_h = ceil(br_projected.y - tl_projected.y);
+        float minx = vmin(tl_projected.x, bl_projected.x, br_projected.x, tr_projected.x);
+        float maxx = vmax(tl_projected.x, bl_projected.x, br_projected.x, tr_projected.x);
+
+        float miny = vmin(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
+        float maxy = vmax(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
+
+        int g_w = ceil(maxx - minx);
+        int g_h = ceil(maxy - miny);
 
         printf("%i %i\n", g_w, g_h);
+
+        cl_int2 mins = {minx, miny}; ///maxy because we're working in opposite land coordinate system vertically
+
+        ///need to pass in minx, maxy
 
         //if(g_w < 0 || g_h < 0)
         //    continue;
@@ -950,14 +984,15 @@ void engine::draw_holograms()
         compute::buffer gpos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
         compute::buffer grot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &rot);
         compute::buffer g_br_pos = compute::buffer(cl::context, sizeof(cl_float4)*4, CL_MEM_COPY_HOST_PTR, &points);
+        compute::buffer minimum_point = compute::buffer(cl::context, sizeof(cl_int2), CL_MEM_COPY_HOST_PTR, &mins);
 
-        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
+        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &minimum_point, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
 
         cl_uint num[2] = {g_w, g_h};
 
         cl_uint ls[2] = {16, 16};
 
-        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 7, true);
+        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 8, true);
 
         hologram_manager::release(i);
     }

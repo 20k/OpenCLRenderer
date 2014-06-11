@@ -2648,14 +2648,17 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
-__kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3d, __global int2* mins, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
                               CLK_FILTER_LINEAR;
 
-    const int x = get_global_id(0) + points_3d[3].x;
-    const int y = get_global_id(1) + points_3d[3].y;
+    //const int x = get_global_id(0) + points_3d[3].x;
+    //const int y = get_global_id(1) + points_3d[3].y;
+
+    int x = get_global_id(0) + (*mins).x;
+    int y = get_global_id(1) + (*mins).y;
 
     const int ws = get_image_width(tex);
     const int hs = get_image_height(tex);

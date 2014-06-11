@@ -55,7 +55,7 @@ void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
     }
 }
 
-//bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
+bool is_hyperspace = false; ///currently warping? Not sure where to put this variable
 
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
