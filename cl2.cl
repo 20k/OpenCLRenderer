@@ -57,9 +57,9 @@ float max3(float x,  float y,  float z)
     return fabs((x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))/2.0f);
 }*/
 
-float calc_area(float x1, float y1, float x2, float y2, float x3, float y3)
+float calc_area(float4 x, float4 y)
 {
-    return fabs((x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))/2.0f);
+    return fabs((x.x*(y.y - y.z) + x.y*(y.z - y.x) + x.z*(y.x - y.y))/2.0f);
 }
 
 struct light
@@ -1830,8 +1830,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     ///calculate area by triangle 3rd area method
     //float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
-    float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
-
+    //float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
+    float area = calc_area(xpv, ypv);
 
     int pcount=0;
 
@@ -1968,7 +1968,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
     //float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
-    float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
+    //float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
+    float area = calc_area(xpv, ypv);
 
     int pcount=0;
 
