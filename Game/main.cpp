@@ -302,9 +302,9 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        //window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
+        window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
-        //window.draw_space_dust_cloud(g_space_dust, g_game_cam);
+        window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
         sf::Clock h_time;
         window.draw_holograms();

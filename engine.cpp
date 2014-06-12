@@ -601,7 +601,7 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
+    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
 
     cl_uint local = 128;
 
@@ -638,7 +638,7 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
+    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
 
     cl_uint local = 128;
 
@@ -676,7 +676,7 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &offset_pos, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[(nbuf + 1) % 2]};
+    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &offset_pos, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
 
     cl_uint local = 128;
 
@@ -839,10 +839,6 @@ void engine::draw_bulk_objs_n()
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
-
-    ///swap depth buffers
-    nbuf++;
-    nbuf = nbuf % 2;
 
     ///release opengl stuff
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
@@ -1027,6 +1023,10 @@ void engine::render_buffers()
     text_handler::render();
 
     window.display();
+
+    ///swap depth buffers
+    nbuf++;
+    nbuf = nbuf % 2;
 }
 
 int engine::get_mouse_x()
