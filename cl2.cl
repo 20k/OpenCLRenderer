@@ -2669,7 +2669,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     float b1 = calc_third_areas_i(points_3d[0].x, points_3d[1].x, points_3d[2].x, points_3d[0].y, points_3d[1].y, points_3d[2].y, x, y);
     float b2 = calc_third_areas_i(points_3d[0].x, points_3d[2].x, points_3d[3].x, points_3d[0].y, points_3d[2].y, points_3d[3].y, x, y);
 
-    float mod = 200;
+    float mod = 1;
 
     if(!((b1 <= A1 + mod && b1 >= A1 - mod) || (b2 <= A2 + mod && b2 >= A2 - mod)))
         return;
