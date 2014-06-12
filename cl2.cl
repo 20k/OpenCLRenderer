@@ -2760,7 +2760,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     //if(px < 0 || px >= ws || py < 0 || py >= hs)
     //    return;
 
-    uint4 col = read_imageui(tex, sampler, (float2){px, py});
+    uint4 col = read_imageui(tex, sampler, (float2){px, hs - py});
     float4 newcol = convert_float4(col) / 255.0f;
 
     if(newcol.w == 0)

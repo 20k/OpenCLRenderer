@@ -60,7 +60,7 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///space dust ///like really a lot
 ///add already_loaded optimisation - done
 
-///swap depth buffer in render_buffers?
+///swap depth buffer in render_buffers? - done
 
 ///use separate game camera for point rendering?
 ///collision_whatever is wrong, do tiny test to fix
@@ -91,6 +91,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///Make hyperspace cloud a light?
 
 ///need some kind of resources manager really
+
+///hyperspace disabled due to feature creep
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
