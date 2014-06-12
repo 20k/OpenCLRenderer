@@ -9,23 +9,6 @@ std::vector<cl_mem> hologram_manager::g_tex_mem;
 
 void hologram_manager::load(std::string file)
 {
-   /* sf::Texture tex;
-    tex.loadFromFile(file.c_str());
-    sf::Texture::bind(&tex);
-
-    GLint id;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &id);
-
-    std::cout << "Texture bound with ID: "  << id << std::endl;
-
-    tex_id.push_back(id);
-
-    int w = tex.getSize().x;
-    int h = tex.getSize().y;
-
-    tex_size.push_back({w, h});
-    tex_mem.push_back(tex);*/
-
     sf::Image img;
     img.loadFromFile(file.c_str());
 

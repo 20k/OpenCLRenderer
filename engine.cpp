@@ -921,8 +921,8 @@ void engine::draw_holograms()
 
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
-        int w = hologram_manager::tex_size[i].first;
-        int h = hologram_manager::tex_size[i].second;
+        float w = hologram_manager::tex_size[i].first;
+        float h = hologram_manager::tex_size[i].second;
 
         cl_float4 tl_rot = rot_about({-w/2, -h/2,  0, 0}, {0,0,0,0}, rot);
         tl_rot = add(tl_rot, pos);
@@ -949,9 +949,12 @@ void engine::draw_holograms()
         int g_w = ceil(maxx - minx);
         int g_h = ceil(maxy - miny);
 
-        printf("%i %i\n", g_w, g_h);
+        if(g_h <= 1 || g_w <= 1)
+            continue;
 
-        cl_int2 mins = {minx, miny}; ///maxy because we're working in opposite land coordinate system vertically
+        //printf("%i %i\n", g_w, g_h);
+
+        cl_int2 mins = {(int)minx, (int)miny}; ///maxy because we're working in opposite land coordinate system vertically
 
         ///need to pass in minx, maxy
 
@@ -984,7 +987,7 @@ void engine::draw_holograms()
 
         compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &minimum_point, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
 
-        cl_uint num[2] = {g_w, g_h};
+        cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
 
         cl_uint ls[2] = {16, 16};
 
