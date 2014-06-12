@@ -7,7 +7,14 @@ std::vector<GLuint> hologram_manager::tex_id;
 std::vector<std::pair<int, int>> hologram_manager::tex_size;
 std::vector<cl_mem> hologram_manager::g_tex_mem;
 
-void hologram_manager::load(std::string file)
+std::vector<cl_float4> hologram_manager::positions;
+std::vector<cl_float4> hologram_manager::rotations;
+
+std::vector<cl_mem>    hologram_manager::g_positions;
+std::vector<cl_mem>    hologram_manager::g_rotations;
+
+
+void hologram_manager::load(std::string file, cl_float4 pos, cl_float4 rot)
 {
     sf::Image img;
     img.loadFromFile(file.c_str());

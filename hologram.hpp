@@ -16,7 +16,13 @@ struct hologram_manager
     static std::vector<sf::Texture> tex_mem;
     static std::vector<cl_mem> g_tex_mem;
 
-    static void load(std::string);
+    static std::vector<cl_float4> positions;
+    static std::vector<cl_float4> rotations;
+
+    static std::vector<cl_mem>    g_positions;
+    static std::vector<cl_mem>    g_rotations;
+
+    static void load(std::string, cl_float4 pos, cl_float4 rot);
 
     static void acquire(int);
     static void release(int);

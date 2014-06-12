@@ -2694,16 +2694,9 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 
     float rconstant = calc_rconstant_v((float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f});
 
-    ///float interpolate_p(float4 f, float xn, float yn, float4 x, float4 y, float rconstant)
-
-
     float zval = interpolate_p((float4){1.0f / points[0].z, 1.0f / points[1].z, 1.0f / points[2].z, 0.0f}, x, y, (float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f}, rconstant);
 
     zval = 1.0f / zval;
-
-
-    //if(x==0&&y==0)
-    //printf("%f %f %f %f %f\n", points_3d[0].z, points_3d[1].z, points_3d[2].z, points_3d[3].z, zval);
 
     ///unprojected pixel coordinate
     float4 local_position = {((x - SCREENWIDTH/2.0f)*zval/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*zval/FOV_CONST), zval, 0};
@@ -2755,11 +2748,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     float px = xs + ws/2.0f;
     float py = ys + hs/2.0f;
 
-    //printf("%f %f\n", px, py);
-
-    //if(px < 0 || px >= ws || py < 0 || py >= hs)
-    //    return;
-
     uint4 col = read_imageui(tex, sampler, (float2){px, hs - py});
     float4 newcol = convert_float4(col) / 255.0f;
 
@@ -2769,7 +2757,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     //write_imagef(screen, (int2){px, py}, newcol);
     write_imagef(screen, (int2){x, y}, newcol);
     //write_imagef(screen, (int2){x + round(points_3d[3].x), y + round(points_3d[3].y)}, newcol);
-
 
 
     //write_imagef(screen, (int2){points_3d[3].x, points_3d[3].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});

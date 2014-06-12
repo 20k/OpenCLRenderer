@@ -961,8 +961,8 @@ void engine::draw_holograms()
         //if(g_w < 0 || g_h < 0)
         //    continue;
 
-        g_w = abs(g_w);
-        g_h = abs(g_h);
+        //g_w = abs(g_w);
+        //g_h = abs(g_h);
 
         if(g_w >= g_size || g_h >= g_size)
             continue;
