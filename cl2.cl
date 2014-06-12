@@ -1957,8 +1957,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         yp[i] = round(tris_proj_n[i].y);
     }
 
-
-
     float4 xpv = {xp[0], xp[1], xp[2], 0.0f};
     float4 ypv = {yp[0], yp[1], yp[2], 0.0f};
 
@@ -2653,7 +2651,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
-                              CLK_FILTER_LINEAR;
+                              CLK_FILTER_NEAREST;
 
 
     int x = get_global_id(0) + (*mins).x;
