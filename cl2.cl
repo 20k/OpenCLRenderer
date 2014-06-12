@@ -2663,7 +2663,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     const int ws = get_image_width(tex);
     const int hs = get_image_height(tex);
 
-    float A1 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[1].x, points_3d[1].y, points_3d[2].x, points_3d[2].y); ///fix this function to be consistent
+    /*float A1 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[1].x, points_3d[1].y, points_3d[2].x, points_3d[2].y); ///fix this function to be consistent
     float A2 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[2].x, points_3d[2].y, points_3d[3].x, points_3d[3].y);
 
     float b1 = calc_third_areas_i(points_3d[0].x, points_3d[1].x, points_3d[2].x, points_3d[0].y, points_3d[1].y, points_3d[2].y, x, y);
@@ -2672,7 +2672,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     float mod = 1;
 
     if(!((b1 <= A1 + mod && b1 >= A1 - mod) || (b2 <= A2 + mod && b2 >= A2 - mod)))
-        return;
+        return;*/
 
     //float ws = points_3d[1].x - points_3d[3].x;
     //float hs = points_3d[1].y - points_3d[3].y;
@@ -2815,6 +2815,10 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     //printf("LD: %d %d ", px, py);
 
     //newcol = zval / 1000.0f;
+
+
+    if(newcol.x == 0 && newcol.y == 0 && newcol.z == 0 && newcol.w == 0)
+        return;
 
 
 
