@@ -2647,24 +2647,28 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
-__kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3d, __global int2* mins, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
                               CLK_FILTER_NEAREST;
 
 
-    int x = get_global_id(0) + (*mins).x;
-    int y = get_global_id(1) + (*mins).y;
+    //int x = get_global_id(0) + (*mins).x;
+    //int y = get_global_id(1) + (*mins).y;
+
+    int x = get_global_id(0);
+    int y = get_global_id(1);
 
     const int ws = get_image_width(tex);
     const int hs = get_image_height(tex);
 
     ///just do the fucking texture interpolation shit
-    float4 points[3];
+    float4 points[4];
     points[0] = points_3d[0];
     points[1] = points_3d[1];
     points[2] = points_3d[2];
+    points[3] = points_3d[3];
 
     float y1 = round(points[0].y);
     float y2 = round(points[1].y);
@@ -2690,6 +2694,12 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 
     maxx=max(maxx, 0.0f);
     maxx=min(maxx, (float)SCREENWIDTH);
+
+    float sminx = min(minx, round(points[3].x));
+    float sminy = min(miny, round(points[3].y));
+
+    x += sminx;
+    y += sminy;
 
 
     float rconstant = calc_rconstant_v((float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f});

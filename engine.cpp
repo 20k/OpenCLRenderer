@@ -950,10 +950,6 @@ void engine::draw_holograms()
         if(g_h <= 1 || g_w <= 1)
             continue;
 
-        //printf("%i %i\n", g_w, g_h);
-
-        cl_int2 mins = {(int)minx, (int)miny}; ///maxy because we're working in opposite land coordinate system vertically
-
         ///need to pass in minx, maxy
 
         if(g_w >= g_size || g_h >= g_size)
@@ -973,18 +969,17 @@ void engine::draw_holograms()
         compute::buffer wrap_tex(hologram_manager::g_tex_mem[i]);
 
         compute::buffer g_br_pos = compute::buffer(cl::context, sizeof(cl_float4)*4, CL_MEM_COPY_HOST_PTR, &points);
-        compute::buffer minimum_point = compute::buffer(cl::context, sizeof(cl_int2), CL_MEM_COPY_HOST_PTR, &mins); //calculate gpu?
 
         compute::buffer position_wrap = compute::buffer(hologram_manager::g_positions[i]);
         compute::buffer rotation_wrap = compute::buffer(hologram_manager::g_rotations[i]);
 
-        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &minimum_point, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr};
+        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr};
 
         cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
 
         cl_uint ls[2] = {16, 16};
 
-        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 8, true);
+        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 7, true);
 
         hologram_manager::release(i);
     }
