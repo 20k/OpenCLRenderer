@@ -915,12 +915,15 @@ void engine::draw_holograms()
     cl::cqueue.finish();
 
     //cl_float4 pos = {200, -200, 300, 0};
-    cl_float4 pos = {0, -0, 0, 0};
+    //cl_float4 pos = {0, -0, 0, 0};
     //cl_float4 rot = {0, 1.0, 0.0, 0};
-    cl_float4 rot = {0, 0.0, 0.0, 0};
+    //cl_float4 rot = {0, 0.0, 0.0, 0};
 
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
+        cl_float4 pos = hologram_manager::positions[i];
+        cl_float4 rot = hologram_manager::rotations[i];
+
         float w = hologram_manager::tex_size[i].first;
         float h = hologram_manager::tex_size[i].second;
 
@@ -980,12 +983,15 @@ void engine::draw_holograms()
         compute::buffer wrap_scr(scr);
         compute::buffer wrap_tex(hologram_manager::g_tex_mem[i]);
 
-        compute::buffer gpos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
-        compute::buffer grot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &rot);
+        //compute::buffer gpos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
+        //compute::buffer grot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &rot);
         compute::buffer g_br_pos = compute::buffer(cl::context, sizeof(cl_float4)*4, CL_MEM_COPY_HOST_PTR, &points);
-        compute::buffer minimum_point = compute::buffer(cl::context, sizeof(cl_int2), CL_MEM_COPY_HOST_PTR, &mins);
+        compute::buffer minimum_point = compute::buffer(cl::context, sizeof(cl_int2), CL_MEM_COPY_HOST_PTR, &mins); //calculate gpu?
 
-        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &minimum_point, &gpos, &grot, &g_c_pos, &g_c_rot, &wrap_scr};
+        compute::buffer position_wrap = compute::buffer(hologram_manager::g_positions[i]);
+        compute::buffer rotation_wrap = compute::buffer(hologram_manager::g_rotations[i]);
+
+        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &minimum_point, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr};
 
         cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
 

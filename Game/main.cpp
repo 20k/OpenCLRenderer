@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
 
-    hologram_manager::load("Res/ui.png");
+    hologram_manager::load("Res/ui.png", {0,0,0,0}, {0,0,0,0});
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
 

@@ -14,7 +14,8 @@ std::vector<cl_mem>    hologram_manager::g_positions;
 std::vector<cl_mem>    hologram_manager::g_rotations;
 
 
-void hologram_manager::load(std::string file, cl_float4 pos, cl_float4 rot)
+///this function is cheating somewhat, replace it with pure opencl later
+void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot)
 {
     sf::Image img;
     img.loadFromFile(file.c_str());
@@ -43,7 +44,16 @@ void hologram_manager::load(std::string file, cl_float4 pos, cl_float4 rot)
 
     cl_mem mem = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture_handle, NULL);
 
-    if(mem == NULL)
+    cl_mem g_pos = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_pos, NULL);
+    cl_mem g_rot = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_rot, NULL);
+
+    positions.push_back(_pos);
+    rotations.push_back(_rot);
+
+    g_positions.push_back(g_pos);
+    g_rotations.push_back(g_rot);
+
+    if(!mem || !g_pos || !g_rot)
     {
         throw "OPENCL IS ON FIRE WHAT DO";
     }
