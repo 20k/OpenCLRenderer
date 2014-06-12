@@ -2654,8 +2654,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
                               CLK_ADDRESS_CLAMP           |
                               CLK_FILTER_LINEAR;
 
-    //const int x = get_global_id(0) + points_3d[3].x;
-    //const int y = get_global_id(1) + points_3d[3].y;
 
     int x = get_global_id(0) + (*mins).x;
     int y = get_global_id(1) + (*mins).y;
@@ -2663,53 +2661,11 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     const int ws = get_image_width(tex);
     const int hs = get_image_height(tex);
 
-    /*float A1 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[1].x, points_3d[1].y, points_3d[2].x, points_3d[2].y); ///fix this function to be consistent
-    float A2 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[2].x, points_3d[2].y, points_3d[3].x, points_3d[3].y);
-
-    float b1 = calc_third_areas_i(points_3d[0].x, points_3d[1].x, points_3d[2].x, points_3d[0].y, points_3d[1].y, points_3d[2].y, x, y);
-    float b2 = calc_third_areas_i(points_3d[0].x, points_3d[2].x, points_3d[3].x, points_3d[0].y, points_3d[2].y, points_3d[3].y, x, y);
-
-    float mod = 1;
-
-    if(!((b1 <= A1 + mod && b1 >= A1 - mod) || (b2 <= A2 + mod && b2 >= A2 - mod)))
-        return;*/
-
-    //float ws = points_3d[1].x - points_3d[3].x;
-    //float hs = points_3d[1].y - points_3d[3].y;
-
-    //ws = fabs(ws);
-    //hs = fabs(hs);
-
-    /*
-
-    float cx = (float)x/ws;
-    float cy = (float)y/hs;
-
-    //printf("%d\n", w);
-
-    const int w = get_image_width(tex);
-    const int h = get_image_height(tex);
-
-    float px, py;
-    px = x + points_3d[2].x;
-    py = y + points_3d[2].y;
-
-    ///need to do actual within bounds
-
-    uint4 col = read_imageui(tex, sampler, (float2){cx, cy});
-    float4 newcol = convert_float4(col) / 255.0f;
-
-    write_imagef(screen, (int2){px, py}, newcol);*/
-
     ///just do the fucking texture interpolation shit
-
     float4 points[3];
     points[0] = points_3d[0];
     points[1] = points_3d[1];
     points[2] = points_3d[2];
-
-    //for(int i=0; i<3; i++)
-    //    points[i] = (float4){((points[i].x - SCREENWIDTH/2.0f)*points[i].z/FOV_CONST), ((points[i].y - SCREENHEIGHT/2.0f)*points[i].z/FOV_CONST), points[i].z, 0};
 
     float y1 = round(points[0].y);
     float y2 = round(points[1].y);
@@ -2736,7 +2692,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     maxx=max(maxx, 0.0f);
     maxx=min(maxx, (float)SCREENWIDTH);
 
-    //float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
 
     float rconstant = calc_rconstant_v((float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f});
 
@@ -2809,19 +2764,8 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     uint4 col = read_imageui(tex, sampler, (float2){px, py});
     float4 newcol = convert_float4(col) / 255.0f;
 
-
-
-    //if(x == 0 && y == 0)
-    //printf("LD: %d %d ", px, py);
-
-    //newcol = zval / 1000.0f;
-
-
-    if(newcol.x == 0 && newcol.y == 0 && newcol.z == 0 && newcol.w == 0)
+    if(newcol.w == 0)
         return;
-
-
-
 
     //write_imagef(screen, (int2){px, py}, newcol);
     write_imagef(screen, (int2){x, y}, newcol);
@@ -2833,45 +2777,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     //write_imagef(screen, (int2){points_3d[2].x, points_3d[2].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
     //write_imagef(screen, (int2){points_3d[1].x, points_3d[1].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
     //write_imagef(screen, (int2){points_3d[0].x, points_3d[0].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
-
-
-
-    /*if(x >= w)
-        return;
-
-    if(y >= h)
-        return;
-
-    float4 zero = {0,0,0,0};
-
-    float4 postrotate = rot((float4){x - w/2, y - h/2, 1, 0}, zero, *d_rot);
-
-    float4 world_pos = postrotate + *d_pos;
-
-    float4 post_camera_rotate = rot(world_pos, *c_pos, *c_rot);
-
-    float4 projected = depth_project_singular(post_camera_rotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
-
-    if(projected.z < depth_icutoff)
-        return;
-
-    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
-        return;
-
-    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP           |
-                              CLK_FILTER_NEAREST;
-
-    uint4 col = read_imageui (tex, sampler, (float2){x, y});
-    float4 newcol = convert_float4(col) / 255.0f;
-
-    int px = round(projected.x);
-    int py = round(projected.y);
-
-    if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENWIDTH)
-        return;
-
-    write_imagef(screen, (int2){px, py}, newcol);*/
 }
 
 /*///change to reverse projection
