@@ -2663,6 +2663,17 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     const int ws = get_image_width(tex);
     const int hs = get_image_height(tex);
 
+    float A1 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[1].x, points_3d[1].y, points_3d[2].x, points_3d[2].y); ///fix this function to be consistent
+    float A2 = calc_area(points_3d[0].x, points_3d[0].y, points_3d[2].x, points_3d[2].y, points_3d[3].x, points_3d[3].y);
+
+    float b1 = calc_third_areas_i(points_3d[0].x, points_3d[1].x, points_3d[2].x, points_3d[0].y, points_3d[1].y, points_3d[2].y, x, y);
+    float b2 = calc_third_areas_i(points_3d[0].x, points_3d[2].x, points_3d[3].x, points_3d[0].y, points_3d[2].y, points_3d[3].y, x, y);
+
+    float mod = 200;
+
+    if(!((b1 <= A1 + mod && b1 >= A1 - mod) || (b2 <= A2 + mod && b2 >= A2 - mod)))
+        return;
+
     //float ws = points_3d[1].x - points_3d[3].x;
     //float hs = points_3d[1].y - points_3d[3].y;
 
@@ -2764,8 +2775,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 
     global_position += lc_pos;
 
-    /*global_position -= *d_pos;
-
+    global_position -= *d_pos;
 
     lc_rot = *d_rot;
 
@@ -2781,7 +2791,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     global_position        = rot(global_position, zero, (float4)
     {
         0.0f, 0.0f, -lc_rot.z, 0.0f
-    });*/
+    });
 
     //global_position += *d_pos;
 
@@ -2815,10 +2825,10 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 
 
 
-    write_imagef(screen, (int2){points_3d[3].x, points_3d[3].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
-    write_imagef(screen, (int2){points_3d[2].x, points_3d[2].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
-    write_imagef(screen, (int2){points_3d[1].x, points_3d[1].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
-    write_imagef(screen, (int2){points_3d[0].x, points_3d[0].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    //write_imagef(screen, (int2){points_3d[3].x, points_3d[3].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    //write_imagef(screen, (int2){points_3d[2].x, points_3d[2].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    //write_imagef(screen, (int2){points_3d[1].x, points_3d[1].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
+    //write_imagef(screen, (int2){points_3d[0].x, points_3d[0].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
 
 
 
