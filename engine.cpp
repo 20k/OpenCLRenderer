@@ -914,11 +914,6 @@ void engine::draw_holograms()
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
 
-    //cl_float4 pos = {200, -200, 300, 0};
-    //cl_float4 pos = {0, -0, 0, 0};
-    //cl_float4 rot = {0, 1.0, 0.0, 0};
-    //cl_float4 rot = {0, 0.0, 0.0, 0};
-
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
         cl_float4 pos = hologram_manager::positions[i];
@@ -961,12 +956,6 @@ void engine::draw_holograms()
 
         ///need to pass in minx, maxy
 
-        //if(g_w < 0 || g_h < 0)
-        //    continue;
-
-        //g_w = abs(g_w);
-        //g_h = abs(g_h);
-
         if(g_w >= g_size || g_h >= g_size)
             continue;
 
@@ -983,8 +972,6 @@ void engine::draw_holograms()
         compute::buffer wrap_scr(scr);
         compute::buffer wrap_tex(hologram_manager::g_tex_mem[i]);
 
-        //compute::buffer gpos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &pos);
-        //compute::buffer grot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &rot);
         compute::buffer g_br_pos = compute::buffer(cl::context, sizeof(cl_float4)*4, CL_MEM_COPY_HOST_PTR, &points);
         compute::buffer minimum_point = compute::buffer(cl::context, sizeof(cl_int2), CL_MEM_COPY_HOST_PTR, &mins); //calculate gpu?
 
