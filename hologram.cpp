@@ -32,8 +32,8 @@ void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot)
     GL_RGBA, GL_UNSIGNED_BYTE, img.getPixelsPtr());
 
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
@@ -42,7 +42,7 @@ void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot)
     tex_id.push_back(texture_handle); ///dont need to keep this potentially?
     tex_size.push_back({img.getSize().x, img.getSize().y});
 
-    cl_mem mem = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture_handle, NULL);
+    cl_mem mem = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_ONLY, GL_TEXTURE_2D, 0, texture_handle, NULL);
 
     cl_mem g_pos = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_pos, NULL);
     cl_mem g_rot = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_rot, NULL);

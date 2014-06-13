@@ -991,7 +991,7 @@ void engine::draw_holograms()
 void engine::render_buffers()
 {
     sf::Clock clk;
-    draw_ui();
+    draw_ui(); ///?
     std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");

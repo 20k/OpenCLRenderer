@@ -2651,7 +2651,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
-                              CLK_FILTER_NEAREST;
+                              CLK_FILTER_LINEAR;
 
 
     //int x = get_global_id(0) + (*mins).x;
@@ -2758,8 +2758,10 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     float px = xs + ws/2.0f;
     float py = ys + hs/2.0f;
 
-    uint4 col = read_imageui(tex, sampler, (float2){px, hs - py});
-    float4 newcol = convert_float4(col) / 255.0f;
+    //uint4 col = read_imageui(tex, sampler, (float2){px, hs - py});
+    float4 newcol = read_imagef(tex, sampler, (float2){px, hs - py});
+    //float4 newcol = convert_float4(col) / 255.0f;
+    //newcol.x = 1;
 
     if(newcol.w == 0)
         return;
