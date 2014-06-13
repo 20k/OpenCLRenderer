@@ -234,8 +234,6 @@ int main(int argc, char *argv[])
         wgs.y = 10;
 
 
-
-
         if(window.window.pollEvent(Event))
         {
             if(Event.type == sf::Event::Closed)
@@ -305,13 +303,14 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        window.draw_galaxy_cloud(g_star_cloud, g_game_cam);
-
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
         sf::Clock h_time;
         window.draw_holograms();
         std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
+
+        window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
+
 
         //if(test)
         //    window.draw_space_dust_no_tile(g_space_dust_warp, ship.hyperspace_position_end);

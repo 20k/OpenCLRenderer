@@ -2713,6 +2713,8 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     if(zval > buf_depth)
         return;
 
+    depth_buffer[y*SCREENWIDTH + x] = dcalc(zval)*mulint;
+
     ///unprojected pixel coordinate
     float4 local_position = {((x - SCREENWIDTH/2.0f)*zval/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*zval/FOV_CONST), zval, 0};
 
@@ -2773,7 +2775,6 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
         0.0f, 0.0f, -lc_rot.z, 0.0f
     });
 
-    //global_position += *d_pos;
 
     float xs = global_position.x;
     float ys = global_position.y;
