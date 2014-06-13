@@ -964,8 +964,10 @@ void engine::draw_holograms()
         float miny = vmin(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
         float maxy = vmax(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
 
-        bool bounds = !within_bounds(minx, 0, width) && !within_bounds(maxx, 0, width) || !within_bounds(miny, 0, height) && !within_bounds(maxy, 0, height);
+        ///remove massive out of bounds check
+        bool bounds = (!within_bounds(minx, 0, width) && !within_bounds(maxx, 0, width)) || (!within_bounds(miny, 0, height) && !within_bounds(maxy, 0, height));
 
+        ///if all of x or all of y out of bounds return
         if(bounds)
             continue;
 

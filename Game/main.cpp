@@ -124,7 +124,8 @@ int main(int argc, char *argv[])
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
 
-    hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects); ///shall i give it g_player_pos as well or what?
+    //hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
+    hologram_manager::load("Res/sigh.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
 
@@ -218,6 +219,8 @@ int main(int argc, char *argv[])
 
     //sf::Clock time_clock;
 
+    window.c_pos = ship.objects.pos;
+
     while(window.window.isOpen())
     {
         //flush_game_cam(game_cam_position, g_game_cam);
@@ -297,7 +300,7 @@ int main(int argc, char *argv[])
         game_object_manager::process_destroyed_ships();
 
         window.input();
-        window.set_camera_pos(player_ship->position); ///
+        window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
 
