@@ -916,6 +916,13 @@ void engine::draw_holograms()
 
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
+        ///figure out parent shit
+        if(hologram_manager::parents[i] == NULL) ///?
+            continue;
+
+        cl_float4 parent_pos = hologram_manager::parents[i]->pos;
+        cl_float4 parent_rot = hologram_manager::parents[i]->rot;
+
         cl_float4 pos = hologram_manager::positions[i];
         cl_float4 rot = hologram_manager::rotations[i];
 
@@ -924,18 +931,26 @@ void engine::draw_holograms()
 
         cl_float4 tl_rot = rot_about({-w/2, -h/2,  0, 0}, {0,0,0,0}, rot);
         tl_rot = add(tl_rot, pos);
+        tl_rot = rot_about(tl_rot, {0,0,0,0}, parent_rot);
+        tl_rot = add(tl_rot, parent_pos);
         cl_float4 tl_projected = project(tl_rot);
 
         cl_float4 tr_rot = rot_about({w/2, -h/2,  0, 0}, {0,0,0,0}, rot);
         tr_rot = add(tr_rot, pos);
+        tr_rot = rot_about(tr_rot, {0,0,0,0}, parent_rot);
+        tr_rot = add(tr_rot, parent_pos);
         cl_float4 tr_projected = project(tr_rot);
 
         cl_float4 br_rot = rot_about({w/2, h/2,  0, 0}, {0,0,0,0}, rot);
         br_rot = add(br_rot, pos);
+        br_rot = rot_about(br_rot, {0,0,0,0}, parent_rot);
+        br_rot = add(br_rot, parent_pos);
         cl_float4 br_projected = project(br_rot);
 
         cl_float4 bl_rot = rot_about({-w/2, h/2,  0, 0}, {0,0,0,0}, rot);
         bl_rot = add(bl_rot, pos);
+        bl_rot = rot_about(bl_rot, {0,0,0,0}, parent_rot);
+        bl_rot = add(bl_rot, parent_pos);
         cl_float4 bl_projected = project(bl_rot);
 
         float minx = vmin(tl_projected.x, bl_projected.x, br_projected.x, tr_projected.x);
@@ -973,13 +988,19 @@ void engine::draw_holograms()
         compute::buffer position_wrap = compute::buffer(hologram_manager::g_positions[i]);
         compute::buffer rotation_wrap = compute::buffer(hologram_manager::g_rotations[i]);
 
-        compute::buffer* holo_args[] = {&wrap_tex, &g_br_pos, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr};
+        cl_float8 posrot;
+        posrot.lo = parent_pos;
+        posrot.hi = parent_rot;
+
+        compute::buffer g_posrot = compute::buffer(cl::context, sizeof(cl_float8), CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, &posrot);
+
+        compute::buffer* holo_args[] = {&wrap_tex, &g_posrot, &g_br_pos, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr, &depth_buffer[nbuf]};
 
         cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
 
         cl_uint ls[2] = {16, 16};
 
-        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 7, true);
+        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 9, true);
 
         hologram_manager::release(i);
     }

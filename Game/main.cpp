@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
     game_object& ship2 = *game_manager::spawn_ship();
     game_object& ship3 = *game_manager::spawn_ship();
 
+
     ship.set_game_position({0,0,0,0}); ///just a generic starting position
     ship2.set_game_position({0,0,0,0});
     ship3.set_game_position({0,0,0,0});
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
     oclstuff("../cl2.cl");
     window.load(800,600,1000, "turtles");
 
-    hologram_manager::load("Res/ui.png", {0,0,100,0}, {0,0,0,0});
+    hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects); ///shall i give it g_player_pos as well or what?
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
 

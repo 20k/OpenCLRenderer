@@ -2647,21 +2647,20 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
-__kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
                               CLK_FILTER_LINEAR;
-
-
-    //int x = get_global_id(0) + (*mins).x;
-    //int y = get_global_id(1) + (*mins).y;
 
     int x = get_global_id(0);
     int y = get_global_id(1);
 
     const int ws = get_image_width(tex);
     const int hs = get_image_height(tex);
+
+    float4 parent_pos = posrot[0];
+    float4 parent_rot = posrot[1];
 
     ///just do the fucking texture interpolation shit
     float4 points[4];
@@ -2701,12 +2700,18 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     x += sminx;
     y += sminy;
 
+    uint i_depth = depth_buffer[y*SCREENWIDTH + x];
+    float buf_depth = idcalc((float)i_depth / mulint);
+
 
     float rconstant = calc_rconstant_v((float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f});
 
     float zval = interpolate_p((float4){1.0f / points[0].z, 1.0f / points[1].z, 1.0f / points[2].z, 0.0f}, x, y, (float4){x1, x2, x3, 0.0f}, (float4){y1, y2, y3, 0.0f}, rconstant);
 
     zval = 1.0f / zval;
+
+    if(zval > buf_depth)
+        return;
 
     ///unprojected pixel coordinate
     float4 local_position = {((x - SCREENWIDTH/2.0f)*zval/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*zval/FOV_CONST), zval, 0};
@@ -2732,11 +2737,29 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
 
     global_position += lc_pos;
 
+    global_position -= parent_pos;
+
+    lc_rot = parent_rot;
+
+    ///backrotate pixel coordinate into image space
+    global_position        = rot(global_position,  zero, (float4)
+    {
+        -lc_rot.x, 0.0f, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, -lc_rot.y, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float4)
+    {
+        0.0f, 0.0f, -lc_rot.z, 0.0f
+    });
+
     global_position -= *d_pos;
 
     lc_rot = *d_rot;
 
-    ///backrotate pixel coordinate into globalspace
+    ///backrotate pixel coordinate into image space
     global_position        = rot(global_position,  zero, (float4)
     {
         -lc_rot.x, 0.0f, 0.0f, 0.0f
@@ -2758,10 +2781,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* points_3
     float px = xs + ws/2.0f;
     float py = ys + hs/2.0f;
 
-    //uint4 col = read_imageui(tex, sampler, (float2){px, hs - py});
     float4 newcol = read_imagef(tex, sampler, (float2){px, hs - py});
-    //float4 newcol = convert_float4(col) / 255.0f;
-    //newcol.x = 1;
 
     if(newcol.w == 0)
         return;

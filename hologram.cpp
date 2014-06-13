@@ -13,9 +13,11 @@ std::vector<cl_float4> hologram_manager::rotations;
 std::vector<cl_mem>    hologram_manager::g_positions;
 std::vector<cl_mem>    hologram_manager::g_rotations;
 
+std::vector<objects_container*>    hologram_manager::parents;
+
 
 ///this function is cheating somewhat, replace it with pure opencl later
-void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot)
+void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, objects_container* parent)
 {
     sf::Image img;
     img.loadFromFile(file.c_str());
@@ -52,6 +54,8 @@ void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot)
 
     g_positions.push_back(g_pos);
     g_rotations.push_back(g_rot);
+
+    parents.push_back(parent);
 
     if(!mem || !g_pos || !g_rot)
     {

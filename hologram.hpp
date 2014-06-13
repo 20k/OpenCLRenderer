@@ -9,6 +9,8 @@
 #include <sfml/graphics.hpp>
 #include <cl/cl.h>
 
+struct objects_container;
+
 struct hologram_manager
 {
     static std::vector<GLuint> tex_id;
@@ -22,7 +24,9 @@ struct hologram_manager
     static std::vector<cl_mem>    g_positions;
     static std::vector<cl_mem>    g_rotations;
 
-    static void load(std::string, cl_float4 pos, cl_float4 rot);
+    static std::vector<objects_container*> parents;
+
+    static void load(std::string, cl_float4 pos, cl_float4 rot, objects_container* parent);
 
     static void acquire(int);
     static void release(int);
