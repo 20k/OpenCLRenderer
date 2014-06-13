@@ -908,6 +908,11 @@ float vmax(T t, Args... args)
     return std::max(t, vmax(args...));
 }
 
+bool within_bounds(float v, float min, float max)
+{
+    return v >= min && v < max;
+}
+
 void engine::draw_holograms()
 {
     cl_mem scr = g_screen.get();
@@ -959,6 +964,11 @@ void engine::draw_holograms()
         float miny = vmin(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
         float maxy = vmax(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
 
+        bool bounds = !within_bounds(minx, 0, width) && !within_bounds(maxx, 0, width) || !within_bounds(miny, 0, height) && !within_bounds(maxy, 0, height);
+
+        if(bounds)
+            continue;
+
         int g_w = ceil(maxx - minx);
         int g_h = ceil(maxy - miny);
 
@@ -967,7 +977,7 @@ void engine::draw_holograms()
 
         ///need to pass in minx, maxy
 
-        if(g_w >= g_size || g_h >= g_size)
+        if(g_w >= width || g_h >= height)
             continue;
 
         if(bl_projected.z < 50 || br_projected.z < 50 || tl_projected.z < 50 || tr_projected.z < 50)

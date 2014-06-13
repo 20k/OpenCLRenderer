@@ -2700,6 +2700,9 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     x += sminx;
     y += sminy;
 
+    if(x < 0 || x >= SCREENWIDTH || y < 0 || y >= SCREENHEIGHT)
+        return;
+
     uint i_depth = depth_buffer[y*SCREENWIDTH + x];
     float buf_depth = idcalc((float)i_depth / mulint);
 
@@ -2786,6 +2789,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
 
     if(newcol.w == 0)
         return;
+
 
     //write_imagef(screen, (int2){px, py}, newcol);
     write_imagef(screen, (int2){x, y}, newcol);
