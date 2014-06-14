@@ -26,22 +26,6 @@ int   hologram_manager::gid = 0;
 std::vector<cl_mem>   hologram_manager::g_id_bufs;
 
 
-GLuint get_texture_from_sfml(sf::Image& img)
-{
-    GLuint texture_handle_base;
-    glGenTextures(1, &texture_handle_base);
-
-    glBindTexture(GL_TEXTURE_2D, texture_handle_base);
-
-    glTexImage2D(
-    GL_TEXTURE_2D, 0, GL_RGBA,
-    img.getSize().x, img.getSize().y,
-    0,
-    GL_RGBA, GL_UNSIGNED_BYTE, img.getPixelsPtr());
-
-    return texture_handle_base;
-}
-
 ///this function is cheating somewhat, replace it with pure opencl later
 int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, float scale, objects_container* parent)
 {
@@ -57,9 +41,10 @@ int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, flo
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
     printf("ID: %i\n", texture_handle);
+    printf("ID: %i\n", texture_handle_base);
 
-    cl_mem mem = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_ONLY, GL_TEXTURE_2D, 0, texture_handle, NULL);
-    cl_mem mem_base = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_ONLY, GL_TEXTURE_2D, 0, texture_handle_base, NULL);
+    cl_mem mem_base = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture_handle_base, NULL);
+    cl_mem mem =      clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture_handle, NULL);
 
     cl_mem g_pos = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_pos, NULL);
     cl_mem g_rot = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_rot, NULL);
@@ -68,7 +53,13 @@ int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, flo
 
     cl_uint* blank = new cl_uint[img.getSize().x*img.getSize().y];
     memset(blank, 0, sizeof(cl_uint)*img.getSize().x*img.getSize().y);
-    cl_mem g_id_buf = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE, sizeof(cl_uint)*img.getSize().x*img.getSize().y, blank, NULL);
+    //cl_mem g_id_buf = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE, sizeof(cl_uint)*img.getSize().x*img.getSize().y, blank, NULL);
+
+
+    cl_mem g_id_buf = clCreateBuffer(cl::context, CL_MEM_READ_WRITE, sizeof(cl_uint)*img.getSize().x*img.getSize().y, NULL, NULL);
+    compute::buffer g_id_buf_wrap(g_id_buf);
+    cl::cqueue.enqueue_write_buffer(g_id_buf_wrap, 0, sizeof(cl_uint)*img.getSize().x*img.getSize().y, blank);
+
     delete [] blank;
 
     if(!mem || !mem_base || !g_pos || !g_rot || !g_scale || !g_id_buf)
@@ -113,6 +104,7 @@ void hologram_manager::acquire(int id)
 
     glFinish();
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_tex_mem[id], 0, NULL, NULL);
+    clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_tex_mem_base[id], 0, NULL, NULL);
     cl::cqueue.finish();
 }
 
@@ -126,6 +118,7 @@ void hologram_manager::release(int id)
 
     glFinish();
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_tex_mem[id], 0, NULL, NULL);
+    clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_tex_mem_base[id], 0, NULL, NULL);
 }
 
 int hologram_manager::get_real_id(int id)

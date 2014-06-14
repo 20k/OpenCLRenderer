@@ -9,6 +9,23 @@
 #include <sfml/graphics.hpp>
 #include <cl/cl.h>
 
+
+static GLuint get_texture_from_sfml(sf::Image& img)
+{
+    GLuint texture_handle_base;
+    glGenTextures(1, &texture_handle_base);
+
+    glBindTexture(GL_TEXTURE_2D, texture_handle_base);
+
+    glTexImage2D(
+    GL_TEXTURE_2D, 0, GL_RGBA,
+    img.getSize().x, img.getSize().y,
+    0,
+    GL_RGBA, GL_UNSIGNED_BYTE, img.getPixelsPtr());
+
+    return texture_handle_base;
+}
+
 struct objects_container;
 
 struct hologram_manager

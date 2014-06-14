@@ -17,6 +17,7 @@
 #include "game_manager.hpp"
 #include "space_dust.hpp"
 #include "asteroid/asteroid_gen.hpp"
+#include "../ui_manager.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -126,6 +127,9 @@ int main(int argc, char *argv[])
 
     //hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
     int hid = hologram_manager::load("Res/sigh.png", {0,-500,1000,0}, {0,0,0,0}, 1.0f, &ship.objects);
+    int real = hologram_manager::get_real_id(hid);
+    ui_manager::make_new(hid, hologram_manager::g_tex_mem_base[real], hologram_manager::g_tex_mem[real], hologram_manager::g_id_bufs[real], "Res/slider.png", {100, 30});
+
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
 
@@ -303,6 +307,9 @@ int main(int argc, char *argv[])
         window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
+        sf::Clock u_time;
+        ui_manager::tick_all();
+        std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.draw_bulk_objs_n();
 
