@@ -198,6 +198,8 @@ void oclstuff(std::string file)
     cl::space_dust_no_tile = compute::kernel(program, "space_dust_no_tiling");
     cl::draw_ui = compute::kernel(program, "draw_ui");
     cl::draw_hologram = compute::kernel(program, "draw_hologram");
+    cl::blit_with_id = compute::kernel(program, "blit_with_id");
+    cl::blit = compute::kernel(program, "blit");
 }
 
 

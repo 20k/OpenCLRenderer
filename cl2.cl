@@ -2810,6 +2810,45 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     //write_imagef(screen, (int2){points_3d[0].x, points_3d[0].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
 }
 
+__kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t mod, __read_only image2d_t to_write, __global uint2* coords, __global uint* id_buf, __global uint* id)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+                              CLK_ADDRESS_CLAMP           |
+                              CLK_FILTER_NEAREST;
+
+    int width = get_image_width(base);
+    int height = get_image_height(base);
+
+    x += (*coords).x;
+    y += (*coords).y;
+
+    id_buf[y*width + x] = *id;
+
+    float4 base_val = read_imagef(base, sampler, (int2){x, y});
+    float4 write_val = read_imagef(to_write, sampler, (int2){x, y});
+
+    ///alpha blending
+    base_val *= 1.0f - write_val.w;
+    write_val *= write_val.w;
+
+    write_imagef(mod, (int2){x, y}, base_val + write_val);
+}
+
+__kernel void blit(__read_only image2d_t base, __write_only image2d_t mod)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+                              CLK_ADDRESS_CLAMP           |
+                              CLK_FILTER_NEAREST;
+
+    write_imagef(mod, (int2){x, y}, read_imagef(base, sampler, (int2){x, y}));
+}
+
 /*///change to reverse projection
 __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
 {

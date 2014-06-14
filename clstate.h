@@ -28,6 +28,8 @@ namespace cl
     extern compute::kernel space_dust_no_tile;
     extern compute::kernel draw_ui;
     extern compute::kernel draw_hologram;
+    extern compute::kernel blit_with_id;
+    extern compute::kernel blit;
 }
 
 

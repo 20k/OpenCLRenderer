@@ -994,7 +994,7 @@ void engine::draw_holograms()
         if(g_h >= height)
             g_h = height - 1;
 
-        if(bl_projected.z < 5 || br_projected.z < 5 || tl_projected.z < 5 || tr_projected.z < 5)
+        if(bl_projected.z < 20 || br_projected.z < 20 || tl_projected.z < 20 || tr_projected.z < 20)
             continue;
 
         cl_float4 points[4] = {tr_projected, br_projected, bl_projected, tl_projected};
