@@ -2698,6 +2698,9 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     float sminx = min(minx, round(points[3].x));
     float sminy = min(miny, round(points[3].y));
 
+    sminx = max(sminx, 0.0f);
+    sminy = max(sminy, 0.0f);
+
     x += sminx;
     y += sminy;
 

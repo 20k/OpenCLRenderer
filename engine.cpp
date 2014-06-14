@@ -887,7 +887,7 @@ void engine::draw_ui()
 template<typename T, typename Q>
 float vmin(T t, Q q)
 {
-    return std::min(t, q);
+    return std::min(t, (T)q);
 }
 
 template<typename T, typename... Args>
@@ -899,7 +899,7 @@ float vmin(T t, Args... args)
 template<typename T, typename Q>
 float vmax(T t, Q q)
 {
-    return std::max(t, q);
+    return std::max(t, (T)q);
 }
 
 template<typename T, typename... Args>
@@ -965,17 +965,23 @@ void engine::draw_holograms()
         float maxy = vmax(tl_projected.y, bl_projected.y, br_projected.y, tr_projected.y);
 
         ///remove massive out of bounds check
-        bool bounds = (!within_bounds(minx, 0, width) && !within_bounds(maxx, 0, width)) || (!within_bounds(miny, 0, height) && !within_bounds(maxy, 0, height));
-
-
-        ///if all of x or all of y out of bounds return
-        if(bounds)
-            continue;
 
         int g_w = ceil(maxx - minx);
         int g_h = ceil(maxy - miny);
 
+        minx = vmax(minx, 0.0f);
+        maxx = vmin(maxx, width - 1);
+        miny = vmax(miny, 0.0f);
+        maxy = vmin(maxy, height - 1);
+
         if(g_h <= 1 || g_w <= 1)
+            continue;
+
+
+        bool bounds = (!within_bounds(minx, 0, width) && !within_bounds(maxx, 0, width)) || (!within_bounds(miny, 0, height) && !within_bounds(maxy, 0, height));
+
+        ///if all of x or all of y out of bounds return
+        if(bounds)
             continue;
 
         ///need to pass in minx, maxy;
