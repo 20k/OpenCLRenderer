@@ -33,6 +33,12 @@ int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, flo
     img.loadFromFile(file.c_str());
 
     GLuint texture_handle_base = get_texture_from_sfml(img);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
     GLuint texture_handle = get_texture_from_sfml(img);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
