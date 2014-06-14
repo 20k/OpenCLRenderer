@@ -2858,7 +2858,7 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     x += (*coords).x;
     y += (*coords).y;
 
-    id_buf[y*300 + x] = *id;
+    id_buf[y*width + x] = *id;
 
     float4 base_val = read_imagef(base, sampler, (int2){x, y});
     float4 write_val = read_imagef(to_write, sampler, (int2){x, y});
