@@ -2647,7 +2647,8 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
-__kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot,
+                            __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen,  __global float* scale, __global uint* depth_buffer)
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
@@ -2656,8 +2657,8 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     int x = get_global_id(0);
     int y = get_global_id(1);
 
-    const int ws = get_image_width(tex);
-    const int hs = get_image_height(tex);
+    int ws = get_image_width(tex);
+    int hs = get_image_height(tex);
 
     float4 parent_pos = posrot[0];
     float4 parent_rot = posrot[1];
@@ -2776,9 +2777,14 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
         0.0f, 0.0f, -lc_rot.z, 0.0f
     });
 
+    float sc = *scale;
+
 
     float xs = global_position.x;
     float ys = global_position.y;
+
+    xs /= sc;
+    ys /= sc;
 
     float px = xs + ws/2.0f;
     float py = ys + hs/2.0f;

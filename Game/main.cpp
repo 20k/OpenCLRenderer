@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
     window.load(800,600,1000, "turtles");
 
     //hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
-    hologram_manager::load("Res/sigh.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
+    hologram_manager::load("Res/sigh.png", {0,-500,1000,0}, {0,0,0,0}, 1.0f, &ship.objects);
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
 
@@ -306,13 +306,13 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        window.draw_space_dust_cloud(g_space_dust, g_game_cam);
+        //window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
         sf::Clock h_time;
         window.draw_holograms();
         std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
-        window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
+        //window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
 
 
         //if(test)

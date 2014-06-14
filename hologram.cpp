@@ -15,9 +15,12 @@ std::vector<cl_mem>    hologram_manager::g_rotations;
 
 std::vector<objects_container*>    hologram_manager::parents;
 
+std::vector<float>    hologram_manager::scales;
+std::vector<cl_mem>   hologram_manager::g_scales;
+
 
 ///this function is cheating somewhat, replace it with pure opencl later
-void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, objects_container* parent)
+void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, float scale, objects_container* parent)
 {
     sf::Image img;
     img.loadFromFile(file.c_str());
@@ -49,6 +52,13 @@ void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, ob
     cl_mem g_pos = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_pos, NULL);
     cl_mem g_rot = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float4), &_rot, NULL);
 
+    cl_mem g_scale = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float), &scale, NULL);
+
+    if(!mem || !g_pos || !g_rot || !g_scale)
+    {
+        throw "OPENCL IS ON FIRE WHAT DO";
+    }
+
     positions.push_back(_pos);
     rotations.push_back(_rot);
 
@@ -57,10 +67,9 @@ void hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, ob
 
     parents.push_back(parent);
 
-    if(!mem || !g_pos || !g_rot)
-    {
-        throw "OPENCL IS ON FIRE WHAT DO";
-    }
+    scales.push_back(scale);
+    g_scales.push_back(g_scale);
+
 
     g_tex_mem.push_back(mem);
 };
