@@ -2849,28 +2849,25 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
                               CLK_ADDRESS_CLAMP           |
                               CLK_FILTER_NEAREST;
 
-    int width = get_image_width(mdf);
-    int height = get_image_height(mdf);
+    int width = get_image_width(to_write);
+    int height = get_image_height(to_write);
 
     if(x >= width || y >= height)
         return;
 
-    x += (*coords).x;
-    y += (*coords).y;
+    int ox = x + (*coords).x;
+    int oy = y + (*coords).y;
 
     id_buf[y*width + x] = *id;
 
-    float4 base_val = read_imagef(base, sampler, (int2){x, y});
+    float4 base_val = read_imagef(base, sampler, (int2){ox, oy});
     float4 write_val = read_imagef(to_write, sampler, (int2){x, y});
-
-    //float4 base_val = (float4){0,0,0,0};
-    //float4 write_val = (float4){0,0,0,0};
 
     ///alpha blending
     base_val *= 1.0f - write_val.w;
     write_val *= write_val.w;
 
-    write_imagef(mdf, (int2){x, y}, base_val + write_val);
+    write_imagef(mdf, (int2){ox, oy}, base_val + write_val);
 }
 
 __kernel void blit(__read_only image2d_t base, __write_only image2d_t mod)
