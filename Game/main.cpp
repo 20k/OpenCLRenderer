@@ -205,6 +205,8 @@ int main(int argc, char *argv[])
     bool lastg = false;
     bool lastt = false;
 
+    int selected = -1;
+
     sf::Mouse mouse;
 
     cl_float4 selection_pos = {0,0,0,0};
@@ -483,15 +485,36 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        /*int mx = mouse.getPosition(window.window).x;
-        int my = mouse.getPosition(window.window).y;
+        int mx = mouse.getPosition(window.window).x;
+        int my = window.height - mouse.getPosition(window.window).y;
 
         int id = -1;
 
-        if(mx >= 0 && mx <= window.width && my >= 0 && my <= window.height)
-            cl::cqueue.enqueue_read_buffer(window.g_ui_id_screen, sizeof(cl_uint)*((window.height - my)*window.width + mx), sizeof(cl_uint), &id);*/
+        if(mx >= 0 && mx < window.width && my >= 0 && my < window.height)
+            cl::cqueue.enqueue_read_buffer(window.g_ui_id_screen, sizeof(cl_uint)*(my*window.width + mx), sizeof(cl_uint), &id);
 
-        //std::cout << "ID: " << id << std::endl;
+        std::cout << "ID: " << id << std::endl;
+
+        if(id != -1)
+        {
+            if(mouse.isButtonPressed(sf::Mouse::Left))
+            {
+                selected = id;
+            }
+        }
+
+        if(!mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            selected = -1;
+        }
+
+        if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
+        {
+            ui_element& e = ui_manager::ui_elems[selected];
+
+            e.offset.x += window.get_mouse_delta_x();
+            e.offset.y += window.get_mouse_delta_y();
+        }
 
         hologram_manager::clear_buffers();
 

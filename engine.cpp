@@ -51,6 +51,11 @@ static int nbuf=0; ///which depth buffer are we using?
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name)
 {
+    omx = 0;
+    omy = 0;
+    mdx = 0;
+    mdy = 0;
+
     width=pwidth;
     height=pheight;
     depth=pdepth;
@@ -378,8 +383,30 @@ cl_float4 engine::project(cl_float4 val)
     return projected;
 }
 
+int engine::get_mouse_delta_x()
+{
+    return mdx;
+}
+
+int engine::get_mouse_delta_y()
+{
+    return mdy;
+}
+
 void engine::input()
 {
+    int mx, my;
+
+    mx = get_mouse_x();
+    my = get_mouse_y();
+
+    mdx = mx - cmx;
+    mdy = my - cmy;
+
+    cmx = mx;
+    cmy = my;
+
+
     sf::Keyboard keyboard;
 
     static int distance_multiplier=1;

@@ -20,6 +20,10 @@ struct engine
 {
     sf::Mouse mouse;
 
+    int mdx, mdy;
+    int omx, omy;
+    int cmx, cmy;
+
     static cl_uint width, height, depth;
     static cl_uint g_size; /// height > width rounded up to nearest power of 2
     static cl_uint l_size; ///light cubemap size
@@ -95,6 +99,8 @@ struct engine
     void input();
     int get_mouse_x();
     int get_mouse_y();
+    int get_mouse_delta_x();
+    int get_mouse_delta_y();
 
     void set_camera_pos(cl_float4);
     void set_camera_rot(cl_float4);
