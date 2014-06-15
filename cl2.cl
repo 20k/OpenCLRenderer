@@ -2807,15 +2807,15 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
 
     id_buffer[y*SCREENWIDTH + x] = id_tex[(hs - (int)py)*ws + (int)px];
 
-    uint id = id_tex[(hs - (int)py)*ws + (int)px];
+    /*uint id = id_tex[(hs - (int)py)*ws + (int)px];
 
     if(id == 0)
         id = 1;
     else
-        id = 0;
+        id = 0;*/
 
     //write_imagef(screen, (int2){px, py}, newcol);
-    write_imagef(screen, (int2){x, y}, newcol*0.001 + id);
+    write_imagef(screen, (int2){x, y}, newcol);
     //write_imagef(screen, (int2){x + round(points_3d[3].x), y + round(points_3d[3].y)}, newcol);
 
 

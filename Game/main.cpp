@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
         if(mx >= 0 && mx <= window.width && my >= 0 && my <= window.height)
             cl::cqueue.enqueue_read_buffer(window.g_ui_id_screen, sizeof(cl_uint)*((window.height - my)*window.width + mx), sizeof(cl_uint), &id);*/
 
-        std::cout << "ID: " << id << std::endl;
+        //std::cout << "ID: " << id << std::endl;
 
         hologram_manager::clear_buffers();
 
