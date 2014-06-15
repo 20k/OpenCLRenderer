@@ -138,7 +138,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     g_valid_fragment_mem   = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
-    g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blank);
+    g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
     ///length of the fragment buffer id thing, stored cpu side
     c_tid_buf_len = size_of_uid_buffer;

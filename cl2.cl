@@ -2795,7 +2795,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     float px = xs + ws/2.0f;
     float py = ys + hs/2.0f;
 
-    if(px < 0 || px >= ws || py < 0 || py >= hs)
+    if(px < 0 || px >= ws || hs - (int)py < 0 || hs - (int)py >= hs)
         return;
 
     float4 newcol = read_imagef(tex, sampler, (float2){px, hs - py});
@@ -2805,10 +2805,17 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
 
     depth_buffer[y*SCREENWIDTH + x] = dcalc(zval)*mulint;
 
-    id_buffer[y*SCREENWIDTH + x] = id_tex[(int)py*ws + (int)px];
+    id_buffer[y*SCREENWIDTH + x] = id_tex[(hs - (int)py)*ws + (int)px];
+
+    uint id = id_tex[(hs - (int)py)*ws + (int)px];
+
+    if(id == 0)
+        id = 1;
+    else
+        id = 0;
 
     //write_imagef(screen, (int2){px, py}, newcol);
-    write_imagef(screen, (int2){x, y}, newcol);
+    write_imagef(screen, (int2){x, y}, newcol*0.001 + id);
     //write_imagef(screen, (int2){x + round(points_3d[3].x), y + round(points_3d[3].y)}, newcol);
 
 
@@ -2830,13 +2837,16 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     int width = get_image_width(to_write);
     int height = get_image_height(to_write);
 
+    int bwidth = get_image_width(base);
+    int bheight = get_image_height(base);
+
     if(x >= width || y >= height)
         return;
 
     int ox = x + (*coords).x;
     int oy = y + (*coords).y;
 
-    id_buf[y*width + x] = *id;
+    id_buf[oy*bwidth + ox] = *id;
 
     float4 base_val = read_imagef(base, sampler, (int2){ox, oy});
     float4 write_val = read_imagef(to_write, sampler, (int2){x, y});

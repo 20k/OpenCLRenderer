@@ -74,7 +74,7 @@ int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, flo
     cl_mem g_scale = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float), &scale, NULL);
 
     cl_uint* blank = new cl_uint[img.getSize().x*img.getSize().y];
-    memset(blank, 0, sizeof(cl_uint)*img.getSize().x*img.getSize().y);
+    memset(blank, UINT_MAX, sizeof(cl_uint)*img.getSize().x*img.getSize().y);
     //cl_mem g_id_buf = clCreateBuffer(cl::context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE, sizeof(cl_uint)*img.getSize().x*img.getSize().y, blank, NULL);
 
 
