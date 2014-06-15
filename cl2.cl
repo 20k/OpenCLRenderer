@@ -2848,8 +2848,8 @@ __kernel void blit(__read_only image2d_t base, __write_only image2d_t mod)
     int w = get_image_width(base);
     int h = get_image_height(base);
 
-    if(x >= w || y >= h)
-        return;
+    //if(x >= w || y >= h)
+    //    return;
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |

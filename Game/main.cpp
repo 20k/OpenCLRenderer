@@ -306,6 +306,8 @@ int main(int argc, char *argv[])
         window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
+
+        ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
         ui_manager::tick_all();
         std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
@@ -480,6 +482,8 @@ int main(int argc, char *argv[])
         text_handler::queue_text_block(wgs);
 
         window.render_buffers();
+
+        hologram_manager::clear_buffers();
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

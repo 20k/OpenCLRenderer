@@ -62,6 +62,7 @@ struct hologram_manager
 
     static int gid;
 
+    static void clear_buffers();
 
     static int load(std::string, cl_float4 pos, cl_float4 rot, float scale, objects_container* parent);
 

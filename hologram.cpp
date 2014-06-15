@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include "clstate.h"
+#include "engine.hpp"
 
 std::vector<GLuint> hologram_manager::tex_id_base;
 std::vector<GLuint> hologram_manager::tex_id;
@@ -25,6 +26,31 @@ int   hologram_manager::gid = 0;
 
 std::vector<cl_mem>   hologram_manager::g_id_bufs;
 
+
+void hologram_manager::clear_buffers()
+{
+    sf::Clock clk;
+    for(int i=0; i<g_tex_mem_base.size(); i++)
+    {
+        cl_mem base = g_tex_mem_base[i];
+        cl_mem mod = g_tex_mem[i];
+
+        cl_uint w = tex_size[i].first;
+        cl_uint h = tex_size[i].second;
+
+        cl_uint global[] = {w, h};
+        cl_uint local[] = {16, 16};
+
+        compute::buffer b(base);
+        compute::buffer m(mod);
+
+        compute::buffer* args[] = {&b, &m};
+
+        run_kernel_with_args(cl::blit, global, local, 2, args, 2, true);
+    }
+
+    std::cout << "CL: " << clk.getElapsedTime().asMicroseconds() << std::endl;
+}
 
 ///this function is cheating somewhat, replace it with pure opencl later
 int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, float scale, objects_container* parent)
