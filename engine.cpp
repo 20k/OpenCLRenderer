@@ -46,15 +46,21 @@ cl_uint engine::g_size;
 bool engine::camera_dirty;
 
 
-static int nbuf=0; ///which depth buffer are we using?
+int engine::nbuf=0; ///which depth buffer are we using?
 
+float depth_far = 350000;
+
+float idcalc(float value)
+{
+    return value * depth_far;
+}
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name)
 {
-    omx = 0;
-    omy = 0;
     mdx = 0;
     mdy = 0;
+    cmx = 0;
+    cmy = 0;
 
     width=pwidth;
     height=pheight;

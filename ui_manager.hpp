@@ -5,6 +5,8 @@
 #include <cl/cl.h>
 #include <string>
 
+#include <cl/cl.h>
+
 struct ui_element
 {
     int id;
@@ -16,22 +18,28 @@ struct ui_element
 
     cl_mem g_ui;
 
-    cl_uint2 offset;
+    //cl_float2 offset;
+    cl_float2 initial;
+    cl_float2 finish;
 
     int w, h;
 
     static int gid;
 
-    void load(int _ref_id, std::string file, cl_uint2 _offset);
+    void load(int _ref_id, std::string file, cl_float2 _offset);
 
     void tick();
+
+    void set_pos(cl_float2);
+
+    void finalise();
 };
 
 struct ui_manager
 {
     static std::vector<ui_element> ui_elems;
 
-    static void make_new(int, std::string, cl_uint2);
+    static void make_new(int, std::string, cl_float2);
 
     static void tick_all();
 };

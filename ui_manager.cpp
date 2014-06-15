@@ -26,7 +26,17 @@ std::vector<ui_element> ui_manager::ui_elems;
 
 }*/
 
-void ui_element::load(int _ref_id, std::string file, cl_uint2 _offset)
+void ui_element::set_pos(cl_float2 pos)
+{
+    finish = {pos.x + initial.x, pos.y + initial.y};
+}
+
+void ui_element::finalise()
+{
+    initial = finish;
+}
+
+void ui_element::load(int _ref_id, std::string file, cl_float2 _initial)
 {
     sf::Image img;
     img.loadFromFile(file);
@@ -36,12 +46,17 @@ void ui_element::load(int _ref_id, std::string file, cl_uint2 _offset)
     g_ui = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, gl_id, NULL);
 
     ref_id = _ref_id;
-    offset = _offset;
+
+    initial = _initial;
+
+    finish = _initial;
 
     w = img.getSize().x;
     h = img.getSize().y;
 
     id = gid++;
+
+    //finish = initial;
 
     ///blit id with buffer here? All at once? Who? What?
 }
@@ -69,7 +84,11 @@ void ui_element::tick()
 
     compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
 
-    compute::buffer coords = compute::buffer(cl::context, sizeof(cl_uint2), CL_MEM_COPY_HOST_PTR, &offset);
+    //cl_float2 offset = {finish.x - initial.x, finish.y - initial.y};
+
+    cl_float2 offset = finish;
+
+    compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
     compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_COPY_HOST_PTR, &id);
 
     //compute::buffer* args[] = {&wrap_first};
@@ -85,7 +104,7 @@ void ui_element::tick()
     hologram_manager::release(r_id);
 }
 
-void ui_manager::make_new(int _ref_id, std::string file, cl_uint2 _offset)
+void ui_manager::make_new(int _ref_id, std::string file, cl_float2 _offset)
 {
     ui_element elem;
     elem.load(_ref_id, file, _offset);

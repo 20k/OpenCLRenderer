@@ -989,6 +989,7 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
 }
 
+///fov const is key to mipmapping?
 float4 texture_filter(struct triangle* c_tri, float4 vt, float depth, float4 c_pos, float4 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
@@ -2825,7 +2826,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     //write_imagef(screen, (int2){points_3d[0].x, points_3d[0].y}, (float4){1.0f, 1.0f, 1.0f, 0.0f});
 }
 
-__kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t mdf, __read_only image2d_t to_write, __global uint2* coords, __global uint* id_buf, __global uint* id)
+__kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t mdf, __read_only image2d_t to_write, __global float2* coords, __global uint* id_buf, __global uint* id)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);

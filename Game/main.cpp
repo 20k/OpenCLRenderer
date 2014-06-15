@@ -483,24 +483,39 @@ int main(int argc, char *argv[])
 
         text_handler::queue_text_block(wgs);
 
-        window.render_buffers();
 
         int mx = mouse.getPosition(window.window).x;
-        int my = window.height - mouse.getPosition(window.window).y;
+        int mfy = window.height - mouse.getPosition(window.window).y;
+        int my = mouse.getPosition(window.window).y;
 
         int id = -1;
 
-        if(mx >= 0 && mx < window.width && my >= 0 && my < window.height)
-            cl::cqueue.enqueue_read_buffer(window.g_ui_id_screen, sizeof(cl_uint)*(my*window.width + mx), sizeof(cl_uint), &id);
+        if(mx >= 0 && mx < window.width && mfy >= 0 && mfy < window.height)
+            cl::cqueue.enqueue_read_buffer(window.g_ui_id_screen, sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &id);
 
         std::cout << "ID: " << id << std::endl;
+
+        int imx, imy;
 
         if(id != -1)
         {
             if(mouse.isButtonPressed(sf::Mouse::Left))
             {
+                if(selected == -1)
+                {
+                    imx = window.get_mouse_x();
+                    imy = window.get_mouse_y();
+                }
+
                 selected = id;
             }
+        }
+
+        if(selected != -1 && !mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            ui_element& e = ui_manager::ui_elems[selected];
+
+            //e.finalise();
         }
 
         if(!mouse.isButtonPressed(sf::Mouse::Left))
@@ -508,13 +523,105 @@ int main(int argc, char *argv[])
             selected = -1;
         }
 
+        static int ox = 0, oy = 0;
+        int dx = mx - ox;
+        int dy = my - oy;
+
+        ox = mx;
+        oy = my;
+
+
         if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
         {
             ui_element& e = ui_manager::ui_elems[selected];
 
-            e.offset.x += window.get_mouse_delta_x();
-            e.offset.y += window.get_mouse_delta_y();
+            ///fov const is base distance
+            ///because z / fov_const
+
+            float depth = -1;
+
+            cl_uint duint;
+
+            cl::cqueue.enqueue_read_buffer(window.depth_buffer[window.nbuf], sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &duint);
+
+            //printf("                                %ui\n", duint);
+
+            if(duint != UINT_MAX && duint != 0)
+            {
+                //depth = idcalc((float)duint/UINT_MAX) / 400.0f;
+                depth = idcalc((float)duint/UINT_MAX);
+
+                cl_float4 unproj_pos = {(mx - window.width/2.0f)*depth/400.0f, (mfy - window.height/2.0f)*depth/400.0f, depth, 0.0f};
+
+                cl_float4 world_pos = window.back_rotate(unproj_pos, window.c_rot);
+                world_pos = add(world_pos, window.c_pos);
+
+                int id = e.ref_id;
+
+                int real = hologram_manager::get_real_id(id);
+
+                objects_container* parent = hologram_manager::parents[real];
+
+                cl_float4 ppos = parent->pos;
+                cl_float4 prot = parent->rot;
+
+                cl_float4 unparent = sub(world_pos, ppos);
+                unparent = window.back_rotate(unparent, prot);
+
+                cl_float4 upos = hologram_manager::positions[real];
+                cl_float4 urot = hologram_manager::rotations[real];
+
+                cl_float4 unui = sub(unparent, upos);
+                unui = window.back_rotate(unui, urot);
+
+                float x = unui.x;
+                float y = unui.y;
+
+                float scale = hologram_manager::scales[real];
+
+                float w = hologram_manager::tex_size[real].first;
+                float h = hologram_manager::tex_size[real].second;
+
+
+                x /= scale;
+                y /= scale;
+
+                float px = x + w/2.0f;
+                float py = y + h/2.0f;
+
+                int tw = e.w;
+                int th = e.h;
+
+                if(!(px < 0 || px >= w || h - (int)py < 0 || h - (int)py >= h))
+                {
+                    //e.set_pos({px, py});
+                    e.finish.x = px - tw/2.0f;
+                    e.finish.y = (h - py) - th/2.0f;
+                }
+
+
+
+                //float4 newcol = read_imagef(tex, sampler, (float2){px, hs - py});
+
+
+                //cl_float4 untexture = sub(unparent, )
+
+                ///going to need to back project this into space ;_;
+
+                //printf("                        %i\n", window.get_mouse_delta_y());
+                //printf("                        %i\n", e.offset.x);
+
+                //float scale = log2(depth + 1);
+
+                //e.set_pos({(mx - imx)*scale, (my - imy)*scale});
+
+
+
+
+            }
         }
+
+        window.render_buffers();
 
         hologram_manager::clear_buffers();
 

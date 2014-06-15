@@ -21,7 +21,6 @@ struct engine
     sf::Mouse mouse;
 
     int mdx, mdy;
-    int omx, omy;
     int cmx, cmy;
 
     static cl_uint width, height, depth;
@@ -107,9 +106,14 @@ struct engine
 
     void check_obj_visibility(); ///unused, likely ot be removed
 
+    static int nbuf;
+
 private:
     void g_flush_camera();
 };
+
+
+float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
 static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, const int dimensions, compute::buffer **argv, int argc, bool blocking)
