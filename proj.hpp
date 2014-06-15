@@ -18,6 +18,5 @@
 #include "obj_g_descriptor.hpp"
 #include <math.h>
 #include <limits.h>
-#include <Boost/bind/bind.hpp>
 
 #endif
