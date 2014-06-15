@@ -15,6 +15,17 @@ int ui_element::gid = 0;
 
 std::vector<ui_element> ui_manager::ui_elems;
 
+
+/*int ui_element::get_ui_id(int mx, int my)
+{
+    if(mx < 0 || mx >= SCREENWIDTH || my < 0 || my >= SCREENHEIGHT)
+        return;
+
+    int store;
+
+
+}*/
+
 void ui_element::load(int _ref_id, std::string file, cl_uint2 _offset)
 {
     sf::Image img;
@@ -47,7 +58,7 @@ void ui_element::tick()
     //int w = hologram_manager::tex_size[r_id].first;
     //int h = hologram_manager::tex_size[r_id].second;
 
-    cl_uint global[2] = {w, h};
+    cl_uint global[2] = {(cl_uint)w, (cl_uint)h};
 
     cl_uint local[2] = {16, 16};
 

@@ -30,7 +30,7 @@ game_object::game_object()
     destroyed = false;
     newtonian = NULL;
 
-    cl_float4 blank = {0,0,0,0};
+    //cl_float4 blank = {0,0,0,0};
 }
 
 void game_object::add_transform(transform_type type)

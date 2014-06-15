@@ -138,6 +138,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     g_valid_fragment_mem   = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
+    g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blank);
+
     ///length of the fragment buffer id thing, stored cpu side
     c_tid_buf_len = size_of_uid_buffer;
 
@@ -1014,19 +1016,21 @@ void engine::draw_holograms()
 
         compute::buffer scale_wrap = compute::buffer(hologram_manager::g_scales[i]);
 
+        compute::buffer id_wrap = compute::buffer(hologram_manager::g_id_bufs[i]);
+
         cl_float8 posrot;
         posrot.lo = parent_pos;
         posrot.hi = parent_rot;
 
         compute::buffer g_posrot = compute::buffer(cl::context, sizeof(cl_float8), CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, &posrot);
 
-        compute::buffer* holo_args[] = {&wrap_tex, &g_posrot, &g_br_pos, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr, &scale_wrap, &depth_buffer[nbuf]};
+        compute::buffer* holo_args[] = {&wrap_tex, &g_posrot, &g_br_pos, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr, &scale_wrap, &depth_buffer[nbuf], &id_wrap, &g_ui_id_screen};
 
         cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
 
         cl_uint ls[2] = {16, 16};
 
-        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 10, true);
+        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 12, true);
 
         hologram_manager::release(i);
     }

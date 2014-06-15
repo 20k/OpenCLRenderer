@@ -2647,8 +2647,11 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
     ///backrotate holo_descrip, then rotate ui elements around and draw them? Textures?
 }*/
 
+
 __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot,
-                            __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen,  __global float* scale, __global uint* depth_buffer)
+                            __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen,  __global float* scale, __global uint* depth_buffer,
+                            __global uint* id_tex, __global uint* id_buffer
+                            )
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
@@ -2792,12 +2795,17 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     float px = xs + ws/2.0f;
     float py = ys + hs/2.0f;
 
+    if(px < 0 || px >= ws || py < 0 || py >= hs)
+        return;
+
     float4 newcol = read_imagef(tex, sampler, (float2){px, hs - py});
 
     if(newcol.w == 0)
         return;
 
     depth_buffer[y*SCREENWIDTH + x] = dcalc(zval)*mulint;
+
+    id_buffer[y*SCREENWIDTH + x] = id_tex[(int)py*ws + (int)px];
 
     //write_imagef(screen, (int2){px, py}, newcol);
     write_imagef(screen, (int2){x, y}, newcol);
