@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
         ui_manager::tick_all();
-        std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.draw_bulk_objs_n();
 
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
 
         sf::Clock h_time;
         window.draw_holograms();
-        std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
 
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
             //    window.g_flush_light(b->laser);
         }
 
-        std::cout << " " << clk.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << " " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
         window.realloc_light_gmem();
 
@@ -483,110 +483,7 @@ int main(int argc, char *argv[])
 
         text_handler::queue_text_block(wgs);
 
-
-        int mx = mouse.getPosition(window.window).x;
-        int mfy = window.height - mouse.getPosition(window.window).y;
-        int my = mouse.getPosition(window.window).y;
-
-        int id = -1;
-
-        if(mx >= 0 && mx < window.width && mfy >= 0 && mfy < window.height)
-            cl::cqueue.enqueue_read_buffer(engine::g_ui_id_screen, sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &id);
-
-        std::cout << "ID: " << id << std::endl;
-
-        int imx, imy;
-
-        if(id != -1)
-        {
-            if(mouse.isButtonPressed(sf::Mouse::Left))
-            {
-                if(selected == -1)
-                {
-                    imx = window.get_mouse_x();
-                    imy = window.get_mouse_y();
-                }
-
-                selected = id;
-            }
-        }
-
-        if(!mouse.isButtonPressed(sf::Mouse::Left))
-        {
-            selected = -1;
-        }
-
-        static int ox = 0, oy = 0;
-        int dx = mx - ox;
-        int dy = my - oy;
-
-        ox = mx;
-        oy = my;
-
-
-        if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
-        {
-            ui_element& e = ui_manager::ui_elems[selected];
-
-            float depth = -1;
-
-            cl_uint duint;
-
-            cl::cqueue.enqueue_read_buffer(window.depth_buffer[window.nbuf], sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &duint);
-
-            if(duint != UINT_MAX && duint != 0)
-            {
-                depth = idcalc((float)duint/UINT_MAX);
-
-                cl_float4 unproj_pos = {(mx - window.width/2.0f)*depth/400.0f, (mfy - window.height/2.0f)*depth/400.0f, depth, 0.0f};
-
-                cl_float4 world_pos = window.back_rotate(unproj_pos, window.c_rot);
-                world_pos = add(world_pos, window.c_pos);
-
-                int id = e.ref_id;
-
-                int real = hologram_manager::get_real_id(id);
-
-                objects_container* parent = hologram_manager::parents[real];
-
-                cl_float4 ppos = parent->pos;
-                cl_float4 prot = parent->rot;
-
-                cl_float4 unparent = sub(world_pos, ppos);
-                unparent = window.back_rotate(unparent, prot);
-
-                cl_float4 upos = hologram_manager::positions[real];
-                cl_float4 urot = hologram_manager::rotations[real];
-
-                cl_float4 unui = sub(unparent, upos);
-                unui = window.back_rotate(unui, urot);
-
-                float x = unui.x;
-                float y = unui.y;
-
-                float scale = hologram_manager::scales[real];
-
-                float w = hologram_manager::tex_size[real].first;
-                float h = hologram_manager::tex_size[real].second;
-
-
-                x /= scale;
-                y /= scale;
-
-                float px = x + w/2.0f;
-                float py = y + h/2.0f;
-
-                int tw = e.w;
-                int th = e.h;
-
-                if(!(px < 0 || px >= w || h - (int)py < 0 || h - (int)py >= h))
-                {
-                    e.finish.x = px - tw/2.0f;
-                    e.finish.y = (h - py) - th/2.0f;
-                }
-
-            }
-        }
+        window.ui_interaction();
 
         window.render_buffers();
 

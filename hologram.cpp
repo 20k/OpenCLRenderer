@@ -53,7 +53,7 @@ void hologram_manager::clear_buffers()
         run_kernel_with_args(cl::blit_clear, global, local, 2, args, 3, true);
     }
 
-    std::cout << "CL: " << clk.getElapsedTime().asMicroseconds() << std::endl;
+    //std::cout << "CL: " << clk.getElapsedTime().asMicroseconds() << std::endl;
 }
 
 ///this function is cheating somewhat, replace it with pure opencl later

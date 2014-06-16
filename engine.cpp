@@ -19,6 +19,7 @@
 #include "point_cloud.hpp"
 #include "hologram.hpp"
 #include "vec.hpp"
+#include "ui_manager.hpp"
 
 #define FOV_CONST 400.0f
 ///this needs changing
@@ -1077,7 +1078,7 @@ void engine::render_buffers()
 {
     sf::Clock clk;
     draw_ui(); ///?
-    std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
+    //std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
@@ -1103,6 +1104,97 @@ void engine::render_buffers()
     ///swap depth buffers
     nbuf++;
     nbuf = nbuf % 2;
+}
+
+void engine::ui_interaction()
+{
+    int mx = mouse.getPosition(window).x;
+    int my = height - mouse.getPosition(window).y;
+
+    cl_uint id = -1;
+
+    static int selected = -1;
+
+    if(mx >= 0 && mx < width && my >= 0 && my < height)
+        cl::cqueue.enqueue_read_buffer(g_ui_id_screen, sizeof(cl_uint)*(my*width + mx), sizeof(cl_uint), &id);
+
+
+    if(id != -1)
+    {
+        if(mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            selected = id;
+        }
+    }
+
+    if(!mouse.isButtonPressed(sf::Mouse::Left))
+    {
+        selected = -1;
+    }
+
+    if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
+    {
+        ui_element& e = ui_manager::ui_elems[selected];
+
+        float depth = -1;
+
+        cl_uint duint;
+
+        cl::cqueue.enqueue_read_buffer(depth_buffer[nbuf], sizeof(cl_uint)*(my*width + mx), sizeof(cl_uint), &duint);
+
+        if(duint != UINT_MAX && duint != 0)
+        {
+            depth = idcalc((float)duint/UINT_MAX);
+
+            cl_float4 unproj_pos = {(mx - width/2.0f)*depth/FOV_CONST, (my - height/2.0f)*depth/FOV_CONST, depth, 0.0f};
+
+            cl_float4 world_pos = back_rotate(unproj_pos, c_rot);
+            world_pos = add(world_pos, c_pos);
+
+            int id = e.ref_id;
+
+            int real = hologram_manager::get_real_id(id);
+
+            objects_container* parent = hologram_manager::parents[real];
+
+            cl_float4 ppos = parent->pos;
+            cl_float4 prot = parent->rot;
+
+            cl_float4 unparent = sub(world_pos, ppos);
+            unparent = back_rotate(unparent, prot);
+
+            cl_float4 upos = hologram_manager::positions[real];
+            cl_float4 urot = hologram_manager::rotations[real];
+
+            cl_float4 unui = sub(unparent, upos);
+            unui = back_rotate(unui, urot);
+
+            float x = unui.x;
+            float y = unui.y;
+
+            float scale = hologram_manager::scales[real];
+
+            float w = hologram_manager::tex_size[real].first;
+            float h = hologram_manager::tex_size[real].second;
+
+
+            x /= scale;
+            y /= scale;
+
+            float px = x + w/2.0f;
+            float py = y + h/2.0f;
+
+            int tw = e.w;
+            int th = e.h;
+
+            if(!(px < 0 || px >= w || h - (int)py < 0 || h - (int)py >= h))
+            {
+                e.finish.x = px - tw/2.0f;
+                e.finish.y = (h - py) - th/2.0f;
+            }
+
+        }
+    }
 }
 
 int engine::get_mouse_x()

@@ -95,6 +95,7 @@ struct engine
     void draw_holograms();
     void render_buffers();
 
+    void ui_interaction();
     void input();
     int get_mouse_x();
     int get_mouse_y();
