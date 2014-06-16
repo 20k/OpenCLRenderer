@@ -182,7 +182,7 @@ void oclstuff(std::string file)
     }
     catch(...)
     {
-       std::cout << program.build_log() << std::endl;
+        std::cout << program.build_log() << std::endl;
 
         exit(1232345);
     }
@@ -199,7 +199,8 @@ void oclstuff(std::string file)
     cl::draw_ui = compute::kernel(program, "draw_ui");
     cl::draw_hologram = compute::kernel(program, "draw_hologram");
     cl::blit_with_id = compute::kernel(program, "blit_with_id");
-    cl::blit = compute::kernel(program, "blit");
+    cl::blit_clear = compute::kernel(program, "blit_clear");
+    cl::clear_id_buf = compute::kernel(program, "clear_id_buf");
 }
 
 

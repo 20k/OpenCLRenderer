@@ -45,8 +45,9 @@ cl_uint engine::g_size;
 
 bool engine::camera_dirty;
 
-
 int engine::nbuf=0; ///which depth buffer are we using?
+
+compute::buffer engine::g_ui_id_screen;
 
 float depth_far = 350000;
 

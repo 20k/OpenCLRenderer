@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
         int id = -1;
 
         if(mx >= 0 && mx < window.width && mfy >= 0 && mfy < window.height)
-            cl::cqueue.enqueue_read_buffer(window.g_ui_id_screen, sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &id);
+            cl::cqueue.enqueue_read_buffer(engine::g_ui_id_screen, sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &id);
 
         std::cout << "ID: " << id << std::endl;
 
@@ -511,13 +511,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        if(selected != -1 && !mouse.isButtonPressed(sf::Mouse::Left))
-        {
-            ui_element& e = ui_manager::ui_elems[selected];
-
-            //e.finalise();
-        }
-
         if(!mouse.isButtonPressed(sf::Mouse::Left))
         {
             selected = -1;
@@ -535,20 +528,14 @@ int main(int argc, char *argv[])
         {
             ui_element& e = ui_manager::ui_elems[selected];
 
-            ///fov const is base distance
-            ///because z / fov_const
-
             float depth = -1;
 
             cl_uint duint;
 
             cl::cqueue.enqueue_read_buffer(window.depth_buffer[window.nbuf], sizeof(cl_uint)*(mfy*window.width + mx), sizeof(cl_uint), &duint);
 
-            //printf("                                %ui\n", duint);
-
             if(duint != UINT_MAX && duint != 0)
             {
-                //depth = idcalc((float)duint/UINT_MAX) / 400.0f;
                 depth = idcalc((float)duint/UINT_MAX);
 
                 cl_float4 unproj_pos = {(mx - window.width/2.0f)*depth/400.0f, (mfy - window.height/2.0f)*depth/400.0f, depth, 0.0f};
@@ -594,29 +581,9 @@ int main(int argc, char *argv[])
 
                 if(!(px < 0 || px >= w || h - (int)py < 0 || h - (int)py >= h))
                 {
-                    //e.set_pos({px, py});
                     e.finish.x = px - tw/2.0f;
                     e.finish.y = (h - py) - th/2.0f;
                 }
-
-
-
-                //float4 newcol = read_imagef(tex, sampler, (float2){px, hs - py});
-
-
-                //cl_float4 untexture = sub(unparent, )
-
-                ///going to need to back project this into space ;_;
-
-                //printf("                        %i\n", window.get_mouse_delta_y());
-                //printf("                        %i\n", e.offset.x);
-
-                //float scale = log2(depth + 1);
-
-                //e.set_pos({(mx - imx)*scale, (my - imy)*scale});
-
-
-
 
             }
         }

@@ -40,7 +40,7 @@ struct engine
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
     compute::image2d g_id_screen_tex; ///2d screen id texture
-    compute::buffer g_ui_id_screen; ///2d screen ui_id buffer
+    static compute::buffer g_ui_id_screen; ///2d screen ui_id buffer
     compute::buffer g_normals_screen; ///unused 2d normal buffer
     compute::buffer g_texture_screen; ///unused 2d texture coordinate buffer
     static compute::buffer g_shadow_light_buffer; ///buffer for light cubemaps for shadows

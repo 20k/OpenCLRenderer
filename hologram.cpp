@@ -34,6 +34,7 @@ void hologram_manager::clear_buffers()
     {
         cl_mem base = g_tex_mem_base[i];
         cl_mem mod = g_tex_mem[i];
+        cl_mem clr = g_id_bufs[i];
 
         cl_uint w = tex_size[i].first;
         cl_uint h = tex_size[i].second;
@@ -44,9 +45,12 @@ void hologram_manager::clear_buffers()
         compute::buffer b(base);
         compute::buffer m(mod);
 
-        compute::buffer* args[] = {&b, &m};
+        compute::buffer to_clear(clr);
 
-        run_kernel_with_args(cl::blit, global, local, 2, args, 2, true);
+        compute::buffer* args[] = {&b, &m, &to_clear};
+
+
+        run_kernel_with_args(cl::blit_clear, global, local, 2, args, 3, true);
     }
 
     std::cout << "CL: " << clk.getElapsedTime().asMicroseconds() << std::endl;

@@ -70,9 +70,6 @@ void ui_element::tick()
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
     cl::cqueue.finish();
 
-    //int w = hologram_manager::tex_size[r_id].first;
-    //int h = hologram_manager::tex_size[r_id].second;
-
     cl_uint global[2] = {(cl_uint)w, (cl_uint)h};
 
     cl_uint local[2] = {16, 16};
@@ -84,20 +81,15 @@ void ui_element::tick()
 
     compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
 
-    //cl_float2 offset = {finish.x - initial.x, finish.y - initial.y};
 
     cl_float2 offset = finish;
 
     compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
     compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_COPY_HOST_PTR, &id);
 
-    //compute::buffer* args[] = {&wrap_first};
     compute::buffer* args[] = {&wrap_first, &wrap_second, &wrap_write, &coords, &wrap_id_buf, &g_id};
 
     run_kernel_with_args(cl::blit_with_id, global, local, 2, args, 6, true);
-
-    //__kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t mod, __read_only image2d_t to_write,
-                                 //__global uint2* coords, __global uint* id_buf, __global uint* id)
 
 
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
@@ -114,6 +106,13 @@ void ui_manager::make_new(int _ref_id, std::string file, cl_float2 _offset)
 
 void ui_manager::tick_all()
 {
+    cl_uint global[2] = {engine::width, engine::height};
+    cl_uint local[2] = {16, 16};
+
+    compute::buffer* args[] = {&engine::g_ui_id_screen};
+
+    run_kernel_with_args(cl::clear_id_buf, global, local, 2, args, 1, true);
+
     for(auto& i : ui_elems)
     {
         i.tick();

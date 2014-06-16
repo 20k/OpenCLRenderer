@@ -19,4 +19,5 @@ compute::kernel cl::space_dust_no_tile;
 compute::kernel cl::draw_ui;
 compute::kernel cl::draw_hologram;
 compute::kernel cl::blit_with_id;
-compute::kernel cl::blit;
+compute::kernel cl::blit_clear;
+compute::kernel cl::clear_id_buf;

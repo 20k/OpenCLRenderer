@@ -2828,8 +2828,8 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
 
 __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t mdf, __read_only image2d_t to_write, __global float2* coords, __global uint* id_buf, __global uint* id)
 {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
@@ -2839,7 +2839,7 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     int height = get_image_height(to_write);
 
     int bwidth = get_image_width(base);
-    int bheight = get_image_height(base);
+    //int bheight = get_image_height(base);
 
     if(x >= width || y >= height)
         return;
@@ -2847,7 +2847,9 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     int ox = x + (*coords).x;
     int oy = y + (*coords).y;
 
-    id_buf[oy*bwidth + ox] = *id;
+    uint write_id = *id;
+
+    id_buf[oy*bwidth + ox] = write_id;
 
     float4 base_val = read_imagef(base, sampler, (int2){ox, oy});
     float4 write_val = read_imagef(to_write, sampler, (int2){x, y});
@@ -2859,22 +2861,36 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     write_imagef(mdf, (int2){ox, oy}, base_val + write_val);
 }
 
-__kernel void blit(__read_only image2d_t base, __write_only image2d_t mod)
+///combined for speed
+__kernel void blit_clear(__read_only image2d_t base, __write_only image2d_t mod, __global uint* to_clear)
 {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
 
-    int w = get_image_width(base);
-    int h = get_image_height(base);
+    const int w = get_image_width(base);
+    const int h = get_image_height(base);
 
-    //if(x >= w || y >= h)
-    //    return;
+    if(x >= w || y >= h)
+        return;
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
                               CLK_ADDRESS_CLAMP           |
                               CLK_FILTER_NEAREST;
 
+    to_clear[y*w + x] = -1;
+
     write_imagef(mod, (int2){x, y}, read_imagef(base, sampler, (int2){x, y}));
+}
+
+__kernel void clear_id_buf(__global uint* to_clear)
+{
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    to_clear[y*SCREENWIDTH + x] = -1;
 }
 
 /*///change to reverse projection
