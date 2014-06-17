@@ -22,11 +22,13 @@ struct ui_element
     cl_float2 initial;
     cl_float2 finish;
 
+    cl_float2 restrict;
+
     int w, h;
 
     static int gid;
 
-    void load(int _ref_id, std::string file, cl_float2 _offset);
+    void load(int _ref_id, std::string file, cl_float2 _offset, cl_float2 _restrict);
 
     void tick();
 
@@ -39,7 +41,7 @@ struct ui_manager
 {
     static std::vector<ui_element> ui_elems;
 
-    static void make_new(int, std::string, cl_float2);
+    static void make_new(int, std::string, cl_float2, cl_float2);
 
     static void tick_all();
 };

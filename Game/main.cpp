@@ -126,8 +126,13 @@ int main(int argc, char *argv[])
     window.load(800,600,1000, "turtles");
 
     //hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
+
     int hid = hologram_manager::load("Res/sigh.png", {0,-500,1000,0}, {0,0,0,0}, 1.0f, &ship.objects);
-    ui_manager::make_new(hid, "Res/slider.png", {100, 30});
+
+    ///make these numbers fractional?
+    ///specify minimum and maximum, rather than just range?
+    ///Circular restrictions?
+    ui_manager::make_new(hid, "Res/slider.png", {300, 100}, {0, 50});
 
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");

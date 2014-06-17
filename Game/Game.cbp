@@ -95,6 +95,8 @@
 		<Unit filename="../texture_manager.hpp" />
 		<Unit filename="../triangle.cpp" />
 		<Unit filename="../triangle.hpp" />
+		<Unit filename="../ui_manager.cpp" />
+		<Unit filename="../ui_manager.hpp" />
 		<Unit filename="../vec.hpp" />
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />

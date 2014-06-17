@@ -36,7 +36,7 @@ void ui_element::finalise()
     initial = finish;
 }
 
-void ui_element::load(int _ref_id, std::string file, cl_float2 _initial)
+void ui_element::load(int _ref_id, std::string file, cl_float2 _initial, cl_float2 _restrict)
 {
     sf::Image img;
     img.loadFromFile(file);
@@ -51,6 +51,8 @@ void ui_element::load(int _ref_id, std::string file, cl_float2 _initial)
 
     finish = _initial;
 
+    restrict = _restrict;
+
     w = img.getSize().x;
     h = img.getSize().y;
 
@@ -61,9 +63,33 @@ void ui_element::load(int _ref_id, std::string file, cl_float2 _initial)
     ///blit id with buffer here? All at once? Who? What?
 }
 
+void correct_bounds(ui_element& e)
+{
+    float diffx = e.finish.x - e.initial.x;
+    float diffy = e.finish.y - e.initial.y;
+
+    if(fabs(diffx) >= e.restrict.x)
+    {
+        if(diffx > 0)
+            e.finish.x = e.initial.x + e.restrict.x;
+        if(diffx < 0)
+            e.finish.x = e.initial.x - e.restrict.x;
+    }
+
+    if(fabs(diffy) >= e.restrict.y)
+    {
+        if(diffy > 0)
+            e.finish.y = e.initial.y + e.restrict.y;
+        if(diffy < 0)
+            e.finish.y = e.initial.y - e.restrict.y;
+    }
+}
+
 ///need to create memory for this ui object too
 void ui_element::tick()
 {
+    correct_bounds(*this);
+
     int r_id = hologram_manager::get_real_id(ref_id);
 
     hologram_manager::acquire(r_id);
@@ -96,10 +122,10 @@ void ui_element::tick()
     hologram_manager::release(r_id);
 }
 
-void ui_manager::make_new(int _ref_id, std::string file, cl_float2 _offset)
+void ui_manager::make_new(int _ref_id, std::string file, cl_float2 _offset, cl_float2 _restrict)
 {
     ui_element elem;
-    elem.load(_ref_id, file, _offset);
+    elem.load(_ref_id, file, _offset, _restrict);
 
     ui_elems.push_back(elem);
 }
