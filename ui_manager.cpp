@@ -47,6 +47,15 @@ void ui_element::load(int _ref_id, std::string file, cl_float2 _initial, cl_floa
 
     ref_id = _ref_id;
 
+    int real_id = hologram_manager::get_real_id(ref_id);
+
+    int wi = hologram_manager::tex_size[real_id].first;
+    int hi = hologram_manager::tex_size[real_id].second;
+
+    //cl_float2 corrected;
+
+    //corrected = {_initial.x * wi, _initial.y * hi};
+
     initial = _initial;
 
     finish = _initial;
@@ -108,7 +117,7 @@ void ui_element::tick()
     compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
 
 
-    cl_float2 offset = finish;
+    cl_float2 offset = {finish.x - w/2.0f, finish.y - h/2.0f};
 
     compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
     compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_COPY_HOST_PTR, &id);

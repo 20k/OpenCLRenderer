@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     ///make these numbers fractional?
     ///specify minimum and maximum, rather than just range?
     ///Circular restrictions?
-    ui_manager::make_new(hid, "Res/slider.png", {300, 100}, {0, 50});
+    ui_manager::make_new(hid, "Res/slider.png", {300, 100}, {0, 80});
 
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");

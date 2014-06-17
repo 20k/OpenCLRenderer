@@ -1189,8 +1189,8 @@ void engine::ui_interaction()
 
             if(!(px < 0 || px >= w || h - (int)py < 0 || h - (int)py >= h))
             {
-                e.finish.x = px - tw/2.0f;
-                e.finish.y = (h - py) - th/2.0f;
+                e.finish.x = px;
+                e.finish.y = (h - py);
             }
 
         }
