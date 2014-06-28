@@ -21,7 +21,7 @@ std::vector<game_object*> game_object_manager::object_list;
 weapon::weapon()
 {
     pos = (cl_float4){0,0,0,0};
-    time_since_last_refire = 0;
+    last_fire_time = 0;
     functional = true;
 }
 
@@ -283,7 +283,13 @@ bool game_object::can_fire(int weapon_id)
 
     float milli_time = time.getElapsedTime().asMilliseconds();
 
-    if(milli_time > w.time_since_last_refire + w.refire_time)
+    //std::cout << "debug: " << systems.get_val(weapons_t) << std::endl;
+
+    float time_dif = milli_time - w.last_fire_time;
+
+    time_dif *= systems.get_val(weapons_t);
+
+    if(time_dif > w.refire_time)
     {
         return true;
     }
@@ -305,7 +311,7 @@ void stagger_fire_time(sf::Clock time, std::vector<weapon>& weapon_list)
     {
         float approx_start_offset = time_between_shots*i*weapon_list[i].refire_time;
 
-        weapon_list[i].time_since_last_refire = ctime - weapon_list[i].refire_time + approx_start_offset - 10;
+        weapon_list[i].last_fire_time = ctime - weapon_list[i].refire_time + approx_start_offset - 10;
     }
 }
 
@@ -347,7 +353,7 @@ void game_object::fire_all()
 
             weapon& w = weapons[weapon_id];
 
-            w.time_since_last_refire = time.getElapsedTime().asMilliseconds();
+            w.last_fire_time = time.getElapsedTime().asMilliseconds();
 
 
             float speed = 5000.0f;

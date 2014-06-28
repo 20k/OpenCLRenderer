@@ -10,11 +10,16 @@ void ship_object::pull_from_ui()
     radar_t,
     warp_t*/
 
-    systems[0].power = ui_manager::offset_from_minimum["ui_weapons"].y;
-    systems[1].power = ui_manager::offset_from_minimum["ui_engines"].y;
-    systems[2].power = ui_manager::offset_from_minimum["ui_shields"].y;
-    systems[3].power = ui_manager::offset_from_minimum["ui_radar"].y;
-    systems[4].power = ui_manager::offset_from_minimum["ui_warp"].y;
+    systems[weapons_t].power = ui_manager::offset_from_minimum["ui_weapons"].y;
+    systems[engines_t].power = ui_manager::offset_from_minimum["ui_engines"].y;
+    systems[shields_t].power = ui_manager::offset_from_minimum["ui_shields"].y;
+    systems[radar_t].power = ui_manager::offset_from_minimum["ui_radar"].y;
+    systems[warp_t].power = ui_manager::offset_from_minimum["ui_warp"].y;
 
     //std::cout << "dfdfdf" << std::endl;
+}
+
+float ship_object::get_val(system_t sys)
+{
+    return systems[sys].power;
 }

@@ -23,6 +23,8 @@ struct ship_object
     std::vector<ship_system> systems = {{weapons_t, 0.5f}, {engines_t, 0.5f}, {shields_t, 0.5f}, {radar_t, 0.5f}, {warp_t, 0.5f}};
 
     void pull_from_ui();
+
+    float get_val(system_t);
 };
 
 

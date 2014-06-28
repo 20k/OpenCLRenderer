@@ -30,7 +30,7 @@ struct weapon
 
     float projectile_speed;
 
-    float time_since_last_refire;
+    float last_fire_time;
     cl_float4 pos;
 
     bool functional;
