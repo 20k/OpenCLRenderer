@@ -44,6 +44,8 @@ struct ship_info
 {
     float health;
     float hyperspace_speed;
+    float shields = 100;
+    float shieldperms = 0.01;
 };
 
 namespace compute = boost::compute;
@@ -130,6 +132,11 @@ struct game_object
     void hyperspace_stop();
     //void flush_hyperspace_position();
 
+    void update_power_info();
+
+    void tick(float);
+
+
     game_object* push();
 
     game_object();
@@ -140,6 +147,10 @@ struct game_object
 
 struct game_object_manager
 {
+    static sf::Clock current_time;
+
+    static float old_time;
+
     static std::vector<game_object*> object_list;
 
     static game_object* get_new_object();
@@ -149,6 +160,8 @@ struct game_object_manager
     static void update_all_targeting();
 
     static void process_destroyed_ships();
+
+    static void tick_all();
 };
 
 /*struct targeting

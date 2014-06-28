@@ -18,6 +18,9 @@ sf::Clock game_object::time;
 
 std::vector<game_object*> game_object_manager::object_list;
 
+sf::Clock game_object_manager::current_time;
+float game_object_manager::old_time;
+
 weapon::weapon()
 {
     pos = (cl_float4){0,0,0,0};
@@ -398,6 +401,7 @@ void game_object::fire_all()
             new_bullet.ttl = 10*1000; ///10 seconds
             new_bullet.collides = true;
             new_bullet.expires = true;
+            new_bullet.damage = w.damage;
 
             new_bullet.push_laser(new_light);
         }
@@ -639,7 +643,23 @@ void game_object::draw_box()
 
 void game_object::damage(float dam)
 {
-    info.health -= dam;
+    info.shields -= dam;
+    std::cout << "info.shields: " << info.shields << std::endl;
+
+    float damage_diff = 0;
+
+    if(info.shields < 0)
+    {
+        damage_diff = fabs(info.shields);
+        info.shields = 0;
+    }
+    else
+    {
+        return;
+    }
+
+    //info.health -= dam;
+    info.health -= damage_diff;
     if(info.health < 0)
     {
         std::cout << "oh no i am explode" << std::endl;
@@ -684,6 +704,28 @@ void game_object::hyperspace_stop()
     }
 
     hyperspace_position_end = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &newtonian->position);
+}
+
+void game_object::update_power_info()
+{
+    systems.pull_from_ui();
+
+    if(!newtonian)
+        return;
+
+    newtonian->thruster_power = systems.get_val(engines_t);
+}
+
+void game_object::tick(float time_diff)
+{
+    info.shields += info.shieldperms*time_diff*systems.get_val(shields_t);
+
+    //std::cout << "Shield info: " << info.shields  << " " << __LINE__ << std::endl;
+
+    if(info.shields > 100)
+    {
+        info.shields = 100;
+    }
 }
 
 int game_object::get_id()
@@ -781,5 +823,26 @@ void game_object_manager::process_destroyed_ships()
     {
         obj_mem_manager::g_arrange_mem();
         obj_mem_manager::g_changeover();
+    }
+}
+
+void game_object_manager::tick_all()
+{
+    static bool init;
+
+    if(!init)
+    {
+        current_time.restart();
+        old_time = 0;
+        init = true;
+    }
+
+    float dif = current_time.getElapsedTime().asMicroseconds() - old_time;
+
+    old_time = current_time.getElapsedTime().asMicroseconds();
+
+    for(auto& i : object_list)
+    {
+        i->tick(dif/1000.0f);
     }
 }

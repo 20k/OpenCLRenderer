@@ -7,6 +7,7 @@ game_object* game_manager::spawn_ship()
     weapon temporary_weapon;
     temporary_weapon.name = "Laser";
     temporary_weapon.refire_time = 250; /// milliseconds
+    temporary_weapon.damage = 66.0f;
 
     game_object* ship = game_object_manager::get_new_object();
     ship->set_file("../objects/Pre-ruin-2.obj");

@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
     bool lastp = false;
     bool lastg = false;
     bool lastt = false;
+    bool lasth = false;
 
     int selected = -1;
 
@@ -246,7 +247,8 @@ int main(int argc, char *argv[])
         //std::cout << ui_manager::offset_from_minimum["ui_slider"].y << std::endl;
 
         sf::Clock c;
-        ship.systems.pull_from_ui();
+        //ship.systems.pull_from_ui();
+        ship.update_power_info();
 
         flush_game_cam(ship.game_position, g_game_cam);
 
@@ -413,6 +415,16 @@ int main(int argc, char *argv[])
             player_ship->reduce_speed();
         }
 
+        if(k.isKeyPressed(sf::Keyboard::H) && !lasth)
+        {
+            ship.damage(30.0f);
+            lasth = true;
+        }
+        if(!k.isKeyPressed(sf::Keyboard::H))
+        {
+            lasth = false;
+        }
+
         newtonian_manager::tick_all(); ///get this to just bloody manage its own timestep?
         newtonian_manager::collide_lasers_with_ships();
 
@@ -436,7 +448,16 @@ int main(int argc, char *argv[])
         window.realloc_light_gmem();
 
         game_object_manager::draw_all_box();
+
+        if(ship.info.health < 0)
+        {
+            std::cout << "you am winnar" << std::endl;
+            return 0;
+        }
+
         game_object_manager::process_destroyed_ships();
+
+        game_object_manager::tick_all();
 
         text_list t_weps;
 
@@ -498,6 +519,16 @@ int main(int argc, char *argv[])
         text_handler::queue_text_block(t_weps);
 
         text_handler::queue_text_block(wgs);
+
+        text_list shield_status;
+        shield_status.x = window.window.getSize().x - 150;
+        shield_status.y = 10;
+
+        shield_status.elements.push_back(std::string("Shield amount: ") + to_str(ship.info.shields));
+        shield_status.colours.push_back(sf::Color(150, 150, 230));
+
+        text_handler::queue_text_block(shield_status);
+
 
         window.ui_interaction();
 

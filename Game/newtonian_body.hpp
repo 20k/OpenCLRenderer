@@ -85,6 +85,8 @@ struct newtonian_body
 
     float thruster_forward;
 
+    float thruster_power = 1.0f;
+
     virtual void tick(float);
 
     virtual void set_rotation_direction(cl_float4 _dest);
@@ -107,6 +109,8 @@ struct newtonian_body
     void reduce_speed();
 
     bool rspeed = false;
+
+    float damage;
 
     //std::vector<cl_float4> thrusters_pos;
     //std::vector<cl_float4> thrusters_force;

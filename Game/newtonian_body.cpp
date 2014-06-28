@@ -55,13 +55,13 @@ void newtonian_body::tick(float timestep)
     ydir = attempted_rotation_direction.y;
     zdir = attempted_rotation_direction.z;
 
-    float xmaxf = thruster_force*thruster_distance/mass;
-    float ymaxf = thruster_force*thruster_distance/mass;
-    float zmaxf = thruster_force*thruster_distance/mass;
+    float xmaxf = thruster_power*thruster_force*thruster_distance/mass;
+    float ymaxf = thruster_power*thruster_force*thruster_distance/mass;
+    float zmaxf = thruster_power*thruster_force*thruster_distance/mass;
 
-    xmaxf*=timestep/4;
-    ymaxf*=timestep/4;
-    zmaxf*=timestep/4;
+    xmaxf*=timestep/4.0f;
+    ymaxf*=timestep/4.0f;
+    zmaxf*=timestep/4.0f;
 
     //float magrotation = sqrt(xdir*xdir + ydir*ydir + zdir*zdir);
 
@@ -94,9 +94,9 @@ void newtonian_body::tick(float timestep)
     y1 = h*sin(-rotation.y)*sin(-rotation.x);
     z1 = h*cos(-rotation.y);
 
-    x1*=timestep/4;
-    y1*=timestep/4;
-    z1*=timestep/4;
+    x1*=timestep/4.0f;
+    y1*=timestep/4.0f;
+    z1*=timestep/4.0f;
 
     //std::cout << rotation.y << std::endl;
 
@@ -106,9 +106,9 @@ void newtonian_body::tick(float timestep)
 
     if(attempted_force_direction.x != 0.0)
     {
-        linear_momentum.x += x1*attempted_force_direction.x;
-        linear_momentum.y += y1*attempted_force_direction.x;
-        linear_momentum.z += z1*attempted_force_direction.x;
+        linear_momentum.x += x1*attempted_force_direction.x*thruster_power;
+        linear_momentum.y += y1*attempted_force_direction.x*thruster_power;
+        linear_momentum.z += z1*attempted_force_direction.x*thruster_power;
     }
 
 
@@ -141,7 +141,7 @@ void newtonian_body::tick(float timestep)
         obj->set_rot(rotation);
         obj->set_pos(position);
     }
-    if(laser!=NULL && type == 1) ///laser == null impossible
+    if(laser != NULL && type == 1) ///laser == null impossible
     {
         //engine::set_light_pos(lid, position);
         laser->set_pos(position);
@@ -390,9 +390,9 @@ void newtonian_body::collided(newtonian_body* other)
 
 void ship_newtonian::collided(newtonian_body* other)
 {
-    if(game_reference!=NULL)
+    if(game_reference!=NULL && other->type == 1)
     {
-        game_reference->damage(66.0f);
+        game_reference->damage(other->damage);
     }
 }
 
