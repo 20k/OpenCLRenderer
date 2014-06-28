@@ -1115,9 +1115,12 @@ void engine::ui_interaction()
 
     static int selected = -1;
 
-    if(mx >= 0 && mx < width && my >= 0 && my < height)
-        cl::cqueue.enqueue_read_buffer(g_ui_id_screen, sizeof(cl_uint)*(my*width + mx), sizeof(cl_uint), &id);
+    if(!(mx >= 0 && mx < width && my >= 0 && my < height))
+    {
+        return;
+    }
 
+    cl::cqueue.enqueue_read_buffer(g_ui_id_screen, sizeof(cl_uint)*(my*width + mx), sizeof(cl_uint), &id);
 
     if(id != -1)
     {

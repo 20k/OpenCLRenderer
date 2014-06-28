@@ -283,8 +283,6 @@ bool game_object::can_fire(int weapon_id)
 
     float milli_time = time.getElapsedTime().asMilliseconds();
 
-    //std::cout << "debug: " << systems.get_val(weapons_t) << std::endl;
-
     float time_dif = milli_time - w.last_fire_time;
 
     time_dif *= systems.get_val(weapons_t);
