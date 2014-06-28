@@ -20,7 +20,7 @@ struct ship_system
 
 struct ship_object
 {
-    std::vector<ship_system> systems = {{weapons_t, 0.0f}, {engines_t, 0.0f}, {shields_t, 0.0f}, {radar_t, 0.0f}, {warp_t, 0.0f}};
+    std::vector<ship_system> systems = {{weapons_t, 0.5f}, {engines_t, 0.5f}, {shields_t, 0.5f}, {radar_t, 0.5f}, {warp_t, 0.5f}};
 
     void pull_from_ui();
 };

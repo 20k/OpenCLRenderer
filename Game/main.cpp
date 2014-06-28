@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     ui_manager::make_new(hid, "Res/slider.png", "ui_radar", {450, 100}, {0, 0}, {-45, 45});
     ui_manager::make_new(hid, "Res/slider.png", "ui_warp", {500, 100}, {0, 0}, {-45, 45});
 
-    ship_object player_systems;
+    //ship_object player_systems;
 
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
         //std::cout << ui_manager::offset_from_minimum["ui_slider"].y << std::endl;
 
         sf::Clock c;
-        player_systems.pull_from_ui();
+        ship.systems.pull_from_ui();
 
         flush_game_cam(ship.game_position, g_game_cam);
 

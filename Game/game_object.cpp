@@ -311,57 +311,6 @@ void stagger_fire_time(sf::Clock time, std::vector<weapon>& weapon_list)
 
 void game_object::fire_all()
 {
-    /*for(int i=0; i<targets.size(); i++)
-    {
-        if(i >= weapon_groups.size())
-            continue;
-
-        std::vector<int>* wep = weapon_groups[i];
-
-        std::set<game_object*>& vec = targets[i];
-
-        if(newtonian->obj == NULL || newtonian->type!=0)
-            return;
-
-        for(int j=0; j<wep->size(); j++)
-        {
-            float speed = 5000.0f;
-
-            cl_float4 pos = newtonian->position;
-            cl_float4 dir = newtonian->rotation;
-
-            float x1 = sin(-newtonian->rotation.y)*cos(-newtonian->rotation.x);
-            float y1 = sin(-newtonian->rotation.y)*sin(-newtonian->rotation.x);
-            float z1 = cos(-newtonian->rotation.y);
-
-            x1 *= speed;
-            y1 *= speed;
-            z1 *= speed;
-
-            light l;
-            l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
-            l.set_shadow_casting(0);
-            l.set_brightness(3.0f);
-            l.set_type(1);
-            l.set_radius(1000.0f);
-
-            light* new_light = l.add_light(&l);
-            engine::realloc_light_gmem();
-            //int id = light::lightlist.size()-1;
-
-            newtonian_body new_bullet;
-            new_bullet.position = pos;
-            new_bullet.linear_momentum = (cl_float4){x1, y1, z1, 0.0f};
-            new_bullet.mass = 1;
-            new_bullet.parent = newtonian;
-            new_bullet.ttl = 10*1000; ///10 seconds
-            new_bullet.collides = true;
-            new_bullet.expires = true;
-
-            new_bullet.push_laser(new_light);
-        }
-    }*/
-
     if(newtonian->obj == NULL || newtonian->type!=0)
             return;
 

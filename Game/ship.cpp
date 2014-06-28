@@ -15,4 +15,6 @@ void ship_object::pull_from_ui()
     systems[2].power = ui_manager::offset_from_minimum["ui_shields"].y;
     systems[3].power = ui_manager::offset_from_minimum["ui_radar"].y;
     systems[4].power = ui_manager::offset_from_minimum["ui_warp"].y;
+
+    //std::cout << "dfdfdf" << std::endl;
 }

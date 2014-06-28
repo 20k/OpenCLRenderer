@@ -14,6 +14,8 @@
 #include <boost/compute/source.hpp>
 #include <boost/compute/system.hpp>
 
+#include "ship.hpp"
+
 enum transform_type
 {
     ROTATE90,
@@ -51,6 +53,7 @@ struct game_object
     collision_object collision;
     objects_container objects;
     newtonian_body* newtonian;
+    ship_object systems;
 
     ///have game position in here I guess?
 
