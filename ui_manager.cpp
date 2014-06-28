@@ -7,6 +7,7 @@
 #include <SFML/Graphics.hpp>
 #include "clstate.h"
 #include "engine.hpp"
+#include <map>
 
 namespace compute = boost::compute;
 
@@ -14,29 +15,20 @@ namespace compute = boost::compute;
 int ui_element::gid = 0;
 
 std::vector<ui_element> ui_manager::ui_elems;
+std::map<std::string, cl_float2> ui_manager::offset_from_minimum;
 
-
-/*int ui_element::get_ui_id(int mx, int my)
-{
-    if(mx < 0 || mx >= SCREENWIDTH || my < 0 || my >= SCREENHEIGHT)
-        return;
-
-    int store;
-
-
-}*/
 
 void ui_element::set_pos(cl_float2 pos)
 {
     finish = {pos.x + initial.x, pos.y + initial.y};
 }
 
-void ui_element::finalise()
+/*void ui_element::finalise()
 {
     initial = finish;
-}
+}*/
 
-void ui_element::load(int _ref_id, std::string file, cl_float2 _initial, cl_float2 _restrict)
+void ui_element::load(int _ref_id, std::string file, std::string _name, cl_float2 _initial, cl_float2 _xbounds, cl_float2 _ybounds)
 {
     sf::Image img;
     img.loadFromFile(file);
@@ -60,7 +52,10 @@ void ui_element::load(int _ref_id, std::string file, cl_float2 _initial, cl_floa
 
     finish = _initial;
 
-    restrict = _restrict;
+    xbounds = _xbounds;
+    ybounds = _ybounds;
+
+    name = _name;
 
     w = img.getSize().x;
     h = img.getSize().y;
@@ -72,26 +67,42 @@ void ui_element::load(int _ref_id, std::string file, cl_float2 _initial, cl_floa
     ///blit id with buffer here? All at once? Who? What?
 }
 
+void ui_element::update_offset()
+{
+    float minx = initial.x + xbounds.x;
+    float maxx = initial.x + xbounds.y;
+
+    float miny = initial.y + ybounds.x;
+    float maxy = initial.y + ybounds.y;
+
+    float cx = finish.x;
+    float cy = finish.y;
+
+    float xfrac = (cx - minx) / (maxx - minx);
+    float yfrac = (cy - miny) / (maxy - miny);
+
+    ui_manager::offset_from_minimum[name] = {xfrac, 1.0f - yfrac};
+}
+
 void correct_bounds(ui_element& e)
 {
-    float diffx = e.finish.x - e.initial.x;
-    float diffy = e.finish.y - e.initial.y;
+    float minx = e.initial.x + e.xbounds.x;
+    float maxx = e.initial.x + e.xbounds.y;
 
-    if(fabs(diffx) >= e.restrict.x)
-    {
-        if(diffx > 0)
-            e.finish.x = e.initial.x + e.restrict.x;
-        if(diffx < 0)
-            e.finish.x = e.initial.x - e.restrict.x;
-    }
+    float miny = e.initial.y + e.ybounds.x;
+    float maxy = e.initial.y + e.ybounds.y;
 
-    if(fabs(diffy) >= e.restrict.y)
-    {
-        if(diffy > 0)
-            e.finish.y = e.initial.y + e.restrict.y;
-        if(diffy < 0)
-            e.finish.y = e.initial.y - e.restrict.y;
-    }
+    if(e.finish.x < minx)
+        e.finish.x = minx;
+
+    if(e.finish.x > maxx)
+        e.finish.x = maxx;
+
+    if(e.finish.y < miny)
+        e.finish.y = miny;
+
+    if(e.finish.y > maxy)
+        e.finish.y = maxy;
 }
 
 ///need to create memory for this ui object too
@@ -116,7 +127,6 @@ void ui_element::tick()
 
     compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
 
-
     cl_float2 offset = {finish.x - w/2.0f, finish.y - h/2.0f};
 
     compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
@@ -129,12 +139,14 @@ void ui_element::tick()
 
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
     hologram_manager::release(r_id);
+
+    update_offset();
 }
 
-void ui_manager::make_new(int _ref_id, std::string file, cl_float2 _offset, cl_float2 _restrict)
+void ui_manager::make_new(int _ref_id, std::string file, std::string name, cl_float2 _offset, cl_float2 _xbounds, cl_float2 _ybounds)
 {
     ui_element elem;
-    elem.load(_ref_id, file, _offset, _restrict);
+    elem.load(_ref_id, file, name, _offset, _xbounds, _ybounds);
 
     ui_elems.push_back(elem);
 }
