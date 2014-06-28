@@ -19,6 +19,8 @@
 #include "asteroid/asteroid_gen.hpp"
 #include "../ui_manager.hpp"
 
+#include "ship.hpp"
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -132,7 +134,13 @@ int main(int argc, char *argv[])
     ///make these numbers fractional?
     ///specify minimum and maximum, rather than just range?
     ///Circular restrictions?
-    ui_manager::make_new(hid, "Res/slider.png", "ui_slider", {300, 100}, {0, 0}, {-90, 90});
+    ui_manager::make_new(hid, "Res/slider.png", "ui_weapons", {300, 100}, {0, 0}, {-45, 45});
+    ui_manager::make_new(hid, "Res/slider.png", "ui_engines", {350, 100}, {0, 0}, {-45, 45});
+    ui_manager::make_new(hid, "Res/slider.png", "ui_shields", {400, 100}, {0, 0}, {-45, 45});
+    ui_manager::make_new(hid, "Res/slider.png", "ui_radar", {450, 100}, {0, 0}, {-45, 45});
+    ui_manager::make_new(hid, "Res/slider.png", "ui_warp", {500, 100}, {0, 0}, {-45, 45});
+
+    ship_object player_systems;
 
     //hologram_manager::load("Res/ui.png");
     //hologram_manager::load("Res/ui.png");
@@ -172,7 +180,6 @@ int main(int argc, char *argv[])
     l.set_brightness(1.0f);
     l.set_pos((cl_float4){2000, 200, -100, 0});
     l.set_type(0.0f);
-    //l.shadow = 0;
     light* start_light = window.add_light(&l);
 
 
@@ -239,6 +246,8 @@ int main(int argc, char *argv[])
         //std::cout << ui_manager::offset_from_minimum["ui_slider"].y << std::endl;
 
         sf::Clock c;
+        player_systems.pull_from_ui();
+
         flush_game_cam(ship.game_position, g_game_cam);
 
         text_list wgs;
