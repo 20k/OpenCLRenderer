@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     game_object& ship3 = *game_manager::spawn_ship();
 
 
-    ship.set_game_position({0,0,0,0}); ///just a generic starting position
+    ship.set_game_position({0,0,0,0}); ///just a generic starting position ///position within universe
     ship2.set_game_position({0,0,0,0});
     ship3.set_game_position({0,0,0,0});
 
@@ -139,6 +139,10 @@ int main(int argc, char *argv[])
     ui_manager::make_new(hid, "Res/slider.png", "ui_shields", {400, 100}, {0, 0}, {-45, 45});
     ui_manager::make_new(hid, "Res/slider.png", "ui_radar", {450, 100}, {0, 0}, {-45, 45});
     ui_manager::make_new(hid, "Res/slider.png", "ui_warp", {500, 100}, {0, 0}, {-45, 45});
+
+    int hid2 = hologram_manager::load("Res/blank.png", {0, -500, 500, 0}, {0,0,0,0}, 1.0f, &ship.objects);
+
+    ui_manager::make_new_ship_screen(hid2, "Res/ship_icon.png", "ui_ship");
 
     //ship_object player_systems;
 
@@ -321,6 +325,7 @@ int main(int argc, char *argv[])
 
 
         game_object_manager::process_destroyed_ships();
+        game_object_manager::update_ui_render_positions();
 
         window.input();
         window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///

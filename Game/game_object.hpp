@@ -162,6 +162,8 @@ struct game_object_manager
     static void process_destroyed_ships();
 
     static void tick_all();
+
+    static void update_ui_render_positions();
 };
 
 /*struct targeting

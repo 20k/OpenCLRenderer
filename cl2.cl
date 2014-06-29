@@ -2858,6 +2858,9 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     base_val *= 1.0f - write_val.w;
     write_val *= write_val.w;
 
+    if(write_val.w == 0)
+        return;
+
     write_imagef(mdf, (int2){ox, oy}, base_val + write_val);
 }
 

@@ -8,14 +8,17 @@
 #include "clstate.h"
 #include "engine.hpp"
 #include <map>
+#include "vec.hpp"
 
 namespace compute = boost::compute;
 
 
 int ui_element::gid = 0;
 
-std::vector<ui_element> ui_manager::ui_elems;
+std::vector<ui_element*> ui_manager::ui_elems;
 std::map<std::string, cl_float2> ui_manager::offset_from_minimum;
+
+std::vector<cl_float4> ship_screen::ship_render_positions;
 
 
 void ui_element::set_pos(cl_float2 pos)
@@ -41,8 +44,8 @@ void ui_element::load(int _ref_id, std::string file, std::string _name, cl_float
 
     int real_id = hologram_manager::get_real_id(ref_id);
 
-    int wi = hologram_manager::tex_size[real_id].first;
-    int hi = hologram_manager::tex_size[real_id].second;
+    //int wi = hologram_manager::tex_size[real_id].first;
+    //int hi = hologram_manager::tex_size[real_id].second;
 
     //cl_float2 corrected;
 
@@ -143,12 +146,70 @@ void ui_element::tick()
     update_offset();
 }
 
-void ui_manager::make_new(int _ref_id, std::string file, std::string name, cl_float2 _offset, cl_float2 _xbounds, cl_float2 _ybounds)
+void ship_screen::tick()
 {
-    ui_element elem;
-    elem.load(_ref_id, file, name, _offset, _xbounds, _ybounds);
+    int r_id = hologram_manager::get_real_id(ref_id);
+
+    hologram_manager::acquire(r_id);
+    clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
+    cl::cqueue.finish();
+
+    cl_uint global[2] = {(cl_uint)w, (cl_uint)h};
+
+    cl_uint local[2] = {16, 16};
+
+    compute::buffer wrap_first = compute::buffer(hologram_manager::g_tex_mem_base[r_id]);
+    compute::buffer wrap_second = compute::buffer(hologram_manager::g_tex_mem[r_id]);
+
+    compute::buffer wrap_write = compute::buffer(g_ui);
+
+    compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
+
+    compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_COPY_HOST_PTR, &id);
+
+    for(int i=0; i<ship_screen::ship_render_positions.size(); i++)
+    {
+        cl_float4 pos = ship_screen::ship_render_positions[i];
+        cl_float4 holo_pos = hologram_manager::parents[r_id]->pos;
+
+        cl_float2 offset = {pos.x - holo_pos.x, pos.z - holo_pos.z};
+
+        offset.x /= 1000;
+        offset.y /= 1000;
+
+        offset.x += hologram_manager::tex_size[r_id].first/2.0f;
+        offset.y += hologram_manager::tex_size[r_id].second/2.0f;
+
+        compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
+
+        compute::buffer* args[] = {&wrap_first, &wrap_second, &wrap_write, &coords, &wrap_id_buf, &g_id};
+
+        run_kernel_with_args(cl::blit_with_id, global, local, 2, args, 6, true);
+    }
+
+
+    clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
+    hologram_manager::release(r_id);
+}
+
+ui_element* ui_manager::make_new(int _ref_id, std::string file, std::string name, cl_float2 _offset, cl_float2 _xbounds, cl_float2 _ybounds)
+{
+    ui_element* elem = new ui_element;
+    elem->load(_ref_id, file, name, _offset, _xbounds, _ybounds);
 
     ui_elems.push_back(elem);
+
+    return elem;
+}
+
+ship_screen* ui_manager::make_new_ship_screen(int _ref_id, std::string file, std::string name)
+{
+    ship_screen* elem = new ship_screen;
+    elem->load(_ref_id, file, name, {0, 0}, {0, 0}, {0, 0});
+
+    ui_elems.push_back(elem);
+
+    return elem;
 }
 
 void ui_manager::tick_all()
@@ -162,6 +223,6 @@ void ui_manager::tick_all()
 
     for(auto& i : ui_elems)
     {
-        i.tick();
+        i->tick();
     }
 }

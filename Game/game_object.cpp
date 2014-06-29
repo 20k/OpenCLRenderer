@@ -12,6 +12,8 @@
 
 #include "../vec.hpp"
 
+#include "../ui_manager.hpp"
+
 namespace compute = boost::compute;
 
 sf::Clock game_object::time;
@@ -844,5 +846,15 @@ void game_object_manager::tick_all()
     for(auto& i : object_list)
     {
         i->tick(dif/1000.0f);
+    }
+}
+
+void game_object_manager::update_ui_render_positions()
+{
+    ship_screen::ship_render_positions.clear();
+
+    for(auto& i : object_list)
+    {
+        ship_screen::ship_render_positions.push_back(i->objects.pos);
     }
 }

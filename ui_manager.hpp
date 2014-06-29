@@ -35,7 +35,7 @@ struct ui_element
 
     void load(int _ref_id, std::string file, std::string name, cl_float2 _offset, cl_float2 _xbounds, cl_float2 _ybounds);
 
-    void tick();
+    virtual void tick();
 
     void set_pos(cl_float2);
 
@@ -44,11 +44,20 @@ struct ui_element
     void update_offset();
 };
 
+struct ship_screen : ui_element
+{
+    void tick();
+
+    static std::vector<cl_float4> ship_render_positions;
+};
+
 struct ui_manager
 {
-    static std::vector<ui_element> ui_elems;
+    static std::vector<ui_element*> ui_elems;
 
-    static void make_new(int, std::string, std::string, cl_float2, cl_float2, cl_float2);
+    static ui_element* make_new(int, std::string, std::string, cl_float2, cl_float2, cl_float2);
+
+    static ship_screen* make_new_ship_screen(int, std::string, std::string);
 
     static void tick_all();
 

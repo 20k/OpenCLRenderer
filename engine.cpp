@@ -1137,7 +1137,7 @@ void engine::ui_interaction()
 
     if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
     {
-        ui_element& e = ui_manager::ui_elems[selected];
+        ui_element& e = *ui_manager::ui_elems[selected];
 
         float depth = -1;
 
