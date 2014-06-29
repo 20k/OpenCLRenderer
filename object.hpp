@@ -6,6 +6,8 @@
 #include <string>
 #include <cl/cl.h>
 
+#include <functional>
+
 struct object
 {
     cl_float4 pos;
