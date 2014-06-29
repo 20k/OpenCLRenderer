@@ -1,7 +1,9 @@
 #ifndef INCLUDED_HPP_OBJECTS_CONTAINER
 #define INCLUDED_HPP_OBJECTS_CONTAINER
+
 #include "object.hpp"
 #include <functional>
+
 struct objects_container
 {
     cl_uint id;

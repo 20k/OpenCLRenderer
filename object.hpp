@@ -1,10 +1,10 @@
 #ifndef INCLUDED_HPP_OBJECT
 #define INCLUDED_HPP_OBJECT
+
 #include <vector>
 #include "triangle.hpp"
 #include <string>
 #include <cl/cl.h>
-#include <boost/function.hpp>
 
 struct object
 {
