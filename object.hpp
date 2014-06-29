@@ -19,8 +19,8 @@ struct object
 
     std::vector<triangle> tri_list;
 
-    boost::function<int (object*, cl_float4)> obj_vis;
-    boost::function<void (object*)> obj_load_func;
+    std::function<int (object*, cl_float4)> obj_vis;
+    std::function<void (object*)> obj_load_func;
 
     cl_uint tid; ///texture id ///on load
     cl_uint bid; ///bumpmap_id
@@ -39,10 +39,10 @@ struct object
 
     void translate_centre(cl_float4);
 
-    void set_vis_func(boost::function<int (object*, cl_float4)>);
+    void set_vis_func(std::function<int (object*, cl_float4)>);
     int  call_vis_func(object*, cl_float4);
 
-    void set_load_func(boost::function<void (object*)>);
+    void set_load_func(std::function<void (object*)>);
     void call_load_func(object*);
 
     void try_load(cl_float4); ///try and get the object, dependent on its visibility

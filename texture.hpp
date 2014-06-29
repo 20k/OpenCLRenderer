@@ -57,48 +57,6 @@ struct texture
 
     void set_load_func(std::function<void (texture*)>);
     std::function<void (texture*)> fp;
-
-
-
-
-    /*std::string location;
-
-    static std::vector<texture> texturelist;
-    static std::vector<cl_uint> active_textures;
-
-    boost::function<void (texture*)> fp;
-
-    bool loaded;
-    bool isactive;
-
-    cl_uint id; ///starts from 0
-    static cl_uint gidc;
-
-    cl_uint type;
-
-    cl_uint mip_level_ids[MIP_LEVELS];
-
-    texture();
-    void init();
-
-    static bool t_compare(texture one, texture two);
-
-    static cl_int idquerystring(std::string);
-    static cl_int idqueryisactive(cl_uint);
-    static cl_int idquerytexture(cl_uint);
-
-    cl_uint get_largest_dimension();
-
-
-
-    void set_load_func(boost::function<void (texture*)>);
-    void call_load_func(texture* tex);
-
-    cl_uint get_id();
-    cl_uint push();
-    cl_uint set_active(bool);
-
-    void unload();*/
 };
 
 

@@ -115,6 +115,8 @@
 		<Unit filename="main.cpp" />
 		<Unit filename="newtonian_body.cpp" />
 		<Unit filename="newtonian_body.hpp" />
+		<Unit filename="ship.cpp" />
+		<Unit filename="ship.hpp" />
 		<Unit filename="space_dust.cpp" />
 		<Unit filename="space_dust.hpp" />
 		<Extensions>

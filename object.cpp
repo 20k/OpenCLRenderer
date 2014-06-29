@@ -130,7 +130,7 @@ void object::scale(float f)
     }
 }
 
-void object::set_vis_func(boost::function<int (object*, cl_float4)> vis)
+void object::set_vis_func(std::function<int (object*, cl_float4)> vis)
 {
     obj_vis = vis;
 }
@@ -140,7 +140,7 @@ int object::call_vis_func(object* obj, cl_float4 c_pos)
     return obj_vis(obj, c_pos);
 }
 
-void object::set_load_func(boost::function<void (object*)> func)
+void object::set_load_func(std::function<void (object*)> func)
 {
     obj_load_func = func;
 }
