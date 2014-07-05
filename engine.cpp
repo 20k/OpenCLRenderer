@@ -1113,6 +1113,7 @@ void engine::ui_interaction()
 
     int selected = ui_manager::selected_value;
 
+    ///ui element
     if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size() && !(selected & MINIMAP_BITFLAG))
     {
         ui_element& e = *ui_manager::ui_elems[selected];
@@ -1175,6 +1176,22 @@ void engine::ui_interaction()
             }
 
         }
+    }
+
+    ///minimap element
+    if(selected != -1 && (selected & MINIMAP_BITFLAG))
+    {
+        int id = selected & (~MINIMAP_BITFLAG);
+
+        int real_id = objects_container::get_object_by_id(id);
+
+        if(real_id == -1)
+            return;
+
+        objects_container* obj = objects_container::obj_container_list[real_id];
+        ///this object has been picked to be fired at
+
+        //std::cout << real_id << std::endl;
     }
 }
 
