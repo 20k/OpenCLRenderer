@@ -66,8 +66,8 @@ int hologram_manager::load(std::string file, cl_float4 _pos, cl_float4 _rot, flo
 
     GLuint texture_handle = get_texture_from_sfml(img);
 
-    printf("ID: %i\n", texture_handle);
-    printf("ID: %i\n", texture_handle_base);
+    printf("ID: %i\n", texture_handle); ///
+    printf("ID: %i\n", texture_handle_base); ///
 
     cl_mem mem_base = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture_handle_base, NULL);
     cl_mem mem =      clCreateFromGLTexture2D(cl::context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture_handle, NULL);

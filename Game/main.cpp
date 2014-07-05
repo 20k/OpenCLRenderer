@@ -147,7 +147,8 @@ int main(int argc, char *argv[])
     //ship_object player_systems;
 
     //hologram_manager::load("Res/ui.png");
-    //hologram_manager::load("Res/ui.png");
+    //hologram_manager::load("Res/ui.png");es
+
 
     interact::set_render_window(&window.window);
 
@@ -324,8 +325,8 @@ int main(int argc, char *argv[])
         }*/
 
 
-        game_object_manager::process_destroyed_ships();
-        game_object_manager::update_ui_render_positions();
+        //game_object_manager::process_destroyed_ships();
+
 
         window.input();
         window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
@@ -334,6 +335,7 @@ int main(int argc, char *argv[])
 
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
+        ui_manager::update_selected_value(window.get_mouse_x(), window.get_mouse_y());
         ui_manager::tick_all();
         //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -461,6 +463,8 @@ int main(int argc, char *argv[])
         }
 
         game_object_manager::process_destroyed_ships();
+
+        game_object_manager::update_ui_render_positions();
 
         game_object_manager::tick_all();
 

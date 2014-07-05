@@ -18,7 +18,9 @@ int ui_element::gid = 0;
 std::vector<ui_element*> ui_manager::ui_elems;
 std::map<std::string, cl_float2> ui_manager::offset_from_minimum;
 
-std::vector<cl_float4> ship_screen::ship_render_positions;
+std::vector<std::pair<cl_float4, int>> ship_screen::ship_render_positions;
+
+int ui_manager::selected_value = -1;
 
 
 void ui_element::set_pos(cl_float2 pos)
@@ -165,11 +167,14 @@ void ship_screen::tick()
 
     compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
 
-    compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_COPY_HOST_PTR, &id);
-
+    ///the ids written will get confused with ui_ids...
     for(int i=0; i<ship_screen::ship_render_positions.size(); i++)
     {
-        cl_float4 pos = ship_screen::ship_render_positions[i];
+        cl_int bit_hack = ship_screen::ship_render_positions[i].second | MINIMAP_BITFLAG;
+
+        compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_int), CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, &bit_hack);
+
+        cl_float4 pos = ship_screen::ship_render_positions[i].first;
         cl_float4 holo_pos = hologram_manager::parents[r_id]->pos;
 
         cl_float2 offset = {pos.x - holo_pos.x, pos.z - holo_pos.z};
@@ -210,6 +215,30 @@ ship_screen* ui_manager::make_new_ship_screen(int _ref_id, std::string file, std
     ui_elems.push_back(elem);
 
     return elem;
+}
+
+void ui_manager::update_selected_value(int mx, int my)
+{
+    my = engine::height - my;
+
+    sf::Mouse mouse;
+
+    if(!mouse.isButtonPressed(sf::Mouse::Left))
+    {
+        selected_value = -1;
+        return;
+    }
+
+    cl_int id;
+
+    if(!(mx >= 0 && mx < engine::width && my >= 0 && my < engine::height))
+    {
+        return;
+    }
+
+    cl::cqueue.enqueue_read_buffer(engine::g_ui_id_screen, sizeof(cl_int)*(my*engine::width + mx), sizeof(cl_int), &id);
+
+    selected_value = id;
 }
 
 void ui_manager::tick_all()

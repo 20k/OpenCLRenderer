@@ -1111,29 +1111,7 @@ void engine::ui_interaction()
     int mx = mouse.getPosition(window).x;
     int my = height - mouse.getPosition(window).y;
 
-    cl_uint id = -1;
-
-    static int selected = -1;
-
-    if(!(mx >= 0 && mx < width && my >= 0 && my < height))
-    {
-        return;
-    }
-
-    cl::cqueue.enqueue_read_buffer(g_ui_id_screen, sizeof(cl_uint)*(my*width + mx), sizeof(cl_uint), &id);
-
-    if(id != -1)
-    {
-        if(mouse.isButtonPressed(sf::Mouse::Left))
-        {
-            selected = id;
-        }
-    }
-
-    if(!mouse.isButtonPressed(sf::Mouse::Left))
-    {
-        selected = -1;
-    }
+    int selected = ui_manager::selected_value;
 
     if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
     {

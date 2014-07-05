@@ -9,6 +9,10 @@
 
 #include <map>
 
+#include <utility>
+
+#define MINIMAP_BITFLAG 0x80000000
+
 struct ui_element
 {
     int id;
@@ -48,7 +52,7 @@ struct ship_screen : ui_element
 {
     void tick();
 
-    static std::vector<cl_float4> ship_render_positions;
+    static std::vector<std::pair<cl_float4, int>> ship_render_positions;
 };
 
 struct ui_manager
@@ -62,6 +66,10 @@ struct ui_manager
     static void tick_all();
 
     static std::map<std::string, cl_float2> offset_from_minimum;
+
+    static int selected_value;
+
+    static void update_selected_value(int, int);
 };
 
 #endif // INCLUDED_UI_MANAGER_HPP

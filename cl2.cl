@@ -2849,12 +2849,15 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
 
     uint write_id = *id;
 
+    bool skip_transparency = false;
+
     id_buf[oy*bwidth + ox] = write_id;
 
     float4 base_val = read_imagef(base, sampler, (int2){ox, oy});
     float4 write_val = read_imagef(to_write, sampler, (int2){x, y});
 
     ///alpha blending
+
     base_val *= 1.0f - write_val.w;
     write_val *= write_val.w;
 
