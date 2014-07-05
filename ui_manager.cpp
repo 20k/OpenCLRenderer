@@ -46,13 +46,6 @@ void ui_element::load(int _ref_id, std::string file, std::string _name, cl_float
 
     int real_id = hologram_manager::get_real_id(ref_id);
 
-    //int wi = hologram_manager::tex_size[real_id].first;
-    //int hi = hologram_manager::tex_size[real_id].second;
-
-    //cl_float2 corrected;
-
-    //corrected = {_initial.x * wi, _initial.y * hi};
-
     initial = _initial;
 
     finish = _initial;
@@ -70,6 +63,18 @@ void ui_element::load(int _ref_id, std::string file, std::string _name, cl_float
     //finish = initial;
 
     ///blit id with buffer here? All at once? Who? What?
+}
+
+void ship_screen::ship_load(int _ref_id, std::string file, std::string selected_file, std::string _name)
+{
+   load(_ref_id, file, _name, {0, 0}, {0, 0}, {0, 0});
+
+   sf::Image img;
+   img.loadFromFile(selected_file.c_str());
+
+   GLuint gl_id = get_texture_from_sfml(img);
+
+   selected_tex = clCreateFromGLTexture2D(cl::context, CL_MEM_READ_ONLY, GL_TEXTURE_2D, 0, gl_id, NULL);
 }
 
 void ui_element::update_offset()
@@ -154,6 +159,7 @@ void ship_screen::tick()
 
     hologram_manager::acquire(r_id);
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
+    clEnqueueAcquireGLObjects(cl::cqueue, 1, &selected_tex, 0, NULL, NULL);
     cl::cqueue.finish();
 
     cl_uint global[2] = {(cl_uint)w, (cl_uint)h};
@@ -161,19 +167,19 @@ void ship_screen::tick()
     cl_uint local[2] = {16, 16};
 
     compute::buffer wrap_first = compute::buffer(hologram_manager::g_tex_mem_base[r_id]);
-    compute::buffer wrap_second = compute::buffer(hologram_manager::g_tex_mem[r_id]); ///change to different colour, or flag if selected?
-
-    compute::buffer wrap_write = compute::buffer(g_ui);
+    compute::buffer wrap_second = compute::buffer(hologram_manager::g_tex_mem[r_id]);
 
     compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
+
 
     ///the ids written will get confused with ui_ids...
     for(int i=0; i<ship_screen::ship_render_positions.size(); i++)
     {
+        compute::buffer wrap_write = compute::buffer(g_ui);
         ///currently selected, do different colour or something
         if(ship_screen::ship_render_positions[i].second == (ui_manager::selected_value & (~MINIMAP_BITFLAG)))
         {
-
+            wrap_write = compute::buffer(selected_tex);
         }
 
         cl_int bit_hack = ship_screen::ship_render_positions[i].second | MINIMAP_BITFLAG;
@@ -200,6 +206,7 @@ void ship_screen::tick()
 
 
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
+    clEnqueueReleaseGLObjects(cl::cqueue, 1, &selected_tex, 0, NULL, NULL);
     hologram_manager::release(r_id);
 }
 
@@ -213,10 +220,10 @@ ui_element* ui_manager::make_new(int _ref_id, std::string file, std::string name
     return elem;
 }
 
-ship_screen* ui_manager::make_new_ship_screen(int _ref_id, std::string file, std::string name)
+ship_screen* ui_manager::make_new_ship_screen(int _ref_id, std::string file, std::string selected_file, std::string name)
 {
     ship_screen* elem = new ship_screen;
-    elem->load(_ref_id, file, name, {0, 0}, {0, 0}, {0, 0});
+    elem->ship_load(_ref_id, file, selected_file, name);
 
     ui_elems.push_back(elem);
 

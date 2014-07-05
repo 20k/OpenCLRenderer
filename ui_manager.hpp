@@ -50,9 +50,13 @@ struct ui_element
 
 struct ship_screen : ui_element
 {
+    void ship_load(int _ref_id, std::string file, std::string selected_file, std::string name);
+
     void tick();
 
     static std::vector<std::pair<cl_float4, int>> ship_render_positions;
+
+    cl_mem selected_tex;
 };
 
 struct ui_manager
@@ -61,7 +65,7 @@ struct ui_manager
 
     static ui_element* make_new(int, std::string, std::string, cl_float2, cl_float2, cl_float2);
 
-    static ship_screen* make_new_ship_screen(int, std::string, std::string);
+    static ship_screen* make_new_ship_screen(int, std::string, std::string, std::string);
 
     static void tick_all();
 

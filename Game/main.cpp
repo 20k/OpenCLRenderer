@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
     int hid2 = hologram_manager::load("Res/blank.png", {0, -500, 500, 0}, {0,0,0,0}, 1.0f, &ship.objects);
 
-    ui_manager::make_new_ship_screen(hid2, "Res/ship_icon.png", "ui_ship");
+    ui_manager::make_new_ship_screen(hid2, "Res/ship_icon.png", "Res/ship_icon_selected.png", "ui_ship");
 
     //ship_object player_systems;
 
