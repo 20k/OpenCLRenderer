@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
 
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
-        ui_manager::update_selected_value(window.get_mouse_x(), window.get_mouse_y());
+        ui_manager::update_selected_values(window.get_mouse_x(), window.get_mouse_y());
         ui_manager::tick_all();
         //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 

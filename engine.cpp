@@ -1174,11 +1174,11 @@ void engine::ui_interaction()
                 e.finish.x = px;
                 e.finish.y = (h - py);
             }
-
         }
     }
 
     ///minimap element
+    ///only on keypress?
     if(selected != -1 && (selected & MINIMAP_BITFLAG))
     {
         int id = selected & (~MINIMAP_BITFLAG);

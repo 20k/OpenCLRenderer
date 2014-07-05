@@ -72,8 +72,9 @@ struct ui_manager
     static std::map<std::string, cl_float2> offset_from_minimum;
 
     static int selected_value;
+    static int last_selected_value;
 
-    static void update_selected_value(int, int);
+    static void update_selected_values(int, int);
 };
 
 #endif // INCLUDED_UI_MANAGER_HPP

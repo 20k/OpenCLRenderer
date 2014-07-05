@@ -21,6 +21,7 @@ std::map<std::string, cl_float2> ui_manager::offset_from_minimum;
 std::vector<std::pair<cl_float4, int>> ship_screen::ship_render_positions;
 
 int ui_manager::selected_value = -1;
+int ui_manager::last_selected_value = -1;
 
 
 void ui_element::set_pos(cl_float2 pos)
@@ -177,7 +178,7 @@ void ship_screen::tick()
     {
         compute::buffer wrap_write = compute::buffer(g_ui);
         ///currently selected, do different colour or something
-        if(ship_screen::ship_render_positions[i].second == (ui_manager::selected_value & (~MINIMAP_BITFLAG)))
+        if(ship_screen::ship_render_positions[i].second == (ui_manager::last_selected_value & (~MINIMAP_BITFLAG)))
         {
             wrap_write = compute::buffer(selected_tex);
         }
@@ -230,7 +231,8 @@ ship_screen* ui_manager::make_new_ship_screen(int _ref_id, std::string file, std
     return elem;
 }
 
-void ui_manager::update_selected_value(int mx, int my)
+///make this sticky?
+void ui_manager::update_selected_values(int mx, int my)
 {
     my = engine::height - my;
 
@@ -252,6 +254,7 @@ void ui_manager::update_selected_value(int mx, int my)
     cl::cqueue.enqueue_read_buffer(engine::g_ui_id_screen, sizeof(cl_int)*(my*engine::width + mx), sizeof(cl_int), &id);
 
     selected_value = id;
+    last_selected_value = id;
 }
 
 void ui_manager::tick_all()
