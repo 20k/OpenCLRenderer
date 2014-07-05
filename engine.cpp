@@ -1113,7 +1113,7 @@ void engine::ui_interaction()
 
     int selected = ui_manager::selected_value;
 
-    if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size())
+    if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size() && !(selected & MINIMAP_BITFLAG))
     {
         ui_element& e = *ui_manager::ui_elems[selected];
 
