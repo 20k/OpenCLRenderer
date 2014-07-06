@@ -1664,7 +1664,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
         return;
     }
 
-    __global struct triangle *T=&triangles[id];
+    __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].pad;
 
@@ -1689,7 +1689,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
     float4 tris_proj[2][3]; ///projected triangles
 
-    int num=0;
+    int num = 0;
 
     ///needs to be changed for lights
 
@@ -1830,8 +1830,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
     ///calculate area by triangle 3rd area method
-    //float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
-    //float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
+
     float area = calc_area(xpv, ypv);
 
     int pcount=0;
@@ -1920,7 +1919,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 {
     uint id = get_global_id(0);
 
-    //if(id >= *f_len)
     if(id >= *valid_tri_num)
     {
         return;
@@ -1966,8 +1964,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float4 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z), 0.0f};
 
 
-    //float area=calc_third_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2], 0, 0, 0);
-    //float area = calc_area(xp[0], yp[0], xp[1], yp[1], xp[2], yp[2]);
     float area = calc_area(xpv, ypv);
 
     int pcount=0;
@@ -2839,7 +2835,6 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     int height = get_image_height(to_write);
 
     int bwidth = get_image_width(base);
-    //int bheight = get_image_height(base);
 
     if(x >= width || y >= height)
         return;
