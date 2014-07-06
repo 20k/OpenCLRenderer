@@ -1106,6 +1106,7 @@ void engine::render_buffers()
     nbuf = nbuf % 2;
 }
 
+///does this need to be somewhere more fun? Minimap vs UI
 void engine::ui_interaction()
 {
     int mx = mouse.getPosition(window).x;
@@ -1175,23 +1176,6 @@ void engine::ui_interaction()
                 e.finish.y = (h - py);
             }
         }
-    }
-
-    ///minimap element
-    ///only on keypress?
-    if(selected != -1 && (selected & MINIMAP_BITFLAG))
-    {
-        int id = selected & (~MINIMAP_BITFLAG);
-
-        int real_id = objects_container::get_object_by_id(id);
-
-        if(real_id == -1)
-            return;
-
-        objects_container* obj = objects_container::obj_container_list[real_id];
-        ///this object has been picked to be fired at
-
-        //std::cout << real_id << std::endl;
     }
 }
 

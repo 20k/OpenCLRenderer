@@ -853,8 +853,8 @@ void game_object_manager::update_ui_render_positions()
 {
     ship_screen::ship_render_positions.clear();
 
-    for(auto& i : object_list)
+    for(int i=0; i<object_list.size(); i++)
     {
-        ship_screen::ship_render_positions.push_back({i->objects.pos, i->objects.id});
+        ship_screen::ship_render_positions.push_back({object_list[i]->objects.pos, i});
     }
 }

@@ -96,6 +96,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///need some kind of resources manager really
 
 ///hyperspace disabled due to feature creep
+
+///minimap vs UI problem
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -328,16 +330,16 @@ int main(int argc, char *argv[])
         //game_object_manager::process_destroyed_ships();
 
 
-        window.input();
-        window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
-        window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
-
-
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
         ui_manager::update_selected_values(window.get_mouse_x(), window.get_mouse_y());
         ui_manager::tick_all();
         //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
+
+        window.input();
+        window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
+        window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
+
 
         window.draw_bulk_objs_n();
 
@@ -348,6 +350,19 @@ int main(int argc, char *argv[])
         //std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
+
+
+        if(ui_manager::selected_value != -1 && (ui_manager::selected_value & MINIMAP_BITFLAG))
+        {
+            int val = ui_manager::selected_value & (~MINIMAP_BITFLAG);
+
+            if(val >= 0 && val < game_object_manager::object_list.size())
+            {
+                ship.remove_targets_from_weapon_group(weapon_group_selected);
+                ship.add_target(game_object_manager::object_list[val], weapon_group_selected);
+            }
+        }
+
 
 
         //if(test)
