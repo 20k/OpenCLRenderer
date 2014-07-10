@@ -201,6 +201,7 @@ void oclstuff(std::string file)
     cl::blit_with_id = compute::kernel(program, "blit_with_id");
     cl::blit_clear = compute::kernel(program, "blit_clear");
     cl::clear_id_buf = compute::kernel(program, "clear_id_buf");
+    cl::clear_screen_dbuf = compute::kernel(program, "clear_screen_dbuf");
 }
 
 

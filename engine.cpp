@@ -718,20 +718,8 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     cl_uint local = 128;
 
     cl_uint p1global_ws = pc.len;
-    if(p1global_ws % local!=0)
-    {
-        int rem=p1global_ws % local;
-        p1global_ws-=(rem);
-        p1global_ws+=local;
-    }
-
-    if(p1global_ws == 0)
-    {
-        p1global_ws += local;
-    }
 
     run_kernel_with_args(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arglist, 8, true);
-
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
@@ -1076,8 +1064,11 @@ void engine::draw_holograms()
 
 void engine::render_buffers()
 {
+    if(camera_dirty)
+        g_flush_camera();
+
     sf::Clock clk;
-    draw_ui(); ///?
+    //draw_ui(); ///?
     //std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
@@ -1090,20 +1081,22 @@ void engine::render_buffers()
     ///blit buffer to screen
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    glFinish();
 
-
-    //interact::deplete_stack();
+    interact::deplete_stack();
     interact::clear();
-
 
 
     text_handler::render();
 
     window.display();
 
+
     ///swap depth buffers
     nbuf++;
     nbuf = nbuf % 2;
+
+    camera_dirty = false;
 }
 
 ///does this need to be somewhere more fun? Minimap vs UI

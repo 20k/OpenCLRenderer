@@ -117,7 +117,7 @@ private:
 float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
-static void run_kernel_with_args(compute::kernel &kernel, cl_uint *global_ws, cl_uint *local_ws, const int dimensions, compute::buffer **argv, int argc, bool blocking)
+static void run_kernel_with_args(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     if(blocking)
         cl::cqueue.finish();

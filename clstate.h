@@ -31,6 +31,7 @@ namespace cl
     extern compute::kernel blit_with_id;
     extern compute::kernel blit_clear;
     extern compute::kernel clear_id_buf;
+    extern compute::kernel clear_screen_dbuf;
 }
 
 

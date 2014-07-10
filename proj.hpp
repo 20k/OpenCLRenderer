@@ -12,7 +12,6 @@
 #include "obj_load.hpp"
 #include "objects_container.hpp"
 #include "texture.hpp"
-#include "ocl.h"
 #include "engine.hpp"
 #include "obj_mem_manager.hpp"
 #include "obj_g_descriptor.hpp"

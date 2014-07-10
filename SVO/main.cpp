@@ -7,6 +7,75 @@
 using namespace std;
 namespace compute = boost::compute;
 
+void process_current(voxel& vox, vector<cl_float4>& out_stack, cl_float4 centre, int pos, int size, vector<voxel>& tree)
+{
+    ///if the current voxel is all leaf, add them to the stack, otherwise keep processing voxels
+
+    if(vox.valid_mask.count() == 0)
+    {
+        if(vox.leaf_mask.count() == 0)
+            throw "lods of emone (malformed octree?)";
+
+        for(int i=0; i<8; i++)
+        {
+            if(!vox.leaf_mask[i])
+                continue;
+
+            int half_size = size/2;
+
+            cl_float4 new_pos = bit_to_pos(i, half_size);
+
+            new_pos = add(new_pos, centre);
+
+            out_stack.push_back(new_pos);
+        }
+
+        return; ///the end, no more processing once we're a leaf holder ///?
+    }
+
+    int valid_count = 0;
+
+    for(int i=0; i<8; i++)
+    {
+        if(!vox.valid_mask[i])
+            continue;
+
+        int half_size = size/2;
+
+        cl_float4 new_pos = bit_to_pos(i, half_size);
+
+        new_pos = add(new_pos, centre);
+
+        //std::cout << new_pos.x << " " << new_pos.y << " " << new_pos.z << " " << centre.x << " " << centre.y << " " << centre.z << " " << std::endl;
+
+        int offset = pos + vox.offset + valid_count;
+
+        voxel new_vox = tree[offset];
+
+        process_current(new_vox, out_stack, new_pos, offset, half_size, tree);
+
+        valid_count++;
+    }
+}
+
+point_cloud pcloud_tree(vector<voxel>& tree)
+{
+    vector<cl_float4> positions_out;
+
+    process_current(tree[0], positions_out, {0,0,0,0}, 0, MAX_SIZE, tree);
+
+    point_cloud pcloud;
+
+    pcloud.position.swap(positions_out);
+
+    for(int i=0; i<pcloud.position.size(); i++)
+    {
+        pcloud.rgb_colour.push_back(0xFF00FF00);
+    }
+
+    return pcloud;
+}
+
 int main()
 {
     engine window;
@@ -30,7 +99,7 @@ int main()
         pos.z = (((float)rand()/RAND_MAX) - 0.5);
         pos.w = 0;
 
-        cl_uint col = 0xE6E6E6FF;
+        cl_uint col = 0xFFE600FF;
 
         pcloud.position.push_back(mult(pos, 1000.0f));
         //std::cout << pcloud.position.back().x << std::endl;
@@ -47,16 +116,22 @@ int main()
     int c = 0;
     for(auto& i : v)
     {
-        cout << c << " " << i.offset << " " << i.valid_mask << " " << i.leaf_mask << std::endl;
+        //cout << c << " " << i.offset << " " << i.valid_mask << " " << i.leaf_mask << std::endl;
         rc += i.leaf_mask.count();
         c++;
     }
 
-    exit(rc);
+
+    point_cloud svopc = pcloud_tree(v);
+    point_cloud_info info_svopc = point_cloud_manager::alloc_point_cloud(svopc);
+
+    //exit(rc);
 
     cl_float4 pos = {0,0,0,0};
 
     compute::buffer offset = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &pos);
+
+    ///writing to the depth buffer is fantastically slow
 
     while(window.window.isOpen())
     {
@@ -70,8 +145,8 @@ int main()
 
         window.input();
 
-
         window.draw_space_dust_no_tile(info_pcloud, offset);
+        window.draw_space_dust_no_tile(info_svopc, offset);
 
         window.render_buffers();
 

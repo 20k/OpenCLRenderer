@@ -56,6 +56,21 @@ void from_bit(char b, int& x, int& y, int& z)
         x=1, y=1, z=1;
 }
 
+cl_float4 bit_to_pos(char b, int size)
+{
+    int x, y, z;
+
+    from_bit(b, x, y, z);
+
+    cl_float4 rel = {x, y, z, 0};
+
+    rel = mult(rel, 2);     ///0 -> 2
+    rel = sub(rel, 1);      ///-1 -> 1
+    rel = mult(rel, size);  ///-size to size
+
+    return rel;
+}
+
 void oct_partition(std::vector<cl_float4>& positions, cl_float4 centre, std::vector<cl_float4> out[8])
 {
     for(auto i : positions)
@@ -128,15 +143,7 @@ void recurse(std::vector<voxel>& storage, int current, int depth, std::vector<cl
 
         int new_size = size/2;
 
-        int x, y, z;
-
-        from_bit(valid[i], x, y, z);
-
-        cl_float4 rel = {x, y, z, 0};
-
-        rel = mult(rel, 2); ///0 -> 2
-        rel = sub(rel, 1); ///-1 -> 1
-        rel = mult(rel, new_size); ///-size to size
+        cl_float4 rel = bit_to_pos(valid[i], new_size);
 
         cl_float4 local;
 
@@ -153,8 +160,6 @@ std::vector<voxel> voxel_octree_manager::derive_octree(point_cloud& pcloud)
     ///recursively subdivide
 
     ///discover bounds or fixed?
-
-    int max_size = 2048;
     int max_depth = 10; ///make depth go down?
 
 
@@ -165,7 +170,7 @@ std::vector<voxel> voxel_octree_manager::derive_octree(point_cloud& pcloud)
     std::vector<voxel> storage;
     storage.push_back(voxel());
 
-    recurse(storage, 0, 0, pcloud.position, centre, max_size, max_depth);
+    recurse(storage, 0, 0, pcloud.position, centre, MAX_SIZE, max_depth);
 
     return storage;
 }

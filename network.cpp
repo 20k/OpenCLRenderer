@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <cstdio>
 
 std::vector<int> network::networked_clients;
 int network::listen_fd;

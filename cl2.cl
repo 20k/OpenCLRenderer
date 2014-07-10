@@ -2542,7 +2542,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
     uint pid = get_global_id(0);
 
-    if(pid > *num)
+    if(pid >= *num)
         return;
 
     float4 position = positions[pid];
@@ -2565,7 +2565,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
     float depth = projected.z;
 
-    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+    if(projected.x <= 0 || projected.x >= SCREENWIDTH || projected.y <= 0 || projected.y >= SCREENHEIGHT)
         return;
 
     if(depth < depth_icutoff)// || depth > depth_far)
@@ -2892,6 +2892,19 @@ __kernel void clear_id_buf(__global uint* to_clear)
         return;
 
     to_clear[y*SCREENWIDTH + x] = -1;
+}
+
+__kernel void clear_screen_dbuf(__write_only image2d_t base, __global uint* depth_buffer)
+{
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    depth_buffer[y*SCREENWIDTH + x] = mulint;
+
+    write_imagef(base, (int2){x, y}, (float4){0,0,0,0});
 }
 
 /*///change to reverse projection

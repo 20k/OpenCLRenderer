@@ -1,4 +1,5 @@
 #include "proj.hpp"
+#include "ocl.h"
 
 ///todo eventually
 ///split into dynamic and static objects
