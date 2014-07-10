@@ -1,6 +1,5 @@
 #include "proj.hpp"
-#include "ocl.h"
-#include "texture_manager.hpp"
+
 ///todo eventually
 ///split into dynamic and static objects
 
