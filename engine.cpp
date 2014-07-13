@@ -170,7 +170,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     //glEnable(GL_TEXTURE2D); ///?
 }
 
-
 void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 {
     cl_uint lnum=light::lightlist.size();
@@ -1057,6 +1056,27 @@ void engine::draw_holograms()
 
         hologram_manager::release(i);
     }
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+}
+
+void engine::draw_voxel_octree(g_voxel_info& info)
+{
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
+
+    compute::buffer screen_wrap = compute::buffer(scr, true);
+
+    compute::buffer* argv[] = {&screen_wrap, &info.g_voxel_mem, &g_c_pos, &g_c_pos};
+
+    cl_uint glob[] = {window.getSize().x, window.getSize().y};
+    cl_uint local[] = {16, 16};
+
+    run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
+
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();

@@ -22,3 +22,4 @@ compute::kernel cl::blit_with_id;
 compute::kernel cl::blit_clear;
 compute::kernel cl::clear_id_buf;
 compute::kernel cl::clear_screen_dbuf;
+compute::kernel cl::draw_voxel_octree;

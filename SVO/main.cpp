@@ -46,8 +46,6 @@ void process_current(voxel& vox, vector<cl_float4>& out_stack, cl_float4 centre,
 
         new_pos = add(new_pos, centre);
 
-        //std::cout << new_pos.x << " " << new_pos.y << " " << new_pos.z << " " << centre.x << " " << centre.y << " " << centre.z << " " << std::endl;
-
         int offset = pos + vox.offset + valid_count;
 
         voxel new_vox = tree[offset];

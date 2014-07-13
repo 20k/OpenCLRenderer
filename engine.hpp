@@ -6,6 +6,7 @@
 #include "objects_container.hpp"
 #include "light.hpp"
 #include "clstate.h"
+#include "SVO/voxel.h"
 
 #include <boost/compute/source.hpp>
 #include <boost/compute/system.hpp>
@@ -93,6 +94,7 @@ struct engine
     void draw_bulk_objs_n(); ///draw objects to scene
     void draw_ui();
     void draw_holograms();
+    void draw_voxel_octree(g_voxel_info& info);
     void render_buffers();
 
     void ui_interaction();

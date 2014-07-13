@@ -2,58 +2,18 @@
 #include "../vec.hpp"
 
 #include <map>
+#include "../clstate.h"
 
 char to_bit(int x, int y, int z)
 {
-    if(x == 0 && y == 0 && z == 0)
-        return 0;
-    if(x == 1 && y == 0 && z == 0)
-        return 1;
-
-    if(x == 0 && y == 1 && z == 0)
-        return 2;
-    if(x == 1 && y == 1 && z == 0)
-        return 3;
-
-
-    if(x == 0 && y == 0 && z == 1)
-        return 4;
-    if(x == 1 && y == 0 && z == 1)
-        return 5;
-
-    if(x == 0 && y == 1 && z == 1)
-        return 6;
-    if(x == 1 && y == 1 && z == 1)
-        return 7;
-
-    throw "completely broken";
+    return x << 0 | y << 1 | z << 2;
 }
 
 void from_bit(char b, int& x, int& y, int& z)
 {
-    if(b == 0)
-        x=0, y=0, z=0;
-
-    if(b == 1)
-        x=1, y=0, z=0;
-
-    if(b == 2)
-        x=0, y=1, z=0;
-
-    if(b == 3)
-        x=1, y=1, z=0;
-
-    if(b == 4)
-        x=0, y=0, z=1;
-
-    if(b == 5)
-        x=1, y=0, z=1;
-
-    if(b == 6)
-        x=0, y=1, z=1;
-
-    if(b == 7)
-        x=1, y=1, z=1;
+    x = (b & 0x1) >> 0;
+    y = (b & 0x2) >> 1;
+    z = (b & 0x4) >> 2;
 }
 
 cl_float4 bit_to_pos(char b, int size)
@@ -162,9 +122,6 @@ std::vector<voxel> voxel_octree_manager::derive_octree(point_cloud& pcloud)
     ///discover bounds or fixed?
     int max_depth = 10; ///make depth go down?
 
-
-    //cl_float4 centre = {max_size/2, max_size/2, max_size/2, 0.0f};
-
     cl_float4 centre = {0,0,0,0};
 
     std::vector<voxel> storage;
@@ -173,4 +130,12 @@ std::vector<voxel> voxel_octree_manager::derive_octree(point_cloud& pcloud)
     recurse(storage, 0, 0, pcloud.position, centre, MAX_SIZE, max_depth);
 
     return storage;
+}
+
+g_voxel_info voxel_octree_manager::alloc_g_mem(std::vector<voxel>& tree)
+{
+    g_voxel_info g_mem;
+    g_mem.g_voxel_mem = compute::buffer(cl::context, sizeof(voxel)*tree.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &tree[0]);
+
+    return g_mem;
 }

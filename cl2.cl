@@ -62,6 +62,15 @@ float calc_area(float4 x, float4 y)
     return fabs((x.x*(y.y - y.z) + x.y*(y.z - y.x) + x.z*(y.x - y.y))/2.0f);
 }
 
+///soa vs aos
+struct voxel
+{
+    int offset;
+    uchar valid_mask;
+    uchar leaf_mask;
+    uchar2 pad;
+};
+
 struct light
 {
     float4 pos;
@@ -2905,6 +2914,232 @@ __kernel void clear_screen_dbuf(__write_only image2d_t base, __global uint* dept
     depth_buffer[y*SCREENWIDTH + x] = mulint;
 
     write_imagef(base, (int2){x, y}, (float4){0,0,0,0});
+}
+
+void draw_blank(__write_only image2d_t screen, int x, int y)
+{
+    write_imagef(screen, (int2){x, y}, (float4){1.0f, 1.0f, 1.0f, 1.0f});
+}
+
+char to_bit(int x, int y, int z)
+{
+    return x << 0 | y << 1 | z << 2;
+}
+
+int4 from_bit(char b)
+{
+    int4 ret;
+
+    ret.x = (b & 0x1) >> 0;
+    ret.y = (b & 0x2) >> 1;
+    ret.z = (b & 0x4) >> 2;
+    ret.w = 0;
+
+    return ret;
+}
+
+int4 bit_to_pos(char b, int size)
+{
+    int4 val = from_bit(b);
+
+    val *= 2;
+    val -= 1;
+    val *= size;
+
+    return val;
+}
+
+
+///dont bother precomputing for now
+float4 plane_intersect(float4 x, float4 dx, float4 px)
+{
+    return (1.0f/dx) * x + (1.0/dx) * (-px);
+}
+
+int select_child(float4 centre, float4 pos, float4 ray, float tmin)
+{
+    float4 ts = plane_intersect(centre, ray, pos);
+
+    int4 loc = tmin > ts; ///???
+
+    int ret = loc.x << 0 | loc.y << 1 | loc.z << 2;
+
+    return ret;
+}
+
+float2 find_min_max(float size, float4 centre, float4 rdir, float4 pos)
+{
+    float4 min_point_unordered = plane_intersect((float4){-size, -size, -size, 0.0f} + centre, rdir, pos);
+    float4 max_point_unordered = plane_intersect((float4){size, size, size, 0.0f} + centre, rdir, pos);
+
+    float4 mins = min(min_point_unordered, max_point_unordered);
+    float4 maxs = max(min_point_unordered, max_point_unordered);
+
+    ///get the t values for the planes we intersected with
+    float tmin = max(max(mins.x, mins.y), mins.z);
+    float tmax = min(min(maxs.x, maxs.y), maxs.z);
+
+    return (float2){tmin, tmax};
+}
+
+bool bit_set(uchar b, uchar bit)
+{
+    return (b >> bit) & 0x1;
+}
+
+float2 intersect(float2 first, float2 second)
+{
+    float x = max(first.x, second.x);
+    float y = min(first.y, second.y);
+
+    return (float2){x, y}; ///?
+}
+
+struct vstack
+{
+    struct voxel vox;
+    float tval;
+    int loc;
+};
+
+struct vparent
+{
+    struct voxel vox;
+    int loc;
+};
+
+__kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* voxels, __global float4* c_pos, __global float4* c_rot)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    int width = SCREENWIDTH;
+    int height = SCREENHEIGHT;
+
+    int ax = x - width / 2;
+    int ay = y - height / 2;
+
+    int depth = FOV_CONST;
+
+    const int max_size = 2048;
+
+    const int min_size = 1;
+
+    float4 ray = {ax, ay, depth, 0.0f}; ///rotate it later
+
+    ray = rot(ray, (float4){0,0,0,0}, *c_rot);
+
+    float4 pos = *c_pos;
+
+    float4 centre = {0,0,0,0};
+
+    ///c_pos + l*ray
+
+    int size = max_size;
+
+    float2 tminmax = find_min_max(size, centre, ray, pos);
+
+    float tmin = tminmax.x;
+    float tmax = tminmax.y;
+
+    float h = tmax;
+
+    struct vstack voxel_stack[20];
+    int vsc = 0;
+
+    //voxel_stack[vsc] = voxels[0];
+
+    int idx = select_child(centre, pos, ray, tmin);
+
+    struct vparent parent = {voxels[0], 0};
+
+    while(1)
+    {
+        float new_size = size/2;
+        int new_scale = vsc + 1; /// ///remember to update scale
+
+        int4 ipos = bit_to_pos(idx, new_size);
+
+        float4 fpos;
+
+        fpos.x = ipos.x;
+        fpos.y = ipos.y;
+        fpos.z = ipos.z;
+
+        float4 tcentre = centre + fpos;
+
+        float2 tchild = find_min_max(new_size, tcentre, ray, pos); ///tc
+        float tcmin = tchild.x;
+        float tcmax = tchild.y;
+
+
+        if((bit_set(parent.vox.valid_mask, idx) || bit_set(parent.vox.leaf_mask, idx)) && tmin <= tmax)
+        {
+            if(new_size < min_size)
+            {
+                ///true;
+                draw_blank(screen, x, y);
+                return;
+            }
+
+
+            float2 tv = intersect(tchild, tminmax);
+            float tvmin = tv.x;
+            float tvmax = tv.y;
+
+            if(tvmin <= tvmax)
+            {
+                if(bit_set(parent.vox.leaf_mask, idx))
+                {
+                    ///true
+                    draw_blank(screen, x, y);
+                    return;
+                }
+
+                if(tchild.y < h)
+                {
+                    ///?
+                    struct vstack elem;
+                    elem.vox = parent.vox;
+                    elem.tval = tmax;
+                    elem.loc = parent.loc;
+
+                    voxel_stack[vsc] = elem;
+                }
+
+                h = tcmax;
+
+                int new_pos = parent.loc + parent.vox.offset + idx;
+                struct vparent new_parent = {voxels[new_pos], new_pos};
+
+                parent = new_parent;
+
+                idx = select_child(tcentre, pos, ray, tvmin); ///? no size
+
+                tminmax = tv;
+                tmin = tminmax.x;
+                tmax = tminmax.y;
+
+                centre = tcentre;
+                size = new_size;
+                vsc = new_scale;
+
+                continue;
+            }
+        }
+
+        ///need to do ray stepping malarky :l
+
+        float4 old_pos = centre;
+
+
+    }
+
+
+
+    ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
+
+
 }
 
 /*///change to reverse projection
