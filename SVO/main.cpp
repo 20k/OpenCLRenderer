@@ -11,14 +11,14 @@ void process_current(voxel& vox, vector<cl_float4>& out_stack, cl_float4 centre,
 {
     ///if the current voxel is all leaf, add them to the stack, otherwise keep processing voxels
 
-    if(vox.valid_mask.count() == 0)
+    if(count(vox.valid_mask) == 0)
     {
-        if(vox.leaf_mask.count() == 0)
+        if(count(vox.leaf_mask) == 0)
             throw "lods of emone (malformed octree?)";
 
         for(int i=0; i<8; i++)
         {
-            if(!vox.leaf_mask[i])
+            if(!get_bit(vox.leaf_mask, i))
                 continue;
 
             int half_size = size/2;
@@ -37,7 +37,7 @@ void process_current(voxel& vox, vector<cl_float4>& out_stack, cl_float4 centre,
 
     for(int i=0; i<8; i++)
     {
-        if(!vox.valid_mask[i])
+        if(!get_bit(vox.valid_mask, i))
             continue;
 
         int half_size = size/2;
@@ -76,6 +76,13 @@ point_cloud pcloud_tree(vector<voxel>& tree)
 
 int main()
 {
+    float tf = 1.0f;
+
+    int xsign = (*(uint32_t*)&tf) >> 31;
+
+    //exit(xsign);
+    //exit(sizeof(voxel));
+
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("../cl2.cl");
@@ -115,7 +122,7 @@ int main()
     for(auto& i : v)
     {
         //cout << c << " " << i.offset << " " << i.valid_mask << " " << i.leaf_mask << std::endl;
-        rc += i.leaf_mask.count();
+        rc += count(i.leaf_mask);
         c++;
     }
 
@@ -131,6 +138,8 @@ int main()
 
     ///writing to the depth buffer is fantastically slow
 
+    g_voxel_info g_vox = voxel_octree_manager::alloc_g_mem(v);
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -145,6 +154,7 @@ int main()
 
         window.draw_space_dust_no_tile(info_pcloud, offset);
         window.draw_space_dust_no_tile(info_svopc, offset);
+        window.draw_voxel_octree(g_vox);
 
         window.render_buffers();
 

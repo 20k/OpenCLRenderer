@@ -2309,6 +2309,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         }
 
         //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
+        col.w = 0.0f;
+        mandatory_light.w = 0.0f;
         write_imagef(screen, scoord, col*(lightaccum) + mandatory_light);
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
@@ -2821,6 +2823,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
         id = 0;*/
 
     //write_imagef(screen, (int2){px, py}, newcol);
+    newcol.w = 0.0f;
     write_imagef(screen, (int2){x, y}, newcol);
     //write_imagef(screen, (int2){x + round(points_3d[3].x), y + round(points_3d[3].y)}, newcol);
 
@@ -2967,6 +2970,7 @@ int select_child(float4 centre, float4 pos, float4 ray, float tmin)
     return ret;
 }
 
+
 float2 find_min_max(float size, float4 centre, float4 rdir, float4 pos)
 {
     float4 min_point_unordered = plane_intersect((float4){-size, -size, -size, 0.0f} + centre, rdir, pos);
@@ -2982,6 +2986,25 @@ float2 find_min_max(float size, float4 centre, float4 rdir, float4 pos)
     return (float2){tmin, tmax};
 }
 
+float2 find_min_max_extra(float size, float4 centre, float4 rdir, float4 pos, float4* emaxs)
+{
+    float4 min_point_unordered = plane_intersect((float4){-size, -size, -size, 0.0f} + centre, rdir, pos);
+    float4 max_point_unordered = plane_intersect((float4){size, size, size, 0.0f} + centre, rdir, pos);
+
+    float4 mins = min(min_point_unordered, max_point_unordered);
+    float4 maxs = max(min_point_unordered, max_point_unordered);
+
+    ///get the t values for the planes we intersected with
+    float tmin = max(max(mins.x, mins.y), mins.z);
+    float tmax = min(min(maxs.x, maxs.y), maxs.z);
+
+    *emaxs = maxs;
+
+    return (float2){tmin, tmax};
+}
+
+
+
 bool bit_set(uchar b, uchar bit)
 {
     return (b >> bit) & 0x1;
@@ -2993,6 +3016,22 @@ float2 intersect(float2 first, float2 second)
     float y = min(first.y, second.y);
 
     return (float2){x, y}; ///?
+}
+
+int4 march_ray(int4 old_idx, float4 id_far_intersect, float tc_max)
+{
+    int4 eq = id_far_intersect == tc_max;
+
+    if(eq.x)
+        old_idx.x = (old_idx.x + 1) % 2;
+
+    if(eq.y)
+        old_idx.y = (old_idx.y + 1) % 2;
+
+    if(eq.z)
+        old_idx.z = (old_idx.z + 1) % 2;
+
+    return old_idx;
 }
 
 struct vstack
@@ -3008,7 +3047,7 @@ struct vparent
     int loc;
 };
 
-__kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* voxels, __global float4* c_pos, __global float4* c_rot)
+__kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct voxel* voxels, __global float4* c_pos, __global float4* c_rot)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -3038,6 +3077,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* vox
     int size = max_size;
 
     float2 tminmax = find_min_max(size, centre, ray, pos);
+    tminmax.x = max(tminmax.x, 0.0f);
 
     float tmin = tminmax.x;
     float tmax = tminmax.y;
@@ -3049,11 +3089,11 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* vox
 
     //voxel_stack[vsc] = voxels[0];
 
-    int idx = select_child(centre, pos, ray, tmin);
+    char idx = select_child(centre, pos, ray, tmin);
 
     struct vparent parent = {voxels[0], 0};
 
-    while(1)
+    //while(1)
     {
         float new_size = size/2;
         int new_scale = vsc + 1; /// ///remember to update scale
@@ -3068,7 +3108,9 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* vox
 
         float4 tcentre = centre + fpos;
 
-        float2 tchild = find_min_max(new_size, tcentre, ray, pos); ///tc
+        float4 tc_max1;
+
+        float2 tchild = find_min_max_extra(new_size, tcentre, ray, pos, &tc_max1); ///tc
         float tcmin = tchild.x;
         float tcmax = tchild.y;
 
@@ -3079,7 +3121,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* vox
             {
                 ///true;
                 draw_blank(screen, x, y);
-                return;
+                //return;
             }
 
 
@@ -3093,7 +3135,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* vox
                 {
                     ///true
                     draw_blank(screen, x, y);
-                    return;
+                    //return;
                 }
 
                 if(tchild.y < h)
@@ -3124,13 +3166,40 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, struct voxel* vox
                 size = new_size;
                 vsc = new_scale;
 
-                continue;
+                //continue;
             }
         }
 
         ///need to do ray stepping malarky :l
 
-        float4 old_pos = centre;
+        //float4 old_pos = centre;
+
+        int4 old_id = from_bit(idx);
+
+        int4 new_id = march_ray(old_id, tc_max1, tcmax);
+
+        idx = to_bit(new_id.x, new_id.y, new_id.z);
+
+        ipos = bit_to_pos(idx, new_size);
+
+        fpos.x = ipos.x;
+        fpos.y = ipos.y;
+        fpos.z = ipos.z;
+
+        tcentre = centre + fpos;
+
+        tmin = tcmax;
+
+        int4 diff = new_id - old_id;
+
+        int xsign = (*(uint*)&ray.x) >> 31;
+        int ysign = (*(uint*)&ray.y) >> 31;
+        int zsign = (*(uint*)&ray.z) >> 31;
+
+        //printf("%i\n", xsign);
+
+
+
 
 
     }

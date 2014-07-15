@@ -13,9 +13,6 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
-					<Add option="-std=gnu++11" />
-					<Add option="-DSFML_STATIC" />
-					<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -34,6 +31,9 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-std=gnu++11" />
+			<Add option="-DSFML_STATIC" />
+			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 		</Compiler>
 		<Linker>
 			<Add option="-lmingw32" />
@@ -50,6 +50,7 @@
 			<Add option="-lopencl" />
 			<Add option="-lglew32.dll" />
 		</Linker>
+		<Unit filename="../cl2.cl" />
 		<Unit filename="../clstate.cpp" />
 		<Unit filename="../engine.cpp" />
 		<Unit filename="../engine.hpp" />
@@ -59,7 +60,6 @@
 		<Unit filename="../interact_manager.hpp" />
 		<Unit filename="../light.cpp" />
 		<Unit filename="../light.hpp" />
-		<Unit filename="../main.cpp" />
 		<Unit filename="../network.cpp" />
 		<Unit filename="../network.hpp" />
 		<Unit filename="../obj_g_descriptor.hpp" />
@@ -73,6 +73,7 @@
 		<Unit filename="../object.hpp" />
 		<Unit filename="../objects_container.cpp" />
 		<Unit filename="../objects_container.hpp" />
+		<Unit filename="../ocl.h" />
 		<Unit filename="../point_cloud.cpp" />
 		<Unit filename="../point_cloud.hpp" />
 		<Unit filename="../proj.hpp" />
@@ -90,6 +91,8 @@
 		<Unit filename="../vertex.cpp" />
 		<Unit filename="../vertex.hpp" />
 		<Unit filename="main.cpp" />
+		<Unit filename="voxel.cpp" />
+		<Unit filename="voxel.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

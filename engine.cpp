@@ -1070,10 +1070,14 @@ void engine::draw_voxel_octree(g_voxel_info& info)
 
     compute::buffer screen_wrap = compute::buffer(scr, true);
 
-    compute::buffer* argv[] = {&screen_wrap, &info.g_voxel_mem, &g_c_pos, &g_c_pos};
+    compute::buffer* argv[] = {&screen_wrap, &info.g_voxel_mem, &g_c_pos, &g_c_rot};
 
     cl_uint glob[] = {window.getSize().x, window.getSize().y};
     cl_uint local[] = {16, 16};
+
+    int s = info.g_voxel_mem.size();
+
+    std::cout << s << std::endl;
 
     run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
 

@@ -72,7 +72,7 @@ void recurse(std::vector<voxel>& storage, int current, int depth, std::vector<cl
     {
         for(int i=0; i<valid.size(); i++)
         {
-            storage[current].leaf_mask[valid[i]] = 1;
+            set_bit(storage[current].leaf_mask, valid[i]);
         }
 
         return;
@@ -81,7 +81,7 @@ void recurse(std::vector<voxel>& storage, int current, int depth, std::vector<cl
     ///update current valid children masks
     for(int i=0; i<valid.size(); i++)
     {
-        storage[current].valid_mask[valid[i]] = 1;
+        set_bit(storage[current].valid_mask, valid[i]);
     }
 
     int base = storage.size();
@@ -134,8 +134,10 @@ std::vector<voxel> voxel_octree_manager::derive_octree(point_cloud& pcloud)
 
 g_voxel_info voxel_octree_manager::alloc_g_mem(std::vector<voxel>& tree)
 {
+    int s = tree.size();
+
     g_voxel_info g_mem;
-    g_mem.g_voxel_mem = compute::buffer(cl::context, sizeof(voxel)*tree.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &tree[0]);
+    g_mem.g_voxel_mem = compute::buffer(cl::context, sizeof(voxel)*s, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &tree[0]);
 
     return g_mem;
 }
