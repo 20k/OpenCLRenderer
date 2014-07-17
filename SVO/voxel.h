@@ -55,5 +55,7 @@ void from_bit(char b, int& x, int& y, int& z);
 
 cl_float4 bit_to_pos(char b, int size);
 
+void cpu_voxel();
+
 
 #endif // VOXEL_H_INCLUDED

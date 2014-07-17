@@ -3,6 +3,7 @@
 #include <iostream>
 #include "clstate.h"
 #include "engine.hpp"
+#include "proj.hpp"
 
 std::vector<GLuint> hologram_manager::tex_id_base;
 std::vector<GLuint> hologram_manager::tex_id;

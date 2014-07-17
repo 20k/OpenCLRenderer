@@ -8,6 +8,13 @@
 #include <windows.h>
 #include <gl/gl.h>
 
+#include <cl/cl.h>
+
+#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
+static cl_mem fake;
+#define clCreateFromGLTexture2D(...) fake
+#endif
+
 #include "clstate.h"
 #include "obj_load.hpp"
 #include "objects_container.hpp"

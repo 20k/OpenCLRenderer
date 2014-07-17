@@ -141,3 +141,8 @@ g_voxel_info voxel_octree_manager::alloc_g_mem(std::vector<voxel>& tree)
 
     return g_mem;
 }
+
+void cpu_voxel()
+{
+
+}

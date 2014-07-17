@@ -2924,6 +2924,16 @@ void draw_blank(__write_only image2d_t screen, int x, int y)
     write_imagef(screen, (int2){x, y}, (float4){1.0f, 1.0f, 1.0f, 1.0f});
 }
 
+int signum(float f)
+{
+    int s = (*(uint*)&f) >> 31; ///1 -> 0
+    s = 1 - s; /// 0 -> 1;
+    s *= 2; ///0 -> 2;
+    s -= 1; /// -1 -> 1
+
+    return s;
+}
+
 char to_bit(int x, int y, int z)
 {
     return x << 0 | y << 1 | z << 2;
@@ -3018,18 +3028,18 @@ float2 intersect(float2 first, float2 second)
     return (float2){x, y}; ///?
 }
 
-int4 march_ray(int4 old_idx, float4 id_far_intersect, float tc_max)
+int4 march_ray(int4 old_idx, float4 id_far_intersect, float tc_max, float4 rdir)
 {
     int4 eq = id_far_intersect == tc_max;
 
     if(eq.x)
-        old_idx.x = (old_idx.x + 1) % 2;
+        old_idx.x += 1 * signum(rdir.x);
 
     if(eq.y)
-        old_idx.y = (old_idx.y + 1) % 2;
+        old_idx.y += 1 * signum(rdir.y);
 
     if(eq.z)
-        old_idx.z = (old_idx.z + 1) % 2;
+        old_idx.z += 1 * signum(rdir.z);
 
     return old_idx;
 }
@@ -3039,6 +3049,7 @@ struct vstack
     struct voxel vox;
     float tval;
     int loc;
+    char idx;
 };
 
 struct vparent
@@ -3047,10 +3058,19 @@ struct vparent
     int loc;
 };
 
+#define PDEBUG(STR) (printf("%s\n", #STR))
+#define PID(STR) (printf("%i %s\n", cxy, #STR))
+#define PIDI(STR) (printf("%i %i\n", cxy, STR))
+#define PIDf(STR) (printf("%i %f\n", cxy, STR))
+
 __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct voxel* voxels, __global float4* c_pos, __global float4* c_rot)
 {
+    //printf("%s\n", "test");
+
     int x = get_global_id(0);
     int y = get_global_id(1);
+
+    int cxy = y*SCREENWIDTH + x;
 
     int width = SCREENWIDTH;
     int height = SCREENHEIGHT;
@@ -3063,6 +3083,8 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
     const int max_size = 2048;
 
     const int min_size = 1;
+
+    int max_scale = ceil(log2((float)max_size));
 
     float4 ray = {ax, ay, depth, 0.0f}; ///rotate it later
 
@@ -3093,9 +3115,12 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
     struct vparent parent = {voxels[0], 0};
 
-    //while(1)
+    while(1)
     {
-        float new_size = size/2;
+        //PIDI(vsc);
+
+        float new_size = max_size * pow(2, -1.0f / (vsc + 1));
+        //float new_size = size/2;
         int new_scale = vsc + 1; /// ///remember to update scale
 
         int4 ipos = bit_to_pos(idx, new_size);
@@ -3121,7 +3146,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
             {
                 ///true;
                 draw_blank(screen, x, y);
-                //return;
+                return;
             }
 
 
@@ -3135,7 +3160,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
                 {
                     ///true
                     draw_blank(screen, x, y);
-                    //return;
+                    return;
                 }
 
                 if(tchild.y < h)
@@ -3145,6 +3170,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
                     elem.vox = parent.vox;
                     elem.tval = tmax;
                     elem.loc = parent.loc;
+                    elem.idx = idx;
 
                     voxel_stack[vsc] = elem;
                 }
@@ -3163,10 +3189,10 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
                 tmax = tminmax.y;
 
                 centre = tcentre;
-                size = new_size;
+                //size = new_size;
                 vsc = new_scale;
 
-                //continue;
+                continue;
             }
         }
 
@@ -3174,41 +3200,74 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
         //float4 old_pos = centre;
 
-        int4 old_id = from_bit(idx);
+        int4 old_1bit = from_bit(idx);
 
-        int4 new_id = march_ray(old_id, tc_max1, tcmax);
+        int x_pos = 0;
+        int y_pos = 0;
+        int z_pos = 0;
 
-        idx = to_bit(new_id.x, new_id.y, new_id.z);
+        for(int i=0; i<vsc; i++)
+        {
+            int4 pos = from_bit(voxel_stack[i].idx);
 
-        ipos = bit_to_pos(idx, new_size);
+            x_pos |= pos.x << (vsc - i - 1);
+            y_pos |= pos.y << (vsc - i - 1);
+            z_pos |= pos.z << (vsc - i - 1);
+        }
 
-        fpos.x = ipos.x;
-        fpos.y = ipos.y;
-        fpos.z = ipos.z;
+        x_pos = x_pos << 1;
+        y_pos = y_pos << 1;
+        z_pos = z_pos << 1;
 
-        tcentre = centre + fpos;
+        x_pos |= old_1bit.x;
+        y_pos |= old_1bit.y;
+        z_pos |= old_1bit.z;
+
+        int4 old_pos = {x_pos, y_pos, z_pos, 0};
+        int4 new_pos = march_ray(old_pos, tc_max1, tcmax, ray);
 
         tmin = tcmax;
 
-        int4 diff = new_id - old_id;
+        const int max_depth = 0;
 
-        int xsign = (*(uint*)&ray.x) >> 31;
-        int ysign = (*(uint*)&ray.y) >> 31;
-        int zsign = (*(uint*)&ray.z) >> 31;
+        ///1 extra element now due to adding idx
+        for(int i=1; i<vsc + 1; i++)
+        {
+            int xpn = (new_pos.x >> i) & 0x1;
+            int ypn = (new_pos.y >> i) & 0x1;
+            int zpn = (new_pos.z >> i) & 0x1;
 
-        //printf("%i\n", xsign);
+            int xpo = (old_pos.x >> i) & 0x1;
+            int ypo = (old_pos.y >> i) & 0x1;
+            int zpo = (old_pos.z >> i) & 0x1;
 
+            if(xpn != xpo || ypn != ypo || zpn != zpo)
+            {
+                vsc = vsc - i;
 
+                //if(vsc >= max_depth)
+                //    return;
 
+                parent.loc = voxel_stack[vsc].loc;
+                parent.vox = voxel_stack[vsc].vox;
+                tmax = voxel_stack[vsc].tval;
 
+                int x_1bit = (new_pos.x & 0x1);
+                int y_1bit = (new_pos.y & 0x1);
+                int z_1bit = (new_pos.z & 0x1);
 
+                int new_idx = to_bit(x_1bit, y_1bit, z_1bit);
+                idx = new_idx;
+
+                h = 0;
+            }
+        }
+
+        if(vsc >= max_depth)
+            return;
     }
 
-
-
     ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
-
-
 }
 
 /*///change to reverse projection

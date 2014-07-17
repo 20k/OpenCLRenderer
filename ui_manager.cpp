@@ -9,6 +9,7 @@
 #include "engine.hpp"
 #include <map>
 #include "vec.hpp"
+#include "proj.hpp"
 
 namespace compute = boost::compute;
 
