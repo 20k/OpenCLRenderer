@@ -94,7 +94,7 @@ int main()
 
     point_cloud pcloud;
 
-    int num = 10000;
+    int num = 100000;
 
     for(int i=0; i<num; i++)
     {
@@ -129,6 +129,9 @@ int main()
 
     point_cloud svopc = pcloud_tree(v);
     point_cloud_info info_svopc = point_cloud_manager::alloc_point_cloud(svopc);
+
+
+    engine::c_pos = {0, 0, -2500, 0};
 
     //exit(rc);
 

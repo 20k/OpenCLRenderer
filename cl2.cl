@@ -2973,7 +2973,22 @@ int select_child(float4 centre, float4 pos, float4 ray, float tmin)
 {
     float4 ts = plane_intersect(centre, ray, pos);
 
-    int4 loc = tmin > ts; ///???
+    //int4 loc = tmin > ts; ///???
+
+    int4 loc = {0,0,0,0};
+
+    if(tmin > ts.x)
+    {
+        loc.x = 1;
+    }
+    if(tmin > ts.y)
+    {
+        loc.y = 1;
+    }
+    if(tmin > ts.z)
+    {
+        loc.z = 1;
+    }
 
     int ret = loc.x << 0 | loc.y << 1 | loc.z << 2;
 
@@ -3004,6 +3019,7 @@ float2 find_min_max_extra(float size, float4 centre, float4 rdir, float4 pos, fl
     float4 mins = min(min_point_unordered, max_point_unordered);
     float4 maxs = max(min_point_unordered, max_point_unordered);
 
+
     ///get the t values for the planes we intersected with
     float tmin = max(max(mins.x, mins.y), mins.z);
     float tmax = min(min(maxs.x, maxs.y), maxs.z);
@@ -3030,15 +3046,13 @@ float2 intersect(float2 first, float2 second)
 
 int4 march_ray(int4 old_idx, float4 id_far_intersect, float tc_max, float4 rdir)
 {
-    int4 eq = id_far_intersect == tc_max;
-
-    if(eq.x)
+    if(id_far_intersect.x == tc_max)
         old_idx.x += 1 * signum(rdir.x);
 
-    if(eq.y)
+    if(id_far_intersect.y == tc_max)
         old_idx.y += 1 * signum(rdir.y);
 
-    if(eq.z)
+    if(id_far_intersect.z == tc_max)
         old_idx.z += 1 * signum(rdir.z);
 
     return old_idx;
@@ -3061,7 +3075,7 @@ struct vparent
 #define PDEBUG(STR) (printf("%s\n", #STR))
 #define PID(STR) (printf("%i %s\n", cxy, #STR))
 #define PIDI(STR) (printf("%i %i\n", cxy, STR))
-#define PIDf(STR) (printf("%i %f\n", cxy, STR))
+#define PIDF(STR) (printf("%i %f\n", cxy, STR))
 
 __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct voxel* voxels, __global float4* c_pos, __global float4* c_rot)
 {
@@ -3082,13 +3096,13 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
     const int max_size = 2048;
 
-    const int min_size = 1;
+    const int min_size = 64;
 
     int max_scale = ceil(log2((float)max_size));
 
     float4 ray = {ax, ay, depth, 0.0f}; ///rotate it later
 
-    ray = rot(ray, (float4){0,0,0,0}, *c_rot);
+    ray = rot(ray, (float4){0,0,0,0}, -*c_rot);
 
     float4 pos = *c_pos;
 
@@ -3098,28 +3112,34 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
     int size = max_size;
 
-    float2 tminmax = find_min_max(size, centre, ray, pos);
-    tminmax.x = max(tminmax.x, 0.0f);
+    float2 tminmaxt = find_min_max(size, centre, ray, pos);
+    tminmaxt.x = max(tminmaxt.x, 0.0f);
 
-    float tmin = tminmax.x;
-    float tmax = tminmax.y;
+    float tmin = tminmaxt.x;
+    float tmax = tminmaxt.y;
+
+    //PIDF(tmin);
+    //PIDF(tmax);
 
     float h = tmax;
 
     struct vstack voxel_stack[20];
     int vsc = 0;
 
-    //voxel_stack[vsc] = voxels[0];
+    float4 centre_stack[20];
 
-    char idx = select_child(centre, pos, ray, tmin);
+    uchar idx = select_child(centre, pos, ray, tmin);
 
     struct vparent parent = {voxels[0], 0};
 
-    while(1)
+    for(int it = 0; it<100; it++)
     {
         //PIDI(vsc);
 
+        //PID(h);
+
         float new_size = max_size * pow(2, -1.0f / (vsc + 1));
+
         //float new_size = size/2;
         int new_scale = vsc + 1; /// ///remember to update scale
 
@@ -3135,35 +3155,63 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
         float4 tc_max1;
 
-        float2 tchild = find_min_max_extra(new_size, tcentre, ray, pos, &tc_max1); ///tc
-        float tcmin = tchild.x;
-        float tcmax = tchild.y;
+        float2 tchildt = find_min_max_extra(new_size, tcentre, ray, pos, &tc_max1); ///tc
+        float tcmin = tchildt.x;
+        float tcmax = tchildt.y;
+        tcmin = max(tcmin, 0.0f);
 
+        //PIDF(tmin);
+        if(vsc != 0)
+        {
+            //PIDF(tcmax);
+            //PIDF(tmax);
+        }
 
         if((bit_set(parent.vox.valid_mask, idx) || bit_set(parent.vox.leaf_mask, idx)) && tmin <= tmax)
         {
+            /*if(cxy == 2)
+                PIDI(idx);
+            if(cxy == 2)
+                PIDI(vsc);*/
+
             if(new_size < min_size)
             {
                 ///true;
+                //PID(out_minsize);
                 draw_blank(screen, x, y);
                 return;
             }
 
+            float2 tvt = intersect((float2){tcmin, tcmax}, (float2){tmin, tmax});
+            float tvmin = tvt.x;
+            float tvmax = tvt.y;
 
-            float2 tv = intersect(tchild, tminmax);
-            float tvmin = tv.x;
-            float tvmax = tv.y;
+            //if(cxy == 2)
+            //{
+                //PIDF(tmin);
+                //PIDF(tvmin);
+                //PIDF(tvmax);
+            //}
+
+            //PID(hello);
+            //PIDF(tv.x);
+            //PIDF(tv.y);
 
             if(tvmin <= tvmax)
             {
                 if(bit_set(parent.vox.leaf_mask, idx))
                 {
                     ///true
+                    //PID(out_bitset);
+
                     draw_blank(screen, x, y);
                     return;
                 }
 
-                if(tchild.y < h)
+                //if(cxy == 2)
+                //    PIDI(idx);
+
+                if(tcmax < h) ///this shouldnt fix anything but it does
                 {
                     ///?
                     struct vstack elem;
@@ -3184,13 +3232,18 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
                 idx = select_child(tcentre, pos, ray, tvmin); ///? no size
 
-                tminmax = tv;
-                tmin = tminmax.x;
-                tmax = tminmax.y;
+                //tminmax = tv;
+                tmin = tvmin;
+                tmax = tvmax;
+
+                //PIDF(tmin);
 
                 centre = tcentre;
                 //size = new_size;
                 vsc = new_scale;
+
+                //if(cxy == 5560)
+                //PID(hithere);
 
                 continue;
             }
@@ -3206,6 +3259,9 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
         int y_pos = 0;
         int z_pos = 0;
 
+        float4 bcentre = {0,0,0,0};
+        int bsize = max_size;
+
         for(int i=0; i<vsc; i++)
         {
             int4 pos = from_bit(voxel_stack[i].idx);
@@ -3213,6 +3269,16 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
             x_pos |= pos.x << (vsc - i - 1);
             y_pos |= pos.y << (vsc - i - 1);
             z_pos |= pos.z << (vsc - i - 1);
+
+            int4 ipos = bit_to_pos(voxel_stack[i].idx, bsize);
+
+            float4 fpos = {ipos.x, ipos.y, ipos.z, 0.0f};
+
+            bcentre += fpos;
+
+            centre_stack[i] = bcentre;
+
+            bsize = size / 2;
         }
 
         x_pos = x_pos << 1;
@@ -3226,9 +3292,23 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
         int4 old_pos = {x_pos, y_pos, z_pos, 0};
         int4 new_pos = march_ray(old_pos, tc_max1, tcmax, ray);
 
+        //if(vsc != 0)
+        //    printf("%v4i %v4i %i\n", old_pos, new_pos, vsc);
+
         tmin = tcmax;
 
-        const int max_depth = 0;
+        ///forgot to actually advance idx. Whoops!
+
+        const int max_depth = 2;
+
+        //if(cxy == 15200)
+        //    PIDI(vsc);
+
+        //if(vsc != 0)
+        //    PIDI(vsc);
+
+        //float4 bcentre = {0,0,0,0};
+        //int bsize = max_size;
 
         ///1 extra element now due to adding idx
         for(int i=1; i<vsc + 1; i++)
@@ -3241,6 +3321,8 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
             int ypo = (old_pos.y >> i) & 0x1;
             int zpo = (old_pos.z >> i) & 0x1;
 
+            //printf("x y z %i %i %i %i %i %i\n", xpn, ypn, zpn, xpo, ypo, zpo);
+
             if(xpn != xpo || ypn != ypo || zpn != zpo)
             {
                 vsc = vsc - i;
@@ -3252,19 +3334,27 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
                 parent.vox = voxel_stack[vsc].vox;
                 tmax = voxel_stack[vsc].tval;
 
-                int x_1bit = (new_pos.x & 0x1);
-                int y_1bit = (new_pos.y & 0x1);
-                int z_1bit = (new_pos.z & 0x1);
+                uchar new_idx = to_bit(xpn, ypn, zpn);
 
-                int new_idx = to_bit(x_1bit, y_1bit, z_1bit);
                 idx = new_idx;
 
+                centre = centre_stack[vsc];
+
+                ///need to update centre!
+
                 h = 0;
+
+                continue;
             }
         }
 
-        if(vsc >= max_depth)
-            return;
+        idx = to_bit(new_pos.x & 0x1, new_pos.y & 0x1, new_pos.z & 0x1);
+
+        //if(vsc >= max_depth)
+        {
+            //PID(out_maxdepth);
+            //return;
+        }
     }
 
     ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
