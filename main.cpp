@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
     oclstuff("cl2.cl");
-    window.load(800,600,1000, "turtles");
+window.load(800,600,1000, "turtles");
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
