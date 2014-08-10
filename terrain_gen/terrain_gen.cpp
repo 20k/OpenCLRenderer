@@ -98,7 +98,7 @@ void create_terrain(objects_container* obj, int width, int height)
         {
             //normal_accumulate[j*width + i] = normalise(add(normal_accumulate[j*width + i], noisemod(i, j, 1, 1, 0.25, 4000)));
 
-            float norm_rand = noisemod(i, j, 1, 1, 0.25, 0.02);
+            float norm_rand = noisemod(i, j, 1, 1, 0.25, 0.01);
 
             if(rand() % 2)
                 norm_rand = -norm_rand;
