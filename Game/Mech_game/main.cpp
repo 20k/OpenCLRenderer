@@ -1,5 +1,45 @@
-#include "proj.hpp"
-#include "ocl.h"
+#include "../../hologram.hpp"
+#include "../../proj.hpp"
+#include "../../ocl.h"
+#include "../../texture_manager.hpp"
+#include "../newtonian_body.hpp"
+#include "../collision.hpp"
+#include "../../interact_manager.hpp"
+#include "../game_object.hpp"
+
+#include "../../text_handler.hpp"
+#include <sstream>
+#include <string>
+#include "../../vec.hpp"
+
+#include "../galaxy/galaxy.hpp"
+
+#include "../game_manager.hpp"
+#include "../space_dust.hpp"
+#include "../asteroid/asteroid_gen.hpp"
+#include "../../ui_manager.hpp"
+
+#include "../ship.hpp"
+#include "../../terrain_gen/terrain_gen.hpp"
+
+///todo eventually
+///split into dynamic and static objects
+
+///todo
+///fix memory management to not be atrocious
+
+
+///fix into different runtime classes - specify ship attributes as vec
+
+template<typename T>
+std::string to_str(T i)
+{
+    std::ostringstream convert;
+
+    convert << i;
+
+    return convert.str();
+}
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -13,14 +53,17 @@ int main(int argc, char *argv[])
 
     objects_container sponza;
 
-    sponza.set_file("sp2/sp2.obj");
+    //sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
+    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 100, 100));
+
+
     sponza.set_active(true);
     sponza.cache = false;
 
     engine window;
     window.window.create(sf::VideoMode(800, 600), "hmm");
-    oclstuff("cl2.cl");
+    oclstuff("../../cl2.cl");
     window.load(800,600,1000, "turtles");
 
     window.set_camera_pos((cl_float4){-800,150,-570});
@@ -52,7 +95,7 @@ int main(int argc, char *argv[])
 
     //l.set_pos((cl_float4){0, 200, -450, 0});
     l.set_pos((cl_float4){-1200, 150, 0, 0});
-    l.shadow=1;
+    l.shadow=0;
 
     //window.add_light(&l);
 

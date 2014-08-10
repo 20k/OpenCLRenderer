@@ -106,6 +106,7 @@
 		<Unit filename="Galaxy/galaxy.hpp" />
 		<Unit filename="Solar_object/solar.cpp" />
 		<Unit filename="Solar_object/solar.hpp" />
+		<Unit filename="Space_game/main.cpp" />
 		<Unit filename="collision.cpp" />
 		<Unit filename="collision.hpp" />
 		<Unit filename="game_manager.cpp" />

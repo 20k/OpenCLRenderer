@@ -233,7 +233,7 @@ void obj_load(objects_container* pobj)
             continue;
         }
         ///if == n then push normals etc
-        if(strncmp(file_contents[i].c_str(), "v ", 2)==0)
+        else if(strncmp(file_contents[i].c_str(), "v ", 2)==0)
         {
             float v[3];
             decompose_attribute(file_contents[i], v, 3);
@@ -244,7 +244,7 @@ void obj_load(objects_container* pobj)
             vl.push_back(t);
             continue;
         }
-        if(strncmp(file_contents[i].c_str(), "vt ", 3)==0)
+        else if(strncmp(file_contents[i].c_str(), "vt ", 3)==0)
         {
             float vt[3];
             decompose_attribute(file_contents[i], vt, 2);
@@ -255,7 +255,7 @@ void obj_load(objects_container* pobj)
             vtl.push_back(t);
             continue;
         }
-        if(strncmp(file_contents[i].c_str(), "vn ", 3)==0)
+        else if(strncmp(file_contents[i].c_str(), "vn ", 3)==0)
         {
             float vn[3];
             decompose_attribute(file_contents[i], vn, 3);
@@ -266,7 +266,7 @@ void obj_load(objects_container* pobj)
             vnl.push_back(t);
             continue;
         }
-        if(strncmp(file_contents[i].c_str(), "usemtl", 6)==0)
+        else if(strncmp(file_contents[i].c_str(), "usemtl", 6)==0)
         {
             usemtl_pos.push_back(usefc);
             usemtl_name.push_back(file_contents[i].substr(file_contents[i].find_last_of(" ")+1, std::string::npos));

@@ -586,7 +586,7 @@ void engine::construct_shadowmaps()
 
                 compute::buffer l_mem(temp_l_mem, false);
 
-                cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_mem, 0, sizeof(cl_uint), &zero);
+                cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
                 compute::buffer *prearglist[]={&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &l_pos, &l_rot, &g_tid_buf, &g_tid_buf_max_len, &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &is_light, &obj_mem_manager::g_obj_desc};
                 run_kernel_with_args(cl::prearrange, &p1global_ws, &local, 1, prearglist, 11, true);
