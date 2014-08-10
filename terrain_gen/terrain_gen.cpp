@@ -13,9 +13,9 @@ static float noisemult(int x, int y, int z)
     float mwy = noisemod(x, y, z, 8, 0.048, 2) + noisemod(x, y, z, 15, 0.15, 0.8);
     float mwz = noisemod(x, y, z, 2, 0.048, 2) + noisemod(x, y, z, 32, 0.15, 0.8);*/
 
-    float mwx = noisemod(x, y, z, 0, 0.0025, 2);
-    float mwy = noisemod(x, y, z, 4, 0.0025, 2);
-    float mwz = noisemod(x, y, z, 8, 0.0025, 2);
+    float mwx = noisemod(x, y, z, 0, 0.025, 2);
+    float mwy = noisemod(x, y, z, 4, 0.025, 2);
+    float mwz = noisemod(x, y, z, 8, 0.025, 2);
 
     mx = x + mwx*2;
     my = y + mwy*2;
@@ -103,7 +103,7 @@ void create_terrain(objects_container* obj, int width, int height)
             if(rand() % 2)
                 norm_rand = -norm_rand;
 
-            normal_accumulate[j*width + i] = normalise(add(normalise(normal_accumulate[j*width + i]), norm_rand));
+            normal_accumulate[j*width + i] = normalise(normal_accumulate[j*width + i]);// normalise(add(normalise(normal_accumulate[j*width + i]), norm_rand));
         }
     }
 

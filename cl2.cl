@@ -935,8 +935,8 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 float return_bilinear_shadf(float2 coord, float values[4])
 {
     float mx, my;
-    mx = coord.x*1 - 0.5f;
-    my = coord.y*1 - 0.5f;
+    mx = coord.x - 0.5f;
+    my = coord.y - 0.5f;
     float2 uvratio = {mx - floor(mx), my - floor(my)};
     float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
 
@@ -1024,7 +1024,7 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
 
     float ipart = 0;
 
-    if(vtm.x > 1)
+    if(vtm.x >= 1)
     {
         vtm.x = 1.0f - modf(vtm.x, &ipart);
     }
@@ -1034,7 +1034,7 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
         vtm.x = 1.0f + modf(vtm.x, &ipart);
     }
 
-    if(vtm.y > 1)
+    if(vtm.y >= 1)
     {
         vtm.y = 1.0f - modf(vtm.y, &ipart);
     }
@@ -1047,7 +1047,7 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
 
     float2 tdiff = {fabs(maxtx - mintx), fabs(maxty - minty)};
 
-    tdiff*=tsize;
+    tdiff *= tsize;
 
     float2 vdiff = {fabs(maxvx - minvx), fabs(maxvy - minvy)};
 
@@ -1056,6 +1056,8 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
 
     float worst = min(tex_per_pix.x, tex_per_pix.y);
     ///max seems to break spaceships but is apparently correct. What do? Need to actually solve texture filtering because it works pretty shit
+    ///filter in 2d?
+    ///Wants to be based purely on texel density
     //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
     int mip_lower=0;
@@ -1869,7 +1871,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if(s1 > area - mod && s1 < area + mod)
+        if(s1 >= area - mod && s1 <= area + mod)
         {
             __global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
 
@@ -1971,11 +1973,11 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float rconst = calc_rconstant(xp, yp);
 
-    int mod = 2;
+    float mod = 2;
 
     if(area < 50)
     {
-        mod = 1;
+        mod = 0.5;
     }
 
     if(area > 60000)
@@ -1996,7 +1998,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
 
-        if(s1 > area - mod && s1 < area + mod)
+        if(s1 >= area - mod && s1 <= area + mod)
         {
             __global uint *ft=&depth_buffer[(int)y*SCREENWIDTH + (int)x];
 
@@ -2302,10 +2304,16 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
             col = 0;
         }
 
+        float3 colclamp = col*lightaccum + mandatory_light;
+
+        colclamp = min(colclamp, 1.0f);
+        colclamp = max(colclamp, 0.0f);
+
         //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
-        write_imagef(screen, scoord, (float4)(col*lightaccum + mandatory_light, 0.0f));
+        write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
         //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
+        //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
     }
 
 }

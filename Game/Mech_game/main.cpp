@@ -86,7 +86,8 @@ int main(int argc, char *argv[])
     //l.set_shadow_bright(1, 1);
     l.set_shadow_casting(0);
     l.set_brightness(1);
-    l.set_pos((cl_float4){-150, 150, 0});
+    //l.set_pos((cl_float4){-150, 150, 0});
+    l.set_pos((cl_float4){4000, 4000, 5000});
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
     //l.set_pos((cl_float4){-400, 150, -555, 0});

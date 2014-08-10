@@ -49,21 +49,8 @@
 			<Add option="-lopengl32" />
 			<Add option="-lopencl" />
 			<Add option="-lglew32.dll" />
+			<Add option="-lssp" />
 		</Linker>
-		<Unit filename="../../Interface_DLL/main.h" />
-		<Unit filename="../../Leap/LeapSDK/include/Leap.h" />
-		<Unit filename="../../Leap/LeapSDK/include/LeapMath.h" />
-		<Unit filename="../../Leap/LeapSDK/samples/Sample.cpp" />
-		<Unit filename="../../Leap/LeapSDK/util/LeapScene.cpp" />
-		<Unit filename="../../Leap/LeapSDK/util/LeapScene.h" />
-		<Unit filename="../../Leap/LeapSDK/util/LeapUtil.cpp" />
-		<Unit filename="../../Leap/LeapSDK/util/LeapUtil.h" />
-		<Unit filename="../../Leap/LeapSDK/util/LeapUtilGL.cpp" />
-		<Unit filename="../../Leap/LeapSDK/util/LeapUtilGL.h" />
-		<Unit filename="../../Leap/leap_control.cpp" />
-		<Unit filename="../../Leap/leap_control.hpp" />
-		<Unit filename="../../Leap/main.cpp" />
-		<Unit filename="../../SVO/voxel.h" />
 		<Unit filename="../../clstate.cpp" />
 		<Unit filename="../../clstate.h" />
 		<Unit filename="../../engine.cpp" />
