@@ -44,7 +44,7 @@ void create_terrain(objects_container* obj, int width, int height)
             pos->y = noisemult(i, j, 0)*0.5;
             pos->w = 0;
 
-            *pos = mult(*pos, 100.0f);
+            *pos = mult(*pos, 1000.0f);
         }
     }
 
@@ -65,10 +65,13 @@ void create_terrain(objects_container* obj, int width, int height)
 
             cl_float4 cr1 = cross(p1p0, p2p0);
 
-            p1p0 = sub(tl, tr);
+            p1p0 = sub(bl, tr);
             p2p0 = sub(br, tr);
 
             cl_float4 cr2 = cross(p1p0, p2p0);
+
+            cr1 = normalise(cr1);
+            cr2 = normalise(cr2);
 
             //do both normals
 
@@ -98,12 +101,13 @@ void create_terrain(objects_container* obj, int width, int height)
         {
             //normal_accumulate[j*width + i] = normalise(add(normal_accumulate[j*width + i], noisemod(i, j, 1, 1, 0.25, 4000)));
 
-            float norm_rand = noisemod(i, j, 1, 1, 0.25, 0.01);
+            float norm_rand = noisemod(i, j, 1, 1, 0.25, 0.001);
 
             if(rand() % 2)
                 norm_rand = -norm_rand;
 
             normal_accumulate[j*width + i] = normalise(normal_accumulate[j*width + i]);// normalise(add(normalise(normal_accumulate[j*width + i]), norm_rand));
+            //normal_accumulate[j*width + i] =  normalise(add(normalise(normal_accumulate[j*width + i]), norm_rand));
         }
     }
 

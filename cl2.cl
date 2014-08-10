@@ -623,9 +623,9 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback->vertices[1].pos = cutdown_tris[id*3 + 1];
         passback->vertices[2].pos = cutdown_tris[id*3 + 2];
 
-        passback->vertices[0].normal = normalrot[0].xyzz;
-        passback->vertices[1].normal = normalrot[1].xyzz;
-        passback->vertices[2].normal = normalrot[2].xyzz;
+        passback->vertices[0].normal = (float4)(normalrot[0], 0);
+        passback->vertices[1].normal = (float4)(normalrot[1], 0);
+        passback->vertices[2].normal = (float4)(normalrot[2], 0);
 
         passback->vertices[0].vt = T->vertices[0].vt;
         passback->vertices[1].vt = T->vertices[1].vt;
@@ -702,13 +702,13 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(n_behind==0)
     {
-        passback[0].vertices[0].pos = projected[0].xyzz;
-        passback[0].vertices[1].pos = projected[1].xyzz;
-        passback[0].vertices[2].pos = projected[2].xyzz;
+        passback[0].vertices[0].pos = (float4)(projected[0], 0);
+        passback[0].vertices[1].pos = (float4)(projected[1], 0);
+        passback[0].vertices[2].pos = (float4)(projected[2], 0);
 
-        passback[0].vertices[0].normal = normalrot[0].xyzz;
-        passback[0].vertices[1].normal = normalrot[1].xyzz;
-        passback[0].vertices[2].normal = normalrot[2].xyzz;
+        passback[0].vertices[0].normal = (float4)(normalrot[0], 0);
+        passback[0].vertices[1].normal = (float4)(normalrot[1], 0);
+        passback[0].vertices[2].normal = (float4)(normalrot[2], 0);
 
         passback[0].vertices[0].vt = T->vertices[0].vt;
         passback[0].vertices[1].vt = T->vertices[1].vt;
@@ -808,29 +808,29 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(n_behind==1)
     {
-        passback[0].vertices[0].pos = p1.xyzz;
-        passback[0].vertices[1].pos = c1.xyzz;
-        passback[0].vertices[2].pos = c2.xyzz;
+        passback[0].vertices[0].pos = (float4)(p1, 0);
+        passback[0].vertices[1].pos = (float4)(c1, 0);
+        passback[0].vertices[2].pos = (float4)(c2, 0);
 
         passback[0].vertices[0].vt = p1v;
         passback[0].vertices[1].vt = c1v;
         passback[0].vertices[2].vt = c2v;
 
-        passback[0].vertices[0].normal = p1l.xyzz;
-        passback[0].vertices[1].normal = c1l.xyzz;
-        passback[0].vertices[2].normal = c2l.xyzz;
+        passback[0].vertices[0].normal = (float4)(p1l, 0);
+        passback[0].vertices[1].normal = (float4)(c1l, 0);
+        passback[0].vertices[2].normal = (float4)(c2l, 0);
 
-        passback[1].vertices[0].pos = p1.xyzz;
-        passback[1].vertices[1].pos = c2.xyzz;
-        passback[1].vertices[2].pos = p2.xyzz;
+        passback[1].vertices[0].pos = (float4)(p1, 0);
+        passback[1].vertices[1].pos = (float4)(c2, 0);
+        passback[1].vertices[2].pos = (float4)(p2, 0);
 
         passback[1].vertices[0].vt = p1v;
         passback[1].vertices[1].vt = c2v;
         passback[1].vertices[2].vt = p2v;
 
-        passback[1].vertices[0].normal = p1l.xyzz;
-        passback[1].vertices[1].normal = c2l.xyzz;
-        passback[1].vertices[2].normal = p2l.xyzz;
+        passback[1].vertices[0].normal = (float4)(p1l, 0);
+        passback[1].vertices[1].normal = (float4)(c2l, 0);
+        passback[1].vertices[2].normal = (float4)(p2l, 0);
 
         for(int i=0; i<3; i++)
         {
@@ -843,17 +843,17 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(n_behind==2)
     {
-        passback[0].vertices[ids_behind[0]].pos = p1.xyzz;
-        passback[0].vertices[ids_behind[1]].pos = p2.xyzz;
-        passback[0].vertices[id_valid].pos = c1.xyzz;
+        passback[0].vertices[ids_behind[0]].pos = (float4)(p1, 0);
+        passback[0].vertices[ids_behind[1]].pos = (float4)(p2, 0);
+        passback[0].vertices[id_valid].pos = (float4)(c1, 0);
 
         passback[0].vertices[ids_behind[0]].vt = p1v;
         passback[0].vertices[ids_behind[1]].vt = p2v;
         passback[0].vertices[id_valid].vt = c1v;
 
-        passback[0].vertices[ids_behind[0]].normal = p1l.xyzz;
-        passback[0].vertices[ids_behind[1]].normal = p2l.xyzz;
-        passback[0].vertices[id_valid].normal = c1l.xyzz;
+        passback[0].vertices[ids_behind[0]].normal = (float4)(p1l, 0);
+        passback[0].vertices[ids_behind[1]].normal = (float4)(p2l, 0);
+        passback[0].vertices[id_valid].normal = (float4)(c1l, 0);
 
         *num = 1;
     }
@@ -1746,9 +1746,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
         uint c_id = atomic_inc(id_cutdown_tris);
 
-        cutdown_tris[c_id*3]   = tris_proj[i][0].xyzz;
-        cutdown_tris[c_id*3+1] = tris_proj[i][1].xyzz;
-        cutdown_tris[c_id*3+2] = tris_proj[i][2].xyzz;
+        cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
+        cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
+        cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
 
         uint c = 0;
 
@@ -2152,6 +2152,19 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         ///get perspective fixed normal by multiplying by depth
         normal *= ldepth;
 
+        float3 lpos = lights[0].pos.xyz;
+
+        //float l = dot(lpos, normal) / sqrt(lpos.x*lpos.x + lpos.y*lpos.y + lpos.z*lpos.z + normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+
+        //float l = dot(normalize(lpos), c_tri->vertices[1].normal.xyz);
+
+        float l = dot(normalize(lpos), normalize(normal));
+
+        write_imagef(screen, (int2){x, y}, (float4)(l));
+        //write_imagef(screen, (int2){x, y}, (float4)(normal, 0.0f));
+
+        return;
+
 
         float actual_depth = ldepth;
 
@@ -2177,7 +2190,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         global_position += camera_pos;
 
-        float3 lightaccum = {0,0,0};
+        float3 lightaccum = 0;
 
         int shnum=0;
 
