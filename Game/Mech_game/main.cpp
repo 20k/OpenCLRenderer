@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     sf::Event Event;
 
     light l;
-    l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
+    l.set_col((cl_float4){2.0, 2.0, 2.0, 0});
     //l.set_shadow_bright(1, 1);
     l.set_shadow_casting(0);
     l.set_brightness(1);

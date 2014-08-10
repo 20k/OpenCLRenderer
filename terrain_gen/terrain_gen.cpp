@@ -29,6 +29,9 @@ static float noisemult(int x, int y, int z)
 void create_terrain(objects_container* obj, int width, int height)
 {
     cl_float4* vertex_positions = new cl_float4[(width+1)*(height+1)];
+    cl_float4* normal_accumulate = new cl_float4[(width+1)*(height+1)];
+
+    memset(normal_accumulate, 0, sizeof(cl_float4)*(width+1)*(height+1));
 
     for(int j=0; j<height+1; j++)
     {
@@ -45,6 +48,65 @@ void create_terrain(objects_container* obj, int width, int height)
         }
     }
 
+    for(int j=0; j<height-1; j++)
+    {
+        for(int i=0; i<width-1; i++)
+        {
+            cl_float4 tl = vertex_positions[j*width + i];
+            cl_float4 tr = vertex_positions[j*width + i + 1];
+            cl_float4 bl = vertex_positions[(j+1)*width + i];
+            cl_float4 br = vertex_positions[(j+1)*width + i + 1];
+
+            cl_float4 p1p0;
+            p1p0 = sub(tl, tr);
+
+            cl_float4 p2p0;
+            p2p0 = sub(bl, tr);
+
+            cl_float4 cr1 = cross(p1p0, p2p0);
+
+            p1p0 = sub(tl, tr);
+            p2p0 = sub(br, tr);
+
+            cl_float4 cr2 = cross(p1p0, p2p0);
+
+            //do both normals
+
+            normal_accumulate[j*width + i].x += cr1.x;
+            normal_accumulate[j*width + i].y += cr1.y;
+            normal_accumulate[j*width + i].z += cr1.z;
+
+            normal_accumulate[j*width + i + 1].x += cr1.x + cr2.x;
+            normal_accumulate[j*width + i + 1].y += cr1.y + cr2.y;
+            normal_accumulate[j*width + i + 1].z += cr1.z + cr2.z;
+
+            normal_accumulate[(j+1)*width + i].x += cr1.x + cr2.x;
+            normal_accumulate[(j+1)*width + i].y += cr1.y + cr2.y;
+            normal_accumulate[(j+1)*width + i].z += cr1.z + cr2.z;
+
+            normal_accumulate[(j+1)*width + i + 1].x += cr2.x;
+            normal_accumulate[(j+1)*width + i + 1].y += cr2.y;
+            normal_accumulate[(j+1)*width + i + 1].z += cr2.z;
+        }
+    }
+
+    srand(2);
+
+    for(int j=0; j<height; j++)
+    {
+        for(int i=0; i<width; i++)
+        {
+            //normal_accumulate[j*width + i] = normalise(add(normal_accumulate[j*width + i], noisemod(i, j, 1, 1, 0.25, 4000)));
+
+            float norm_rand = noisemod(i, j, 1, 1, 0.25, 0.02);
+
+            if(rand() % 2)
+                norm_rand = -norm_rand;
+
+            normal_accumulate[j*width + i] = normalise(add(normalise(normal_accumulate[j*width + i]), norm_rand));
+        }
+    }
+
     std::vector<triangle> tris;
 
     for(int j=0; j<height-1; j++)
@@ -56,23 +118,19 @@ void create_terrain(objects_container* obj, int width, int height)
             cl_float4 bl = vertex_positions[(j+1)*width + i];
             cl_float4 br = vertex_positions[(j+1)*width + i + 1];
 
-
-            cl_float4 p1p0;
-            p1p0 = sub(tl, tr);
-
-            cl_float4 p2p0;
-            p2p0 = sub(bl, tr);
-
-            cl_float4 cr = cross(p1p0, p2p0);
+            cl_float4 ntl = normal_accumulate[j*width + i];
+            cl_float4 ntr = normal_accumulate[j*width + i + 1];
+            cl_float4 nbl = normal_accumulate[(j+1)*width + i];
+            cl_float4 nbr = normal_accumulate[(j+1)*width + i + 1];
 
             triangle tri;
             tri.vertices[0].pos = tl;
             tri.vertices[1].pos = bl;
             tri.vertices[2].pos = tr;
 
-            tri.vertices[0].normal = cr;
-            tri.vertices[1].normal = cr;
-            tri.vertices[2].normal = cr;
+            tri.vertices[0].normal = ntl;
+            tri.vertices[1].normal = nbl;
+            tri.vertices[2].normal = ntr;
 
             tri.vertices[0].vt.x = 0.1;
             tri.vertices[0].vt.y = 0.1;
@@ -89,9 +147,9 @@ void create_terrain(objects_container* obj, int width, int height)
             tri2.vertices[1].pos = bl;
             tri2.vertices[2].pos = br;
 
-            tri2.vertices[0].normal = cr;
-            tri2.vertices[1].normal = cr;
-            tri2.vertices[2].normal = cr;
+            tri2.vertices[0].normal = ntr;
+            tri2.vertices[1].normal = nbl;
+            tri2.vertices[2].normal = nbr;
 
 
             tri2.vertices[0].vt.x = 0.1;

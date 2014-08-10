@@ -1846,7 +1846,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 1;
+        mod = 0.5;
     }
 
     if(area > 60000)

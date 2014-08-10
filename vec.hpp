@@ -24,6 +24,17 @@ inline cl_float4 add(cl_float4 v1, cl_float4 v2)
     return nv;
 }
 
+inline cl_float4 add(cl_float4 v1, float v)
+{
+    cl_float4 nv;
+    nv.x = v1.x + v;
+    nv.y = v1.y + v;
+    nv.z = v1.z + v;
+    nv.w = v1.w + v;
+
+    return nv;
+}
+
 inline cl_float4 sub(cl_float4 v1, cl_float4 v2)
 {
     cl_float4 nv;
