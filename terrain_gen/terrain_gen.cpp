@@ -1,6 +1,7 @@
 #include "terrain_gen.hpp"
 #include "../planet_gen/marching_cubes.hpp"
 #include "../vec.hpp"
+#include <iostream>
 
 static float noisemult(int x, int y, int z)
 {
@@ -35,22 +36,26 @@ void create_terrain(objects_container* obj, int width, int height)
         {
             cl_float4* pos = &vertex_positions[j*width + i];
 
-            pos->x = i*100;
-            pos->y = j*100;
-            pos->z = noisemult(i, j, 0);
+            pos->x = i;
+            pos->z = j;
+            pos->y = noisemult(i, j, 0)*0.5;
+            pos->w = 0;
+
+            *pos = mult(*pos, 100.0f);
         }
     }
 
     std::vector<triangle> tris;
 
-    for(int j=0; j<height; j++)
+    for(int j=0; j<height-1; j++)
     {
-        for(int i=0; i<width; i++)
+        for(int i=0; i<width-1; i++)
         {
             cl_float4 tl = vertex_positions[j*width + i];
             cl_float4 tr = vertex_positions[j*width + i + 1];
             cl_float4 bl = vertex_positions[(j+1)*width + i];
             cl_float4 br = vertex_positions[(j+1)*width + i + 1];
+
 
             cl_float4 p1p0;
             p1p0 = sub(tl, tr);
@@ -62,8 +67,8 @@ void create_terrain(objects_container* obj, int width, int height)
 
             triangle tri;
             tri.vertices[0].pos = tl;
-            tri.vertices[1].pos = tr;
-            tri.vertices[2].pos = bl;
+            tri.vertices[1].pos = bl;
+            tri.vertices[2].pos = tr;
 
             tri.vertices[0].normal = cr;
             tri.vertices[1].normal = cr;
@@ -80,9 +85,9 @@ void create_terrain(objects_container* obj, int width, int height)
 
 
             triangle tri2;
-            tri2.vertices[0].pos = tl;
-            tri2.vertices[1].pos = br;
-            tri2.vertices[2].pos = bl;
+            tri2.vertices[0].pos = tr;
+            tri2.vertices[1].pos = bl;
+            tri2.vertices[2].pos = br;
 
             tri2.vertices[0].normal = cr;
             tri2.vertices[1].normal = cr;
@@ -98,17 +103,18 @@ void create_terrain(objects_container* obj, int width, int height)
             tri2.vertices[2].vt.x = 0.5;
             tri2.vertices[2].vt.y = 0.7;
 
-
             tris.push_back(tri);
             tris.push_back(tri2);
 
         }
     }
 
+    delete [] vertex_positions;
+
     object sobj;
 
     sobj.tri_list.swap(tris);
-    sobj.tri_num = tris.size();
+    sobj.tri_num = sobj.tri_list.size();
 
     texture tex;
     tex.type = 0;
@@ -128,4 +134,6 @@ void create_terrain(objects_container* obj, int width, int height)
 
     obj->objs.push_back(sobj);
     obj->isloaded = true;
+
+    obj->file = "Namenamename";
 }

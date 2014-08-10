@@ -1842,7 +1842,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     bool valid = false;
 
-    int mod = 2;
+    float mod = 2;
 
     if(area < 50)
     {

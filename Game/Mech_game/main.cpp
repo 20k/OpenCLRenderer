@@ -57,7 +57,6 @@ int main(int argc, char *argv[])
     //sponza.set_file("Objects/pre-ruin.obj");
     sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 100, 100));
 
-
     sponza.set_active(true);
     sponza.cache = false;
 
@@ -66,7 +65,7 @@ int main(int argc, char *argv[])
     oclstuff("../../cl2.cl");
     window.load(800,600,1000, "turtles");
 
-    window.set_camera_pos((cl_float4){-800,150,-570});
+    window.set_camera_pos((cl_float4){0,0,0,0});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
@@ -85,7 +84,7 @@ int main(int argc, char *argv[])
     light l;
     l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     //l.set_shadow_bright(1, 1);
-    l.set_shadow_casting(1);
+    l.set_shadow_casting(0);
     l.set_brightness(1);
     l.set_pos((cl_float4){-150, 150, 0});
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
