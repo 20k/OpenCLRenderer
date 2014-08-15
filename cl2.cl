@@ -350,7 +350,7 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, f
 
 float backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
-    return cross(p1-p0, p2-p0).z < 0;
+    return fast_normalize(cross(p1-p0, p2-p0)).z - 0.01 < 0;
 }
 
 float backface_cull(struct triangle *tri)
