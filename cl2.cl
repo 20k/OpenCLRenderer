@@ -929,12 +929,14 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     int which=nums[tid];
     float width=sizes[which >> 16];
 
-    mcoord.x=coord.x;
-    mcoord.y=coord.y;
+    mcoord.x=coord.x * width - 0.5;
+    mcoord.y=coord.y * width - 0.5;
+
+    //mcoord /= width;
 
     //mcoord.z=coord.z;
 
-    /*float2 coords[4];
+    float2 coords[4];
 
     int2 pos= {floor(mcoord.x), floor(mcoord.y)};
 
@@ -963,9 +965,9 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     float3 result;
     result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
     result.y=(colours[0].y*buvr.x + colours[1].y*uvratio.x)*buvr.y + (colours[2].y*buvr.x + colours[3].y*uvratio.x)*uvratio.y;
-    result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;*/
+    result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;
 
-    float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
+    //float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
 
 
     return result;
