@@ -588,8 +588,24 @@ void engine::construct_shadowmaps()
 
                 cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
-                compute::buffer *prearglist[]={&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &l_pos, &l_rot, &g_tid_buf, &g_tid_buf_max_len, &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &is_light, &obj_mem_manager::g_obj_desc};
-                run_kernel_with_args(cl::prearrange, &p1global_ws, &local, 1, prearglist, 11, true);
+                //compute::buffer *prearglist[]={&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &l_pos, &l_rot, &g_tid_buf, &g_tid_buf_max_len, &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &is_light, &obj_mem_manager::g_obj_desc};
+
+                arg_list prearg_list;
+
+                prearg_list.push_back(&obj_mem_manager::g_tri_mem);
+                prearg_list.push_back(&obj_mem_manager::g_tri_num);
+                prearg_list.push_back(&light::lightlist[i]->pos);
+                prearg_list.push_back(&r_struct[j]);
+                prearg_list.push_back(&g_tid_buf);
+                prearg_list.push_back(&g_tid_buf_max_len);
+                prearg_list.push_back(&g_tid_buf_atomic_count);
+                prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+                prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+                prearg_list.push_back(&juan);
+                prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+
+
+                run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
 
                 cl_uint id_c = 0;
@@ -614,8 +630,21 @@ void engine::construct_shadowmaps()
                 }
 
 
-                compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &l_pos, &l_rot, &l_mem, &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
-                run_kernel_with_args(cl::kernel1, &p1global_ws_new, &local, 1, p1arglist, 12, true);
+                //compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &l_pos, &l_rot, &l_mem, &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
+
+                arg_list p1arg_list;
+                p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
+                p1arg_list.push_back(&g_tid_buf);
+                p1arg_list.push_back(&obj_mem_manager::g_tri_num);
+                p1arg_list.push_back(&l_mem);
+                p1arg_list.push_back(&g_tid_buf_atomic_count);
+                p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+                p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+                p1arg_list.push_back(&g_valid_fragment_num);
+                p1arg_list.push_back(&g_valid_fragment_mem);
+                p1arg_list.push_back(&juan);
+
+                run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
 
                 cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
@@ -769,9 +798,24 @@ void engine::draw_bulk_objs_n()
     //std::cout << "fdf " << p1global_ws << std::endl;
 
 
-    compute::buffer *prearglist[]={&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &g_tid_buf, &g_tid_buf_max_len, &g_tid_buf_atomic_count,
-                                   &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &is_light, &obj_mem_manager::g_obj_desc};
-    run_kernel_with_args(cl::prearrange, &p1global_ws, &local, 1, prearglist, 11, true);
+    //compute::buffer *prearglist[]={&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &g_tid_buf, &g_tid_buf_max_len, &g_tid_buf_atomic_count,
+    //                               &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &is_light, &obj_mem_manager::g_obj_desc};
+
+    arg_list prearg_list;
+
+    prearg_list.push_back(&obj_mem_manager::g_tri_mem);
+    prearg_list.push_back(&obj_mem_manager::g_tri_num);
+    prearg_list.push_back(&c_pos);
+    prearg_list.push_back(&c_rot);
+    prearg_list.push_back(&g_tid_buf);
+    prearg_list.push_back(&g_tid_buf_max_len);
+    prearg_list.push_back(&g_tid_buf_atomic_count);
+    prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+    prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    prearg_list.push_back(&zero);
+    prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+
+    run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
     //std::cout << "ptime " << c.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -800,9 +844,22 @@ void engine::draw_bulk_objs_n()
     }
 
     ///write depth of triangles to buffer, ie z buffering
-    compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &g_tid_buf_atomic_count,
-                                   &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
-    run_kernel_with_args(cl::kernel1, &p1global_ws_new, &local, 1, p1arglist, 12, true);
+    //compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &g_tid_buf_atomic_count,
+    //                               &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
+
+    arg_list p1arg_list;
+    p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p1arg_list.push_back(&g_tid_buf);
+    p1arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p1arg_list.push_back(&depth_buffer[nbuf]);
+    p1arg_list.push_back(&g_tid_buf_atomic_count);
+    p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+    p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p1arg_list.push_back(&g_valid_fragment_num);
+    p1arg_list.push_back(&g_valid_fragment_mem);
+    p1arg_list.push_back(&zero);
+
+    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
 
     //std::cout << "p1time " << p1.getElapsedTime().asMicroseconds() << std::endl;
@@ -831,9 +888,24 @@ void engine::draw_bulk_objs_n()
     compute::buffer image_wrapper(g_id_screen_tex.get(), true);
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
-    compute::buffer *p2arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &depth_buffer[nbuf], &image_wrapper, &g_c_pos, &g_c_rot, &g_tid_buf_atomic_count,
-                                   &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem};
-    run_kernel_with_args(cl::kernel2, &p2global_ws, &local, 1, p2arglist, 12, true);
+    //compute::buffer *p2arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &depth_buffer[nbuf], &image_wrapper, &g_c_pos, &g_c_rot, &g_tid_buf_atomic_count,
+    //                               &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem};
+
+
+    arg_list p2arg_list;
+    p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p2arg_list.push_back(&g_tid_buf);
+    p2arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p2arg_list.push_back(&depth_buffer[nbuf]);
+    p2arg_list.push_back(&image_wrapper);
+    p2arg_list.push_back(&g_tid_buf_atomic_count);
+    p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+    p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p2arg_list.push_back(&g_valid_fragment_num);
+    p2arg_list.push_back(&g_valid_fragment_mem);
+
+
+    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
 
 
@@ -855,12 +927,32 @@ void engine::draw_bulk_objs_n()
     compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
 
     /// many arguments later
-    compute::buffer *p3arglist[]= {&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &image_wrapper, &texture_wrapper,
-                          &screen_wrapper, &texture_manager::g_texture_numbers, &texture_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num,
-                          &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf, &obj_mem_manager::g_cut_tri_mem};
+   // compute::buffer *p3arglist[]= {&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &image_wrapper, &texture_wrapper,
+   //                       &screen_wrapper, &texture_manager::g_texture_numbers, &texture_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num,
+   //                       &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf, &obj_mem_manager::g_cut_tri_mem};
+
+    arg_list p3arg_list;
+    p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p3arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p3arg_list.push_back(&c_pos);
+    p3arg_list.push_back(&c_rot);
+    p3arg_list.push_back(&depth_buffer[nbuf]);
+    p3arg_list.push_back(&image_wrapper);
+    p3arg_list.push_back(&texture_wrapper);
+    p3arg_list.push_back(&screen_wrapper);
+    p3arg_list.push_back(&texture_manager::g_texture_numbers);
+    p3arg_list.push_back(&texture_manager::g_texture_sizes);
+    p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
+    p3arg_list.push_back(&obj_mem_manager::g_obj_num);
+    p3arg_list.push_back(&obj_mem_manager::g_light_num);
+    p3arg_list.push_back(&obj_mem_manager::g_light_mem);
+    p3arg_list.push_back(&g_shadow_light_buffer);
+    p3arg_list.push_back(&depth_buffer[nnbuf]);
+    p3arg_list.push_back(&g_tid_buf);
+    p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
 
     ///this is the deferred screenspace pass
-    run_kernel_with_args(cl::kernel3, p3global_ws, p3local_ws, 2, p3arglist, 18, true);
+    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
 
 

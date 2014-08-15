@@ -865,10 +865,8 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 {
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE   |
-                    CLK_FILTER_NEAREST;
-
-    int d=get_image_depth(array);
+                    CLK_ADDRESS_CLAMP           |
+                    CLK_FILTER_LINEAR;
 
     float x=coords.x;
     float y=coords.y;
@@ -880,30 +878,11 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     int max_tex_size=2048;
 
     int width=size[slice];
-    //int bx=which % (max_tex_size/width);
-    //int by=which / (max_tex_size/width);
 
-    x=1.0f-x;
-    y=1.0f-y;
+    x*=width;
+    y*=width;
 
-
-    float fw = width;
-
-    x*=fw;
-    y*=fw;
-
-    /*if(x<0)
-        x=0;
-
-    if(x>=width)
-        x=width - 1;
-
-    if(y<0)
-        y=0;
-
-    if(y>=width)
-        y=width - 1;*/
-
+    y = width - y;
 
     int hnum=max_tex_size/width;
     ///max horizontal and vertical nums
@@ -912,26 +891,22 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float tnumy=which / hnum;
 
 
-
-    float tx=tnumx*fw;
-    float ty=tnumy*fw;
+    float tx=tnumx*width;
+    float ty=tnumy*width;
 
     ///width - fixes bug
-    float4 coord= {tx + fw - x, ty + y, slice, 0};
+    float4 coord= {tx + x, ty + y, slice, 0};
 
     uint4 col;
     col=read_imageui(array, sam, coord);
-    float3 t;
-    //t.x=col.x/255.0f;
-    //t.y=col.y/255.0f;
-    //t.z=col.z/255.0f;
 
+    float3 t;
     t = convert_float3(col.xyz) / 255.0f;
 
     return t;
 }
 
-
+/*
 float return_bilinear_shadf(float2 coord, float values[4])
 {
     float mx, my;
@@ -944,7 +919,7 @@ float return_bilinear_shadf(float2 coord, float values[4])
     result=(values[0]*buvr.x + values[1]*uvratio.x)*buvr.y + (values[2]*buvr.x + values[3]*uvratio.x)*uvratio.y;
 
     return result;
-}
+}*/
 
 
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
@@ -954,11 +929,12 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     int which=nums[tid];
     float width=sizes[which >> 16];
 
-    mcoord.x=coord.x*width - 0.5f;
-    mcoord.y=coord.y*width - 0.5f;
+    mcoord.x=coord.x;
+    mcoord.y=coord.y;
+
     //mcoord.z=coord.z;
 
-    float2 coords[4];
+    /*float2 coords[4];
 
     int2 pos= {floor(mcoord.x), floor(mcoord.y)};
 
@@ -987,7 +963,9 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     float3 result;
     result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
     result.y=(colours[0].y*buvr.x + colours[1].y*uvratio.x)*buvr.y + (colours[2].y*buvr.x + colours[3].y*uvratio.x)*uvratio.y;
-    result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;
+    result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;*/
+
+    float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
 
 
     return result;
@@ -1051,10 +1029,11 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
 
     float2 vdiff = {fabs(maxvx - minvx), fabs(maxvy - minvy)};
 
+    float tex_per_pix = tdiff.x*tdiff.y / (vdiff.x*vdiff.y);
 
-    float2 tex_per_pix = {tdiff.x / vdiff.x, tdiff.y / vdiff.y};
+    float worst = sqrt(tex_per_pix);
 
-    float worst = min(tex_per_pix.x, tex_per_pix.y);
+    //float worst = min(tex_per_pix.x, tex_per_pix.y);
     ///max seems to break spaceships but is apparently correct. What do? Need to actually solve texture filtering because it works pretty shit
     ///filter in 2d?
     ///Wants to be based purely on texel density
@@ -1658,8 +1637,8 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
 
 ///split triangles into fragments
 __kernel
-void prearrange(__global struct triangle* triangles, __global uint* tri_num, __global float4* c_pos, __global float4* c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
-                __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global uint* is_light,  __global struct obj_g_descriptor* gobj)
+void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj)
 {
     uint id = get_global_id(0);
 
@@ -1682,7 +1661,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
     float ewidth = SCREENWIDTH;
     float eheight = SCREENHEIGHT;
 
-    if(*is_light == 1)
+    if(is_light == 1)
     {
         efov = LFOV_CONST; //half of l_size = 90 degrees fov
         ewidth = LIGHTBUFFERDIM;
@@ -1702,7 +1681,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
     int is_clipped = 0;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(T, tris_proj, &num, (*c_pos).xyz, (*c_rot).xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight, &is_clipped);
+    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight, &is_clipped);
     ///can replace rotation with a swizzle for shadowing
 
     if(num == 0)
@@ -1776,8 +1755,8 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, __g
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
-void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global float4* c_pos, __global float4* c_rot, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, __global uint* is_light)
+void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+           __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, uint is_light)
 {
     uint id = get_global_id(0);
 
@@ -1789,7 +1768,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float ewidth = SCREENWIDTH;
     float eheight = SCREENHEIGHT;
 
-    if(*is_light == 1)
+    if(is_light == 1)
     {
         ewidth = LIGHTBUFFERDIM;
         eheight = LIGHTBUFFERDIM;
@@ -1918,7 +1897,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so its much faster than part1
 __kernel
-void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __write_only image2d_t id_buffer, __global float4* c_pos, __global float4* c_rot, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem)
+void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem)
 {
     uint id = get_global_id(0);
 
@@ -2036,7 +2015,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 __kernel
-void part3(__global struct triangle *triangles,__global uint *tri_num, __global float4 *c_pos, __global float4 *c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __global uint *lnum, __global struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris)
 
@@ -2071,8 +2050,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         float3 camera_pos;
         float3 camera_rot;
 
-        camera_pos = (*c_pos).xyz;
-        camera_rot = (*c_rot).xyz;
+        camera_pos = c_pos.xyz;
+        camera_rot = c_rot.xyz;
 
         //float4 normals_out[3];
 
@@ -2142,6 +2121,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
         float3 normalsy = {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
         float3 normalsz = {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
 
+        //float3 normalsx = {c_tri->vertices[0].normal.x, c_tri->vertices[1].normal.x, c_tri->vertices[2].normal.x};
+        //float3 normalsy = {c_tri->vertices[0].normal.y, c_tri->vertices[1].normal.y, c_tri->vertices[2].normal.y};
+        //float3 normalsz = {c_tri->vertices[0].normal.z, c_tri->vertices[1].normal.z, c_tri->vertices[2].normal.z};
+
         ///interpolated normal
         float3 normal;
 
@@ -2158,12 +2141,14 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, __global 
 
         //float l = dot(normalize(lpos), c_tri->vertices[1].normal.xyz);
 
-        float l = dot(normalize(lpos), normalize(normal));
+        //float3 rot_lpos = rot(lpos, (float3)0, camera_rot);
 
-        write_imagef(screen, (int2){x, y}, (float4)(l));
+        //float l = dot(normalize(lpos), normalize(normal));
+
+        //write_imagef(screen, (int2){x, y}, (float4)(l));
         //write_imagef(screen, (int2){x, y}, (float4)(normal, 0.0f));
 
-        return;
+        //return;
 
 
         float actual_depth = ldepth;

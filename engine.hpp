@@ -13,6 +13,8 @@
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
 
+#include <initializer_list>
+
 namespace compute = boost::compute;
 
 struct point_cloud_info;
@@ -115,10 +117,59 @@ private:
     void g_flush_camera();
 };
 
+struct arg_list
+{
+    std::vector<void*> args;
+    std::vector<int> sizes;
+
+    template<typename T>
+    void push_back(T* buf)
+    {
+        args.push_back(buf);
+        sizes.push_back(sizeof(T));
+    }
+};
+
 
 float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
+static void run_kernel_with_list(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool blocking = true)
+{
+    if(blocking)
+        cl::cqueue.finish();
+
+    cl_uint g_ws[dimensions];
+
+    for(int i=0; i<dimensions; i++)
+    {
+        g_ws[i] = global_ws[i];
+
+        if(g_ws[i] % local_ws[i]!=0)
+        {
+            int rem=g_ws[i] % local_ws[i];
+            g_ws[i]-=(rem);
+            g_ws[i]+=local_ws[i];
+        }
+
+        if(g_ws[i] == 0)
+        {
+            g_ws[i] += local_ws[i];
+        }
+    }
+
+    for(int i=0; i<argv.args.size(); i++)
+    {
+        clSetKernelArg(kernel.get(), i, argv.sizes[i], (argv.args[i]));
+    }
+
+    cl::cqueue.enqueue_nd_range_kernel(kernel, dimensions, NULL, g_ws, local_ws);
+
+
+    if(blocking)
+        cl::cqueue.finish();
+}
+
 static void run_kernel_with_args(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     if(blocking)

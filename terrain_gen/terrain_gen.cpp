@@ -44,7 +44,7 @@ void create_terrain(objects_container* obj, int width, int height)
             pos->y = noisemult(i, j, 0)*0.5;
             pos->w = 0;
 
-            *pos = mult(*pos, 1000.0f);
+            *pos = mult(*pos, 100.0f);
         }
     }
 
