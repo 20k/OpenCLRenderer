@@ -15,7 +15,7 @@
 
 ///change calc_third_area functions to be packed
 
-__constant float depth_far = 350000;
+__constant float depth_far = 350000000;
 __constant uint mulint = UINT_MAX;
 __constant int depth_icutoff = 75;
 #define depth_no_clear (mulint-1)
@@ -2002,7 +2002,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             }
 
             ///found depth buffer value, write the triangle id
-            if(mydepth > *ft - 50 && mydepth < *ft + 50)
+            if(mydepth > *ft - 100 && mydepth < *ft + 100)
             {
                 int2 coord = {x, y};
                 uint4 d = {tid, 0, 0, 0};
