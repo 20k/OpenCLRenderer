@@ -165,6 +165,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, g_size, g_size, 0, NULL);
 
+    g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, 0, NULL);
+
     delete [] blank;
 
     //glEnable(GL_TEXTURE2D); ///?
@@ -603,6 +605,7 @@ void engine::construct_shadowmaps()
                 prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
                 prearg_list.push_back(&juan);
                 prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+                prearg_list.push_back(&g_distortion_buffer);
 
 
                 run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
@@ -643,6 +646,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_valid_fragment_num);
                 p1arg_list.push_back(&g_valid_fragment_mem);
                 p1arg_list.push_back(&juan);
+                p1arg_list.push_back(&g_distortion_buffer);
 
                 run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
@@ -770,6 +774,9 @@ void engine::draw_bulk_objs_n()
     compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
 
+    cl_uint p3global_ws[]= {width, height};
+    cl_uint p3local_ws[]= {16, 8};
+
 
     ///need a better way to clear light buffer
 
@@ -795,6 +802,22 @@ void engine::draw_bulk_objs_n()
     ///clear the number of triangles that are generated after first kernel run
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
+    cl_float4 test_pos = {0,400,0};
+    int distort_num = 1;
+
+    compute::buffer distorts = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
+
+    arg_list distort_arg_list;
+    distort_arg_list.push_back(&distorts);
+    distort_arg_list.push_back(&distort_num);
+    distort_arg_list.push_back(&c_pos);
+    distort_arg_list.push_back(&c_rot);
+    distort_arg_list.push_back(&g_distortion_buffer);
+
+    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true);
+
+
+
     //std::cout << "fdf " << p1global_ws << std::endl;
 
 
@@ -814,6 +837,7 @@ void engine::draw_bulk_objs_n()
     prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     prearg_list.push_back(&zero);
     prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+    prearg_list.push_back(&g_distortion_buffer);
 
     run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
@@ -858,6 +882,7 @@ void engine::draw_bulk_objs_n()
     p1arg_list.push_back(&g_valid_fragment_num);
     p1arg_list.push_back(&g_valid_fragment_mem);
     p1arg_list.push_back(&zero);
+    p1arg_list.push_back(&g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
@@ -903,6 +928,8 @@ void engine::draw_bulk_objs_n()
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p2arg_list.push_back(&g_valid_fragment_num);
     p2arg_list.push_back(&g_valid_fragment_mem);
+    p2arg_list.push_back(&g_distortion_buffer);
+
 
 
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
@@ -916,8 +943,7 @@ void engine::draw_bulk_objs_n()
     cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
 
-    cl_uint p3global_ws[]= {g_size, g_size};
-    cl_uint p3local_ws[]= {16, 8};
+
 
     int nnbuf = (nbuf + 1) % 2;
 
@@ -950,6 +976,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&depth_buffer[nnbuf]);
     p3arg_list.push_back(&g_tid_buf);
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p3arg_list.push_back(&g_distortion_buffer);
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);

@@ -56,6 +56,8 @@ struct engine
     compute::buffer g_valid_fragment_mem; ///memory storage for valid fragments
     compute::buffer g_valid_fragment_num; ///number of valid fragments
 
+    compute::buffer g_distortion_buffer;
+
     ///debugging declarations
     cl_uint* d_depth_buf;
     compute::buffer d_triangle_buf;

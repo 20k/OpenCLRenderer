@@ -203,6 +203,7 @@ void oclstuff(std::string file)
     cl::clear_id_buf = compute::kernel(program, "clear_id_buf");
     cl::clear_screen_dbuf = compute::kernel(program, "clear_screen_dbuf");
     cl::draw_voxel_octree = compute::kernel(program, "draw_voxel_octree");
+    cl::create_distortion_offset = compute::kernel(program, "create_distortion_offset");
 }
 
 

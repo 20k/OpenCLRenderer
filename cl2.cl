@@ -15,7 +15,7 @@
 
 ///change calc_third_area functions to be packed
 
-__constant float depth_far = 350000000;
+__constant float depth_far = 350000;
 __constant uint mulint = UINT_MAX;
 __constant int depth_icutoff = 75;
 #define depth_no_clear (mulint-1)
@@ -599,7 +599,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 }*/
 
 ///change width/height to be defines by compiler
-void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped, int id, __global float4* cutdown_tris)
+bool full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped, int id, __global float4* cutdown_tris)
 {
 
     __global struct triangle *T=triangle;
@@ -616,10 +616,17 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         rot_3_raw(normalrot, rotation_offset, normalrot);
 
 
+    ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
+    ///YAY
+
+    ///problem lies here ish
+
+
+
 
     if(is_clipped == 0)
     {
-        passback->vertices[0].pos = cutdown_tris[id*3];
+        passback->vertices[0].pos = cutdown_tris[id*3 + 0];
         passback->vertices[1].pos = cutdown_tris[id*3 + 1];
         passback->vertices[2].pos = cutdown_tris[id*3 + 2];
 
@@ -637,8 +644,9 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         *num = 1;
 
-        return;
+        return false;
     }
+
 
 
 
@@ -651,15 +659,10 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     //rot_3_normal(T, c_rot, normalrot);
 
 
-
-
     float3 projected[3];
     depth_project(rotpoints, width, height, fovc, projected);
 
-    ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
-    ///YAY
 
-    ///problem lies here ish
 
 
     int n_behind = 0;
@@ -686,7 +689,7 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     if(n_behind>2)
     {
         *num = 0;
-        return;
+        return false;
     }
 
 
@@ -715,7 +718,7 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback[0].vertices[2].vt = T->vertices[2].vt;
 
         *num = 1;
-        return;
+        return true;
     }
 
     int g1, g2, g3;
@@ -839,6 +842,8 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         }
 
         *num = 2;
+
+        return true;
     }
 
     if(n_behind==2)
@@ -856,6 +861,8 @@ void full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback[0].vertices[id_valid].normal = (float4)(c1l, 0);
 
         *num = 1;
+
+        return true;
     }
 }
 
@@ -1633,6 +1640,65 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
     someout[0] = useless;
 }
 
+__kernel void create_distortion_offset(__global float4* const distort_pos, int distort_num, float4 c_pos, float4 c_rot, __global float2* distort_buffer)
+{
+    uint x = get_global_id(0);
+    uint y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    int radius = 100;
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    distort_buffer[y*SCREENWIDTH + x] = (float2)0;
+
+    int move_dist = 10;
+
+    //sum distorts and output at the end
+
+    for(int i=0; i<distort_num; i++)
+    {
+        float3 pos = distort_pos[i].xyz;
+
+        float3 rotated = rot(pos, camera_pos, camera_rot);
+
+        float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+        float adjusted_radius = radius;///projected.z;
+
+        float dist;
+
+        if((dist = fast_distance((float2){x, y}, projected.xy)) < adjusted_radius)
+        {
+            float rem = adjusted_radius - dist;
+
+            //rem = 10;
+
+            //rem *= move_dist*rem / (adjusted_radius*adjusted_radius);
+
+            float frac = rem / adjusted_radius;
+
+            float mov = move_dist*sin(frac*M_PI);
+
+            //distort_buffer[y*SCREENWIDTH + x].x = rem;
+
+            float angle = atan2(y - projected.y, x - projected.x);
+
+            //distort_buffer[y*SCREENWIDTH + x].y = angle;
+
+            float ox = mov * sin(angle);
+            float oy = -mov * cos(angle);
+
+            distort_buffer[y*SCREENWIDTH + x] = (float2){ox, oy};
+
+            return;
+        }
+    }
+}
+
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 #define op_size 120
@@ -1640,7 +1706,7 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
 ///split triangles into fragments
 __kernel
 void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
-                __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj)
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
 
@@ -1717,6 +1783,21 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             continue;
         }
 
+
+        for(int j=0; j<3; j++)
+        {
+            int xc = round(tris_proj[i][j].x);
+            int yc = round(tris_proj[i][j].y);
+
+            if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
+                continue;
+
+            tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
+            //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
+        }
+
+
+
         float min_max[4];
         calc_min_max(tris_proj[i], ewidth, eheight, min_max);
 
@@ -1758,7 +1839,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 ///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, uint is_light)
+           __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, uint is_light, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
 
@@ -1786,6 +1867,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
     tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
 
     float min_max[4];
     calc_min_max(tris_proj_n, ewidth, eheight, min_max);
@@ -1829,7 +1911,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 0.5;
+        mod = 2;
     }
 
     if(area > 60000)
@@ -1899,7 +1981,9 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so its much faster than part1
 __kernel
-void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem)
+void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
+            __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
+            __global uint* valid_tri_num, __global uint* valid_tri_mem, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
 
@@ -1921,6 +2005,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
     tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
 
     float min_max[4];
     calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
@@ -1958,7 +2043,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 0.5;
+        mod = 2;
     }
 
     if(area > 60000)
@@ -2019,7 +2104,9 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 __kernel
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
-           __global uint *lnum, __global struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris)
+           __global uint *lnum, __global struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
+           __global float2* distort_buffer
+           )
 
 ///__global uint sacrifice_children_to_argument_god
 {
@@ -2083,15 +2170,30 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
 
-        full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
-
+        bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
 
         uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
+
+
+        if(needs_modification)
+        {
+            for(int i=0; i<3; i++)
+            {
+                int xc = round(tris[wtri].vertices[i].pos.x);
+                int yc = round(tris[wtri].vertices[i].pos.y);
+
+                if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
+                    continue;
+
+                tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
+            }
+        }
 
         construct_interpolation(&tris[wtri], &icontainer, SCREENWIDTH, SCREENHEIGHT);
 
 
         struct triangle *c_tri = &tris[wtri];
+
 
         float cz[3] = {c_tri->vertices[0].pos.z, c_tri->vertices[1].pos.z, c_tri->vertices[2].pos.z};
 
@@ -2148,7 +2250,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         //float l = dot(normalize(lpos), normalize(normal));
 
         //write_imagef(screen, (int2){x, y}, (float4)(l));
-        //write_imagef(screen, (int2){x, y}, (float4)(normal, 0.0f));
+        //write_imagef(screen, (int2){x, y}, (float4)(ldepth / 1000));
 
         //return;
 

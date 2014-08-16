@@ -33,6 +33,7 @@ namespace cl
     extern compute::kernel clear_id_buf;
     extern compute::kernel clear_screen_dbuf;
     extern compute::kernel draw_voxel_octree;
+    extern compute::kernel create_distortion_offset;
 }
 
 
