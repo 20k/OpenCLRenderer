@@ -51,6 +51,7 @@
 			<Add option="-lglew32.dll" />
 			<Add option="-lssp" />
 		</Linker>
+		<Unit filename="../../cl2.cl" />
 		<Unit filename="../../clstate.cpp" />
 		<Unit filename="../../clstate.h" />
 		<Unit filename="../../engine.cpp" />

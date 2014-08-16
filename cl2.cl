@@ -1671,11 +1671,18 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
         //rotate it around the camera
         float3 rotated = rot(pos, camera_pos, camera_rot);
 
+        if(rotated.z < 0)
+            continue;
+
         //project it into screenspace
         float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
+        float cz = max(projected.z, FOV_CONST/2);
+
+        cz = min(cz, FOV_CONST*2);
+
         //so i can adjust the radius based on depth later
-        float adjusted_radius = radius;
+        float adjusted_radius = radius * FOV_CONST / cz;
 
         float dist;
 
@@ -1686,7 +1693,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
             float rem = adjusted_radius - dist;
 
             //distance remainder as a fraction
-            float frac = rem / adjusted_radius;
+            float frac = rem*rem / (adjusted_radius*adjusted_radius);
 
             //fisheye
             float mov = move_dist*sin(frac*M_PI);
@@ -1699,7 +1706,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
             float oy = -mov * cos(angle);
 
             //om nom nom
-            xysum += (float2){ox, oy};
+            xysum += (float2){ox, oy} * FOV_CONST / cz;
         }
     }
 
