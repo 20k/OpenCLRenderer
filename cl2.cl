@@ -1648,6 +1648,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
+    //pixel radius to check around
     int radius = 100;
 
     float3 camera_pos = c_pos.xyz;
@@ -1655,48 +1656,55 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 
     distort_buffer[y*SCREENWIDTH + x] = (float2)0;
 
+    //how far to move pixels at the most, ideally < radius otherwise it looks very strange
     int move_dist = 10;
 
     //sum distorts and output at the end
+    float2 xysum = 0;
 
+    //for every vertex distorter
     for(int i=0; i<distort_num; i++)
     {
+        //nab its position
         float3 pos = distort_pos[i].xyz;
 
+        //rotate it around the camera
         float3 rotated = rot(pos, camera_pos, camera_rot);
 
+        //project it into screenspace
         float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-        float adjusted_radius = radius;///projected.z;
+        //so i can adjust the radius based on depth later
+        float adjusted_radius = radius;
 
         float dist;
 
+        //is the pixel within the radius from the screenspace coordinate of the distorter?
         if((dist = fast_distance((float2){x, y}, projected.xy)) < adjusted_radius)
         {
+            //distance remainder
             float rem = adjusted_radius - dist;
 
-            //rem = 10;
-
-            //rem *= move_dist*rem / (adjusted_radius*adjusted_radius);
-
+            //distance remainder as a fraction
             float frac = rem / adjusted_radius;
 
+            //fisheye
             float mov = move_dist*sin(frac*M_PI);
 
-            //distort_buffer[y*SCREENWIDTH + x].x = rem;
-
+            //get the angle
             float angle = atan2(y - projected.y, x - projected.x);
 
-            //distort_buffer[y*SCREENWIDTH + x].y = angle;
-
+            //get the relative offsets
             float ox = mov * sin(angle);
             float oy = -mov * cos(angle);
 
-            distort_buffer[y*SCREENWIDTH + x] = (float2){ox, oy};
-
-            return;
+            //om nom nom
+            xysum += (float2){ox, oy};
         }
     }
+
+    //write that shit out
+    distort_buffer[y*SCREENWIDTH + x] = xysum;
 }
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
