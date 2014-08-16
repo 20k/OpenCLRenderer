@@ -77,6 +77,8 @@ cl_uchar4 * return_first_free(int size, int &num)
     int length=texture_manager::texture_numbers.size();
     length++;
 
+    printf("Realloc :( %i\n", size);
+
     cl_uchar4 *newarray = new cl_uchar4[max_tex_size*max_tex_size*length];
     memcpy(newarray, texture_manager::c_texture_array, sizeof(cl_uchar4)*max_tex_size*max_tex_size*(length-1));
 
@@ -193,31 +195,53 @@ int calc_num_slices(int tsize, int tnum)
     return pages;
 }
 
+void add_to_unique_size_table(std::vector<std::pair<int,int>>& table, int size)
+{
+    bool iswithin = false;
+
+    int max_tex_held = return_max_num(size);
+
+    for(unsigned int j=0; j<table.size(); j++)
+    {
+        //same size page and page isnt full
+        if(table[j].first == size && table[j].second != max_tex_held)
+        {
+            table[j].second++;
+            iswithin = true;
+            break;
+        }
+    }
+    if(!iswithin)
+    {
+        //make new page if we couldnt find a home for the current texture
+        table.push_back(std::make_pair(size, 1));
+    }
+}
+
 ///this logic appears to be faulty to try and generate the texture size num structure
+
+///forgot entirely about mipmaps :(
 std::vector<std::pair<int, int> > generate_unique_size_table()
 {
     std::vector<std::pair<int, int> > unique_sizes;
-
 
     for(unsigned int i=0; i<texture_manager::active_textures.size(); i++)
     {
         texture *T = texture_manager::texture_by_id(texture_manager::active_textures[i]);
         int largest_size = T->get_largest_dimension();
-        bool iswithin = false;
 
-        for(unsigned int j=0; j<unique_sizes.size(); j++)
+        add_to_unique_size_table(unique_sizes, largest_size);
+
+        int mip_level = largest_size;
+
+        for(int i=0; i<MIP_LEVELS; i++)
         {
-            if(unique_sizes[j].first == largest_size)
-            {
-                unique_sizes[j].second++;
-                iswithin = true;
-            }
-        }
-        if(!iswithin)
-        {
-            unique_sizes.push_back(std::make_pair(largest_size, 1));
+            mip_level = mip_level / 2.0f;
+
+            add_to_unique_size_table(unique_sizes, mip_level);
         }
     }
+
     return unique_sizes;
 }
 
@@ -227,7 +251,7 @@ void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
 {
     unsigned int final_memory_size = 0; ///doesn't do mipmaps, eh
 
-    for(unsigned int i=0; i<unique_sizes.size(); i++)
+    /*for(unsigned int i=0; i<unique_sizes.size(); i++)
     {
         int size = unique_sizes[i].first;
         int num  = unique_sizes[i].second;
@@ -240,6 +264,17 @@ void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
         }
 
         final_memory_size+=num_pages;
+    }*/
+
+
+    for(unsigned int i=0; i<unique_sizes.size(); i++)
+    {
+        int size = unique_sizes[i].first;
+
+        texture_manager::texture_sizes.push_back(size);
+        texture_manager::texture_numbers.push_back(0);
+
+        final_memory_size++;
     }
 
     delete [] texture_manager::c_texture_array;
@@ -341,7 +376,7 @@ int texture_manager::activate_texture(int texture_id)
         return active_textures.size()-1;
     }
 
-    std::cout << "warning, could not activate texture, already active" << std::endl;
+    //std::cout << "warning, could not activate texture, already active" << std::endl;
     return -1;
 }
 
@@ -357,7 +392,7 @@ int texture_manager::inactivate_texture(int texture_id)
         return inactive_textures.size()-1;
     }
 
-    std::cout << "warning, could not deactivate texture, already inactive" << std::endl;
+    //std::cout << "warning, could not deactivate texture, already inactive" << std::endl;
     return -1;
 }
 
