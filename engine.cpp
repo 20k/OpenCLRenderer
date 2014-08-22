@@ -765,6 +765,8 @@ void engine::draw_bulk_objs_n()
     if(camera_dirty)
         g_flush_camera();
 
+    static bool argd = true;
+
     sf::Clock start;
 
 
@@ -814,15 +816,8 @@ void engine::draw_bulk_objs_n()
     distort_arg_list.push_back(&c_rot);
     distort_arg_list.push_back(&g_distortion_buffer);
 
-    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true);
+    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true, false);
 
-
-
-    //std::cout << "fdf " << p1global_ws << std::endl;
-
-
-    //compute::buffer *prearglist[]={&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &g_tid_buf, &g_tid_buf_max_len, &g_tid_buf_atomic_count,
-    //                               &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &is_light, &obj_mem_manager::g_obj_desc};
 
     arg_list prearg_list;
 
@@ -839,7 +834,7 @@ void engine::draw_bulk_objs_n()
     prearg_list.push_back(&obj_mem_manager::g_obj_desc);
     prearg_list.push_back(&g_distortion_buffer);
 
-    run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
+    run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true, false);
 
     //std::cout << "ptime " << c.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -868,8 +863,6 @@ void engine::draw_bulk_objs_n()
     }
 
     ///write depth of triangles to buffer, ie z buffering
-    //compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &g_tid_buf_atomic_count,
-    //                               &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
 
     arg_list p1arg_list;
     p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
@@ -884,10 +877,7 @@ void engine::draw_bulk_objs_n()
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&g_distortion_buffer);
 
-    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
-
-
-    //std::cout << "p1time " << p1.getElapsedTime().asMicroseconds() << std::endl;
+    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true, false);
 
     sf::Clock p2;
     int valid_tri_num = 0;
@@ -913,9 +903,6 @@ void engine::draw_bulk_objs_n()
     compute::buffer image_wrapper(g_id_screen_tex.get(), true);
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
-    //compute::buffer *p2arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &depth_buffer[nbuf], &image_wrapper, &g_c_pos, &g_c_rot, &g_tid_buf_atomic_count,
-    //                               &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem};
-
 
     arg_list p2arg_list;
     p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
@@ -932,11 +919,8 @@ void engine::draw_bulk_objs_n()
 
 
 
-    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
+    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true, false);
 
-
-
-    //std::cout << "p2time " << p2.getElapsedTime().asMicroseconds() << std::endl;
 
     sf::Clock c3;
 
@@ -953,9 +937,6 @@ void engine::draw_bulk_objs_n()
     compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
 
     /// many arguments later
-   // compute::buffer *p3arglist[]= {&obj_mem_manager::g_tri_mem, &obj_mem_manager::g_tri_num, &g_c_pos, &g_c_rot, &depth_buffer[nbuf], &image_wrapper, &texture_wrapper,
-   //                       &screen_wrapper, &texture_manager::g_texture_numbers, &texture_manager::g_texture_sizes, &obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num,
-   //                       &obj_mem_manager::g_light_num, &obj_mem_manager::g_light_mem, &g_shadow_light_buffer, &depth_buffer[nnbuf], &g_tid_buf, &obj_mem_manager::g_cut_tri_mem};
 
     arg_list p3arg_list;
     p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
@@ -979,8 +960,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&g_distortion_buffer);
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
-
+    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true, false);
 
 
 
@@ -1009,17 +989,6 @@ void engine::draw_ui()
 
     cl_uint local2=256;
 
-    if(global_ws % local2!=0)
-    {
-        int rem=global_ws % local2;
-        global_ws-=(rem);
-        global_ws+=local2;
-    }
-
-    if(global_ws == 0)
-    {
-        global_ws += local2;
-    }
 
     compute::buffer wrap(scr);
 

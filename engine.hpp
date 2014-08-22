@@ -136,7 +136,7 @@ struct arg_list
 float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
-static void run_kernel_with_list(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool blocking = true)
+static void run_kernel_with_list(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args, bool blocking = true)
 {
     if(blocking)
         cl::cqueue.finish();
@@ -160,7 +160,7 @@ static void run_kernel_with_list(compute::kernel &kernel, cl_uint global_ws[], c
         }
     }
 
-    for(int i=0; i<argv.args.size(); i++)
+    for(int i=0; i<argv.args.size() && args; i++)
     {
         clSetKernelArg(kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }

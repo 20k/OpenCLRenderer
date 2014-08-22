@@ -20,7 +20,6 @@ __constant uint mulint = UINT_MAX;
 __constant int depth_icutoff = 75;
 #define depth_no_clear (mulint-1)
 
-
 struct interp_container;
 
 float rerror(float a, float b)
@@ -1893,23 +1892,14 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///pixel to start at in triangle, ie distance is which fragment it is
     int pixel_along = op_size*distance;
 
+    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
 
-    float xp[3];
-    float yp[3];
-
-    for(int i=0; i<3; i++)
-    {
-        xp[i] = round(tris_proj_n[i].x);
-        yp[i] = round(tris_proj_n[i].y);
-    }
-
-    float3 xpv = {xp[0], xp[1], xp[2]};
-    float3 ypv = {yp[0], yp[1], yp[2]};
-
+    xpv = round(xpv);
+    ypv = round(ypv);
 
     ///have to interpolate inverse to be perspective correct
     float3 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
-
 
     ///calculate area by triangle 3rd area method
 
@@ -1918,7 +1908,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     int pcount=0;
 
     ///interpolation constant
-    float rconst = calc_rconstant_v(xpv, ypv);
+    float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
 
     bool valid = false;
 
@@ -1946,7 +1936,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-        float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(s1 >= area - mod && s1 <= area + mod)
@@ -2031,17 +2021,11 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     int pixel_along = op_size*distance;
 
 
-    float xp[3];
-    float yp[3];
+    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
 
-    for(int i=0; i<3; i++)
-    {
-        xp[i] = round(tris_proj_n[i].x);
-        yp[i] = round(tris_proj_n[i].y);
-    }
-
-    float3 xpv = {xp[0], xp[1], xp[2]};
-    float3 ypv = {yp[0], yp[1], yp[2]};
+    xpv = round(xpv);
+    ypv = round(ypv);
 
 
     ///have to interpolate inverse to be perspective correct
@@ -2052,7 +2036,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     int pcount=0;
 
-    float rconst = calc_rconstant(xp, yp);
+    float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
 
     float mod = 2;
 
@@ -2077,7 +2061,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-        float s1 = calc_third_areas_i(xp[0], xp[1], xp[2], yp[0], yp[1], yp[2], x, y);
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
         if(s1 >= area - mod && s1 <= area + mod)
         {
@@ -2219,11 +2203,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         float3 vt;
 
 
-        float3 xvt= {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2]};
-        vt.x=interpolate(xvt, &icontainer, x, y);
+        float3 xvt = {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2]};
+        vt.x = interpolate(xvt, &icontainer, x, y);
 
-        float3 yvt= {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2]};
-        vt.y=interpolate(yvt, &icontainer, x, y);
+        float3 yvt = {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2]};
+        vt.y = interpolate(yvt, &icontainer, x, y);
 
         vt *= ldepth;
 
@@ -2304,7 +2288,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         for(int i=0; i<*(lnum); i++)
         {
-            float3 lpos=lights[i].pos.xyz;
+            struct light l = lights[i];
+
+            float3 lpos=l.pos.xyz;
 
             float3 l2c=lpos-global_position; ///light to pixel position
 
@@ -2321,7 +2307,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
             float dist_to_pixel = fast_distance(projected_out, (float3){x, y, ldepth});
 
-            float rad = lights[i].radius;
+            float rad = l.radius;
 
             float disteq = (rad - dist_to_pixel) / rad; ///light attenuation based on pixel from light distance/radius
 
@@ -2339,7 +2325,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
             float ambient = 0.20f;
 
-            if(lights[i].shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
+            if(l.shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
             {
 
                 if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) >= 0) ///backface
@@ -2356,17 +2342,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             }
 
             ///game shader effect, creates 2d screespace 'light'
-            if(lights[i].pos.w == 1.0f) ///check light within screen
+            if(l.pos.w == 1.0f) ///check light within screen
             {
-                //float3 light_rotated = rot(lpos, *c_pos, *c_rot);
-
-                //float3 projected_out;
-
-                //depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST, &projected_out);
-
                 if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
                 {
-                    float radius = 14000 / projected_out.z; /// obviously temporary, arbitrary radius defined
+                    float radius = 14000.0f / projected_out.z; /// obviously temporary, arbitrary radius defined
 
                     ///this is actually a solid light
                     float dist = fast_distance(projected_out.xy, (float2){x, y});
@@ -2377,7 +2357,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
                     radius_frac *= radius_frac;
 
-                    float3 actual_light = radius_frac*lights[i].col.xyz*lights[i].brightness;
+                    float3 actual_light = radius_frac*l.col.xyz*l.brightness;
 
                     if(fast_distance(lpos, camera_pos) < fast_distance(global_position, camera_pos) || *ft == mulint)
                     {
@@ -2392,14 +2372,14 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             light = max(0.0f, light);
 
             ///diffuse + ambient, no specular yet
-            lightaccum+=(1.0f-ambient)*light*light*lights[i].col.xyz*lights[i].brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f*lights[i].col.xyz; //wrong, change ambient to colour
+            lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f*l.col.xyz; //wrong, change ambient to colour
         }
 
 
 
         int2 scoord= {x, y};
 
-        float3 col=texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+        float3 col = texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
 
         //float3 col = (float3){ucol.x, ucol.y, ucol.z, 0};

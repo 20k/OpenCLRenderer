@@ -77,7 +77,7 @@ cl_uchar4 * return_first_free(int size, int &num)
     int length=texture_manager::texture_numbers.size();
     length++;
 
-    printf("Realloc :( %i\n", size);
+    printf("Texture realloc :( %i\n", size);
 
     cl_uchar4 *newarray = new cl_uchar4[max_tex_size*max_tex_size*length];
     memcpy(newarray, texture_manager::c_texture_array, sizeof(cl_uchar4)*max_tex_size*max_tex_size*(length-1));
