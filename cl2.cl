@@ -855,10 +855,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 ////all texture code was not rewritten for time, does not use proper functions
 float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
 {
-
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE   |
-                    CLK_FILTER_LINEAR;
+                    CLK_FILTER_NEAREST;
 
     float x=coords.x;
     float y=coords.y;
@@ -867,14 +866,12 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     int which = num[tid] & 0x0000FFFF;
 
-    int max_tex_size=2048;
+    const int max_tex_size=2048;
 
     int width=size[slice];
 
     x*=width;
     y*=width;
-
-
 
     int hnum=max_tex_size/width;
     ///max horizontal and vertical nums
@@ -888,8 +885,8 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     y = width - y;
 
-    x = clamp(x, 0.01f, (float)width - 0.01f);
-    y = clamp(y, 0.01f, (float)width - 0.01f);
+    x = clamp(x, 0.01f, width - 0.01f);
+    y = clamp(y, 0.01f, width - 0.01f);
 
     ///width - fixes bug
     float4 coord= {tx + x, ty + y, slice, 0};
@@ -921,13 +918,8 @@ float return_bilinear_shadf(float2 coord, float values[4])
 
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
 {
-
-
     int which=nums[tid];
     float width=sizes[which >> 16];
-
-    //mcoord.x=coord.x * width - 0.5;
-    //mcoord.y=coord.y * width - 0.5;
 
     //mcoord /= width;
 
@@ -1703,7 +1695,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
-#define op_size 120
+#define op_size 200
 
 ///split triangles into fragments
 __kernel
@@ -1918,6 +1910,11 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         float x = ((pixel_along + pcount) % width) + min_max[0];
         float y = ((pixel_along + pcount) / width) + min_max[2];
 
+        if(y > min_max[3])
+        {
+            break;
+        }
+
         if(y < 0 || y >= eheight)
         {
             pcount++;
@@ -2042,6 +2039,11 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     {
         float x = ((pixel_along + pcount) % width) + min_max[0];
         float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesn't need to be recalculated every loop
+
+        if(y > min_max[3])
+        {
+            break;
+        }
 
         if(y < 0 || y >= SCREENHEIGHT)
         {
