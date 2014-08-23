@@ -285,18 +285,11 @@ void calc_min_max(float3 points[3], float width, float height, float ret[4])
     ret[2] = min3(y[0], y[1], y[2]) - 1;
     ret[3] = max3(y[0], y[1], y[2]);
 
+    ret[0] = clamp(ret[0], 0.0f, width);
+    ret[1] = clamp(ret[1], 0.0f, width);
+    ret[2] = clamp(ret[2], 0.0f, height);
+    ret[3] = clamp(ret[3], 0.0f, height);
 
-    ret[2]=max(ret[2], 0.0f);
-    ret[2]=min(ret[2], height);
-
-    ret[3]=max(ret[3], 0.0f);
-    ret[3]=min(ret[3], height);
-
-    ret[0]=max(ret[0], 0.0f);
-    ret[0]=min(ret[0], width);
-
-    ret[1]=max(ret[1], 0.0f);
-    ret[1]=min(ret[1], width);
 }
 
 
@@ -315,17 +308,10 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, f
     float minx=min3(x1, x2, x3)-1;
     float maxx=max3(x1, x2, x3);
 
-    miny=max(miny, 0.0f);
-    miny=min(miny, height);
-
-    maxy=max(maxy, 0.0f);
-    maxy=min(maxy, height);
-
-    minx=max(minx, 0.0f);
-    minx=min(minx, width);
-
-    maxx=max(maxx, 0.0f);
-    maxx=min(maxx, width);
+    miny=clamp(miny, 0.0f, height);
+    maxy=clamp(maxy, 0.0f, height);
+    minx=clamp(minx, 0.0f, width);
+    maxx=clamp(maxx, 0.0f, width);
 
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
 
@@ -871,7 +857,7 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 {
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP           |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
                     CLK_FILTER_LINEAR;
 
     float x=coords.x;
@@ -888,7 +874,7 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     x*=width;
     y*=width;
 
-    y = width - y;
+
 
     int hnum=max_tex_size/width;
     ///max horizontal and vertical nums
@@ -899,6 +885,11 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     float tx=tnumx*width;
     float ty=tnumy*width;
+
+    y = width - y;
+
+    x = clamp(x, 0.01f, (float)width - 0.01f);
+    y = clamp(y, 0.01f, (float)width - 0.01f);
 
     ///width - fixes bug
     float4 coord= {tx + x, ty + y, slice, 0};
@@ -930,17 +921,19 @@ float return_bilinear_shadf(float2 coord, float values[4])
 
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
 {
-    float2 mcoord;
+
 
     int which=nums[tid];
     float width=sizes[which >> 16];
 
-    mcoord.x=coord.x * width - 0.5;
-    mcoord.y=coord.y * width - 0.5;
+    //mcoord.x=coord.x * width - 0.5;
+    //mcoord.y=coord.y * width - 0.5;
 
     //mcoord /= width;
 
     //mcoord.z=coord.z;
+
+    float2 mcoord = coord * width - 0.5;
 
     float2 coords[4];
 
@@ -975,13 +968,12 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     //float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
 
-
     return result;
 
 }
 
 ///fov const is key to mipmapping?
-float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_pos, float3 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -1005,8 +997,7 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
     float minty=min3(c_tri->vertices[0].vt.y, c_tri->vertices[1].vt.y, c_tri->vertices[2].vt.y);
     float maxty=max3(c_tri->vertices[0].vt.y, c_tri->vertices[1].vt.y, c_tri->vertices[2].vt.y);
 
-
-    float2 vtm = {vt.x, vt.y};
+    float2 vtm = vt;
 
     float ipart = 0;
 
@@ -1029,7 +1020,6 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
     {
         vtm.y = 1.0f + modf(vtm.y, &ipart);
     }
-
 
     float2 tdiff = {fabs(maxtx - mintx), fabs(maxty - minty)};
 
@@ -1105,13 +1095,11 @@ float3 texture_filter(struct triangle* c_tri, float3 vt, float depth, float3 c_p
 
     float fmd = fractional_mipmap_distance;
 
-
     float3 col1=return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
     float3 col2=return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
     float3 finalcol = col1*(1.0f-fmd) + col2*(fmd);
-
 
     return finalcol;
 }
@@ -2115,304 +2103,305 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
                     CLK_FILTER_NEAREST;
 
 
-    const uint x=get_global_id(0);
-    const uint y=get_global_id(1);
+    const uint x = get_global_id(0);
+    const uint y = get_global_id(1);
 
-    if(x < SCREENWIDTH && y < SCREENHEIGHT)
+    if(x >= SCREENWIDTH && y >= SCREENHEIGHT)
+        return;
+
+    //int2 scoord1 = {x, y};
+
+    //float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
+
+    //write_imagef(screen, scoord1, clear_col);
+
+
+    to_clear[y*SCREENWIDTH + x] = UINT_MAX;
+
+    __global uint *ft=&depth_buffer[y*SCREENWIDTH + x];
+
+    uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
+
+    uint id_val = id_val4.x;
+
+    float3 camera_pos;
+    float3 camera_rot;
+
+    camera_pos = c_pos.xyz;
+    camera_rot = c_rot.xyz;
+
+    //float4 normals_out[3];
+
+
+    /*if(*ft==depth_no_clear) ///the thing currently on the depth buffer shouldn't be cleared. There is no overlapping triangle either
     {
-        //int2 scoord1 = {x, y};
+        return;
+    }*/
 
-        //float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
+    struct interp_container icontainer;
 
-        //write_imagef(screen, scoord1, clear_col);
+    int local_id = fragment_id_buffer[id_val*3 + 2];
 
-        __global uint *ftc=&to_clear[y*SCREENWIDTH + x];
-        *ftc = mulint;
-
-        __global uint *ft=&depth_buffer[y*SCREENWIDTH + x];
-
-        uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
-
-        uint id_val = id_val4.x;
-
-        float3 camera_pos;
-        float3 camera_rot;
-
-        camera_pos = c_pos.xyz;
-        camera_rot = c_rot.xyz;
-
-        //float4 normals_out[3];
+    __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
 
 
-        /*if(*ft==depth_no_clear) ///the thing currently on the depth buffer shouldn't be cleared. There is no overlapping triangle either
+    ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
+
+    struct triangle tris[2];
+
+    int num = 0;
+
+    int o_id=T->vertices[0].pad;
+
+    __global struct obj_g_descriptor *G = &gobj[o_id];
+
+    int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
+
+
+    bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
+
+    uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
+
+
+    if(needs_modification)
+    {
+        for(int i=0; i<3; i++)
         {
-            return;
-        }*/
+            int xc = round(tris[wtri].vertices[i].pos.x);
+            int yc = round(tris[wtri].vertices[i].pos.y);
 
+            if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
+                continue;
 
-        struct interp_container icontainer;
-
-        int local_id = fragment_id_buffer[id_val*3 + 2];
-
-        __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
-
-
-        ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
-
-        struct triangle tris[2];
-
-        int num = 0;
-
-        int o_id=T->vertices[0].pad;
-
-        __global struct obj_g_descriptor *G = &gobj[o_id];
-
-        int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
-
-        bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
-
-        uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
-
-
-        if(needs_modification)
-        {
-            for(int i=0; i<3; i++)
-            {
-                int xc = round(tris[wtri].vertices[i].pos.x);
-                int yc = round(tris[wtri].vertices[i].pos.y);
-
-                if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
-                    continue;
-
-                tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
-            }
+            tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
         }
-
-        construct_interpolation(&tris[wtri], &icontainer, SCREENWIDTH, SCREENHEIGHT);
-
-
-        struct triangle *c_tri = &tris[wtri];
-
-
-        float cz[3] = {c_tri->vertices[0].pos.z, c_tri->vertices[1].pos.z, c_tri->vertices[2].pos.z};
-
-
-        float ldepth = idcalc((float)*ft/mulint);
-
-
-        float3 vt;
-
-
-        float3 xvt = {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2]};
-        vt.x = interpolate(xvt, &icontainer, x, y);
-
-        float3 yvt = {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2]};
-        vt.y = interpolate(yvt, &icontainer, x, y);
-
-        vt *= ldepth;
-
-        //float rotated_normalsx[3] = {normals_out[0].x, normals_out[1].x, normals_out[2].x};
-        //float rotated_normalsy[3] = {normals_out[0].y, normals_out[1].y, normals_out[2].y};
-        //float rotated_normalsz[3] = {normals_out[0].z, normals_out[1].z, normals_out[2].z};
-
-        //float normalsx[3]= {rotated_normalsx[0]/cz[0], rotated_normalsx[1]/cz[1], rotated_normalsx[2]/cz[2]};
-        //float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
-        //float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
-
-        ///perspective correct normals
-        float3 normalsx = {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
-        float3 normalsy = {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
-        float3 normalsz = {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
-
-        //float3 normalsx = {c_tri->vertices[0].normal.x, c_tri->vertices[1].normal.x, c_tri->vertices[2].normal.x};
-        //float3 normalsy = {c_tri->vertices[0].normal.y, c_tri->vertices[1].normal.y, c_tri->vertices[2].normal.y};
-        //float3 normalsz = {c_tri->vertices[0].normal.z, c_tri->vertices[1].normal.z, c_tri->vertices[2].normal.z};
-
-        ///interpolated normal
-        float3 normal;
-
-        normal.x=interpolate(normalsx, &icontainer, x, y);
-        normal.y=interpolate(normalsy, &icontainer, x, y);
-        normal.z=interpolate(normalsz, &icontainer, x, y);
-
-        ///get perspective fixed normal by multiplying by depth
-        normal *= ldepth;
-
-        float3 lpos = lights[0].pos.xyz;
-
-        //float l = dot(lpos, normal) / sqrt(lpos.x*lpos.x + lpos.y*lpos.y + lpos.z*lpos.z + normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
-
-        //float l = dot(normalize(lpos), c_tri->vertices[1].normal.xyz);
-
-        //float3 rot_lpos = rot(lpos, (float3)0, camera_rot);
-
-        //float l = dot(normalize(lpos), normalize(normal));
-
-        //write_imagef(screen, (int2){x, y}, (float4)(l));
-        //write_imagef(screen, (int2){x, y}, (float4)(ldepth / 1000));
-
-        //return;
-
-
-        float actual_depth = ldepth;
-
-        ///unprojected pixel coordinate
-        float3 local_position= {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
-
-
-        float3 zero = {0,0,0};
-
-        ///backrotate pixel coordinate into globalspace
-        float3 global_position = rot(local_position,  zero, (float3)
-        {
-            -camera_rot.x, 0.0f, 0.0f
-        });
-        global_position        = rot(global_position, zero, (float3)
-        {
-            0.0f, -camera_rot.y, 0.0f
-        });
-        global_position        = rot(global_position, zero, (float3)
-        {
-            0.0f, 0.0f, -camera_rot.z
-        });
-
-        global_position += camera_pos;
-
-        float3 lightaccum = 0;
-
-        int shnum=0;
-
-        float3 mandatory_light = {0,0,0};
-
-        ///rewite lighting to be in screenspace
-
-        for(int i=0; i<*(lnum); i++)
-        {
-            struct light l = lights[i];
-
-            float3 lpos=l.pos.xyz;
-
-            float3 l2c=lpos-global_position; ///light to pixel position
-
-            float light=dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
-
-            float3 light_rotated = rot(lpos, camera_pos, camera_rot);
-
-            //float3 l2c = light_rotated - local_position;
-
-            //float light = dot(normalize(l2c), normalize(rot((float3){1, 0, 0, 0}, zero, *c_rot)));
-
-
-            float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
-
-            float dist_to_pixel = fast_distance(projected_out, (float3){x, y, ldepth});
-
-            float rad = l.radius;
-
-            float disteq = (rad - dist_to_pixel) / rad; ///light attenuation based on pixel from light distance/radius
-
-            disteq = clamp(disteq, 0.0f, 1.0f);
-
-            light *= disteq;
-
-            //float3 H = fast_normalize(l2c + global_position - *c_pos);
-
-            ///do light radius
-
-            int skip=0;
-
-            float average_occ = 0;
-
-            float ambient = 0.20f;
-
-            if(l.shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
-            {
-
-                if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) >= 0) ///backface
-                {
-                    skip=1;
-                }
-                else
-                {
-                    ///gets pixel occlusion. Is smooth
-                    average_occ = generate_hard_occlusion((float3){x, y, 0}, normal, actual_depth, lights, light_depth_buffer, camera_pos, camera_rot, i, shnum); ///copy occlusion into local memory
-                }
-
-                shnum++;
-            }
-
-            ///game shader effect, creates 2d screespace 'light'
-            if(l.pos.w == 1.0f) ///check light within screen
-            {
-                if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
-                {
-                    float radius = 14000.0f / projected_out.z; /// obviously temporary, arbitrary radius defined
-
-                    ///this is actually a solid light
-                    float dist = fast_distance(projected_out.xy, (float2){x, y});
-
-                    float radius_frac = (radius - dist)/radius;
-
-                    radius_frac = clamp(radius_frac, 0.0f, 1.0f);
-
-                    radius_frac *= radius_frac;
-
-                    float3 actual_light = radius_frac*l.col.xyz*l.brightness;
-
-                    if(fast_distance(lpos, camera_pos) < fast_distance(global_position, camera_pos) || *ft == mulint)
-                    {
-                        mandatory_light += actual_light;
-                    }
-                }
-
-                ambient = 0;
-            }
-
-
-            light = max(0.0f, light);
-
-            ///diffuse + ambient, no specular yet
-            lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f*l.col.xyz; //wrong, change ambient to colour
-        }
-
-
-
-        int2 scoord= {x, y};
-
-        float3 col = texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
-
-
-        //float3 col = (float3){ucol.x, ucol.y, ucol.z, 0};
-        //col/=255.0f;
-
-
-        lightaccum = clamp(lightaccum, 0, (1.0f/col));
-
-        //float3 rot_normal;
-
-        //rot_normal = rot(normal, zero, *c_rot);
-
-        //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
-
-        float hbao = 0;
-
-        if(*ft == mulint)
-        {
-            col = 0;
-        }
-
-        float3 colclamp = col*lightaccum + mandatory_light;
-
-        colclamp = min(colclamp, 1.0f);
-        colclamp = max(colclamp, 0.0f);
-
-        //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
-        write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
-        //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
-        //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
-        //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
     }
 
+    construct_interpolation(&tris[wtri], &icontainer, SCREENWIDTH, SCREENHEIGHT);
+
+    struct triangle *c_tri = &tris[wtri];
+
+
+    float cz[3] = {c_tri->vertices[0].pos.z, c_tri->vertices[1].pos.z, c_tri->vertices[2].pos.z};
+
+
+    float ldepth = idcalc((float)*ft/mulint);
+
+
+    float2 vt;
+
+
+    float3 xvt = {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2]};
+    vt.x = interpolate(xvt, &icontainer, x, y);
+
+    float3 yvt = {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2]};
+    vt.y = interpolate(yvt, &icontainer, x, y);
+
+    vt *= ldepth;
+
+    //float rotated_normalsx[3] = {normals_out[0].x, normals_out[1].x, normals_out[2].x};
+    //float rotated_normalsy[3] = {normals_out[0].y, normals_out[1].y, normals_out[2].y};
+    //float rotated_normalsz[3] = {normals_out[0].z, normals_out[1].z, normals_out[2].z};
+
+    //float normalsx[3]= {rotated_normalsx[0]/cz[0], rotated_normalsx[1]/cz[1], rotated_normalsx[2]/cz[2]};
+    //float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
+    //float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
+
+    ///perspective correct normals
+    float3 normalsx = {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
+    float3 normalsy = {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
+    float3 normalsz = {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
+
+    //float3 normalsx = {c_tri->vertices[0].normal.x, c_tri->vertices[1].normal.x, c_tri->vertices[2].normal.x};
+    //float3 normalsy = {c_tri->vertices[0].normal.y, c_tri->vertices[1].normal.y, c_tri->vertices[2].normal.y};
+    //float3 normalsz = {c_tri->vertices[0].normal.z, c_tri->vertices[1].normal.z, c_tri->vertices[2].normal.z};
+
+    ///interpolated normal
+    float3 normal;
+
+    normal.x=interpolate(normalsx, &icontainer, x, y);
+    normal.y=interpolate(normalsy, &icontainer, x, y);
+    normal.z=interpolate(normalsz, &icontainer, x, y);
+
+    ///get perspective fixed normal by multiplying by depth
+    normal *= ldepth;
+
+    float3 lpos = lights[0].pos.xyz;
+
+    //float l = dot(lpos, normal) / sqrt(lpos.x*lpos.x + lpos.y*lpos.y + lpos.z*lpos.z + normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+
+    //float l = dot(normalize(lpos), c_tri->vertices[1].normal.xyz);
+
+    //float3 rot_lpos = rot(lpos, (float3)0, camera_rot);
+
+    //float l = dot(normalize(lpos), normalize(normal));
+
+    //write_imagef(screen, (int2){x, y}, (float4)(l));
+    //write_imagef(screen, (int2){x, y}, (float4)(ldepth / 1000));
+
+    //return;
+
+
+    float actual_depth = ldepth;
+
+    ///unprojected pixel coordinate
+    float3 local_position= {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
+
+
+    float3 zero = {0,0,0};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = rot(local_position,  zero, (float3)
+    {
+        -camera_rot.x, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float3)
+    {
+        0.0f, -camera_rot.y, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float3)
+    {
+        0.0f, 0.0f, -camera_rot.z
+    });
+
+    global_position += camera_pos;
+
+    float3 lightaccum = 0;
+
+    int shnum=0;
+
+    float3 mandatory_light = {0,0,0};
+
+    ///rewite lighting to be in screenspace
+
+    for(int i=0; i<*(lnum); i++)
+    {
+        struct light l = lights[i];
+
+        float3 lpos=l.pos.xyz;
+
+        float3 l2c=lpos-global_position; ///light to pixel position
+
+        float light=dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+
+        float3 light_rotated = rot(lpos, camera_pos, camera_rot);
+
+        //float3 l2c = light_rotated - local_position;
+
+        //float light = dot(normalize(l2c), normalize(rot((float3){1, 0, 0, 0}, zero, *c_rot)));
+
+
+        float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+        float dist_to_pixel = fast_distance(projected_out, (float3){x, y, ldepth});
+
+        float rad = l.radius;
+
+        float disteq = (rad - dist_to_pixel) / rad; ///light attenuation based on pixel from light distance/radius
+
+        disteq = clamp(disteq, 0.0f, 1.0f);
+
+        light *= disteq;
+
+        //float3 H = fast_normalize(l2c + global_position - *c_pos);
+
+        ///do light radius
+
+        int skip=0;
+
+        float average_occ = 0;
+
+        float ambient = 0.20f;
+
+        if(l.shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
+        {
+
+            if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) - 0.01 >= 0) ///backface
+            {
+                skip=1;
+            }
+            else
+            {
+                ///gets pixel occlusion. Is smooth
+                average_occ = generate_hard_occlusion((float3){x, y, 0}, normal, actual_depth, lights, light_depth_buffer, camera_pos, camera_rot, i, shnum); ///copy occlusion into local memory
+            }
+
+            shnum++;
+        }
+
+        ///game shader effect, creates 2d screespace 'light'
+        if(l.pos.w == 1.0f) ///check light within screen
+        {
+            if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
+            {
+                float radius = 14000.0f / projected_out.z; /// obviously temporary, arbitrary radius defined
+
+                ///this is actually a solid light
+                float dist = fast_distance(projected_out.xy, (float2){x, y});
+
+                float radius_frac = (radius - dist)/radius;
+
+                radius_frac = clamp(radius_frac, 0.0f, 1.0f);
+
+                radius_frac *= radius_frac;
+
+                float3 actual_light = radius_frac*l.col.xyz*l.brightness;
+
+                if(fast_distance(lpos, camera_pos) < fast_distance(global_position, camera_pos) || *ft == mulint)
+                {
+                    mandatory_light += actual_light;
+                }
+            }
+
+            ambient = 0;
+        }
+
+
+        light = max(0.0f, light);
+
+        ///diffuse + ambient, no specular yet
+        lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f*l.col.xyz; //wrong, change ambient to colour
+    }
+
+
+
+
+
+    int2 scoord= {x, y};
+
+    float3 col = texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+
+    //write_imagef(screen, (int2){x, y}, (float4)(col.xyz, 1));
+    //return;
+    //float3 col = (float3){ucol.x, ucol.y, ucol.z, 0};
+    //col/=255.0f;
+
+
+    lightaccum = clamp(lightaccum, 0, (1.0f/col));
+
+    //float3 rot_normal;
+
+    //rot_normal = rot(normal, zero, *c_rot);
+
+    //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
+
+    float hbao = 0;
+
+    if(*ft == mulint)
+    {
+        col = 0;
+    }
+
+    float3 colclamp = col*lightaccum + mandatory_light;
+
+    colclamp = min(colclamp, 1.0f);
+    colclamp = max(colclamp, 0.0f);
+
+    //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
+    write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
+    //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
+    //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
+    //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
 //Renders a point cloud which renders correct wrt the depth buffer
@@ -2765,7 +2754,7 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
                             )
 {
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP           |
+                              CLK_ADDRESS_CLAMP_TO_EDGE   |
                               CLK_FILTER_LINEAR;
 
     int x = get_global_id(0);
@@ -2943,7 +2932,7 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     const int y = get_global_id(1);
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP           |
+                              CLK_ADDRESS_CLAMP_TO_EDGE   |
                               CLK_FILTER_NEAREST;
 
     int width = get_image_width(to_write);
@@ -2990,7 +2979,7 @@ __kernel void blit_clear(__read_only image2d_t base, __write_only image2d_t mod,
         return;
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP           |
+                              CLK_ADDRESS_CLAMP_TO_EDGE   |
                               CLK_FILTER_NEAREST;
 
     to_clear[y*w + x] = -1;
