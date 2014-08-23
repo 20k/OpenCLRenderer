@@ -55,15 +55,15 @@ int main(int argc, char *argv[])
 
     //sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
-    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
+    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 100, 100));
 
     sponza.set_active(true);
     sponza.cache = false;
 
     engine window;
-    window.window.create(sf::VideoMode(1024, 768), "hmm");
+    window.window.create(sf::VideoMode(1280, 768), "hmm");
     oclstuff("../../cl2.cl");
-    window.load(1024,768,1000, "turtles");
+    window.load(1280,768,1000, "turtles");
 
     window.set_camera_pos((cl_float4){0,0,0,0});
 

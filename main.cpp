@@ -19,9 +19,9 @@ int main(int argc, char *argv[])
     sponza.cache = false;
 
     engine window;
-    window.window.create(sf::VideoMode(1024, 768), "hmm");
+    window.window.create(sf::VideoMode(1280, 768), "hmm");
     oclstuff("cl2.cl");
-    window.load(1024,768,1000, "turtles");
+    window.load(1280,768,1000, "turtles");
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
@@ -57,6 +57,18 @@ int main(int argc, char *argv[])
     l.shadow=1;
 
     window.add_light(&l);
+
+    /*l.set_col({1.0, 0.5, 0.0});
+    l.set_pos((cl_float4){-0, 2000,-0, 0});
+    l.set_shadow_casting(1);
+
+    window.add_light(&l);
+
+    l.set_col({0, 0.5, 0.99});
+    l.set_pos((cl_float4){-1200, 250,0, 0});
+    l.set_shadow_casting(1);
+
+    window.add_light(&l);*/
 
     window.construct_shadowmaps();
 

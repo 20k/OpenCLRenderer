@@ -3,7 +3,7 @@
 #define FOV_CONST 400.0f
 
 
-#define SCREENWIDTH 1024
+#define SCREENWIDTH 1280
 #define SCREENHEIGHT 768
 
 #define LIGHTBUFFERDIM 1024
@@ -1695,7 +1695,8 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
-#define op_size 200
+///fixed, now it should probably scale with screen resolution
+#define op_size 300
 
 ///split triangles into fragments
 __kernel
@@ -1797,7 +1798,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
-        float thread_num = ceil((float)area/op_size);
+        float thread_num = ceil(area/op_size);
         ///threads to render one triangle based on its bounding-box area
 
         uint c_id = atomic_inc(id_cutdown_tris);
@@ -1905,7 +1906,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }
 
     ///while more pixels to write
-    while(pcount <= op_size)
+    while(pcount < op_size)
     {
         float x = ((pixel_along + pcount) % width) + min_max[0];
         float y = ((pixel_along + pcount) / width) + min_max[2];
@@ -1913,12 +1914,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         if(y > min_max[3])
         {
             break;
-        }
-
-        if(y < 0 || y >= eheight)
-        {
-            pcount++;
-            continue;
         }
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
@@ -1933,7 +1928,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             fmydepth = 1.0f / fmydepth;
             ///retrieve original depth
 
-            if(isnan(fmydepth) || fmydepth > 1) ///skip broken pixels
+            if(fmydepth > 1) ///skip broken pixels
             {
                 pcount++;
                 continue;
@@ -2014,7 +2009,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
+    float3 depths = {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
 
 
     float area = calc_area(xpv, ypv);
@@ -2035,7 +2030,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 100;
     }
 
-    while(pcount <= op_size)
+    while(pcount < op_size)
     {
         float x = ((pixel_along + pcount) % width) + min_max[0];
         float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesn't need to be recalculated every loop
@@ -2043,12 +2038,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         if(y > min_max[3])
         {
             break;
-        }
-
-        if(y < 0 || y >= SCREENHEIGHT)
-        {
-            pcount++;
-            continue;
         }
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
@@ -2061,7 +2050,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             fmydepth = 1.0f / fmydepth;
 
-            if(isnan(fmydepth) || fmydepth > 1)
+            if(fmydepth > 1)
             {
                 pcount++;
                 continue;
@@ -2101,7 +2090,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 {
     ///widthxheight kernel
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_ADDRESS_CLAMP           |
                     CLK_FILTER_NEAREST;
 
 
@@ -2313,7 +2302,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float average_occ = 0;
 
-        float ambient = 0.20f;
+        float ambient = 0.1f;
 
         if(l.shadow==1 && ret_cubeface(global_position, lpos)!=-1) ///do shadow bits and bobs
         {
@@ -2362,7 +2351,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         light = max(0.0f, light);
 
         ///diffuse + ambient, no specular yet
-        lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*1.0f*l.col.xyz; //wrong, change ambient to colour
+        lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*l.col.xyz; //wrong, change ambient to colour
     }
 
 
@@ -2396,8 +2385,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 colclamp = col*lightaccum + mandatory_light;
 
-    colclamp = min(colclamp, 1.0f);
-    colclamp = max(colclamp, 0.0f);
+    //colclamp = min(colclamp, 1.0f);
+    //colclamp = max(colclamp, 0.0f);
+
+    colclamp = clamp(colclamp, 0.0f, 1.0f);
 
     //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
     write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
