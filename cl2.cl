@@ -2065,7 +2065,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             }
 
             ///found depth buffer value, write the triangle id
-            if(mydepth > *ft - 100 && mydepth < *ft + 100)
+            if(mydepth > *ft - 10 && mydepth < *ft + 10)
             {
                 int2 coord = {x, y};
                 uint4 d = {tid, 0, 0, 0};
