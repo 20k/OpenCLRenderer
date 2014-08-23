@@ -184,7 +184,7 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     }
 
     ///gpu light memory
-    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, light_straight.data());
+    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR, light_straight.data());
 
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &lnum);
 
@@ -527,13 +527,6 @@ void engine::construct_shadowmaps()
     cl_uint p1global_ws = obj_mem_manager::tri_num;
     cl_uint local=128;
 
-    if(p1global_ws % local!=0)
-    {
-        int rem=p1global_ws % local;
-        p1global_ws-=(rem);
-        p1global_ws+=local;
-    }
-
     ///cubemap rotations
     cl_float4 r_struct[6];
     r_struct[0]=(cl_float4)
@@ -620,18 +613,6 @@ void engine::construct_shadowmaps()
 
 
                 cl_uint p1global_ws_new = id_c;
-                if(p1global_ws_new % local!=0)
-                {
-                    int rem=p1global_ws_new % local;
-                    p1global_ws_new-=(rem);
-                    p1global_ws_new+=local;
-                }
-
-                if(p1global_ws_new == 0)
-                {
-                    p1global_ws_new += local;
-                }
-
 
                 //compute::buffer *p1arglist[]= {&obj_mem_manager::g_tri_mem, &g_tid_buf, &obj_mem_manager::g_tri_num, &l_pos, &l_rot, &l_mem, &g_tid_buf_atomic_count, &obj_mem_manager::g_cut_tri_num, &obj_mem_manager::g_cut_tri_mem, &g_valid_fragment_num, &g_valid_fragment_mem, &is_light};
 
@@ -675,16 +656,6 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     cl_uint local = 128;
 
     cl_uint p1global_ws = pc.len;
-    if(p1global_ws % local!=0)
-    {
-        int rem=p1global_ws % local;
-        p1global_ws-=(rem);
-        p1global_ws+=local;
-    }
-    if(p1global_ws == 0)
-    {
-        p1global_ws += local;
-    }
 
     run_kernel_with_args(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arglist, 7, true);
     run_kernel_with_args(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arglist, 7, true);
@@ -712,17 +683,6 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     cl_uint local = 128;
 
     cl_uint p1global_ws = pc.len;
-    if(p1global_ws % local!=0)
-    {
-        int rem=p1global_ws % local;
-        p1global_ws-=(rem);
-        p1global_ws+=local;
-    }
-
-    if(p1global_ws == 0)
-    {
-        p1global_ws += local;
-    }
 
     run_kernel_with_args(cl::space_dust, &p1global_ws, &local, 1, p1arglist, 8, true);
 
@@ -762,9 +722,6 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 ///this function is horrible and needs to be reworked into multiple smaller functions
 void engine::draw_bulk_objs_n()
 {
-    if(camera_dirty)
-        g_flush_camera();
-
     static bool argd = true;
 
     sf::Clock start;
@@ -793,13 +750,6 @@ void engine::draw_bulk_objs_n()
     ///1 thread per triangle
     cl_uint p1global_ws = obj_mem_manager::tri_num;
     cl_uint local=128;
-
-    if(p1global_ws % local!=0)
-    {
-        int rem=p1global_ws % local;
-        p1global_ws-=(rem);
-        p1global_ws+=local;
-    }
 
     ///clear the number of triangles that are generated after first kernel run
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
@@ -850,17 +800,6 @@ void engine::draw_bulk_objs_n()
 
     ///round global args to multiple of local work size
     cl_uint p1global_ws_new = id_c;
-    if(p1global_ws_new % local!=0)
-    {
-        int rem=p1global_ws_new % local;
-        p1global_ws_new-=(rem);
-        p1global_ws_new+=local;
-    }
-
-    if(p1global_ws_new == 0)
-    {
-        p1global_ws_new += local;
-    }
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -887,18 +826,6 @@ void engine::draw_bulk_objs_n()
     cl_uint p2global_ws = valid_tri_num;
 
     cl_uint local2=128;
-
-    if(p2global_ws % local2!=0)
-    {
-        int rem=p2global_ws % local2;
-        p2global_ws-=(rem);
-        p2global_ws+=local2;
-    }
-
-    if(p2global_ws == 0)
-    {
-        p2global_ws += local2;
-    }
 
     compute::buffer image_wrapper(g_id_screen_tex.get(), true);
 
@@ -1177,9 +1104,6 @@ void engine::draw_voxel_octree(g_voxel_info& info)
 
 void engine::render_buffers()
 {
-    if(camera_dirty)
-        g_flush_camera();
-
     sf::Clock clk;
     //draw_ui(); ///?
     //std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
