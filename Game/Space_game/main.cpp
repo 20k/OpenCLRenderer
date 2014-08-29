@@ -125,9 +125,9 @@ int main(int argc, char *argv[])
 
 
     engine window;
-    window.window.create(sf::VideoMode(800, 600), "fixthisfixthisfixthis");
+    window.window.create(sf::VideoMode(1280, 768), "fixthisfixthisfixthis");
     oclstuff("../cl2.cl");
-    window.load(800,600,1000, "turtles");
+    window.load(1280,768,1000, "turtles");
 
     //hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
 

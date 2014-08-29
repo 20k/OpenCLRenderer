@@ -2399,7 +2399,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
 //Renders a point cloud which renders correct wrt the depth buffer
 ///make a half resolution depth map, then expand?
-__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     uint pid = get_global_id(0);
 
@@ -2409,8 +2409,8 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     float3 position = positions[pid].xyz;
     //uint colour = colours[pid];
 
-    float3 camera_pos = (*c_pos).xyz;
-    float3 camera_rot = (*c_rot).xyz;
+    float3 camera_pos = (*g_pos).xyz;
+    float3 camera_rot = c_rot.xyz;
 
     float3 postrotate = rot(position, camera_pos, camera_rot);
 
@@ -2453,7 +2453,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     atomic_min(depth_pointer4, idepth);
 }
 
-__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     uint pid = get_global_id(0);
 
@@ -2463,8 +2463,8 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     float3 position = positions[pid].xyz;
     uint colour = colours[pid];
 
-    float3 camera_pos = (*c_pos).xyz;
-    float3 camera_rot = (*c_rot).xyz;
+    float3 camera_pos = (*g_pos).xyz;
+    float3 camera_rot = c_rot.xyz;
 
     float3 postrotate = rot(position, camera_pos, camera_rot);
 
@@ -2523,7 +2523,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 }
 
 ///nearly identical to point cloud, but space dust instead
-__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, float4 c_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     const int max_distance = 10000;
 
@@ -2535,7 +2535,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     float3 position = positions[pid].xyz;
     uint colour = colours[pid];
 
-    float3 totalpos = (*g_cam + *c_pos).xyz;
+    float3 totalpos = (*g_cam + c_pos).xyz;
 
     float3 relative_pos = position - totalpos; ///this doesnt really need to be accurate at all
 
@@ -2587,7 +2587,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 
     float3 zero = {0,0,0};
 
-    float3 postrotate = rot(relative_pos, zero, (*c_rot).xyz);
+    float3 postrotate = rot(relative_pos, zero, c_rot.xyz);
 
     float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
@@ -2632,7 +2632,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 }
 
 ///make cloud drift with time?
-__kernel void space_dust_no_tiling(__global uint* num, __global float4* positions, __global uint* colours, __global float4* position_offset, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void space_dust_no_tiling(__global uint* num, __global float4* positions, __global uint* colours, __global float4* position_offset, float4 c_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
 {
     const int max_distance = 10000;
 
@@ -2644,7 +2644,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
     float3 position = positions[pid].xyz;
     uint colour = colours[pid];
 
-    float3 totalpos = (-*position_offset + *c_pos).xyz;
+    float3 totalpos = (-*position_offset + c_pos).xyz;
 
     float3 relative_pos = position - totalpos;
 
@@ -2654,7 +2654,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
     float3 zero = {0,0,0};
 
-    float3 postrotate = rot(relative_pos, zero, (*c_rot).xyz);
+    float3 postrotate = rot(relative_pos, zero, (c_rot).xyz);
 
     float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
@@ -2698,7 +2698,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
 
 ///swap this for sfml parallel rendering?
 ///will draw for everything in the scene ///reallocate every time..?
-__kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnum, __write_only image2d_t screen, __global float4* c_pos, __global float4* c_rot)
+__kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnum, __write_only image2d_t screen, float4 c_pos, float4 c_rot)
 {
     uint pid = get_global_id(0);
 
@@ -2708,7 +2708,7 @@ __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnu
     float3 pos = gobj[pid].world_pos.xyz;
 
 
-    float3 postrotate = rot(pos, (*c_pos).xyz, (*c_rot).xyz);
+    float3 postrotate = rot(pos, c_pos.xyz, c_rot.xyz);
 
     float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
@@ -2742,7 +2742,7 @@ __kernel void holo_project(__global float4* pos, __global float4* rot, __write_o
 
 
 __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, __global float4* points_3d, __global float4* d_pos, __global float4* d_rot,
-                            __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen,  __global float* scale, __global uint* depth_buffer,
+                            float4 c_pos, float4 c_rot, __write_only image2d_t screen,  __global float* scale, __global uint* depth_buffer,
                             __global uint* id_tex, __global uint* id_buffer
                             )
 {
@@ -2821,8 +2821,8 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
 
     float3 zero = {0,0,0};
 
-    float3 lc_rot = (*c_rot).xyz;
-    float3 lc_pos = (*c_pos).xyz;
+    float3 lc_rot = c_rot.xyz;
+    float3 lc_pos = c_pos.xyz;
 
     ///backrotate pixel coordinate into globalspace
     float3 global_position = rot(local_position,  zero, (float3)
@@ -3162,7 +3162,7 @@ struct vparent
 #define PIDI(STR) (printf("%i %i\n", cxy, STR))
 #define PIDF(STR) (printf("%i %f\n", cxy, STR))
 
-__kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct voxel* voxels, __global float4* c_pos, __global float4* c_rot)
+__kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct voxel* voxels, float4 c_pos, float4 c_rot)
 {
     //printf("%s\n", "test");
 
@@ -3187,9 +3187,9 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
     float3 ray = {ax, ay, depth}; ///rotate it later
 
-    ray = rot(ray, (float3){0,0,0}, -(*c_rot).xyz);
+    ray = rot(ray, (float3){0,0,0}, -c_rot.xyz);
 
-    float3 pos = (*c_pos).xyz;
+    float3 pos = c_pos.xyz;
 
     float3 centre = {0,0,0};
 

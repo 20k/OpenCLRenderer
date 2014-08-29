@@ -21,7 +21,7 @@
 #include "vec.hpp"
 #include "ui_manager.hpp"
 
-#define FOV_CONST 400.0f
+#define FOV_CONST 500.0f
 ///this needs changing
 
 ///opengl ids
@@ -127,12 +127,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     ///this is a completely arbitrary size to store triangle uids in
     cl_uint size_of_uid_buffer = 40*1024*1024;
     cl_uint zero=0;
-
-    ///camera position and rotation gpu side
-    g_c_pos=compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_COPY_HOST_PTR, &c_pos);
-    g_c_rot=compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE , NULL);
-
-
 
 
     ///change depth to be image2d_t ///not possible
@@ -513,15 +507,6 @@ void engine::input()
     camera_dirty = true;
 }
 
-
-
-void engine::g_flush_camera()
-{
-    cl::cqueue.enqueue_write_buffer(g_c_pos, 0, sizeof(cl_float4), &c_pos);
-    cl::cqueue.enqueue_write_buffer(g_c_rot, 0, sizeof(cl_float4), &c_rot);
-}
-
-
 void engine::construct_shadowmaps()
 {
     cl_uint p1global_ws = obj_mem_manager::tri_num;
@@ -651,14 +636,23 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
+    //compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &c_rot, &screen_wrapper, &depth_buffer[nbuf]};
+
+    arg_list p1arg_list;
+    p1arg_list.push_back(&pc.g_len);
+    p1arg_list.push_back(&pc.g_points_mem);
+    p1arg_list.push_back(&pc.g_colour_mem);
+    p1arg_list.push_back(&g_cam);
+    p1arg_list.push_back(&c_rot);
+    p1arg_list.push_back(&screen_wrapper);
+    p1arg_list.push_back(&depth_buffer[nbuf]);
 
     cl_uint local = 128;
 
     cl_uint p1global_ws = pc.len;
 
-    run_kernel_with_args(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arglist, 7, true);
-    run_kernel_with_args(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arglist, 7, true);
+    run_kernel_with_list(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arg_list, true);
+    run_kernel_with_list(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arg_list, true);
 
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
@@ -678,14 +672,22 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &g_cam, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
+    arg_list p1arg_list;
+    p1arg_list.push_back(&pc.g_len);
+    p1arg_list.push_back(&pc.g_points_mem);
+    p1arg_list.push_back(&pc.g_colour_mem);
+    p1arg_list.push_back(&g_cam);
+    p1arg_list.push_back(&c_pos);
+    p1arg_list.push_back(&c_rot);
+    p1arg_list.push_back(&screen_wrapper);
+    p1arg_list.push_back(&depth_buffer[nbuf]);
+
 
     cl_uint local = 128;
 
     cl_uint p1global_ws = pc.len;
 
-    run_kernel_with_args(cl::space_dust, &p1global_ws, &local, 1, p1arglist, 8, true);
-
+    run_kernel_with_list(cl::space_dust, &p1global_ws, &local, 1, p1arg_list, true);
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
@@ -705,13 +707,21 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer *p1arglist[]={&pc.g_len, &pc.g_points_mem, &pc.g_colour_mem, &offset_pos, &g_c_pos, &g_c_rot, &screen_wrapper, &depth_buffer[nbuf]};
+    arg_list p1arg_list;
+    p1arg_list.push_back(&pc.g_len);
+    p1arg_list.push_back(&pc.g_points_mem);
+    p1arg_list.push_back(&pc.g_colour_mem);
+    p1arg_list.push_back(&offset_pos);
+    p1arg_list.push_back(&c_pos);
+    p1arg_list.push_back(&c_rot);
+    p1arg_list.push_back(&screen_wrapper);
+    p1arg_list.push_back(&depth_buffer[nbuf]);
 
     cl_uint local = 128;
 
     cl_uint p1global_ws = pc.len;
 
-    run_kernel_with_args(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arglist, 8, true);
+    run_kernel_with_list(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arg_list, true);
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
@@ -917,9 +927,14 @@ void engine::draw_ui()
 
     compute::buffer wrap(scr);
 
-    compute::buffer* ui_args[] = {&obj_mem_manager::g_obj_desc, &obj_mem_manager::g_obj_num, &wrap, &g_c_pos, &g_c_rot};
+    arg_list p1arg_list;
+    p1arg_list.push_back(&obj_mem_manager::g_obj_desc);
+    p1arg_list.push_back(&obj_mem_manager::g_obj_num);
+    p1arg_list.push_back(&wrap);
+    p1arg_list.push_back(&c_pos);
+    p1arg_list.push_back(&c_rot);
 
-    run_kernel_with_args(cl::draw_ui, &global_ws, &local2, 1, ui_args, 5, true);
+    run_kernel_with_list(cl::draw_ui, &global_ws, &local2, 1, p1arg_list, true);
 
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
@@ -1064,13 +1079,25 @@ void engine::draw_holograms()
 
         compute::buffer g_posrot = compute::buffer(cl::context, sizeof(cl_float8), CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, &posrot);
 
-        compute::buffer* holo_args[] = {&wrap_tex, &g_posrot, &g_br_pos, &position_wrap, &rotation_wrap, &g_c_pos, &g_c_rot, &wrap_scr, &scale_wrap, &depth_buffer[nbuf], &id_wrap, &g_ui_id_screen};
+        arg_list holo_arg_list;
+        holo_arg_list.push_back(&wrap_tex);
+        holo_arg_list.push_back(&g_posrot);
+        holo_arg_list.push_back(&g_br_pos);
+        holo_arg_list.push_back(&position_wrap);
+        holo_arg_list.push_back(&rotation_wrap);
+        holo_arg_list.push_back(&c_pos);
+        holo_arg_list.push_back(&c_rot);
+        holo_arg_list.push_back(&wrap_scr);
+        holo_arg_list.push_back(&scale_wrap);
+        holo_arg_list.push_back(&depth_buffer[nbuf]);
+        holo_arg_list.push_back(&id_wrap);
+        holo_arg_list.push_back(&g_ui_id_screen);
 
         cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
 
         cl_uint ls[2] = {16, 16};
 
-        run_kernel_with_args(cl::draw_hologram, num, ls, 2, holo_args, 12, true);
+        run_kernel_with_list(cl::draw_hologram, num, ls, 2, holo_arg_list, true);
 
         hologram_manager::release(i);
     }
@@ -1088,12 +1115,13 @@ void engine::draw_voxel_octree(g_voxel_info& info)
 
     compute::buffer screen_wrap = compute::buffer(scr, true);
 
-    compute::buffer* argv[] = {&screen_wrap, &info.g_voxel_mem, &g_c_pos, &g_c_rot};
+    ///broke///
+    //compute::buffer* argv[] = {&screen_wrap, &info.g_voxel_mem, &g_c_pos, &g_c_rot};
 
     cl_uint glob[] = {window.getSize().x, window.getSize().y};
     cl_uint local[] = {16, 16};
 
-    run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
+    //run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
 
 
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);

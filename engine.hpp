@@ -37,8 +37,8 @@ struct engine
     compute::opengl_renderbuffer g_screen;
 
     ///gpu side camera position and rotation
-    compute::buffer g_c_pos;
-    compute::buffer g_c_rot;
+    //compute::buffer g_c_pos;
+    //compute::buffer g_c_rot;
 
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
@@ -114,9 +114,6 @@ struct engine
     void check_obj_visibility(); ///unused, likely ot be removed
 
     static int nbuf;
-
-private:
-    void g_flush_camera();
 };
 
 struct arg_list
