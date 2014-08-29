@@ -1,6 +1,6 @@
 #define MIP_LEVELS 4
 
-#define FOV_CONST 400.0f
+#define FOV_CONST 500.0f
 
 
 #define SCREENWIDTH 1280
