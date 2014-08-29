@@ -113,7 +113,6 @@
 		<Unit filename="game_manager.hpp" />
 		<Unit filename="game_object.cpp" />
 		<Unit filename="game_object.hpp" />
-		<Unit filename="main.cpp" />
 		<Unit filename="newtonian_body.cpp" />
 		<Unit filename="newtonian_body.hpp" />
 		<Unit filename="ship.cpp" />

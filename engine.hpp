@@ -172,7 +172,7 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         cl::cqueue.finish();
 }
 
-static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, compute::buffer **argv, int argc, bool blocking)
+static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     if(blocking)
         cl::cqueue.finish();

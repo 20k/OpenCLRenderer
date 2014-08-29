@@ -1,25 +1,25 @@
-#include "../hologram.hpp"
-#include "../proj.hpp"
-#include "../ocl.h"
-#include "../texture_manager.hpp"
-#include "newtonian_body.hpp"
-#include "collision.hpp"
-#include "../interact_manager.hpp"
-#include "game_object.hpp"
+#include "../../hologram.hpp"
+#include "../../proj.hpp"
+#include "../../ocl.h"
+#include "../../texture_manager.hpp"
+#include "../newtonian_body.hpp"
+#include "../collision.hpp"
+#include "../../interact_manager.hpp"
+#include "../game_object.hpp"
 
-#include "../text_handler.hpp"
+#include "../../text_handler.hpp"
 #include <sstream>
 #include <string>
-#include "../vec.hpp"
+#include "../../vec.hpp"
 
-#include "galaxy/galaxy.hpp"
+#include "../galaxy/galaxy.hpp"
 
-#include "game_manager.hpp"
-#include "space_dust.hpp"
-#include "asteroid/asteroid_gen.hpp"
-#include "../ui_manager.hpp"
+#include "../game_manager.hpp"
+#include "../space_dust.hpp"
+#include "../asteroid/asteroid_gen.hpp"
+#include "../../ui_manager.hpp"
 
-#include "ship.hpp"
+#include "../ship.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects

@@ -110,7 +110,10 @@ static char *file_contents(const char *filename, int *length)
 
 static kernel load_kernel(const compute::program &p, const std::string& name)
 {
-    return kernel{compute::kernel(p, name), name};
+    kernel k;
+    k.kernel = compute::kernel(p, name);
+    k.name = name;
+    return k;
 }
 
 static void oclstuff(std::string file)
