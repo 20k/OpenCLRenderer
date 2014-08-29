@@ -7,9 +7,18 @@
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
 
+#include <string>
+#include <utility>
+
 ///kernels and opencl stuff
 
 namespace compute = boost::compute;
+
+struct kernel
+{
+    compute::kernel kernel;
+    std::string name;
+};
 
 namespace cl
 {
@@ -17,23 +26,23 @@ namespace cl
     extern compute::command_queue cqueue;
     extern compute::context context;
 
-    extern compute::kernel kernel1;
-    extern compute::kernel kernel2;
-    extern compute::kernel kernel3;
-    extern compute::kernel prearrange;
-    extern compute::kernel trivial;
-    extern compute::kernel point_cloud_depth;
-    extern compute::kernel point_cloud_recover;
-    extern compute::kernel space_dust;
-    extern compute::kernel space_dust_no_tile;
-    extern compute::kernel draw_ui;
-    extern compute::kernel draw_hologram;
-    extern compute::kernel blit_with_id;
-    extern compute::kernel blit_clear;
-    extern compute::kernel clear_id_buf;
-    extern compute::kernel clear_screen_dbuf;
-    extern compute::kernel draw_voxel_octree;
-    extern compute::kernel create_distortion_offset;
+    extern kernel kernel1;
+    extern kernel kernel2;
+    extern kernel kernel3;
+    extern kernel prearrange;
+    extern kernel trivial;
+    extern kernel point_cloud_depth;
+    extern kernel point_cloud_recover;
+    extern kernel space_dust;
+    extern kernel space_dust_no_tile;
+    extern kernel draw_ui;
+    extern kernel draw_hologram;
+    extern kernel blit_with_id;
+    extern kernel blit_clear;
+    extern kernel clear_id_buf;
+    extern kernel clear_screen_dbuf;
+    extern kernel draw_voxel_octree;
+    extern kernel create_distortion_offset;
 }
 
 

@@ -15,7 +15,7 @@
 namespace compute = boost::compute;
 
 ///blatantly nicked from nvidia
-cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
+static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
 {
     char chBuffer[1024];
     cl_uint num_platforms;
@@ -85,7 +85,7 @@ cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
 }
 
 ///also blatantly nicked off nvidia
-char *file_contents(const char *filename, int *length)
+static char *file_contents(const char *filename, int *length)
 {
     FILE *f = fopen(filename, "r");
     void *buffer;
@@ -108,8 +108,12 @@ char *file_contents(const char *filename, int *length)
     return (char*)buffer;
 }
 
+static kernel load_kernel(const compute::program &p, const std::string& name)
+{
+    return kernel{compute::kernel(p, name), name};
+}
 
-void oclstuff(std::string file)
+static void oclstuff(std::string file)
 {
     ///need to initialise context and the like
     ///cant use boost::compute as it does not support opengl context sharing on windows
@@ -187,23 +191,23 @@ void oclstuff(std::string file)
         exit(1232345);
     }
 
-    cl::kernel1 = compute::kernel(program, "part1");
-    cl::kernel2 = compute::kernel(program, "part2");
-    cl::kernel3 = compute::kernel(program, "part3");
-    cl::prearrange = compute::kernel(program, "prearrange");
-    cl::trivial = compute::kernel(program, "trivial_kernel");
-    cl::point_cloud_depth = compute::kernel(program, "point_cloud_depth_pass");
-    cl::point_cloud_recover = compute::kernel(program, "point_cloud_recovery_pass");
-    cl::space_dust = compute::kernel(program, "space_dust");
-    cl::space_dust_no_tile = compute::kernel(program, "space_dust_no_tiling");
-    cl::draw_ui = compute::kernel(program, "draw_ui");
-    cl::draw_hologram = compute::kernel(program, "draw_hologram");
-    cl::blit_with_id = compute::kernel(program, "blit_with_id");
-    cl::blit_clear = compute::kernel(program, "blit_clear");
-    cl::clear_id_buf = compute::kernel(program, "clear_id_buf");
-    cl::clear_screen_dbuf = compute::kernel(program, "clear_screen_dbuf");
-    cl::draw_voxel_octree = compute::kernel(program, "draw_voxel_octree");
-    cl::create_distortion_offset = compute::kernel(program, "create_distortion_offset");
+    cl::kernel1 = load_kernel(program, "part1");
+    cl::kernel2 = load_kernel(program, "part2");
+    cl::kernel3 = load_kernel(program, "part3");
+    cl::prearrange = load_kernel(program, "prearrange");
+    cl::trivial = load_kernel(program, "trivial_kernel");
+    cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
+    cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");
+    cl::space_dust = load_kernel(program, "space_dust");
+    cl::space_dust_no_tile = load_kernel(program, "space_dust_no_tiling");
+    cl::draw_ui = load_kernel(program, "draw_ui");
+    cl::draw_hologram = load_kernel(program, "draw_hologram");
+    cl::blit_with_id = load_kernel(program, "blit_with_id");
+    cl::blit_clear = load_kernel(program, "blit_clear");
+    cl::clear_id_buf = load_kernel(program, "clear_id_buf");
+    cl::clear_screen_dbuf = load_kernel(program, "clear_screen_dbuf");
+    cl::draw_voxel_octree = load_kernel(program, "draw_voxel_octree");
+    cl::create_distortion_offset = load_kernel(program, "create_distortion_offset");
 }
 
 

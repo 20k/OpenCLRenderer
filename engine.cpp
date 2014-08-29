@@ -854,8 +854,6 @@ void engine::draw_bulk_objs_n()
     cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
 
-
-
     int nnbuf = (nbuf + 1) % 2;
 
 

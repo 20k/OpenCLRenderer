@@ -136,7 +136,7 @@ struct arg_list
 float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
-static void run_kernel_with_list(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args, bool blocking = true)
+static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args, bool blocking = true)
 {
     if(blocking)
         cl::cqueue.finish();
@@ -162,17 +162,17 @@ static void run_kernel_with_list(compute::kernel &kernel, cl_uint global_ws[], c
 
     for(int i=0; i<argv.args.size() && args; i++)
     {
-        clSetKernelArg(kernel.get(), i, argv.sizes[i], (argv.args[i]));
+        clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
 
-    cl::cqueue.enqueue_nd_range_kernel(kernel, dimensions, NULL, g_ws, local_ws);
+    cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
 
 
     if(blocking)
         cl::cqueue.finish();
 }
 
-static void run_kernel_with_args(compute::kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, compute::buffer **argv, int argc, bool blocking)
+static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, compute::buffer **argv, int argc, bool blocking)
 {
     if(blocking)
         cl::cqueue.finish();
@@ -198,10 +198,10 @@ static void run_kernel_with_args(compute::kernel &kernel, cl_uint global_ws[], c
 
     for(int i=0; i<argc; i++)
     {
-        kernel.set_arg(i, *(argv[i]));
+        kernel.kernel.set_arg(i, *(argv[i]));
     }
 
-    cl::cqueue.enqueue_nd_range_kernel(kernel, dimensions, NULL, g_ws, local_ws);
+    cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
 
 
     if(blocking)
