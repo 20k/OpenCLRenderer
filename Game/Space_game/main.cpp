@@ -20,6 +20,7 @@
 #include "../../ui_manager.hpp"
 
 #include "../ship.hpp"
+#include "../../projectile_buffer_gen.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -98,6 +99,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///hyperspace disabled due to feature creep
 
 ///minimap vs UI problem
+
+///acquire screen for whole rendering pass?
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -129,6 +132,9 @@ int main(int argc, char *argv[])
     oclstuff("../cl2.cl");
     window.load(1280,768,1000, "turtles");
 
+    ///part of engine load?
+    auto projectile_image = generate_projectile_buffer(window.width, window.height);
+
     //hologram_manager::load("Res/ui.png", {0,-500,1000,0}, {0,0,0,0}, &ship.objects);
 
     int hid = hologram_manager::load("Res/sigh.png", {0,-500,1000,0}, {0,0,0,0}, 1.0f, &ship.objects);
@@ -157,7 +163,7 @@ int main(int argc, char *argv[])
     window.set_camera_pos((cl_float4){-800,150,-570});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
-    ///Or is this important because textures 1gen?
+    ///Or is this important because textures generate once only?
 
     obj_mem_manager::load_active_objects();
 
@@ -350,7 +356,7 @@ int main(int argc, char *argv[])
         //std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
-
+        window.draw_fancy_projectiles(projectile_image);
 
         if(ui_manager::selected_value != -1 && (ui_manager::selected_value & MINIMAP_BITFLAG))
         {

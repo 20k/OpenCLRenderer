@@ -24,3 +24,4 @@ kernel cl::clear_id_buf;
 kernel cl::clear_screen_dbuf;
 kernel cl::draw_voxel_octree;
 kernel cl::create_distortion_offset;
+kernel cl::draw_fancy_projectile;

@@ -96,6 +96,7 @@ struct engine
     void draw_space_dust_cloud(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
     void draw_space_dust_no_tile(point_cloud_info&, compute::buffer& offset_pos); ///separation of church and state?
     void draw_bulk_objs_n(); ///draw objects to scene
+    void draw_fancy_projectiles(compute::image2d&); ///fancy looking projectiles
     void draw_ui();
     void draw_holograms();
     void draw_voxel_octree(g_voxel_info& info);

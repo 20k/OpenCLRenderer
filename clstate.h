@@ -43,6 +43,7 @@ namespace cl
     extern kernel clear_screen_dbuf;
     extern kernel draw_voxel_octree;
     extern kernel create_distortion_offset;
+    extern kernel draw_fancy_projectile;
 }
 
 

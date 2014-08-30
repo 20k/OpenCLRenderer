@@ -123,7 +123,7 @@ inline float length(cl_float4 v1)
     return sqrtf(v1.x*v1.x + v1.y*v1.y + v1.z*v1.z);
 }
 
-inline cl_float4 clamp(cl_float4 v1, float _min, float _max)
+/*inline cl_float4 clamp(cl_float4 v1, float _min, float _max)
 {
     v1.x = std::max(v1.x, _min);
     v1.y = std::max(v1.y, _min);
@@ -134,7 +134,7 @@ inline cl_float4 clamp(cl_float4 v1, float _min, float _max)
     v1.z = std::min(v1.z, _max);
 
     return v1;
-}
+}*/
 
 inline float clamp(float v, float _min, float _max)
 {
@@ -142,6 +142,17 @@ inline float clamp(float v, float _min, float _max)
     v = std::min(v, _max);
 
     return v;
+}
+
+inline cl_float4 clamp(cl_float4 v, float _min, float _max)
+{
+    cl_float4 nv;
+    nv.x = clamp(v.x, _min, _max);
+    nv.y = clamp(v.y, _min, _max);
+    nv.z = clamp(v.z, _min, _max);
+    nv.w = clamp(v.w, _min, _max);
+
+    return nv;
 }
 
 #endif // INCLUDED_HPP_VEC

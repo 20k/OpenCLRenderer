@@ -26,4 +26,14 @@ static cl_mem fake;
 #include <math.h>
 #include <limits.h>
 
+#include <boost/compute/source.hpp>
+#include <boost/compute/system.hpp>
+#include <boost/compute/algorithm/iota.hpp>
+#include <boost/compute/interop/opengl.hpp>
+
+#include <initializer_list>
+
+namespace compute = boost::compute;
+
+
 #endif

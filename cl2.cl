@@ -1619,6 +1619,119 @@ __kernel void trivial_kernel(__global struct triangle* triangles, __read_only im
     someout[0] = useless;
 }
 
+
+__kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4* const projectile_pos, int projectile_num, float4 c_pos, float4 c_rot, __read_only image2d_t effects_image, __write_only image2d_t screen)
+{
+    uint x = get_global_id(0);
+    uint y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    //pixel radius to check around
+    int radius = 100;
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    //how far to move pixels at the most, ideally < radius otherwise it looks very strange
+    int move_dist = 100;
+
+    float2 xysum = 0;
+
+    float dz = 0;
+
+    bool any_valid = false;
+
+    //for every vertex distorter
+    for(int i=0; i<projectile_num; i++)
+    {
+        //nab its position
+        float3 pos = projectile_pos[i].xyz;
+
+        //rotate it around the camera
+        float3 rotated = rot(pos, camera_pos, camera_rot);
+
+        if(rotated.z < depth_icutoff)
+            continue;
+
+        //project it into screenspace
+        float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+
+        float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*8);
+
+        //adjust radius based on depth
+        float adjusted_radius = radius * FOV_CONST / cz;
+
+        float dist;
+
+        //duplicate in getting dist then sqing it
+        //is the pixel within the radius from the screenspace coordinate of the distorter?
+        if((dist = fast_distance((float2){x, y}, projected.xy)) < adjusted_radius)
+        {
+            //distance remainder
+            float rem = adjusted_radius - dist;
+
+            //distance remainder as a fraction
+            float frac = rem*rem / (adjusted_radius*adjusted_radius);
+
+            //not fisheye
+            //move_dist - move_dist*sin(frac*M_PI);
+            float mov = (M_PI - asin(frac)) / M_PI;
+            mov *= move_dist;
+
+            //get the angle
+            float angle = atan2(y - projected.y, x - projected.x);
+
+            //get the relative offsets
+            float ox = mov * cos(angle);
+            float oy = mov * sin(angle);
+
+            //distance to displace value on pixel buffer by
+            xysum = (float2){ox, oy} * FOV_CONST / cz;
+
+            dz += projected.z;
+
+            any_valid = true;
+        }
+    }
+
+    if(!any_valid)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP           |
+                    CLK_FILTER_LINEAR;
+
+    dz /= projectile_num;
+
+    dz = dcalc(dz);
+
+    dz = clamp(dz, 0.0f, 1.0f);
+
+    uint mydepth = dz * mulint;
+
+    if(mydepth < depth_icutoff)
+        return;
+
+    uint bufdepth = depth_buffer[y*SCREENWIDTH + x];
+
+    if(mydepth > bufdepth)
+        return;
+
+    float4 pixel_col = read_imagef(effects_image, sam, (float2){x, y} - xysum)/255.0f;
+
+    if(pixel_col.w == 0)
+        return;
+
+    int2 new_coord = (int2){x, y};
+
+    new_coord = clamp(new_coord, (int2){0, 0}, (int2){SCREENWIDTH-1, SCREENHEIGHT-1});
+
+    write_imagef(screen, new_coord, pixel_col);
+}
+
 __kernel void create_distortion_offset(__global float4* const distort_pos, int distort_num, float4 c_pos, float4 c_rot, __global float2* distort_buffer)
 {
     uint x = get_global_id(0);
@@ -1656,11 +1769,10 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
         //project it into screenspace
         float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-        float cz = max(projected.z, FOV_CONST/2);
 
-        cz = min(cz, FOV_CONST*2);
+        float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*2);
 
-        //so i can adjust the radius based on depth later
+        //adjust radius based on depth
         float adjusted_radius = radius * FOV_CONST / cz;
 
         float dist;

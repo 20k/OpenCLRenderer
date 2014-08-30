@@ -706,7 +706,6 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
     cl::cqueue.finish();
 
-
     compute::buffer screen_wrapper(g_screen.get(), true);
 
     arg_list p1arg_list;
@@ -757,7 +756,6 @@ void engine::draw_bulk_objs_n()
     cl_mem scr = g_screen.get();
     ///acquire opengl objects for opencl
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
     cl::cqueue.finish();
 
     ///1 thread per triangle
@@ -911,6 +909,38 @@ void engine::draw_bulk_objs_n()
     cl::cqueue.finish();
 
     camera_dirty = false;
+}
+
+void engine::draw_fancy_projectiles(compute::image2d& buffer_look)
+{
+    cl_uint screenspace_gws[]= {width, height};
+    cl_uint screenspace_lws[]= {16, 8};
+
+    cl_float4 test_pos = {0,400,-400};
+    int projectile_num = 1;
+
+    cl_mem scr = g_screen.get();
+    ///acquire opengl objects for opencl
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
+
+
+    compute::buffer projectiles = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
+
+    arg_list projectile_arg_list;
+    projectile_arg_list.push_back(&depth_buffer[nbuf]);
+    projectile_arg_list.push_back(&projectiles);
+    projectile_arg_list.push_back(&projectile_num);
+    projectile_arg_list.push_back(&c_pos);
+    projectile_arg_list.push_back(&c_rot);
+    projectile_arg_list.push_back(&buffer_look);
+    projectile_arg_list.push_back(&scr);
+
+    run_kernel_with_list(cl::draw_fancy_projectile, screenspace_gws, screenspace_lws, 2, projectile_arg_list, true, false);
+
+    ///release opengl stuff
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    cl::cqueue.finish();
 }
 
 ///never going to work, would have to reproject?
@@ -1155,6 +1185,7 @@ void engine::render_buffers()
 
     text_handler::render();
 
+    //rendering to wrong buffer?
     window.display();
 
 

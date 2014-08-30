@@ -211,6 +211,7 @@ static void oclstuff(std::string file)
     cl::clear_screen_dbuf = load_kernel(program, "clear_screen_dbuf");
     cl::draw_voxel_octree = load_kernel(program, "draw_voxel_octree");
     cl::create_distortion_offset = load_kernel(program, "create_distortion_offset");
+    cl::draw_fancy_projectile = load_kernel(program, "draw_fancy_projectile");
 }
 
 

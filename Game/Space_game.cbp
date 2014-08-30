@@ -87,6 +87,8 @@
 		<Unit filename="../point_cloud.cpp" />
 		<Unit filename="../point_cloud.hpp" />
 		<Unit filename="../proj.hpp" />
+		<Unit filename="../projectile_buffer_gen.cpp" />
+		<Unit filename="../projectile_buffer_gen.hpp" />
 		<Unit filename="../text_handler.cpp" />
 		<Unit filename="../text_handler.hpp" />
 		<Unit filename="../texture.cpp" />
