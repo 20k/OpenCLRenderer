@@ -45,7 +45,7 @@ compute::buffer g_game_cam;
 
 void flush_game_cam(cl_float4 pos, compute::buffer& g_game_cam)
 {
-    static cl_float4 old = {NAN,NAN,NAN,NAN};
+    static cl_float4 old = {0,0,0,0};
     static int first = 1;
 
     if(pos.x != old.x || pos.y != old.y || pos.z != old.z || first)

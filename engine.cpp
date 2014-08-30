@@ -646,6 +646,7 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     p1arg_list.push_back(&c_rot);
     p1arg_list.push_back(&screen_wrapper);
     p1arg_list.push_back(&depth_buffer[nbuf]);
+    p1arg_list.push_back(&g_distortion_buffer);
 
     cl_uint local = 128;
 
@@ -681,6 +682,7 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     p1arg_list.push_back(&c_rot);
     p1arg_list.push_back(&screen_wrapper);
     p1arg_list.push_back(&depth_buffer[nbuf]);
+    p1arg_list.push_back(&g_distortion_buffer);
 
 
     cl_uint local = 128;
@@ -716,6 +718,7 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     p1arg_list.push_back(&c_rot);
     p1arg_list.push_back(&screen_wrapper);
     p1arg_list.push_back(&depth_buffer[nbuf]);
+    p1arg_list.push_back(&g_distortion_buffer);
 
     cl_uint local = 128;
 

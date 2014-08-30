@@ -1681,8 +1681,8 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
             float angle = atan2(y - projected.y, x - projected.x);
 
             //get the relative offsets
-            float ox = mov * sin(angle);
-            float oy = -mov * cos(angle);
+            float ox = mov * cos(angle);
+            float oy = mov * sin(angle);
 
             //om nom nom
             xysum += (float2){ox, oy} * FOV_CONST / cz;
@@ -2399,7 +2399,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
 //Renders a point cloud which renders correct wrt the depth buffer
 ///make a half resolution depth map, then expand?
-__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer,
+                                     __global float2* distortion_buffer)
 {
     uint pid = get_global_id(0);
 
@@ -2423,6 +2424,12 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
         return;
 
     if(depth < depth_icutoff)// || depth > depth_far)
+        return;
+
+
+    projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
+
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
 
     float tdepth = depth >= depth_far ? depth_far-1 : depth;
@@ -2453,7 +2460,8 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     atomic_min(depth_pointer4, idepth);
 }
 
-__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer,
+                                        __global float2* distortion_buffer)
 {
     uint pid = get_global_id(0);
 
@@ -2476,6 +2484,11 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
         return;
 
     if(depth < depth_icutoff)// || depth > depth_far)
+        return;
+
+    projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
+
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
 
     float tdepth = depth >= depth_far ? depth_far-1 : depth;
@@ -2523,7 +2536,8 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 }
 
 ///nearly identical to point cloud, but space dust instead
-__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, float4 c_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, float4 c_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer,
+                         __global float2* distortion_buffer)
 {
     const int max_distance = 10000;
 
@@ -2600,6 +2614,11 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     if(depth < depth_icutoff)// || depth > depth_far)
         return;
 
+    projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
+
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
+        return;
+
     float tdepth = depth >= depth_far ? depth_far-1 : depth;
 
     uint idepth = dcalc(tdepth)*mulint;
@@ -2632,7 +2651,8 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
 }
 
 ///make cloud drift with time?
-__kernel void space_dust_no_tiling(__global uint* num, __global float4* positions, __global uint* colours, __global float4* position_offset, float4 c_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer)
+__kernel void space_dust_no_tiling(__global uint* num, __global float4* positions, __global uint* colours, __global float4* position_offset, float4 c_pos, float4 c_rot, __write_only image2d_t screen,
+                                   __global uint* depth_buffer, __global float2* distortion_buffer)
 {
     const int max_distance = 10000;
 
@@ -2665,6 +2685,11 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
         return;
 
     if(depth < depth_icutoff)// || depth > depth_far)
+        return;
+
+    projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
+
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
 
     float tdepth = depth >= depth_far ? depth_far-1 : depth;
@@ -3008,6 +3033,9 @@ void draw_blank(__write_only image2d_t screen, int x, int y)
 {
     write_imagef(screen, (int2){x, y}, (float4){1.0f, 1.0f, 1.0f, 1.0f});
 }
+
+
+///begin SVO
 
 int signum(float f)
 {
