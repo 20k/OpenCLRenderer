@@ -1628,6 +1628,9 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
+    const int bignum = 10000;
+
+
     //pixel radius to check around
     int radius = 100;
 
@@ -1642,6 +1645,9 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
     float dz = 0;
 
     bool any_valid = false;
+
+    int valid_num = -1;
+    float3 which = 0;
 
     //for every vertex distorter
     for(int i=0; i<projectile_num; i++)
@@ -1659,7 +1665,7 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
         float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
 
-        float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*8);
+        float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*64);
 
         //adjust radius based on depth
         float adjusted_radius = radius * FOV_CONST / cz;
@@ -1678,8 +1684,18 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
             //not fisheye
             //move_dist - move_dist*sin(frac*M_PI);
-            float mov = (M_PI - asin(frac)) / M_PI;
-            mov *= move_dist;
+            //float mov = (M_PI - asin(frac)) / M_PI;
+            //mov *= move_dist;
+
+            //float mov = adjusted_radius * sin(M_PI * dist / (4*adjusted_radius));
+
+            float mov = asin(dist / adjusted_radius) * 4.0f *adjusted_radius / M_PI;
+
+            //float mov = move_dist*move_dist*M_PI*M_PI*sin(M_PI * rem / (2*adjusted_radius)) / (4*adjusted_radius);
+
+            //float mov = move_dist * cos(M_PI * frac);
+
+            //float mov = acos(frac / move_dist) * adjusted_radius / M_PI;
 
             //get the angle
             float angle = atan2(y - projected.y, x - projected.x);
@@ -1689,19 +1705,26 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
             float oy = mov * sin(angle);
 
             //distance to displace value on pixel buffer by
-            xysum = (float2){ox, oy} * FOV_CONST / cz;
+            xysum += (float2){ox, oy};
 
             dz += projected.z;
 
             any_valid = true;
+
+            which = projected;
+
+            valid_num = i;
+
+            // :( somehow combine multiple with offsets? accumulate texture reads?
+            break;
         }
     }
 
     if(!any_valid)
         return;
 
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP           |
+    sampler_t sam = CLK_NORMALIZED_COORDS_TRUE  |
+                    CLK_ADDRESS_REPEAT          |
                     CLK_FILTER_LINEAR;
 
     dz /= projectile_num;
@@ -1720,14 +1743,26 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
     if(mydepth > bufdepth)
         return;
 
-    float4 pixel_col = read_imagef(effects_image, sam, (float2){x, y} - xysum)/255.0f;
+    float2 wh = {SCREENWIDTH, SCREENHEIGHT};
+
+    float2 xyoffset = {x - which.x, y - which.y};
+
+   // xyoffset +=
+
+    //float2 xycoord = {(projectile_pos[valid_num].x + xyoffset.x), (xyoffset.y + projectile_pos[valid_num].y*SCREENHEIGHT)};
+
+    //xycoord += projectile_pos[valid_num].z;
+
+    //xycoord = fmod(xycoord, wh);
+
+    float2 xycoord = {x, y};
+
+    float4 pixel_col = read_imagef(effects_image, sam, (xycoord - xysum) / wh)/255.0f;
 
     if(pixel_col.w == 0)
         return;
 
     int2 new_coord = (int2){x, y};
-
-    new_coord = clamp(new_coord, (int2){0, 0}, (int2){SCREENWIDTH-1, SCREENHEIGHT-1});
 
     write_imagef(screen, new_coord, pixel_col);
 }

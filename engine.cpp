@@ -916,7 +916,9 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look)
     cl_uint screenspace_gws[]= {width, height};
     cl_uint screenspace_lws[]= {16, 8};
 
-    cl_float4 test_pos = {0,400,-400};
+    static cl_float4 test_pos = {0,400,-400};
+    test_pos.w += 1;
+    test_pos.z += 0.01;
     int projectile_num = 1;
 
     cl_mem scr = g_screen.get();
