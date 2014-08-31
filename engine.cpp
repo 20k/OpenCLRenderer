@@ -777,11 +777,11 @@ void engine::draw_bulk_objs_n()
     cl_uint zero=0;
 
     ///this is not a shadowmapping kernel. This needs to be passed in as a compile time parameter
-    compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+    compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR, &zero);
 
 
     cl_uint p3global_ws[]= {width, height};
-    cl_uint p3local_ws[]= {16, 8};
+    cl_uint p3local_ws[]= {8, 8};
 
 
     ///need a better way to clear light buffer
@@ -1188,6 +1188,8 @@ void engine::render_buffers()
     sf::Clock clk;
     //draw_ui(); ///?
     //std::cout << "UI stack time: " << clk.getElapsedTime().asMicroseconds() << std::endl;
+
+    cl::cqueue.finish();
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
