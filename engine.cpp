@@ -1199,17 +1199,13 @@ void engine::render_buffers()
     ///blit buffer to screen
     glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-    glFinish();
-
     interact::deplete_stack();
     interact::clear();
-
 
     text_handler::render();
 
     //rendering to wrong buffer?
     window.display();
-
 
     ///swap depth buffers
     nbuf++;
@@ -1235,6 +1231,7 @@ void engine::ui_interaction()
 
         cl_uint duint;
 
+        ///this breaks the pipeline and causes a stall
         cl::cqueue.enqueue_read_buffer(depth_buffer[nbuf], sizeof(cl_uint)*(my*width + mx), sizeof(cl_uint), &duint);
 
         if(duint != UINT_MAX && duint != 0)

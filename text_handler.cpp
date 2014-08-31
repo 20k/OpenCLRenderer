@@ -33,13 +33,13 @@ void text_handler::render()
 
     for(int i=0; i<text.size(); i++)
     {
-        text_list& tl = text[i];
+        const text_list& tl = text[i];
 
         int running_y = tl.y;
 
         for(int j=0; j<tl.elements.size(); j++)
         {
-            std::string& txt = tl.elements[j];
+            const std::string& txt = tl.elements[j];
 
             sf::Color col(255, 255, 255, 255);
 
