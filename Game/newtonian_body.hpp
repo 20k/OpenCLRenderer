@@ -4,6 +4,7 @@
 #include <math.h>
 #include "../objects_container.hpp"
 #include "../light.hpp"
+#include "projectile.hpp"
 #include "collision.hpp"
 #include <map>
 #include <utility>
@@ -76,7 +77,7 @@ struct newtonian_body
     int collision_object_id;
 
     objects_container* obj;
-    light* laser;
+    projectile* laser;
 
     float mass;
 
@@ -96,7 +97,7 @@ struct newtonian_body
     void remove_collision_object();
 
     newtonian_body* push();
-    newtonian_body* push_laser(light*);
+    newtonian_body* push_laser(projectile*);
 
     newtonian_body();
 
@@ -131,11 +132,6 @@ struct ship_newtonian : newtonian_body
     newtonian_body* push();
 
     void collided(newtonian_body*);
-};
-
-struct projectile : newtonian_body
-{
-
 };
 
 

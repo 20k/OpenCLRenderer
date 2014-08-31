@@ -20,10 +20,10 @@ struct texture
     sf::Image mipmaps[MIP_LEVELS];
     ///location is unique string that is texture location, used to check if textures refer to the same thing
 
-    bool is_active = false;
-    bool is_loaded = false;
+    bool is_active;
+    bool is_loaded;
 
-    bool has_mipmaps = false;
+    bool has_mipmaps;
 
     int id;
 

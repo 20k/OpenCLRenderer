@@ -144,7 +144,8 @@ void newtonian_body::tick(float timestep)
     if(laser != NULL && type == 1) ///laser == null impossible
     {
         //engine::set_light_pos(lid, position);
-        laser->set_pos(position);
+        //laser->set_pos(position);
+        laser->pos = position;
     }
 
     if(ttl > 0)
@@ -247,7 +248,7 @@ void newtonian_body::remove_collision_object()
 }
 
 ///must be pushed as global inengine light
-newtonian_body* newtonian_body::push_laser(light* l)
+newtonian_body* newtonian_body::push_laser(projectile* l)
 {
     //lid = light::get_light_id(l);
     laser = l;
@@ -280,7 +281,8 @@ void newtonian_manager::remove_body(newtonian_body* n)
 {
     if(n->type==1)
     {
-        light::remove_light(n->laser);
+        //light::remove_light(n->laser);
+        n->laser->is_alive = false;
     }
 
     n->remove_collision_object();

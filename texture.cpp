@@ -10,6 +10,10 @@ texture::texture()
     std::function<void (texture*)> func;
     func = std::bind(texture_load, std::placeholders::_1);
 
+    is_active = false;
+    is_loaded = false;
+    has_mipmaps = false;
+
     set_load_func(func);
 }
 

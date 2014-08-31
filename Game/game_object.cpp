@@ -384,16 +384,18 @@ void game_object::fire_all()
             y1 *= speed;
             z1 *= speed;
 
-            light l;
+            /*light l;
             l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
             l.set_shadow_casting(0);
             l.set_brightness(3.0f);
             l.set_type(1);
-            l.set_radius(1000.0f);
+            l.set_radius(1000.0f);*/
 
-            light* new_light = l.add_light(&l);
-            engine::realloc_light_gmem(); ///
+            //light* new_light = l.add_light(&l);
+            //engine::realloc_light_gmem(); ///
             //int id = light::lightlist.size()-1;
+
+            projectile* new_proj = projectile_manager::add_projectile();
 
             newtonian_body new_bullet;
             new_bullet.position = pos;
@@ -405,7 +407,7 @@ void game_object::fire_all()
             new_bullet.expires = true;
             new_bullet.damage = w.damage;
 
-            new_bullet.push_laser(new_light);
+            new_bullet.push_laser(new_proj);
         }
     }
 }

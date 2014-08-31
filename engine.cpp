@@ -128,6 +128,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     cl_uint size_of_uid_buffer = 40*1024*1024;
     cl_uint zero=0;
 
+    cl_float2* distortion_clear = new cl_float2[width*height];
+
+    memset(distortion_clear, 0, sizeof(cl_float2)*width*height);
 
     ///change depth to be image2d_t ///not possible
 
@@ -159,9 +162,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, g_size, g_size, 0, NULL);
 
-    g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, 0, NULL);
+    g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
     delete [] blank;
+
+    delete [] distortion_clear;
 
     //glEnable(GL_TEXTURE2D); ///?
 }
@@ -729,7 +734,20 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     cl::cqueue.finish();
 }
 
+void engine::generate_distortion(compute::buffer& points, int num)
+{
+    cl_uint p3global_ws[]= {width, height};
+    cl_uint p3local_ws[]= {16, 8};
 
+    arg_list distort_arg_list;
+    distort_arg_list.push_back(&points);
+    distort_arg_list.push_back(&num);
+    distort_arg_list.push_back(&c_pos);
+    distort_arg_list.push_back(&c_rot);
+    distort_arg_list.push_back(&g_distortion_buffer);
+
+    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true, false);
+}
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
 void engine::draw_bulk_objs_n()
@@ -764,22 +782,6 @@ void engine::draw_bulk_objs_n()
 
     ///clear the number of triangles that are generated after first kernel run
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
-
-    static cl_float4 test_pos = {0,400,0,0};
-    test_pos.z += 5;
-    int distort_num = 1;
-
-    compute::buffer distorts = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
-
-    arg_list distort_arg_list;
-    distort_arg_list.push_back(&distorts);
-    distort_arg_list.push_back(&distort_num);
-    distort_arg_list.push_back(&c_pos);
-    distort_arg_list.push_back(&c_rot);
-    distort_arg_list.push_back(&g_distortion_buffer);
-
-    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true, false);
-
 
     arg_list prearg_list;
 
@@ -912,15 +914,15 @@ void engine::draw_bulk_objs_n()
     camera_dirty = false;
 }
 
-void engine::draw_fancy_projectiles(compute::image2d& buffer_look)
+void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
 {
     cl_uint screenspace_gws[]= {width, height};
     cl_uint screenspace_lws[]= {16, 8};
 
-    static cl_float4 test_pos = {0,400,0, 0};
-    test_pos.w += 0.005;
-    test_pos.z += 5;
-    int projectile_num = 1;
+    //static cl_float4 test_pos = {0,400,0, 0};
+    //test_pos.w += 0.005;
+    //test_pos.z += 5;
+    //int projectile_num = 1;
 
     cl_mem scr = g_screen.get();
     ///acquire opengl objects for opencl
@@ -928,7 +930,7 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look)
     cl::cqueue.finish();
 
 
-    compute::buffer projectiles = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
+    //compute::buffer projectiles = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
 
     arg_list projectile_arg_list;
     projectile_arg_list.push_back(&depth_buffer[nbuf]);

@@ -1628,17 +1628,11 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
-    const int bignum = 10000;
-
-
     //pixel radius to check around
     int radius = 50;
 
     float3 camera_pos = c_pos.xyz;
     float3 camera_rot = c_rot.xyz;
-
-    //how far to move pixels at the most, ideally < radius otherwise it looks very strange
-    int move_dist = 100;
 
     float2 xysum = 0;
 
@@ -1738,8 +1732,10 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
     float2 xycoord = ((float2){x, y} - which_projected.xy) / (float2){SCREENWIDTH, SCREENHEIGHT};
 
+    ///get time offset
     float toffset = projectile_pos[valid_num].w / 10.0f;
 
+    ///spin ball on offset axis
     xycoord.x += toffset*sin(toffset);
     xycoord.y += toffset*cos(toffset);
 
@@ -1750,6 +1746,7 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
     int2 new_coord = (int2){x, y} + convert_int2(round(xysum));
 
+    ///draw pixel smoothly
     write_imagef(screen, new_coord, pixel_col);
     write_imagef(screen, (int2){new_coord.x + 1, new_coord.y}, pixel_col/4);
     write_imagef(screen, (int2){new_coord.x - 1, new_coord.y}, pixel_col/4);

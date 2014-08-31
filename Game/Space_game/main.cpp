@@ -21,6 +21,7 @@
 
 #include "../ship.hpp"
 #include "../../projectile_buffer_gen.hpp"
+#include "../projectile.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -333,9 +334,6 @@ int main(int argc, char *argv[])
         }*/
 
 
-        //game_object_manager::process_destroyed_ships();
-
-
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
         ui_manager::update_selected_values(window.get_mouse_x(), window.get_mouse_y());
@@ -346,7 +344,8 @@ int main(int argc, char *argv[])
         window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
-
+        ///vertex shader, basically, but applies to other things too
+        window.generate_distortion(projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
         window.draw_bulk_objs_n();
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
@@ -356,7 +355,7 @@ int main(int argc, char *argv[])
         //std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
-        window.draw_fancy_projectiles(projectile_image);
+        window.draw_fancy_projectiles(projectile_image, projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
 
         if(ui_manager::selected_value != -1 && (ui_manager::selected_value & MINIMAP_BITFLAG))
         {
@@ -488,6 +487,8 @@ int main(int argc, char *argv[])
         game_object_manager::update_ui_render_positions();
 
         game_object_manager::tick_all();
+
+        projectile_manager::tick_all();
 
         text_list t_weps;
 
