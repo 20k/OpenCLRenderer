@@ -1632,7 +1632,7 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
 
     //pixel radius to check around
-    int radius = 100;
+    int radius = 50;
 
     float3 camera_pos = c_pos.xyz;
     float3 camera_rot = c_rot.xyz;
@@ -1647,7 +1647,8 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
     bool any_valid = false;
 
     int valid_num = -1;
-    float3 which = 0;
+    float3 which_projected = 0;
+    float valid_radius = 0;
 
     //for every vertex distorter
     for(int i=0; i<projectile_num; i++)
@@ -1664,6 +1665,8 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
         //project it into screenspace
         float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
+        if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 | projected.y >= SCREENHEIGHT)
+            continue;
 
         float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*64);
 
@@ -1682,20 +1685,8 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
             //distance remainder as a fraction
             float frac = rem*rem / (adjusted_radius*adjusted_radius);
 
-            //not fisheye
-            //move_dist - move_dist*sin(frac*M_PI);
-            //float mov = (M_PI - asin(frac)) / M_PI;
-            //mov *= move_dist;
-
-            //float mov = adjusted_radius * sin(M_PI * dist / (4*adjusted_radius));
-
-            float mov = asin(dist / adjusted_radius) * 4.0f *adjusted_radius / M_PI;
-
-            //float mov = move_dist*move_dist*M_PI*M_PI*sin(M_PI * rem / (2*adjusted_radius)) / (4*adjusted_radius);
-
-            //float mov = move_dist * cos(M_PI * frac);
-
-            //float mov = acos(frac / move_dist) * adjusted_radius / M_PI;
+            //float mov = asin(dist / adjusted_radius) * 2.0f * adjusted_radius / M_PI;
+            float mov = 1 * adjusted_radius * sin(M_PI * dist / (1.5*adjusted_radius));
 
             //get the angle
             float angle = atan2(y - projected.y, x - projected.x);
@@ -1711,9 +1702,11 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
             any_valid = true;
 
-            which = projected;
+            which_projected = projected;
 
             valid_num = i;
+
+            valid_radius = adjusted_radius;
 
             // :( somehow combine multiple with offsets? accumulate texture reads?
             break;
@@ -1725,7 +1718,7 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
     sampler_t sam = CLK_NORMALIZED_COORDS_TRUE  |
                     CLK_ADDRESS_REPEAT          |
-                    CLK_FILTER_LINEAR;
+                    CLK_FILTER_NEAREST;
 
     dz /= projectile_num;
 
@@ -1740,31 +1733,72 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
     uint bufdepth = depth_buffer[y*SCREENWIDTH + x];
 
-    if(mydepth > bufdepth)
+    if(mydepth >= bufdepth)
         return;
 
-    float2 wh = {SCREENWIDTH, SCREENHEIGHT};
+    float2 xycoord = ((float2){x, y} - which_projected.xy) / (float2){SCREENWIDTH, SCREENHEIGHT};
 
-    float2 xyoffset = {x - which.x, y - which.y};
+    float toffset = projectile_pos[valid_num].w / 10.0f;
 
-   // xyoffset +=
+    xycoord.x += toffset*sin(toffset);
+    xycoord.y += toffset*cos(toffset);
 
-    //float2 xycoord = {(projectile_pos[valid_num].x + xyoffset.x), (xyoffset.y + projectile_pos[valid_num].y*SCREENHEIGHT)};
-
-    //xycoord += projectile_pos[valid_num].z;
-
-    //xycoord = fmod(xycoord, wh);
-
-    float2 xycoord = {x, y};
-
-    float4 pixel_col = read_imagef(effects_image, sam, (xycoord - xysum) / wh)/255.0f;
+    float4 pixel_col = read_imagef(effects_image, sam, xycoord)/255.0f;
 
     if(pixel_col.w == 0)
         return;
 
-    int2 new_coord = (int2){x, y};
+
+
+    int2 new_coord = (int2){x, y} + convert_int2(round(xysum));
+
+    //int2 dist = new_coord - convert_int2(which_projected.xy);
+
+    //distance from pixel to project centre
+    //int2 new_dist = new_coord - convert_int2(which_projected.xy);
+    //int2 old_dist = (int2){x, y} - convert_int2(which_projected.xy);
+
+    //int2 new_coord_reflect = convert_int2(which_projected.xy) - (int2)(dist.x, -dist.y);
+    //int2 coord_reflect = -(int2){old_dist.x, -old_dist.y} + convert_int2(which_projected.xy) - (int2)(xysum.x, -xysum.y);
+
+    //x^2 + y^2 + z^2 = r^2;
+
+    //float z = sqrt(max(valid_radius*2*valid_radius*2 - dist.x*dist.x - dist.y*dist.y, 0.0f));
+
+    //if(fast_length(convert_float2(dist)) < valid_radius*)
+    //    return;
+
+    /*float3 dist_to_centre = (float3){x + xysum.x, y + xysum.y, z} - which_projected;
+
+    dist_to_centre = -dist_to_centre;
+
+    dist_to_centre += which_projected;
+
+    int2 coord_reflect = convert_int2(dist_to_centre.xy);*/
+
+    /*float yc = new_coord.y - which_projected.y;
+
+    yc = which_projected.y - new_coord.y;
+    yc += which_projected.y;
+
+    int2 coord_reflect = {new_coord.x, (int)yc};*/
+
+    //int2 coord_reflect = convert_int2(new_dist.xy) + convert_int2(which_projected.xy);
 
     write_imagef(screen, new_coord, pixel_col);
+    write_imagef(screen, (int2){new_coord.x + 1, new_coord.y}, pixel_col/4);
+    write_imagef(screen, (int2){new_coord.x - 1, new_coord.y}, pixel_col/4);
+    write_imagef(screen, (int2){new_coord.x, new_coord.y + 1}, pixel_col/4);
+    write_imagef(screen, (int2){new_coord.x, new_coord.y - 1}, pixel_col/4);
+
+    //eh fuck it do elimination here too
+    //write_imagef(screen, coord_reflect, pixel_col);
+    //write_imagef(screen, (int2){coord_reflect.x + 1, coord_reflect.y}, pixel_col/4);
+    //write_imagef(screen, (int2){coord_reflect.x - 1, coord_reflect.y}, pixel_col/4);
+    //write_imagef(screen, (int2){coord_reflect.x, coord_reflect.y + 1}, pixel_col/4);
+    //write_imagef(screen, (int2){coord_reflect.x, coord_reflect.y - 1}, pixel_col/4);
+
+   // write_imagef(screen, convert_int2(which_projected.xy), (float4){255.0f, 0.0f, 255.0f, 0.0f});
 }
 
 __kernel void create_distortion_offset(__global float4* const distort_pos, int distort_num, float4 c_pos, float4 c_rot, __global float2* distort_buffer)
@@ -1776,7 +1810,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
         return;
 
     //pixel radius to check around
-    int radius = 100;
+    int radius = 125;
 
     float3 camera_pos = c_pos.xyz;
     float3 camera_rot = c_rot.xyz;
@@ -1784,7 +1818,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
     distort_buffer[y*SCREENWIDTH + x] = (float2)0;
 
     //how far to move pixels at the most, ideally < radius otherwise it looks very strange
-    int move_dist = 10;
+    int move_dist = 50;
 
     //sum distorts and output at the end
     float2 xysum = 0;
@@ -1804,8 +1838,10 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
         //project it into screenspace
         float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
+        if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 | projected.y >= SCREENHEIGHT)
+            continue;
 
-        float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*2);
+        float cz = clamp(projected.z, FOV_CONST/2, FOV_CONST*64);
 
         //adjust radius based on depth
         float adjusted_radius = radius * FOV_CONST / cz;

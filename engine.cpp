@@ -765,7 +765,8 @@ void engine::draw_bulk_objs_n()
     ///clear the number of triangles that are generated after first kernel run
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
-    cl_float4 test_pos = {0,400,0};
+    static cl_float4 test_pos = {0,400,0,0};
+    test_pos.z += 5;
     int distort_num = 1;
 
     compute::buffer distorts = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
@@ -916,9 +917,9 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look)
     cl_uint screenspace_gws[]= {width, height};
     cl_uint screenspace_lws[]= {16, 8};
 
-    static cl_float4 test_pos = {0,400,-400};
-    test_pos.w += 1;
-    test_pos.z += 0.01;
+    static cl_float4 test_pos = {0,400,0, 0};
+    test_pos.w += 0.005;
+    test_pos.z += 5;
     int projectile_num = 1;
 
     cl_mem scr = g_screen.get();
