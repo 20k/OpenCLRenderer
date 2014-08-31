@@ -221,9 +221,16 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     compute::buffer wrap(t.g_texture_array.get());
 
-    compute::buffer* args[] = {&t.g_tri_mem, &wrap, &one};
+    //compute::buffer* args[] = {&t.g_tri_mem, &wrap, &one};
 
-    run_kernel_with_args(cl::trivial, &gl_ws, &gl_ws, 1, args, 3, true);
+    //run_kernel_with_args(cl::trivial, &gl_ws, &gl_ws, 1, args, 3, true);
+
+    arg_list trivial_arg_list;
+    trivial_arg_list.push_back(&t.g_tri_mem);
+    trivial_arg_list.push_back(&wrap);
+    trivial_arg_list.push_back(&one);
+
+    run_kernel_with_list(cl::trivial, &gl_ws, &gl_ws, 1, trivial_arg_list);
 }
 
 

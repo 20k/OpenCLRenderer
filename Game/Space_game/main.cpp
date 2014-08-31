@@ -341,9 +341,9 @@ int main(int argc, char *argv[])
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
         ui_manager::update_selected_values(window.get_mouse_x(), window.get_mouse_y());
-        Timer timer("hello");
+        //Timer timer("hello");
         ui_manager::tick_all();
-        timer.stop();
+        //timer.stop();
         //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.input();

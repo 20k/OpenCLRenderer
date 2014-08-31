@@ -145,7 +145,7 @@ void ui_element::tick()
     id_arg_list.push_back(&hologram_manager::g_id_bufs[r_id]);
     id_arg_list.push_back(&g_id);
 
-    run_kernel_with_list(cl::blit_with_id, global, local, 2, id_arg_list, true, true);
+    run_kernel_with_list(cl::blit_with_id, global, local, 2, id_arg_list, true);
 
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
     hologram_manager::release(r_id);
@@ -208,7 +208,7 @@ void ship_screen::tick()
         blit_arg_list.push_back(&wrap_id_buf);
         blit_arg_list.push_back(&g_id);
 
-        run_kernel_with_list(cl::blit_with_id, global, local, 2, blit_arg_list, true, false);
+        run_kernel_with_list(cl::blit_with_id, global, local, 2, blit_arg_list, true);
     }
 
 
@@ -271,7 +271,7 @@ void ui_manager::tick_all()
     arg_list id_clear_arg_list;
     id_clear_arg_list.push_back(&engine::g_ui_id_screen);
 
-    run_kernel_with_list(cl::clear_id_buf, global, local, 2, id_clear_arg_list, true, false);
+    run_kernel_with_list(cl::clear_id_buf, global, local, 2, id_clear_arg_list, true);
 
     for(auto& i : ui_elems)
     {

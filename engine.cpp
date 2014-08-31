@@ -763,7 +763,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
     distort_arg_list.push_back(&c_rot);
     distort_arg_list.push_back(&g_distortion_buffer);
 
-    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true, false);
+    run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true);
 }
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
@@ -815,7 +815,7 @@ void engine::draw_bulk_objs_n()
     prearg_list.push_back(&obj_mem_manager::g_obj_desc);
     prearg_list.push_back(&g_distortion_buffer);
 
-    run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true, false);
+    run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
     //std::cout << "ptime " << c.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -847,7 +847,7 @@ void engine::draw_bulk_objs_n()
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&g_distortion_buffer);
 
-    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true, false);
+    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
     sf::Clock p2;
     int valid_tri_num = 0;
@@ -877,7 +877,7 @@ void engine::draw_bulk_objs_n()
 
 
 
-    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true, false);
+    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
 
     sf::Clock c3;
@@ -916,7 +916,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&g_distortion_buffer);
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true, false);
+    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
 
 
@@ -958,7 +958,7 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
     projectile_arg_list.push_back(&buffer_look);
     projectile_arg_list.push_back(&scr);
 
-    run_kernel_with_list(cl::draw_fancy_projectile, screenspace_gws, screenspace_lws, 2, projectile_arg_list, true, false);
+    run_kernel_with_list(cl::draw_fancy_projectile, screenspace_gws, screenspace_lws, 2, projectile_arg_list, true);
 
     ///release opengl stuff
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);

@@ -150,7 +150,7 @@ struct Timer
 float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
-static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args, bool blocking = true)
+static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
 {
     cl_uint g_ws[dimensions];
 
@@ -178,10 +178,10 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
 
     compute::event event = cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
 
-    #ifndef PROFILING
-    //if(blocking)
+    #ifdef PROFILING
+    cl::cqueue.finish();
     #endif
-        //cl::cqueue.finish();
+
 
     #ifdef PROFILING
 
@@ -196,11 +196,8 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
     #endif
 }
 
-static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc, bool blocking)
+static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc)
 {
-    if(blocking)
-        cl::cqueue.finish();
-
     cl_uint g_ws[dimensions];
 
     for(int i=0; i<dimensions; i++)
