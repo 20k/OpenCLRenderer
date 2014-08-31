@@ -143,7 +143,6 @@ struct Timer
 
      Timer(const std::string& n);
 
-     ~Timer();
      void stop();
 };
 
