@@ -1748,57 +1748,13 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
     if(pixel_col.w == 0)
         return;
 
-
-
     int2 new_coord = (int2){x, y} + convert_int2(round(xysum));
-
-    //int2 dist = new_coord - convert_int2(which_projected.xy);
-
-    //distance from pixel to project centre
-    //int2 new_dist = new_coord - convert_int2(which_projected.xy);
-    //int2 old_dist = (int2){x, y} - convert_int2(which_projected.xy);
-
-    //int2 new_coord_reflect = convert_int2(which_projected.xy) - (int2)(dist.x, -dist.y);
-    //int2 coord_reflect = -(int2){old_dist.x, -old_dist.y} + convert_int2(which_projected.xy) - (int2)(xysum.x, -xysum.y);
-
-    //x^2 + y^2 + z^2 = r^2;
-
-    //float z = sqrt(max(valid_radius*2*valid_radius*2 - dist.x*dist.x - dist.y*dist.y, 0.0f));
-
-    //if(fast_length(convert_float2(dist)) < valid_radius*)
-    //    return;
-
-    /*float3 dist_to_centre = (float3){x + xysum.x, y + xysum.y, z} - which_projected;
-
-    dist_to_centre = -dist_to_centre;
-
-    dist_to_centre += which_projected;
-
-    int2 coord_reflect = convert_int2(dist_to_centre.xy);*/
-
-    /*float yc = new_coord.y - which_projected.y;
-
-    yc = which_projected.y - new_coord.y;
-    yc += which_projected.y;
-
-    int2 coord_reflect = {new_coord.x, (int)yc};*/
-
-    //int2 coord_reflect = convert_int2(new_dist.xy) + convert_int2(which_projected.xy);
 
     write_imagef(screen, new_coord, pixel_col);
     write_imagef(screen, (int2){new_coord.x + 1, new_coord.y}, pixel_col/4);
     write_imagef(screen, (int2){new_coord.x - 1, new_coord.y}, pixel_col/4);
     write_imagef(screen, (int2){new_coord.x, new_coord.y + 1}, pixel_col/4);
     write_imagef(screen, (int2){new_coord.x, new_coord.y - 1}, pixel_col/4);
-
-    //eh fuck it do elimination here too
-    //write_imagef(screen, coord_reflect, pixel_col);
-    //write_imagef(screen, (int2){coord_reflect.x + 1, coord_reflect.y}, pixel_col/4);
-    //write_imagef(screen, (int2){coord_reflect.x - 1, coord_reflect.y}, pixel_col/4);
-    //write_imagef(screen, (int2){coord_reflect.x, coord_reflect.y + 1}, pixel_col/4);
-    //write_imagef(screen, (int2){coord_reflect.x, coord_reflect.y - 1}, pixel_col/4);
-
-   // write_imagef(screen, convert_int2(which_projected.xy), (float4){255.0f, 0.0f, 255.0f, 0.0f});
 }
 
 __kernel void create_distortion_offset(__global float4* const distort_pos, int distort_num, float4 c_pos, float4 c_rot, __global float2* distort_buffer)
