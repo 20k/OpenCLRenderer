@@ -44,8 +44,8 @@ struct ship_info
 {
     float health;
     float hyperspace_speed;
-    float shields = 100;
-    float shieldperms = 0.01;
+    float shields = 100.0f;
+    float shield_regen_per_ms = 0.01f;
 };
 
 namespace compute = boost::compute;

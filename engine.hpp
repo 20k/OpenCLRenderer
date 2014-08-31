@@ -15,6 +15,8 @@
 
 #include <initializer_list>
 
+#include <chrono>
+
 namespace compute = boost::compute;
 
 struct point_cloud_info;
@@ -132,14 +134,24 @@ struct arg_list
 };
 
 
+struct Timer
+{
+     sf::Clock clk;
+     std::string name;
+
+     bool stopped;
+
+     Timer(const std::string& n);
+
+     ~Timer();
+     void stop();
+};
+
 float idcalc(float);
 
 ///runs a kernel with a particular set of arguments
 static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args, bool blocking = true)
 {
-    if(blocking)
-        cl::cqueue.finish();
-
     cl_uint g_ws[dimensions];
 
     for(int i=0; i<dimensions; i++)
@@ -164,11 +176,24 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
 
-    cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
+    compute::event event = cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
 
+    #ifndef PROFILING
+    //if(blocking)
+    #endif
+        //cl::cqueue.finish();
 
-    if(blocking)
-        cl::cqueue.finish();
+    #ifdef PROFILING
+
+    cl_ulong start, finish;
+
+    clGetEventProfilingInfo(event.get(), CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &start, NULL);
+    clGetEventProfilingInfo(event.get(), CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &finish, NULL);
+
+    double duration = ((double)finish - (double)start)/1000000.0;
+
+    std::cout << "T  " << kernel.name << " " << duration << std::endl;
+    #endif
 }
 
 static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc, bool blocking)
@@ -203,8 +228,8 @@ static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint lo
     cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
 
 
-    if(blocking)
-        cl::cqueue.finish();
+    //if(blocking)
+    //    cl::cqueue.finish();
 }
 
 

@@ -126,33 +126,32 @@ void ui_element::tick()
 
     hologram_manager::acquire(r_id);
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
-    cl::cqueue.finish();
+    //cl::cqueue.finish();
 
     cl_uint global[2] = {(cl_uint)w, (cl_uint)h};
 
-    cl_uint local[2] = {16, 16};
-
-    compute::buffer wrap_first = compute::buffer(hologram_manager::g_tex_mem_base[r_id]);
-    compute::buffer wrap_second = compute::buffer(hologram_manager::g_tex_mem[r_id]);
-
-    compute::buffer wrap_write = compute::buffer(g_ui);
-
-    compute::buffer wrap_id_buf = compute::buffer(hologram_manager::g_id_bufs[r_id]);
+    cl_uint local[2] = {16, 8};
 
     cl_float2 offset = {finish.x - w/2.0f, finish.y - h/2.0f};
 
     compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
     compute::buffer g_id = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_COPY_HOST_PTR, &id);
 
-    compute::buffer* args[] = {&wrap_first, &wrap_second, &wrap_write, &coords, &wrap_id_buf, &g_id};
+    arg_list id_arg_list;
+    id_arg_list.push_back(&hologram_manager::g_tex_mem_base[r_id]);
+    id_arg_list.push_back(&hologram_manager::g_tex_mem[r_id]);
+    id_arg_list.push_back(&g_ui);
+    id_arg_list.push_back(&coords);
+    id_arg_list.push_back(&hologram_manager::g_id_bufs[r_id]);
+    id_arg_list.push_back(&g_id);
 
-    run_kernel_with_args(cl::blit_with_id, global, local, 2, args, 6, true);
-
+    run_kernel_with_list(cl::blit_with_id, global, local, 2, id_arg_list, true, true);
 
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
     hologram_manager::release(r_id);
 
     update_offset();
+    //time.stop();
 }
 
 void ship_screen::tick()
@@ -162,7 +161,7 @@ void ship_screen::tick()
     hologram_manager::acquire(r_id);
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_ui, 0, NULL, NULL);
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &selected_tex, 0, NULL, NULL);
-    cl::cqueue.finish();
+    //cl::cqueue.finish();
 
     cl_uint global[2] = {(cl_uint)w, (cl_uint)h};
 
@@ -201,9 +200,15 @@ void ship_screen::tick()
 
         compute::buffer coords = compute::buffer(cl::context, sizeof(cl_float2), CL_MEM_COPY_HOST_PTR, &offset);
 
-        compute::buffer* args[] = {&wrap_first, &wrap_second, &wrap_write, &coords, &wrap_id_buf, &g_id};
+        arg_list blit_arg_list;
+        blit_arg_list.push_back(&wrap_first);
+        blit_arg_list.push_back(&wrap_second);
+        blit_arg_list.push_back(&wrap_write);
+        blit_arg_list.push_back(&coords);
+        blit_arg_list.push_back(&wrap_id_buf);
+        blit_arg_list.push_back(&g_id);
 
-        run_kernel_with_args(cl::blit_with_id, global, local, 2, args, 6, true);
+        run_kernel_with_list(cl::blit_with_id, global, local, 2, blit_arg_list, true, false);
     }
 
 
@@ -261,11 +266,12 @@ void ui_manager::update_selected_values(int mx, int my)
 void ui_manager::tick_all()
 {
     cl_uint global[2] = {engine::width, engine::height};
-    cl_uint local[2] = {16, 16};
+    cl_uint local[2] = {16, 8};
 
-    compute::buffer* args[] = {&engine::g_ui_id_screen};
+    arg_list id_clear_arg_list;
+    id_clear_arg_list.push_back(&engine::g_ui_id_screen);
 
-    run_kernel_with_args(cl::clear_id_buf, global, local, 2, args, 1, true);
+    run_kernel_with_list(cl::clear_id_buf, global, local, 2, id_clear_arg_list, true, false);
 
     for(auto& i : ui_elems)
     {

@@ -281,7 +281,6 @@ void newtonian_manager::remove_body(newtonian_body* n)
 {
     if(n->type==1)
     {
-        //light::remove_light(n->laser);
         n->laser->is_alive = false;
     }
 

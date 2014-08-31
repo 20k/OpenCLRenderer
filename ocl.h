@@ -169,7 +169,11 @@ static void oclstuff(std::string file)
 
     cl::device = compute::device(device, true);
 
+    #ifdef PROFILING
+    cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
+    #else
     cl::cqueue = compute::command_queue(cl::context, cl::device);
+    #endif
 
 
 

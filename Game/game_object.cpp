@@ -384,17 +384,6 @@ void game_object::fire_all()
             y1 *= speed;
             z1 *= speed;
 
-            /*light l;
-            l.col = (cl_float4){0.5f, 0.0f, 1.0f, 0.0f};
-            l.set_shadow_casting(0);
-            l.set_brightness(3.0f);
-            l.set_type(1);
-            l.set_radius(1000.0f);*/
-
-            //light* new_light = l.add_light(&l);
-            //engine::realloc_light_gmem(); ///
-            //int id = light::lightlist.size()-1;
-
             projectile* new_proj = projectile_manager::add_projectile();
 
             newtonian_body new_bullet;
@@ -722,7 +711,7 @@ void game_object::update_power_info()
 
 void game_object::tick(float time_diff)
 {
-    info.shields += info.shieldperms*time_diff*systems.get_val(shields_t);
+    info.shields += info.shield_regen_per_ms*time_diff*systems.get_val(shields_t);
 
     //std::cout << "Shield info: " << info.shields  << " " << __LINE__ << std::endl;
 

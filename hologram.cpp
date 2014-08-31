@@ -129,10 +129,10 @@ void hologram_manager::acquire(int id)
         std::cout << "Invalid texture id" << std::endl;
     }
 
-    glFinish();
+    //glFinish();
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_tex_mem[id], 0, NULL, NULL);
     clEnqueueAcquireGLObjects(cl::cqueue, 1, &g_tex_mem_base[id], 0, NULL, NULL);
-    cl::cqueue.finish();
+    //cl::cqueue.finish();
 }
 
 
@@ -143,7 +143,7 @@ void hologram_manager::release(int id)
         std::cout << "Invalid texture id" << std::endl;
     }
 
-    glFinish();
+    //glFinish();
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_tex_mem[id], 0, NULL, NULL);
     clEnqueueReleaseGLObjects(cl::cqueue, 1, &g_tex_mem_base[id], 0, NULL, NULL);
 }

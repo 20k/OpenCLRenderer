@@ -260,6 +260,8 @@ int main(int argc, char *argv[])
 
         //std::cout << ui_manager::offset_from_minimum["ui_slider"].y << std::endl;
 
+
+
         sf::Clock c;
         //ship.systems.pull_from_ui();
         ship.update_power_info();
@@ -272,6 +274,8 @@ int main(int argc, char *argv[])
 
         wgs.x = 10;
         wgs.y = 10;
+
+
 
 
         if(window.window.pollEvent(Event))
@@ -337,7 +341,9 @@ int main(int argc, char *argv[])
         //ui_manager::ui_elems[0].offset.x += 2.0f;
         sf::Clock u_time;
         ui_manager::update_selected_values(window.get_mouse_x(), window.get_mouse_y());
+        Timer timer("hello");
         ui_manager::tick_all();
+        timer.stop();
         //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 
         window.input();
@@ -566,6 +572,8 @@ int main(int argc, char *argv[])
         window.render_buffers();
 
         hologram_manager::clear_buffers();
+
+
 
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
