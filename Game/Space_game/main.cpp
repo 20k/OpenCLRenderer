@@ -574,8 +574,6 @@ int main(int argc, char *argv[])
         hologram_manager::clear_buffers();
 
 
-
-
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

@@ -58,7 +58,7 @@ float max3(float x,  float y,  float z)
 
 float calc_area(float3 x, float3 y)
 {
-    return fabs((x.x*(y.y - y.z) + x.y*(y.z - y.x) + x.z*(y.x - y.y))/2.0f);
+    return fabs((x.x*(y.y - y.z) + x.y*(y.z - y.x) + x.z*(y.x - y.y)) * 0.5f);
 }
 
 ///soa vs aos
@@ -119,7 +119,7 @@ struct interp_container
 float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
     //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
-    return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1))/2.0f;
+    return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
     ///form was written for this, i think
 }
 
@@ -166,12 +166,12 @@ float idcalc(float value)
 
 float calc_rconstant(float x[3], float y[3])
 {
-    return 1.0f/(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
+    return native_recip(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
 float calc_rconstant_v(float3 x, float3 y)
 {
-    return 1.0f/(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
+    return native_recip(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
 }
 
 /*float interpolate_2(float4 vals, struct interp_container c, float x, float y)
@@ -1172,7 +1172,7 @@ int ret_cubeface(float3 point, float3 light)
         return 3;
     }
 
-    if(angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f)
+    else if(angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f)
     {
         return 1;
     }
@@ -1193,12 +1193,12 @@ int ret_cubeface(float3 point, float3 light)
         return 5;
     }
 
-    if(zangle >= M_PI/2.0f && zangle < M_PI)
+    else if(zangle >= M_PI/2.0f && zangle < M_PI)
     {
         return 0;
     }
 
-    if(zangle >= M_PI && zangle < 3*M_PI/2.0f)
+    else if(zangle >= M_PI && zangle < 3*M_PI/2.0f)
     {
         return 4;
     }
@@ -1974,7 +1974,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ypv = round(ypv);
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths= {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
+    float3 depths = {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
 
     ///calculate area by triangle 3rd area method
 

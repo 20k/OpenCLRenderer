@@ -32,6 +32,20 @@
 					<Add option="-s" />
 				</Linker>
 			</Target>
+			<Target title="Profiling">
+				<Option output="bin/Profiling/Game" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Profiling/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-pg" />
+					<Add option="-g" />
+					<Add option="-DPROFILING" />
+				</Compiler>
+				<Linker>
+					<Add option="-pg -lgmon" />
+				</Linker>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
@@ -117,6 +131,8 @@
 		<Unit filename="game_object.hpp" />
 		<Unit filename="newtonian_body.cpp" />
 		<Unit filename="newtonian_body.hpp" />
+		<Unit filename="projectile.cpp" />
+		<Unit filename="projectile.hpp" />
 		<Unit filename="ship.cpp" />
 		<Unit filename="ship.hpp" />
 		<Unit filename="space_dust.cpp" />

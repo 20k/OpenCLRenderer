@@ -5,6 +5,8 @@
 #include "engine.hpp"
 #include "proj.hpp"
 
+///probably need to use computje::buffers here
+
 std::vector<GLuint> hologram_manager::tex_id_base;
 std::vector<GLuint> hologram_manager::tex_id;
 std::vector<std::pair<int, int>> hologram_manager::tex_size;
@@ -47,11 +49,6 @@ void hologram_manager::clear_buffers()
         compute::buffer m(mod);
 
         compute::buffer to_clear(clr);
-
-        compute::buffer* args[] = {&b, &m, &to_clear};
-
-
-        //run_kernel_with_args(cl::blit_clear, global, local, 2, args, 3);
 
         arg_list clear_arg_list;
         clear_arg_list.push_back(&b);
