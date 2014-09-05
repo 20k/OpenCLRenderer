@@ -313,7 +313,7 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, f
     minx=clamp(minx, 0.0f, width);
     maxx=clamp(maxx, 0.0f, width);
 
-    float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
+    float rconstant = native_recip(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
 
 
     C->x.x=x1;
@@ -494,15 +494,15 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     ids[2] = g3;
 
 
-    float l1 = (depth_icutoff - points[g2].z) / (points[g1].z - points[g2].z);
-    float l2 = (depth_icutoff - points[g3].z) / (points[g1].z - points[g3].z);
+    float l1 = native_divide((depth_icutoff - points[g2].z), (points[g1].z - points[g2].z));
+    float l2 = native_divide((depth_icutoff - points[g3].z), (points[g1].z - points[g3].z));
 
 
     p1 = points[g2] + l1*(points[g1] - points[g2]);
     p2 = points[g3] + l2*(points[g1] - points[g3]);
 
-    float r1 = length(p1 - points[g1])/length(points[g2] - points[g1]);
-    float r2 = length(p2 - points[g1])/length(points[g3] - points[g1]);
+    float r1 = native_divide(fast_length(p1 - points[g1]), fast_length(points[g2] - points[g1]));
+    float r2 = native_divide(fast_length(p2 - points[g1]), fast_length(points[g3] - points[g1]));
 
 
     //rconst[0] = r1;
@@ -725,8 +725,8 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     //i think the jittering is caused by numerical accuracy problems here
 
-    float l1 = (depth_icutoff - rotpoints[g2].z) / (rotpoints[g1].z - rotpoints[g2].z);
-    float l2 = (depth_icutoff - rotpoints[g3].z) / (rotpoints[g1].z - rotpoints[g3].z);
+    float l1 = native_divide((depth_icutoff - rotpoints[g2].z) , (rotpoints[g1].z - rotpoints[g2].z));
+    float l2 = native_divide((depth_icutoff - rotpoints[g3].z) , (rotpoints[g1].z - rotpoints[g3].z));
 
 
     p1 = rotpoints[g2] + l1*(rotpoints[g1] - rotpoints[g2]);
@@ -734,8 +734,8 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
 
 
-    float r1 = fast_length(p1 - rotpoints[g1])/fast_length(rotpoints[g2] - rotpoints[g1]);
-    float r2 = fast_length(p2 - rotpoints[g1])/fast_length(rotpoints[g3] - rotpoints[g1]);
+    float r1 = native_divide(fast_length(p1 - rotpoints[g1]), fast_length(rotpoints[g2] - rotpoints[g1]));
+    float r2 = native_divide(fast_length(p2 - rotpoints[g1]), fast_length(rotpoints[g3] - rotpoints[g1]));
 
     float2 vv1 = T->vertices[g2].vt - T->vertices[g1].vt;
     float2 vv2 = T->vertices[g3].vt - T->vertices[g1].vt;
@@ -776,20 +776,20 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
 
 
-    p1.x = (p1.x * fovc / p1.z) + width/2;
-    p1.y = (p1.y * fovc / p1.z) + height/2;
+    p1.x = (native_divide(p1.x * fovc, p1.z)) + width/2;
+    p1.y = (native_divide(p1.y * fovc, p1.z)) + height/2;
 
 
-    p2.x = (p2.x * fovc / p2.z) + width/2;
-    p2.y = (p2.y * fovc / p2.z) + height/2;
+    p2.x = (native_divide(p2.x * fovc, p2.z)) + width/2;
+    p2.y = (native_divide(p2.y * fovc, p2.z)) + height/2;
 
 
-    c1.x = (c1.x * fovc / c1.z) + width/2;
-    c1.y = (c1.y * fovc / c1.z) + height/2;
+    c1.x = (native_divide(c1.x * fovc, c1.z)) + width/2;
+    c1.y = (native_divide(c1.y * fovc, c1.z)) + height/2;
 
 
-    c2.x = (c2.x * fovc / c2.z) + width/2;
-    c2.y = (c2.y * fovc / c2.z) + height/2;
+    c2.x = (native_divide(c2.x * fovc, c2.z)) + width/2;
+    c2.y = (native_divide(c2.y * fovc, c2.z)) + height/2;
 
 
 
@@ -1043,19 +1043,6 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     mip_higher = mip_lower + 1;
 
-    /*if(mip_higher >= MIP_LEVELS)
-    {
-        mip_higher = MIP_LEVELS;
-        //invalid_mipmap = true;
-        is_valid = 0.0f;
-    }
-
-    if(mip_lower >= MIP_LEVELS)
-    {
-        mip_lower = MIP_LEVELS;
-        //invalid_mipmap = true;
-        is_valid = 0.0f;
-    }*/
 
     mip_lower = min(mip_lower, MIP_LEVELS);
     mip_higher = min(mip_higher, MIP_LEVELS);
@@ -1974,7 +1961,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ypv = round(ypv);
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths = {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)),native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
     ///calculate area by triangle 3rd area method
 
@@ -2103,7 +2090,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths = {1.0f/dcalc(tris_proj_n[0].z), 1.0f/dcalc(tris_proj_n[1].z), 1.0f/dcalc(tris_proj_n[2].z)};
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)),native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
 
     float area = calc_area(xpv, ypv);
@@ -2276,30 +2263,18 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     float2 vt;
 
 
-    float3 xvt = {c_tri->vertices[0].vt.x/cz[0], c_tri->vertices[1].vt.x/cz[1], c_tri->vertices[2].vt.x/cz[2]};
+    float3 xvt = {native_divide(c_tri->vertices[0].vt.x, cz[0]), native_divide(c_tri->vertices[1].vt.x, cz[1]), native_divide(c_tri->vertices[2].vt.x, cz[2])};
     vt.x = interpolate(xvt, &icontainer, x, y);
 
-    float3 yvt = {c_tri->vertices[0].vt.y/cz[0], c_tri->vertices[1].vt.y/cz[1], c_tri->vertices[2].vt.y/cz[2]};
+    float3 yvt = {native_divide(c_tri->vertices[0].vt.y, cz[0]), native_divide(c_tri->vertices[1].vt.y, cz[1]), native_divide(c_tri->vertices[2].vt.y, cz[2])};
     vt.y = interpolate(yvt, &icontainer, x, y);
 
     vt *= ldepth;
 
-    //float rotated_normalsx[3] = {normals_out[0].x, normals_out[1].x, normals_out[2].x};
-    //float rotated_normalsy[3] = {normals_out[0].y, normals_out[1].y, normals_out[2].y};
-    //float rotated_normalsz[3] = {normals_out[0].z, normals_out[1].z, normals_out[2].z};
-
-    //float normalsx[3]= {rotated_normalsx[0]/cz[0], rotated_normalsx[1]/cz[1], rotated_normalsx[2]/cz[2]};
-    //float normalsy[3]= {rotated_normalsy[0]/cz[0], rotated_normalsy[1]/cz[1], rotated_normalsy[2]/cz[2]};
-    //float normalsz[3]= {rotated_normalsz[0]/cz[0], rotated_normalsz[1]/cz[1], rotated_normalsz[2]/cz[2]};
-
     ///perspective correct normals
-    float3 normalsx = {c_tri->vertices[0].normal.x/cz[0], c_tri->vertices[1].normal.x/cz[1], c_tri->vertices[2].normal.x/cz[2]};
-    float3 normalsy = {c_tri->vertices[0].normal.y/cz[0], c_tri->vertices[1].normal.y/cz[1], c_tri->vertices[2].normal.y/cz[2]};
-    float3 normalsz = {c_tri->vertices[0].normal.z/cz[0], c_tri->vertices[1].normal.z/cz[1], c_tri->vertices[2].normal.z/cz[2]};
-
-    //float3 normalsx = {c_tri->vertices[0].normal.x, c_tri->vertices[1].normal.x, c_tri->vertices[2].normal.x};
-    //float3 normalsy = {c_tri->vertices[0].normal.y, c_tri->vertices[1].normal.y, c_tri->vertices[2].normal.y};
-    //float3 normalsz = {c_tri->vertices[0].normal.z, c_tri->vertices[1].normal.z, c_tri->vertices[2].normal.z};
+    float3 normalsx = {native_divide(c_tri->vertices[0].normal.x, cz[0]), native_divide(c_tri->vertices[1].normal.x, cz[1]), native_divide(c_tri->vertices[2].normal.x, cz[2])};
+    float3 normalsy = {native_divide(c_tri->vertices[0].normal.y, cz[0]), native_divide(c_tri->vertices[1].normal.y, cz[1]), native_divide(c_tri->vertices[2].normal.y, cz[2])};
+    float3 normalsz = {native_divide(c_tri->vertices[0].normal.z, cz[0]), native_divide(c_tri->vertices[1].normal.z, cz[1]), native_divide(c_tri->vertices[2].normal.z, cz[2])};
 
     ///interpolated normal
     float3 normal;
