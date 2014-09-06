@@ -394,9 +394,9 @@ void depth_project(float3 rotated[3], float width, float height, float fovc, flo
     for(int i=0; i<3; i++)
     {
         float rx;
-        rx=(rotated[i].x) * (fovc/(rotated[i].z));
+        rx=(rotated[i].x) * (fovc/rotated[i].z);
         float ry;
-        ry=(rotated[i].y) * (fovc/(rotated[i].z));
+        ry=(rotated[i].y) * (fovc/rotated[i].z);
 
         rx+=width/2;
         ry+=height/2;
@@ -411,9 +411,9 @@ void depth_project(float3 rotated[3], float width, float height, float fovc, flo
 float3 depth_project_singular(float3 rotated, float width, float height, float fovc)
 {
     float rx;
-    rx=(rotated.x) * (fovc/(rotated.z));
+    rx=(rotated.x) * (fovc/rotated.z);
     float ry;
-    ry=(rotated.y) * (fovc/(rotated.z));
+    ry=(rotated.y) * (fovc/rotated.z);
 
     rx+=width/2;
     ry+=height/2;
@@ -2471,7 +2471,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
-__kernel void reverse_reproject(__global uint* old_depth, __global uint* new_depth)
+__kernel void reproject_depth(__global uint* old_depth, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -2479,6 +2479,36 @@ __kernel void reverse_reproject(__global uint* old_depth, __global uint* new_dep
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
+    __global uint* old_ft = &old_depth[y*SCREENWIDTH + x];
+
+    float ldepth = idcalc((float)*old_ft/mulint);
+
+    float3 local_position= {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+
+    float3 zero = {0,0,0};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = rot(local_position,  zero, (float3)
+    {
+        -old_rot.x, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float3)
+    {
+        0.0f, -old_rot.y, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float3)
+    {
+        0.0f, 0.0f, -old_rot.z
+    });
+
+    global_position += old_pos.xyz;
+
+    float3 new_position = rot(global_position, new_pos.xyz, new_rot.xyz);
+
+    float3 projected_new = depth_project_singular(new_position, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    new_depth[y*SCREENWIDTH + x] = projected_new.z;
 
 }
 

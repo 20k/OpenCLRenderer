@@ -216,6 +216,7 @@ static void oclstuff(std::string file)
     cl::draw_voxel_octree = load_kernel(program, "draw_voxel_octree");
     cl::create_distortion_offset = load_kernel(program, "create_distortion_offset");
     cl::draw_fancy_projectile = load_kernel(program, "draw_fancy_projectile");
+    cl::reproject_depth = load_kernel(program, "reproject_depth");
 }
 
 

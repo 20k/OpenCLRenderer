@@ -44,6 +44,7 @@ namespace cl
     extern kernel draw_voxel_octree;
     extern kernel create_distortion_offset;
     extern kernel draw_fancy_projectile;
+    extern kernel reproject_depth;
 }
 
 

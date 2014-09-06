@@ -147,8 +147,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     ///change depth to be image2d_t ///not possible
 
     ///creates the two depth buffers and 2d triangle id buffer with size g_size, ie power of two closest to the screen resolution
-    depth_buffer[0]=    compute::buffer(cl::context, sizeof(cl_uint)*g_size*g_size, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-    depth_buffer[1]=    compute::buffer(cl::context, sizeof(cl_uint)*g_size*g_size, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    depth_buffer[0]=    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    depth_buffer[1]=    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    reprojected_depth_buffer =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
@@ -172,7 +173,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
     ///screen ids as a uint32 texture
-    g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, g_size, g_size, 0, NULL);
+    g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
     g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 

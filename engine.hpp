@@ -44,6 +44,7 @@ struct engine
 
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
+    compute::buffer reprojected_depth_buffer;
     compute::image2d g_id_screen_tex; ///2d screen id texture
     static compute::buffer g_ui_id_screen; ///2d screen ui_id buffer
     compute::buffer g_normals_screen; ///unused 2d normal buffer
