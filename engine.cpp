@@ -732,7 +732,7 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 void engine::generate_distortion(compute::buffer& points, int num)
 {
     cl_uint p3global_ws[]= {width, height};
-    cl_uint p3local_ws[]= {16, 8};
+    cl_uint p3local_ws[]= {8, 8};
 
     arg_list distort_arg_list;
     distort_arg_list.push_back(&points);
