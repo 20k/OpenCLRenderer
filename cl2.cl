@@ -2320,10 +2320,14 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 mandatory_light = {0,0,0};
 
+
+
     ///rewite lighting to be in screenspace
 
     for(int i=0; i<*(lnum); i++)
     {
+        float ambient = 0.1f;
+
         struct light l = lights[i];
 
         float3 lpos=l.pos.xyz;
@@ -2331,6 +2335,18 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         float3 l2c=lpos-global_position; ///light to pixel position
 
         float light=dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+
+        //this wont work for lasers
+        //do we even want lasers?
+        if(light < 0)
+        {
+            lightaccum += ambient * l.col.xyz;
+
+            if(l.shadow == 1)
+                shnum++;
+
+            continue;
+        }
 
         float3 light_rotated = rot(lpos, camera_pos, camera_rot);
 
@@ -2359,8 +2375,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float average_occ = 0;
 
-        float ambient = 0.1f;
-
         int which_cubeface;
 
         if(l.shadow==1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
@@ -2380,7 +2394,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         }
 
         ///game shader effect, creates 2d screespace 'light'
-        if(l.pos.w == 1.0f) ///check light within screen
+        /*if(l.pos.w == 1.0f) ///check light within screen
         {
             if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
             {
@@ -2406,10 +2420,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             }
 
             ambient = 0;
-        }
+        }*/
 
 
-        light = max(0.0f, light);
+        //light = max(0.0f, light);
 
         ///diffuse + ambient, no specular yet
         lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*l.col.xyz; //wrong, change ambient to colour
@@ -2428,7 +2442,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //col/=255.0f;
 
 
-    lightaccum = clamp(lightaccum, 0, (native_recip(col)));
+    lightaccum = clamp(lightaccum, 0, native_recip(col));
 
     //float3 rot_normal;
 

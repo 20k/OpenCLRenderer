@@ -71,6 +71,9 @@ int main(int argc, char *argv[])
 
     window.add_light(&l);*/
 
+    int times[10] = {0};
+    int time_count = 0;
+
     window.construct_shadowmaps();
 
     while(window.window.isOpen())
@@ -89,6 +92,19 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        times[time_count] = c.getElapsedTime().asMicroseconds();
+
+        time_count = (time_count + 1) % 10;
+
+        int time = 0;
+
+        for(int i=0; i<10; i++)
+        {
+            time += times[i];
+        }
+
+        std::cout << time/10 << std::endl;
+
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }
