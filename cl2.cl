@@ -2336,8 +2336,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float light=dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
 
-        //this wont work for lasers
-        //do we even want lasers?
         if(light < 0)
         {
             lightaccum += ambient * l.col.xyz;
@@ -2345,7 +2343,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             if(l.shadow == 1)
                 shnum++;
 
-            continue;
+            if(l.pos.w != 1.0f)
+                continue;
         }
 
         float3 light_rotated = rot(lpos, camera_pos, camera_rot);
@@ -2394,7 +2393,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         }
 
         ///game shader effect, creates 2d screespace 'light'
-        /*if(l.pos.w == 1.0f) ///check light within screen
+        if(l.pos.w == 1.0f) ///check light within screen
         {
             if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
             {
@@ -2420,10 +2419,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             }
 
             ambient = 0;
-        }*/
+        }
 
 
-        //light = max(0.0f, light);
+        light = max(0.0f, light);
 
         ///diffuse + ambient, no specular yet
         lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*l.col.xyz; //wrong, change ambient to colour
