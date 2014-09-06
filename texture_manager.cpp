@@ -95,7 +95,7 @@ cl_uchar4 * return_first_free(int size, int &num)
 }
 
 
-void setpixel(cl_uchar4 *buf, sf::Color &col, int x, int y, int lx, int ly)
+inline void setpixel(cl_uchar4 *buf, sf::Color &col, int x, int y, int lx, int ly)
 {
     buf[x + y*lx].x=col.r;
     buf[x + y*lx].y=col.g;

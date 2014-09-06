@@ -859,6 +859,8 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
                     CLK_ADDRESS_CLAMP_TO_EDGE   |
                     CLK_FILTER_NEAREST;
 
+    //cannot do linear interpolation on uchars
+
     float x=coords.x;
     float y=coords.y;
 
@@ -866,12 +868,9 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     int which = num[tid] & 0x0000FFFF;
 
-    const int max_tex_size=2048;
+    const int max_tex_size = 2048;
 
     int width=size[slice];
-
-    x*=width;
-    y*=width;
 
     int hnum=max_tex_size/width;
     ///max horizontal and vertical nums
@@ -885,11 +884,11 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     y = width - y;
 
-    x = clamp(x, 0.01f, width - 0.01f);
-    y = clamp(y, 0.01f, width - 0.01f);
+    x = clamp(x, 0.001f, width - 0.001f);
+    y = clamp(y, 0.001f, width - 0.001f);
 
     ///width - fixes bug
-    float4 coord= {tx + x, ty + y, slice, 0};
+    float4 coord = {tx + x, ty + y, slice, 0};
 
     uint4 col;
     col=read_imageui(array, sam, coord);
@@ -921,11 +920,9 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     int which=nums[tid];
     float width=sizes[which >> 16];
 
-    //mcoord /= width;
+    //float2 mcoord = coord * width;
 
-    //mcoord.z=coord.z;
-
-    float2 mcoord = coord * width - 0.5;
+    float2 mcoord = coord * width;
 
     float2 coords[4];
 
@@ -941,12 +938,8 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     for(int i=0; i<4; i++)
     {
-        coords[i].x/=width;
-        coords[i].y/=width;
-        //coords[i].z=coord.z;
         colours[i]=read_tex_array(coords[i], tid, nums, sizes, array);
     }
-
 
 
     float2 uvratio= {mcoord.x-pos.x, mcoord.y-pos.y};
@@ -957,6 +950,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
     result.y=(colours[0].y*buvr.x + colours[1].y*uvratio.x)*buvr.y + (colours[2].y*buvr.x + colours[3].y*uvratio.x)*uvratio.y;
     result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;
+
 
     //float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
 
@@ -1021,7 +1015,7 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     float tex_per_pix = tdiff.x*tdiff.y / (vdiff.x*vdiff.y);
 
-    float worst = sqrt(tex_per_pix);
+    float worst = native_sqrt(tex_per_pix);
 
     //float worst = min(tex_per_pix.x, tex_per_pix.y);
     ///max seems to break spaceships but is apparently correct. What do? Need to actually solve texture filtering because it works pretty shit
@@ -1050,10 +1044,10 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     if(mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS)
         invalid_mipmap = true;
 
-    int lower_size = exp2((float)mip_lower);
-    int higher_size= exp2((float)mip_higher);
+    int lower_size = native_exp2((float)mip_lower);
+    int higher_size= native_exp2((float)mip_higher);
 
-    fractional_mipmap_distance = fabs(worst - lower_size) / abs(higher_size - lower_size);
+    fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
 
     if(invalid_mipmap)
     {
@@ -2163,7 +2157,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 __kernel
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
-           __constant uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
+           __global uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            __global float2* distort_buffer
            )
 
@@ -2171,7 +2165,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 {
     ///widthxheight kernel
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP           |
+                    CLK_ADDRESS_NONE            |
                     CLK_FILTER_NEAREST;
 
 

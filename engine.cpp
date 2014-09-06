@@ -776,7 +776,7 @@ void engine::draw_bulk_objs_n()
     cl_uint local=128;
 
     ///clear the number of triangles that are generated after first kernel run
-    cl::cqueue.enqueue_write_buffer_async(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
     arg_list prearg_list;
 
@@ -805,7 +805,7 @@ void engine::draw_bulk_objs_n()
     cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
     ///clear number of valid fragments
-    cl::cqueue.enqueue_write_buffer_async(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
 
     ///round global args to multiple of local work size
     cl_uint p1global_ws_new = id_c;
@@ -858,7 +858,7 @@ void engine::draw_bulk_objs_n()
 
     sf::Clock c3;
 
-    cl::cqueue.enqueue_write_buffer_async(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
 
     int nnbuf = (nbuf + 1) % 2;
