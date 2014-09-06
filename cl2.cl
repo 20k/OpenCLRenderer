@@ -2166,7 +2166,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     const uint x = get_global_id(0);
     const uint y = get_global_id(1);
 
-    if(x >= SCREENWIDTH && y >= SCREENHEIGHT)
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
     //int2 scoord1 = {x, y};
@@ -2353,13 +2353,14 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         //float light = dot(normalize(l2c), normalize(rot((float3){1, 0, 0, 0}, zero, *c_rot)));
 
-
+        ///maybe do this cpu side or something?
         float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
         float dist_to_pixel = fast_distance(projected_out, (float3){x, y, ldepth});
 
         float rad = l.radius;
 
+        //can bail out early if disteq < 0?
         float disteq = native_divide((rad - dist_to_pixel), rad); ///light attenuation based on pixel from light distance/radius
 
         disteq = clamp(disteq, 0.0f, 1.0f);
@@ -2379,7 +2380,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         if(l.shadow==1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
         {
 
-            if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) - 0.01 >= 0) ///backface
+            if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) > 0) ///backface
             {
                 skip=1;
             }
@@ -2468,6 +2469,17 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
+}
+
+__kernel void reverse_reproject(__global uint* old_depth, __global uint* new_depth)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+
 }
 
 //Renders a point cloud which renders correct wrt the depth buffer
