@@ -230,7 +230,7 @@ float interpolate(float3 f, struct interp_container *c, float x, float y)
     return interpolate_p(f, x, y, c->x.xyz, c->y.xyz, c->rconstant);
 }
 
-int out_of_bounds(float val, float min, float max)
+/*int out_of_bounds(float val, float min, float max)
 {
     if(val >= min && val < max)
     {
@@ -238,7 +238,7 @@ int out_of_bounds(float val, float min, float max)
     }
 
     return true;
-}
+}*/
 
 
 ///triangle plane intersection borrowed off stack overflow
@@ -1029,8 +1029,6 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     bool invalid_mipmap = false;
 
-    //float is_valid = 1.0f;
-
     mip_lower = floor(native_log2(worst));
 
     mip_lower = max(mip_lower, 0);
@@ -1495,8 +1493,6 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     ///next two loops are extremely hacky filtering prebits
     for(int i=0; i<4; i++)
     {
-        pass_arr[i]=0.0f;
-
         if(dpth > near[i] + len)
         {
             depthpass++;
@@ -1506,8 +1502,6 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     for(int i=0; i<4; i++)
     {
-        cpass_arr[i] = 0.0f;
-
         if(dpth > cnear[i] + len)
         {
             cdepthpass++;
@@ -1517,7 +1511,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     ///extremely hacky smooth filtering additionally
     ///I dont actaully know how this works anymore
-    if((depthpass > 3) && dpth > ldp + len)
+    if(depthpass > 3 && dpth > ldp + len)
     {
 
         float fx = postrotate_pos.x - floor(postrotate_pos.x);
@@ -1619,7 +1613,7 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
             float frac = rem*rem / (adjusted_radius*adjusted_radius);
 
             //float mov = asin(dist / adjusted_radius) * 2.0f * adjusted_radius / M_PI;
-            float mov = 1 * adjusted_radius * sin(M_PI * dist / (1.5*adjusted_radius));
+            float mov = adjusted_radius * sin(M_PI * dist / (1.5f*adjusted_radius));
 
             //get the angle
             float angle = atan2(y - projected.y, x - projected.x);
@@ -1955,7 +1949,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ypv = round(ypv);
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)),native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
     ///calculate area by triangle 3rd area method
 
@@ -2157,7 +2151,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 __kernel
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
-           __global uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
+           __constant uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            __global float2* distort_buffer
            )
 
@@ -2351,7 +2345,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float rad = l.radius;
 
-        float disteq = (rad - dist_to_pixel) / rad; ///light attenuation based on pixel from light distance/radius
+        float disteq = native_divide((rad - dist_to_pixel), rad); ///light attenuation based on pixel from light distance/radius
 
         disteq = clamp(disteq, 0.0f, 1.0f);
 
@@ -2395,7 +2389,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
                 ///this is actually a solid light
                 float dist = fast_distance(projected_out.xy, (float2){x, y});
 
-                float radius_frac = (radius - dist)/radius;
+                dist *= dist;
+
+                float radius_frac = native_divide((radius - dist), radius);
 
                 radius_frac = clamp(radius_frac, 0.0f, 1.0f);
 
@@ -2422,7 +2418,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
 
 
-
     int2 scoord= {x, y};
 
     float3 col = texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
@@ -2433,7 +2428,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //col/=255.0f;
 
 
-    lightaccum = clamp(lightaccum, 0, (1.0f/col));
+    lightaccum = clamp(lightaccum, 0, (native_recip(col)));
 
     //float3 rot_normal;
 
