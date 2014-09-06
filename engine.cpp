@@ -27,6 +27,7 @@
 
 ///opengl ids
 unsigned int engine::gl_framebuffer_id=0;
+unsigned int engine::gl_reprojected_framebuffer_id=0;
 unsigned int engine::gl_screen_id=0;
 
 
@@ -40,10 +41,14 @@ cl_uint engine::l_size;
 
 cl_uint engine::height;
 cl_uint engine::width;
+cl_uint engine::depth;
+
 cl_float4 engine::c_pos;
 cl_float4 engine::c_rot;
-cl_uint engine::depth;
-cl_uint engine::g_size;
+
+cl_float4 engine::old_pos;
+cl_float4 engine::old_rot;
+
 
 bool engine::camera_dirty;
 
@@ -84,8 +89,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     cl_uint size = std::max(height, width);
     ///2^x=size;
-    g_size=pow(2, ceil(log2(size)));
-    ///this is the window size rounded to the nearest power of two
 
     l_size=1024; ///pass in as compilation parameter to opencl;
 
@@ -99,13 +102,13 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     c_rot.y=0;
     c_rot.z=0;
 
-    cl_float4 *blank = new cl_float4[g_size*g_size];
-    memset(blank, 0, g_size*g_size*sizeof(cl_float4));
+    cl_float4 *blank = new cl_float4[width*height];
+    memset(blank, 0, width*height*sizeof(cl_float4));
 
-    cl_uint *arr = new cl_uint[g_size*g_size];
-    memset(arr, UINT_MAX, g_size*g_size*sizeof(cl_uint));
+    cl_uint *arr = new cl_uint[width*height];
+    memset(arr, UINT_MAX, width*height*sizeof(cl_uint));
 
-    d_depth_buf = new cl_uint[g_size*g_size];
+    d_depth_buf = new cl_uint[width*height];
 
     ///opengl is the best, getting function ptrs
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
@@ -120,7 +123,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     glBindRenderbufferEXT(GL_RENDERBUFFER, gl_screen_id);
 
     ///generate storage for renderbuffer
-    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA, g_size, g_size);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA, width, height);
 
 
     ///get a framebuffer and bind it
@@ -134,6 +137,28 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     ///have opencl nab this and store in g_screen
     g_screen = compute::opengl_renderbuffer(cl::context, gl_screen_id, compute::memory_object::write_only);
+
+    unsigned int temp;
+
+    ///generate and bind renderbuffers
+    glGenRenderbuffersEXT(1, &temp);
+    glBindRenderbufferEXT(GL_RENDERBUFFER, temp);
+
+    ///generate storage for renderbuffer
+    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA, width, height);
+
+
+    ///get a framebuffer and bind it
+    glGenFramebuffersEXT(1, &gl_reprojected_framebuffer_id);
+    glBindFramebufferEXT(GL_FRAMEBUFFER, gl_reprojected_framebuffer_id);
+
+
+    ///attach one to the other
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, temp);
+
+
+    ///have opencl nab this and store in g_screen_reprojected
+    g_screen_reprojected = compute::opengl_renderbuffer(cl::context, temp, compute::memory_object::write_only);
 
 
     ///this is a completely arbitrary size to store triangle uids in
@@ -149,7 +174,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     ///creates the two depth buffers and 2d triangle id buffer with size g_size, ie power of two closest to the screen resolution
     depth_buffer[0]=    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     depth_buffer[1]=    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-    reprojected_depth_buffer =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
@@ -180,6 +206,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     delete [] blank;
 
     delete [] distortion_clear;
+
+    old_pos = {0};
+    old_rot = {0};
 
     //glEnable(GL_TEXTURE2D); ///?
 }
@@ -578,6 +607,7 @@ void engine::construct_shadowmaps()
                 l_pos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &light::lightlist[i]->pos);
                 l_rot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &r_struct[j]);
                 temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+                //compute::buffer temp_l_mem_2 = compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6, CL_MEM_READ_WRITE, NULL);
 
                 compute::buffer l_mem(temp_l_mem, false);
 
@@ -617,6 +647,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_tid_buf);
                 p1arg_list.push_back(&obj_mem_manager::g_tri_num);
                 p1arg_list.push_back(&l_mem);
+                //p1arg_list.push_back(&temp_l_mem_2);
                 p1arg_list.push_back(&g_tid_buf_atomic_count);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
@@ -762,6 +793,32 @@ void engine::draw_bulk_objs_n()
     cl_uint p3global_ws[]= {width, height};
     cl_uint p3local_ws[]= {8, 8};
 
+    static int first;
+
+    if(!first)
+    {
+        old_pos = c_pos;
+        old_rot = c_rot;
+        first = 1;
+    }
+
+    //__global uint* old_depth, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot
+    /*arg_list reprojection_arg_list;
+    reprojection_arg_list.push_back(&depth_buffer[(nbuf + 1) % 2]);
+    reprojection_arg_list.push_back(&reprojected_depth_buffer[(nbuf + 1) % 2]);
+    reprojection_arg_list.push_back(&reprojected_depth_buffer[nbuf]);
+    reprojection_arg_list.push_back(&old_pos);
+    reprojection_arg_list.push_back(&old_rot);
+    reprojection_arg_list.push_back(&c_pos);
+    reprojection_arg_list.push_back(&c_rot);
+
+    run_kernel_with_list(cl::reproject_depth, p3global_ws, p3local_ws, 2, reprojection_arg_list, true);*/
+
+    //old_pos = add(old_pos, sub(c_pos, (cl_float4){-800,150,-570}));
+    //old_rot = add(old_rot, c_rot);
+
+    //c_pos = (cl_float4){-800,150,-570};
+    //c_rot = {0,0,0,0};
 
     ///need a better way to clear light buffer
 
@@ -770,6 +827,7 @@ void engine::draw_bulk_objs_n()
     cl_mem scr = g_screen.get();
     ///acquire opengl objects for opencl
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
     //cl::cqueue.finish();
 
     ///1 thread per triangle
@@ -818,6 +876,7 @@ void engine::draw_bulk_objs_n()
     p1arg_list.push_back(&g_tid_buf);
     p1arg_list.push_back(&obj_mem_manager::g_tri_num);
     p1arg_list.push_back(&depth_buffer[nbuf]);
+    //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
     p1arg_list.push_back(&g_tid_buf_atomic_count);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
@@ -891,9 +950,22 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&g_tid_buf);
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p3arg_list.push_back(&g_distortion_buffer);
+    //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+
+    //reproject_screen(__global uint* depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot. __read_only image2d_t screen, __write_only image2d_t new_screen)
+    /*arg_list reproject_arg_list;
+    reproject_arg_list.push_back(&depth_buffer[nbuf]);
+    reproject_arg_list.push_back(&c_pos); //arguments temporarily backwards
+    reproject_arg_list.push_back(&c_rot);
+    reproject_arg_list.push_back(&old_pos);
+    reproject_arg_list.push_back(&old_rot);
+    reproject_arg_list.push_back(&scr);
+    reproject_arg_list.push_back(&g_screen_reprojected);
+
+    run_kernel_with_list(cl::reproject_screen, p3global_ws, p3local_ws, 2, reproject_arg_list, true);*/
 
 
 
@@ -903,6 +975,7 @@ void engine::draw_bulk_objs_n()
 
     ///release opengl stuff
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    compute::opengl_enqueue_release_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
 
     camera_dirty = false;
 }
@@ -1158,6 +1231,7 @@ void engine::render_buffers()
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
+    //glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_reprojected_framebuffer_id);
     glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 

@@ -217,6 +217,7 @@ static void oclstuff(std::string file)
     cl::create_distortion_offset = load_kernel(program, "create_distortion_offset");
     cl::draw_fancy_projectile = load_kernel(program, "draw_fancy_projectile");
     cl::reproject_depth = load_kernel(program, "reproject_depth");
+    cl::reproject_screen = load_kernel(program, "reproject_screen");
 }
 
 

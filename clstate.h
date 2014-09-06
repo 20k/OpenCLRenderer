@@ -45,6 +45,7 @@ namespace cl
     extern kernel create_distortion_offset;
     extern kernel draw_fancy_projectile;
     extern kernel reproject_depth;
+    extern kernel reproject_screen;
 }
 
 

@@ -1899,7 +1899,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
 }
-
+///pad buffers so i don't have to do bounds checking?
 ///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
@@ -1980,9 +1980,15 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         float x = ((pixel_along + pcount) % width) + min_max[0];
         float y = ((pixel_along + pcount) / width) + min_max[2];
 
-        if(y > min_max[3])
+        if(y >= min_max[3])
         {
             break;
+        }
+
+        if(x >= SCREENWIDTH || y < 0 || x < 0)
+        {
+            pcount++;
+            continue;
         }
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
@@ -1991,6 +1997,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         if(s1 >= area - mod && s1 <= area + mod)
         {
             __global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
+            //__global uint *ftr=&reprojected_depth_buffer[(int)(y*ewidth) + (int)x];
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
@@ -2010,6 +2017,12 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 pcount++;
                 continue;
             }
+
+            /*if(mydepth-1000000 > (*ftr))
+            {
+                pcount++;
+                continue;
+            }*/
 
             uint sdepth=atomic_min(ft, mydepth);
 
@@ -2104,9 +2117,15 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         float x = ((pixel_along + pcount) % width) + min_max[0];
         float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesn't need to be recalculated every loop
 
-        if(y > min_max[3])
+        if(y >= min_max[3])
         {
             break;
+        }
+
+        if(x >= SCREENWIDTH || y < 0 || x < 0)
+        {
+            pcount++;
+            continue;
         }
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
@@ -2189,6 +2208,18 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     camera_pos = c_pos.xyz;
     camera_rot = c_rot.xyz;
+
+
+    /*uint rproj_depth = reprojected_buffer[y*SCREENWIDTH + x];
+
+    float val = (float)rproj_depth/mulint;
+    val = idcalc(val);
+
+    val /= 10000;
+
+    write_imagef(screen, (int2){x, y}, val);
+
+    return;*/
 
     //float4 normals_out[3];
 
@@ -2471,7 +2502,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
-__kernel void reproject_depth(__global uint* old_depth, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)
+__kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_clear, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -2480,6 +2511,7 @@ __kernel void reproject_depth(__global uint* old_depth, __global uint* new_depth
         return;
 
     __global uint* old_ft = &old_depth[y*SCREENWIDTH + x];
+    new_to_clear[y*SCREENWIDTH + x] = -1;
 
     float ldepth = idcalc((float)*old_ft/mulint);
 
@@ -2508,8 +2540,69 @@ __kernel void reproject_depth(__global uint* old_depth, __global uint* new_depth
 
     float3 projected_new = depth_project_singular(new_position, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-    new_depth[y*SCREENWIDTH + x] = projected_new.z;
+    uint buffer_write = clamp(dcalc(projected_new.z), 0.0f, 1.0f)*mulint;
 
+    int2 clamped = convert_int2(round(projected_new.xy));
+
+    if(clamped.x < 0 || clamped.x >= SCREENWIDTH || clamped.y < 0 || clamped.y >= SCREENHEIGHT)
+        return;
+
+    new_depth[clamped.y*SCREENWIDTH + clamped.x] = buffer_write;
+}
+
+__kernel void reproject_screen(__global uint* depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot, __read_only image2d_t screen, __write_only image2d_t new_screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    __global uint* ft = &depth[y*SCREENWIDTH + x];
+
+    float ldepth = idcalc((float)*ft/mulint);
+
+    float3 local_position= {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+
+    float3 zero = {0,0,0};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = rot(local_position,  zero, (float3)
+    {
+        old_rot.x, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float3)
+    {
+        0.0f, old_rot.y, 0.0f
+    });
+    global_position        = rot(global_position, zero, (float3)
+    {
+        0.0f, 0.0f, old_rot.z
+    });
+
+    ///ignore camera translation?
+
+    float3 new_position = rot(global_position, 0, -new_rot.xyz);
+
+    float3 projected_new = depth_project_singular(new_position, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected_new.x < 0 || projected_new.x >= SCREENWIDTH || projected_new.y < 0 || projected_new.y >= SCREENHEIGHT || projected_new.z < 0)
+    {
+        write_imagef(new_screen, (int2){x, y}, 0);
+        return;
+    }
+
+    //could then backrotate with new z value and sensible coordinates???
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_FILTER_LINEAR;
+
+
+    float4 col = read_imagef(screen, sam, projected_new.xy);
+
+    write_imagef(new_screen, (int2){x, y}, col);
 }
 
 //Renders a point cloud which renders correct wrt the depth buffer

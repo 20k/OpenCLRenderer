@@ -29,14 +29,16 @@ struct engine
     int cmx, cmy;
 
     static cl_uint width, height, depth;
-    static cl_uint g_size; /// height > width rounded up to nearest power of 2
     static cl_uint l_size; ///light cubemap size
     static cl_float4 c_pos; ///camera position, rotation
     static cl_float4 c_rot;
+    static cl_float4 old_pos;
+    static cl_float4 old_rot;
 
     static bool camera_dirty;
 
     compute::opengl_renderbuffer g_screen;
+    compute::opengl_renderbuffer g_screen_reprojected;
 
     ///gpu side camera position and rotation
     //compute::buffer g_c_pos;
@@ -44,7 +46,7 @@ struct engine
 
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
-    compute::buffer reprojected_depth_buffer;
+    compute::buffer reprojected_depth_buffer[2];
     compute::image2d g_id_screen_tex; ///2d screen id texture
     static compute::buffer g_ui_id_screen; ///2d screen ui_id buffer
     compute::buffer g_normals_screen; ///unused 2d normal buffer
@@ -69,6 +71,7 @@ struct engine
     ///opengl ids
     static unsigned int gl_screen_id;
     static unsigned int gl_framebuffer_id;
+    static unsigned int gl_reprojected_framebuffer_id;
 
     static cl_uint *blank_light_buf;
     static cl_uint shadow_light_num;

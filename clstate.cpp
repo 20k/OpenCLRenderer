@@ -26,3 +26,4 @@ kernel cl::draw_voxel_octree;
 kernel cl::create_distortion_offset;
 kernel cl::draw_fancy_projectile;
 kernel cl::reproject_depth;
+kernel cl::reproject_screen;
