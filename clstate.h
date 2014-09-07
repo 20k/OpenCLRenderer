@@ -46,6 +46,7 @@ namespace cl
     extern kernel draw_fancy_projectile;
     extern kernel reproject_depth;
     extern kernel reproject_screen;
+    extern kernel space_nebulae;
 }
 
 

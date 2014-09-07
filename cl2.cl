@@ -2929,6 +2929,161 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
     }
 }
 
+/*float noise(int x, int y, int z)
+{
+    x = x + y * 113 + z*529;
+    x = (x<<13) ^ x;
+    return ( 1.0f - ( (x * (x * x * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f);
+}
+
+float smnoise(float x, float y, float z)
+{
+    float tl, tr, bl, br;
+
+    float3 base = floor((float3){x, y, z});
+
+    float3 upper = base + 1.0f;
+
+    tl = noise(base.x, base.y, base.z);
+    tr = noise(upper.x, base.y, base.z);
+    bl = noise(base.x, upper.y, base.z);
+    br = noise(upper.x, upper.y, base.z);
+
+
+
+    float3 frac = (float3){x, y, z} - base;
+
+    float top_bilin = (1.0f - frac.x) * tl + frac.x * tr;
+    float bot_bilin = (1.0f - frac.x) * bl + frac.x * br;
+
+    float b1 = (1.0f - frac.y) * top_bilin + frac.y * bot_bilin;
+
+
+    tl = noise(base.x, base.y, upper.z);
+    tr = noise(upper.x, base.y, upper.z);
+    bl = noise(base.x, upper.y, upper.z);
+    br = noise(upper.x, upper.y, upper.z);
+
+
+    top_bilin = (1.0f - frac.x) * tl + frac.x * tr;
+    bot_bilin = (1.0f - frac.x) * bl + frac.x * br;
+
+    float b2 = (1.0f - frac.y) * top_bilin + frac.y * bot_bilin;
+
+    //return (1.0f - frac.z) * b1 + frac.z * b1;
+
+    return noise(x, y, z);
+}
+
+float3 get_colour(float val)
+{
+    //red, blue interpolation
+    return (float3){0, 0, val};
+
+}*/
+
+__kernel void space_nebulae(float4 c_pos, float4 c_rot, __read_only image2d_t nebula, __global uint* depth_buffer, __write_only image2d_t screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    float fx = x;
+    float fy = y;
+    float fz = FOV_CONST;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_TRUE |
+                    CLK_ADDRESS_REPEAT   |
+                    CLK_FILTER_LINEAR;
+
+
+    float3 local_position= {((fx - SCREENWIDTH/2.0f)*fz/FOV_CONST), ((fy - SCREENHEIGHT/2.0f)*fz/FOV_CONST), fz};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = rot(local_position,  0, (float3)
+    {
+        -c_rot.x, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, 0, (float3)
+    {
+        0.0f, -c_rot.y, 0.0f
+    });
+    global_position        = rot(global_position, 0, (float3)
+    {
+        0.0f, 0.0f, -c_rot.z
+    });
+
+    //global_position += c_pos.xyz;
+
+
+
+    //float3 new_coord = rot(local_position, 0, c_rot.xyz);
+
+    //new_coord = depth_project_singular(new_coord, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    fx = global_position.x;
+    fy = global_position.y;
+    fz = global_position.z;
+
+    //float sphere_rad = sqrt(SCREENWIDTH/2*SCREENWIDTH/2 + FOV_CONST*FOV_CONST);
+
+
+    float rad = length(global_position);//sphere_rad;
+
+    float theta = acos(fz / rad);
+    float phi = atan2(fy, fz);
+
+
+    float px, py;
+
+    px = theta / M_PI;
+
+    py = log(fabs(tan(M_PI/4 + phi/2)));
+
+    //py = clamp(py, 0.0f, 1.0f);
+
+    //int2 image_dim = get_image_width(nebula);
+
+    //float sx = px * image_dim.x;
+    //float sy = py * image_dim.y;
+
+    //float sphere_rad = sqrt(SCREENWIDTH/2*SCREENWIDTH/2 + FOV_CONST*FOV_CONST);
+
+
+
+    //float r = smnoise(fx * 0.02, fy * 0.02) + smnoise(fx * 0.2, fy * 0.2) + smnoise(fx, fy);
+    //float g = smnoise(fx * 0.02, fy * 0.02) + smnoise(fx * 0.2, fy * 0.2) + smnoise(fx, fy);
+    //float b = smnoise(fx * 0.02, fy * 0.02) + smnoise(fx * 0.2, fy * 0.2) + smnoise(fx, fy);
+
+    //float r = smnoise(fx * 0.02, fy * 0.02)*0.3 + smnoise(fx * 0.2, fy * 0.2)*0.2 + smnoise(fx * 0.6, fy * 0.6)*0.2 + smnoise(fx, fy)*0.1;
+
+    //float val = smnoise(fx * 0.03 , fy * 0.03, fz * 0.03 )*0.3;// + smnoise(fx * 0.2, fy * 0.2, fz * 0.2)*0.2 + smnoise(fx * 0.6, fy * 0.6, fz * 0.6)*0.2 + smnoise(fx, fy, fz)*0.1; //dictate overall colour
+
+    //float val = fx + fy*200 + fz*3000;
+
+    //val /= 8000000;
+
+    //float3 col = get_colour(val);
+
+    //float3 col = val;//global_position / 1000;
+
+    //if(x == 0 && y == 0)
+    //    printf("%f %f %f\n", global_position.x, global_position.y, global_position.z);
+
+    //remember texture width is not the same as screenwidth
+
+    if(depth_buffer[y*SCREENWIDTH + x] == -1)
+    {
+        //write_imagef(screen, (int2){x, y}, (float4)(col, 1.0f));
+
+        //depth_buffer[y*SCREENWIDTH + x] = mulint - 1;
+
+        write_imagef(screen, (int2){x, y}, read_imagef(nebula, sam, (float2){px, py}));
+    }
+}
+
 ///swap this for sfml parallel rendering?
 ///will draw for everything in the scene ///reallocate every time..?
 __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnum, __write_only image2d_t screen, float4 c_pos, float4 c_rot)
@@ -3158,9 +3313,10 @@ __kernel void blit_with_id(__read_only image2d_t base, __write_only image2d_t md
     const int y = get_global_id(1);
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP_TO_EDGE   |
+                              CLK_ADDRESS_NONE            |
                               CLK_FILTER_NEAREST;
 
+    //pass these in because they may be slow
     int width = get_image_width(to_write);
     int height = get_image_height(to_write);
 
@@ -3205,7 +3361,7 @@ __kernel void blit_clear(__read_only image2d_t base, __write_only image2d_t mod,
         return;
 
     const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP_TO_EDGE   |
+                              CLK_ADDRESS_NONE   |
                               CLK_FILTER_NEAREST;
 
     to_clear[y*w + x] = -1;

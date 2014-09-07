@@ -218,6 +218,7 @@ static void oclstuff(std::string file)
     cl::draw_fancy_projectile = load_kernel(program, "draw_fancy_projectile");
     cl::reproject_depth = load_kernel(program, "reproject_depth");
     cl::reproject_screen = load_kernel(program, "reproject_screen");
+    cl::space_nebulae = load_kernel(program, "space_nebulae");
 }
 
 

@@ -761,6 +761,30 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
+void engine::draw_space_nebulae(compute::image2d& tex)
+{
+    cl_mem scr = g_screen.get();
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+
+    //space_nebulae(float4 c_pos, float4 c_rot, __global uint* depth_buffer, __write_only image2d_t screen)
+
+    arg_list nebulae_arg_list;
+    nebulae_arg_list.push_back(&c_pos);
+    nebulae_arg_list.push_back(&c_rot);
+    nebulae_arg_list.push_back(&tex);
+    nebulae_arg_list.push_back(&depth_buffer[nbuf]);
+    nebulae_arg_list.push_back(&scr);
+
+
+
+    cl_uint p3global_ws[]= {width, height};
+    cl_uint p3local_ws[]= {8, 8};
+
+    run_kernel_with_list(cl::space_nebulae, p3global_ws, p3local_ws, 2, nebulae_arg_list, true);
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+}
+
 void engine::generate_distortion(compute::buffer& points, int num)
 {
     cl_uint p3global_ws[]= {width, height};

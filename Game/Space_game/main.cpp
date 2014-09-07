@@ -23,6 +23,8 @@
 #include "../../projectile_buffer_gen.hpp"
 #include "../projectile.hpp"
 
+#include "../../cloud_gen/cloud_gen.hpp"
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -102,6 +104,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 ///minimap vs UI problem
 
 ///acquire screen for whole rendering pass?
+
+///change hologram rendering to render all things at once, not just one (very slow)
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -132,6 +136,8 @@ int main(int argc, char *argv[])
     window.window.create(sf::VideoMode(1280, 768), "fixthisfixthisfixthis");
     oclstuff("../cl2.cl");
     window.load(1280,768,1000, "turtles");
+
+    auto cloud_buf = get_nebula();
 
     ///part of engine load?
     auto projectile_image = generate_projectile_buffer(window.width, window.height);
@@ -342,7 +348,9 @@ int main(int argc, char *argv[])
         sf::Clock u_time;
         ui_manager::update_selected_values(window.get_mouse_x(), window.get_mouse_y());
         //Timer timer("hello");
-        ui_manager::tick_all();
+
+        ui_manager::tick_all(); //slow
+
         //timer.stop();
         //std::cout << "U: " << u_time.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -360,8 +368,16 @@ int main(int argc, char *argv[])
         window.draw_holograms();
         //std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
-        window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
+
+
         window.draw_fancy_projectiles(projectile_image, projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
+
+        window.draw_space_nebulae(cloud_buf);
+
+        window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
+
+
+
 
         if(ui_manager::selected_value != -1 && (ui_manager::selected_value & MINIMAP_BITFLAG))
         {
@@ -526,9 +542,9 @@ int main(int argc, char *argv[])
             t_weps.colours.push_back(col);
         }
 
-        int rect_id = interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
+        int rect_id = -1;//interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
 
-        int identifier = interact::get_identifier_from_rect(rect_id);
+        int identifier = -1;// interact::get_identifier_from_rect(rect_id);
 
 
         ///remember to make green on hover over, and keep other selected too. need multiple set_selections, by id?
@@ -566,7 +582,7 @@ int main(int argc, char *argv[])
 
         text_handler::queue_text_block(shield_status);
 
-
+        //interact::clear(); //interact is probably slow
         window.ui_interaction();
 
         window.render_buffers();

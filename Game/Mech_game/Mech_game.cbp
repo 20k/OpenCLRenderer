@@ -88,6 +88,7 @@
 		<Unit filename="../../point_cloud.cpp" />
 		<Unit filename="../../point_cloud.hpp" />
 		<Unit filename="../../proj.hpp" />
+		<Unit filename="../../projectile_buffer_gen.cpp" />
 		<Unit filename="../../terrain_gen/terrain_gen.cpp" />
 		<Unit filename="../../terrain_gen/terrain_gen.hpp" />
 		<Unit filename="../../text_handler.cpp" />
@@ -117,6 +118,7 @@
 		<Unit filename="../game_object.hpp" />
 		<Unit filename="../newtonian_body.cpp" />
 		<Unit filename="../newtonian_body.hpp" />
+		<Unit filename="../projectile.cpp" />
 		<Unit filename="../ship.cpp" />
 		<Unit filename="../ship.hpp" />
 		<Unit filename="../space_dust.cpp" />
