@@ -119,7 +119,13 @@ struct interp_container
 float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
     //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
+
+
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+
+
+    //return (fabs(mad(x2, y, -mad(x, y2, mad(x3, y2, -mad(x2, y3, mad(x, y3, -x3*y)))))) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+
     ///form was written for this, i think
 }
 
@@ -1853,10 +1859,10 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             int xc = round(tris_proj[i][j].x);
             int yc = round(tris_proj[i][j].y);
 
-            if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
+            if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
                 continue;
 
-            tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
+            tris_proj[i][j].xy += distort_buffer[yc*ewidth + xc];
             //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
         }
 
@@ -1872,6 +1878,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         uint c_id = atomic_inc(id_cutdown_tris);
 
+        //shouldnt do this here?
         cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
         cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
         cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
@@ -1899,6 +1906,13 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
 }
+
+struct local_check
+{
+    //x, y, set, pad
+    uint4 val;
+};
+
 ///pad buffers so i don't have to do bounds checking?
 ///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
@@ -1912,6 +1926,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         return;
     }
 
+    uint lid = get_local_id(0);
+
     float ewidth = SCREENWIDTH;
     float eheight = SCREENHEIGHT;
 
@@ -1920,6 +1936,13 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         ewidth = LIGHTBUFFERDIM;
         eheight = LIGHTBUFFERDIM;
     }
+
+    //__local int isset[128];
+
+    //isset[lid] = {0,0,0,0};
+    //set x, y, etc, then just iterate (hnnng)
+    //all agree on a minimum depth
+
 
     uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
 
@@ -1997,7 +2020,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             invalid = true;
         }
 
-        if(!invalid && (x >= SCREENWIDTH || y < 0 || x < 0))
+        if(!invalid && (x >= ewidth || y < 0 || x < 0))
         {
             skip = true;
         }
@@ -2237,6 +2260,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     struct interp_container icontainer;
 
+    //remove all this fragment id buffer rubbish
     int local_id = fragment_id_buffer[id_val*3 + 2];
 
     __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
