@@ -1974,27 +1974,38 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 100;
     }
 
+
+    bool invalid = false;
+
+
     ///while more pixels to write
     while(pcount < op_size)
     {
-        float x = ((pixel_along + pcount) % width) + min_max[0];
-        float y = ((pixel_along + pcount) / width) + min_max[2];
+        bool skip = false;
+
+        float x;
+        float y;
+
+        if(!invalid)
+        {
+            x = ((pixel_along + pcount) % width) + min_max[0];
+            y = ((pixel_along + pcount) / width) + min_max[2];
+        }
 
         if(y >= min_max[3])
         {
-            break;
+            invalid = true;
         }
 
-        if(x >= SCREENWIDTH || y < 0 || x < 0)
+        if(!invalid && (x >= SCREENWIDTH || y < 0 || x < 0))
         {
-            pcount++;
-            continue;
+            skip = true;
         }
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if(s1 >= area - mod && s1 <= area + mod)
+        if(!invalid && !skip && (s1 >= area - mod && s1 <= area + mod))
         {
             __global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
             //__global uint *ftr=&reprojected_depth_buffer[(int)(y*ewidth) + (int)x];
@@ -2004,18 +2015,13 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             fmydepth = 1.0f / fmydepth;
             ///retrieve original depth
 
-            if(fmydepth > 1) ///skip broken pixels
-            {
-                pcount++;
-                continue;
-            }
-
             uint mydepth=fmydepth*mulint;
 
-            if(mydepth==0) ///skip broken pixel
+            uint sdepth = mulint;
+
+            if(!(fmydepth > 1 || mydepth == 0)) ///skip broken pixels
             {
-                pcount++;
-                continue;
+                sdepth = atomic_min(ft, mydepth);
             }
 
             /*if(mydepth-1000000 > (*ftr))
@@ -2024,7 +2030,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 continue;
             }*/
 
-            uint sdepth=atomic_min(ft, mydepth);
+            //barrier(CLK_GLOBAL_MEM_FENCE);
 
             if(mydepth < sdepth) ///triangle has had at least one pixel make it to the screen
             {
