@@ -672,7 +672,7 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     ///__write_only image2d_t screen, __global uint* depth_buffer)
 
     cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
@@ -694,7 +694,7 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     run_kernel_with_list(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arg_list, true);
 
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
@@ -703,8 +703,8 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     ///__write_only image2d_t screen, __global uint* depth_buffer)
 
 
-    cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //cl_mem scr = g_screen.get();
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
@@ -726,7 +726,7 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 
     run_kernel_with_list(cl::space_dust, &p1global_ws, &local, 1, p1arg_list, true);
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 ///merge with above kernel?
@@ -737,7 +737,7 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 
 
     cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     compute::buffer screen_wrapper(g_screen.get(), true);
 
@@ -758,13 +758,13 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 
     run_kernel_with_list(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arg_list, true);
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::draw_space_nebulae(compute::image2d& tex)
 {
     cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     //space_nebulae(float4 c_pos, float4 c_rot, __global uint* depth_buffer, __write_only image2d_t screen)
 
@@ -782,7 +782,7 @@ void engine::draw_space_nebulae(compute::image2d& tex)
 
     run_kernel_with_list(cl::space_nebulae, p3global_ws, p3local_ws, 2, nebulae_arg_list, true);
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::generate_distortion(compute::buffer& points, int num)
@@ -850,8 +850,8 @@ void engine::draw_bulk_objs_n()
 
     cl_mem scr = g_screen.get();
     ///acquire opengl objects for opencl
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+
     //cl::cqueue.finish();
 
     ///1 thread per triangle
@@ -979,6 +979,9 @@ void engine::draw_bulk_objs_n()
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
+
+    //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
+
     //reproject_screen(__global uint* depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot. __read_only image2d_t screen, __write_only image2d_t new_screen)
     /*arg_list reproject_arg_list;
     reproject_arg_list.push_back(&depth_buffer[nbuf]);
@@ -991,15 +994,15 @@ void engine::draw_bulk_objs_n()
 
     run_kernel_with_list(cl::reproject_screen, p3global_ws, p3local_ws, 2, reproject_arg_list, true);*/
 
-
+    //compute::opengl_enqueue_release_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
 
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
 
     ///release opengl stuff
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
-    compute::opengl_enqueue_release_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+
 
     camera_dirty = false;
 }
@@ -1016,7 +1019,7 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
 
     cl_mem scr = g_screen.get();
     ///acquire opengl objects for opencl
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     //compute::buffer projectiles = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
 
@@ -1032,7 +1035,7 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
     run_kernel_with_list(cl::draw_fancy_projectile, screenspace_gws, screenspace_lws, 2, projectile_arg_list, true);
 
     ///release opengl stuff
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 ///never going to work, would have to reproject?
@@ -1041,7 +1044,7 @@ void engine::draw_ui()
     compute::buffer screen_wrapper(g_screen.get(), true);
 
     cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     cl_uint global_ws = obj_mem_manager::obj_num;
 
@@ -1059,7 +1062,7 @@ void engine::draw_ui()
     run_kernel_with_list(cl::draw_ui, &global_ws, &local2, 1, p1arg_list, true);
 
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 template<typename T, typename Q>
@@ -1094,7 +1097,7 @@ bool within_bounds(float v, float min, float max)
 void engine::draw_holograms()
 {
     cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
     //cl::cqueue.finish();
 
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
@@ -1223,14 +1226,14 @@ void engine::draw_holograms()
         hologram_manager::release(i);
     }
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
     //cl::cqueue.finish();
 }
 
 void engine::draw_voxel_octree(g_voxel_info& info)
 {
     cl_mem scr = g_screen.get();
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
 
     compute::buffer screen_wrap = compute::buffer(scr, true);
@@ -1244,11 +1247,15 @@ void engine::draw_voxel_octree(g_voxel_info& info)
     //run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
 
 
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::render_buffers()
 {
+    cl_mem scr = g_screen.get();
+
+    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+
     cl::cqueue.finish();
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
@@ -1275,6 +1282,9 @@ void engine::render_buffers()
     nbuf = nbuf % 2;
 
     camera_dirty = false;
+
+
+    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 }
 
 ///does this need to be somewhere more fun? Minimap vs UI
