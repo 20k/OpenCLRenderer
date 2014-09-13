@@ -1490,15 +1490,15 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         ccoords[i] = clamp(ccoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
     }
 
-    cnear[0] = (float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x]/mulint;
-    near[0] = (float)ldepth_map[mcoords[0].y*LIGHTBUFFERDIM + mcoords[0].x]/mulint;
-    cnear[1] = (float)ldepth_map[ccoords[1].y*LIGHTBUFFERDIM + ccoords[1].x]/mulint;
-    near[1] = (float)ldepth_map[mcoords[1].y*LIGHTBUFFERDIM + mcoords[1].x]/mulint;
+    cnear[0] = native_divide((float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x], (float)mulint);
+    near[0] = native_divide((float)ldepth_map[mcoords[0].y*LIGHTBUFFERDIM + mcoords[0].x], (float)mulint);
+    cnear[1] = native_divide((float)ldepth_map[ccoords[1].y*LIGHTBUFFERDIM + ccoords[1].x], (float)mulint);
+    near[1] = native_divide((float)ldepth_map[mcoords[1].y*LIGHTBUFFERDIM + mcoords[1].x], (float)mulint);
 
-    near[2] = (float)ldepth_map[mcoords[2].y*LIGHTBUFFERDIM + mcoords[2].x]/mulint;
-    cnear[2] = (float)ldepth_map[ccoords[2].y*LIGHTBUFFERDIM + ccoords[2].x]/mulint;
-    near[3] = (float)ldepth_map[mcoords[3].y*LIGHTBUFFERDIM + mcoords[3].x]/mulint;
-    cnear[3] = (float)ldepth_map[ccoords[3].y*LIGHTBUFFERDIM + ccoords[3].x]/mulint;
+    near[2] = native_divide((float)ldepth_map[mcoords[2].y*LIGHTBUFFERDIM + mcoords[2].x], (float)mulint);
+    cnear[2] = native_divide((float)ldepth_map[ccoords[2].y*LIGHTBUFFERDIM + ccoords[2].x], (float)mulint);
+    near[3] = native_divide((float)ldepth_map[mcoords[3].y*LIGHTBUFFERDIM + mcoords[3].x], (float)mulint);
+    cnear[3] = native_divide((float)ldepth_map[ccoords[3].y*LIGHTBUFFERDIM + ccoords[3].x], (float)mulint);
 
 
     float pass_arr[4] = {0,0,0,0};
@@ -1566,7 +1566,6 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 __kernel void atomic_64_test(__global ulong* test)
 {
     int g_id = get_global_id(0);
-    //test[g_id] = 12;
     atom_add(&test[g_id], 12l);
 }
 
