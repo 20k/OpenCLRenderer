@@ -559,6 +559,12 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
     //generate_new_triangles(pr, ids, rconst, &n, tris, clip);
     generate_new_triangles(pr, ids, &n, tris, clip);
 
+    if(n == 0)
+    {
+        *num = n;
+        return;
+    }
+
     depth_project(tris[0], width, height, fovc, passback[0]);
 
     if(n == 2)
@@ -1825,6 +1831,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
     int ooany[2];
+    int valid = 0;
 
     for(int i=0; i<num; i++)
     {
@@ -1838,7 +1845,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             (tris_proj[j][0].x >= ewidth && tris_proj[j][1].x >= ewidth && tris_proj[j][2].x >= ewidth) ||
             (tris_proj[j][0].y < 0 && tris_proj[j][1].y < 0 && tris_proj[j][2].y < 0) ||
             (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight)
-            //(tris_proj[j][0].z < 0 && tris_proj[j][1].z < 0 && tris_proj[j][2].z < 0)
            )
         {
             ooany[j] = 0;
@@ -1887,7 +1893,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
-        uint f = base;
+        uint f = base*3;
 
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
@@ -1895,12 +1901,10 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             {
                 ///work out if is valid, if not do c++ then continue;
 
-                fragment_id_buffer[f*3] = id;
-                fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | a; ///for memory reasons, 2^28 is more than enough fragment ids
-                fragment_id_buffer[f*3+2] = c_id;
-                //c++;
+                fragment_id_buffer[f++] = id;
+                fragment_id_buffer[f++] = (i << 29) | (is_clipped << 31) | a; ///for memory reasons, 2^28 is more than enough fragment ids
+                fragment_id_buffer[f++] = c_id;
 
-                f++;
             }
 
         }
@@ -2002,19 +2006,27 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     bool invalid = false;
 
+    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
     ///while more pixels to write
     while(pcount < op_size)
     {
         bool skip = false;
 
-        float x;
         float y;
 
         if(!invalid)
         {
-            x = ((pixel_along + pcount) % width) + min_max[0];
-            y = ((pixel_along + pcount) / width) + min_max[2];
+            x++;
+
+            float ty = y;
+
+            y = (int)(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+            if(y != ty)
+            {
+                x = ((pixel_along + pcount) % width) + min_max[0];
+            }
         }
 
         if(y >= min_max[3])
@@ -2143,10 +2155,23 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 100;
     }
 
+    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+
+    ///while more pixels to write
     while(pcount < op_size)
     {
-        float x = ((pixel_along + pcount) % width) + min_max[0];
-        float y = ((pixel_along + pcount) / width) + min_max[2]; ///doesn't need to be recalculated every loop
+        float y;
+
+        x++;
+
+        float ty = y;
+
+        y = (int)(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+        if(y != ty)
+        {
+            x = ((pixel_along + pcount) % width) + min_max[0];
+        }
 
         if(y >= min_max[3])
         {
