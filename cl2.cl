@@ -991,26 +991,24 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     float2 vtm = vt;
 
-    float ipart = 0;
-
     if(vtm.x >= 1)
     {
-        vtm.x = 1.0f - modf(vtm.x, &ipart);
+        vtm.x = 1.0f - fmod(vtm.x, 1);
     }
 
     if(vtm.x < 0)
     {
-        vtm.x = 1.0f + modf(vtm.x, &ipart);
+        vtm.x = 1.0f + fmod(vtm.x, 1);
     }
 
     if(vtm.y >= 1)
     {
-        vtm.y = 1.0f - modf(vtm.y, &ipart);
+        vtm.y = 1.0f - fmod(vtm.y, 1);
     }
 
     if(vtm.y < 0)
     {
-        vtm.y = 1.0f + modf(vtm.y, &ipart);
+        vtm.y = 1.0f + fmod(vtm.y, 1);
     }
 
     float2 tdiff = {fabs(maxtx - mintx), fabs(maxty - minty)};
@@ -1807,7 +1805,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
 
-
     float3 tris_proj[2][3]; ///projected triangles
 
     int num = 0;
@@ -1840,11 +1837,14 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         if((tris_proj[j][0].x < 0 && tris_proj[j][1].x < 0 && tris_proj[j][2].x < 0)  ||
             (tris_proj[j][0].x >= ewidth && tris_proj[j][1].x >= ewidth && tris_proj[j][2].x >= ewidth) ||
             (tris_proj[j][0].y < 0 && tris_proj[j][1].y < 0 && tris_proj[j][2].y < 0) ||
-            (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight))
+            (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight)
+            //(tris_proj[j][0].z < 0 && tris_proj[j][1].z < 0 && tris_proj[j][2].z < 0)
+           )
         {
             ooany[j] = 0;
         }
     }
+
 
     for(int i=0; i<num; i++)
     {
@@ -1862,7 +1862,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
                 continue;
 
-            tris_proj[i][j].xy += distort_buffer[yc*ewidth + xc];
+            tris_proj[i][j].xy += distort_buffer[yc*(int)ewidth + xc];
             //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
         }
 
@@ -1883,9 +1883,11 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
         cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
 
-        uint c = 0;
+        //uint c = 0;
 
         uint base = atomic_add(id_buffer_atomc, thread_num);
+
+        uint f = base;
 
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
@@ -1893,12 +1895,12 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             {
                 ///work out if is valid, if not do c++ then continue;
 
-                uint f = a + base;
-
                 fragment_id_buffer[f*3] = id;
-                fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | c; ///for memory reasons, 2^28 is more than enough fragment ids
+                fragment_id_buffer[f*3+1] = (i << 29) | (is_clipped << 31) | a; ///for memory reasons, 2^28 is more than enough fragment ids
                 fragment_id_buffer[f*3+2] = c_id;
-                c++;
+                //c++;
+
+                f++;
             }
 
         }
@@ -2035,7 +2037,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
-            fmydepth = 1.0f / fmydepth;
+            fmydepth = native_recip(fmydepth);
             ///retrieve original depth
 
             uint mydepth=fmydepth*mulint;
@@ -2165,7 +2167,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
-            fmydepth = 1.0f / fmydepth;
+            fmydepth = native_recip(fmydepth);
 
             if(fmydepth > 1)
             {
