@@ -2,7 +2,7 @@
 
 #define FOV_CONST 500.0f
 
-#define LIGHTBUFFERDIM 4096
+#define LIGHTBUFFERDIM 2048
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
 #define M_PI 3.1415927f
@@ -1467,21 +1467,38 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     float near[4];
 
 
-    float2 sws[4] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+    int2 sws[4] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+    int2 mcoords[4];
 
-    near[0] = (float)ldepth_map[(int)(postrotate_pos.y + sws[0].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + sws[0].x)]/mulint;
-    near[1] = (float)ldepth_map[(int)(postrotate_pos.y + sws[1].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + sws[1].x)]/mulint;
-    near[2] = (float)ldepth_map[(int)(postrotate_pos.y + sws[2].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + sws[2].x)]/mulint;
-    near[3] = (float)ldepth_map[(int)(postrotate_pos.y + sws[3].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + sws[3].x)]/mulint;
+    for(int i=0; i<4; i++)
+    {
+        mcoords[i] = sws[i] + (int2){postrotate_pos.x, postrotate_pos.y};
 
-    float2 corners[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+        mcoords[i] = clamp(mcoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
+    }
+
+    near[0] = (float)ldepth_map[mcoords[0].y*LIGHTBUFFERDIM + mcoords[0].x]/mulint;
+    near[1] = (float)ldepth_map[mcoords[1].y*LIGHTBUFFERDIM + mcoords[1].x]/mulint;
+    near[2] = (float)ldepth_map[mcoords[2].y*LIGHTBUFFERDIM + mcoords[2].x]/mulint;
+    near[3] = (float)ldepth_map[mcoords[3].y*LIGHTBUFFERDIM + mcoords[3].x]/mulint;
+
+    int2 corners[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+    int2 ccoords[4];
+
+    for(int i=0; i<4; i++)
+    {
+        ccoords[i] = corners[i] + (int2){postrotate_pos.x, postrotate_pos.y};
+
+        ccoords[i] = clamp(ccoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
+    }
+
 
     float cnear[4];
 
-    cnear[0] = (float)ldepth_map[(int)(postrotate_pos.y + corners[0].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + corners[0].x)]/mulint;
-    cnear[1] = (float)ldepth_map[(int)(postrotate_pos.y + corners[1].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + corners[1].x)]/mulint;
-    cnear[2] = (float)ldepth_map[(int)(postrotate_pos.y + corners[2].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + corners[2].x)]/mulint;
-    cnear[3] = (float)ldepth_map[(int)(postrotate_pos.y + corners[3].y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x + corners[3].x)]/mulint;
+    cnear[0] = (float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x]/mulint;
+    cnear[1] = (float)ldepth_map[ccoords[1].y*LIGHTBUFFERDIM + ccoords[1].x]/mulint;
+    cnear[2] = (float)ldepth_map[ccoords[2].y*LIGHTBUFFERDIM + ccoords[2].x]/mulint;
+    cnear[3] = (float)ldepth_map[ccoords[3].y*LIGHTBUFFERDIM + ccoords[3].x]/mulint;
 
     float pass_arr[4] = {0,0,0,0};
     float cpass_arr[4] = {0,0,0,0};
@@ -2022,7 +2039,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(!invalid)
         {
-            x++;
+            x+=1;
 
             //investigate not doing any of this at all
 
@@ -2169,7 +2186,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///while more pixels to write
     while(pcount < op_size)
     {
-        x++;
+        x+=1;
 
         float ty = y;
 
@@ -2559,8 +2576,18 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
+
+    //write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
+
+    float lval = (float)light_depth_buffer[y*LIGHTBUFFERDIM + x + LIGHTBUFFERDIM*LIGHTBUFFERDIM*3] / mulint;
+
+    lval = lval * 500;
+
+    write_imagef(screen, scoord, lval);
+
+
     //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
-    write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
+
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));

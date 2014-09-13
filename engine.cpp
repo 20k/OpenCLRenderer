@@ -95,7 +95,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     cl_uint size = std::max(height, width);
     ///2^x=size;
 
-    l_size=4096; ///pass in as compilation parameter to opencl;
+    l_size=2048; ///pass in as compilation parameter to opencl;
 
     shadow_light_num = 0;
 
@@ -600,7 +600,6 @@ void engine::construct_shadowmaps()
     };
 
     cl_uint juan = 1;
-    compute::buffer is_light = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &juan);
 
     ///for every light, generate a cubemap for that light if its a light which casts a shadow
     for(unsigned int i=0, n=0; i<light::lightlist.size(); i++)
@@ -611,8 +610,6 @@ void engine::construct_shadowmaps()
             {
                 cl_uint zero = 0;
 
-                compute::buffer l_pos;
-                compute::buffer l_rot;
                 cl_mem temp_l_mem;
 
                 cl_buffer_region buf_reg;
@@ -620,12 +617,7 @@ void engine::construct_shadowmaps()
                 buf_reg.origin = n*sizeof(cl_uint)*l_size*l_size*6 + j*sizeof(cl_uint)*l_size*l_size;
                 buf_reg.size   = sizeof(cl_uint)*l_size*l_size;
 
-                l_pos = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &light::lightlist[i]->pos);
-                l_rot = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &r_struct[j]);
                 temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
-                //compute::buffer temp_l_mem_2 = compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6, CL_MEM_READ_WRITE, NULL);
-
-                compute::buffer l_mem(temp_l_mem, false);
 
                 cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
@@ -662,7 +654,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
                 p1arg_list.push_back(&g_tid_buf);
                 p1arg_list.push_back(&obj_mem_manager::g_tri_num);
-                p1arg_list.push_back(&l_mem);
+                p1arg_list.push_back(&temp_l_mem);
                 //p1arg_list.push_back(&temp_l_mem_2);
                 p1arg_list.push_back(&g_tid_buf_atomic_count);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
