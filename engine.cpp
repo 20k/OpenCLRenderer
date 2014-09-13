@@ -95,7 +95,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     cl_uint size = std::max(height, width);
     ///2^x=size;
 
-    l_size=1024; ///pass in as compilation parameter to opencl;
+    l_size=4096; ///pass in as compilation parameter to opencl;
 
     shadow_light_num = 0;
 
@@ -254,17 +254,28 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
         shadow_light_num=ln;
 
         ///blank cubemap filled with UINT_MAX
-        blank_light_buf = new cl_uint[l_size*l_size*6*ln];
-        memset(blank_light_buf, UINT_MAX, l_size*l_size*sizeof(cl_uint)*6*ln);
+        //blank_light_buf = new cl_uint[l_size*l_size*6];
+        //memset(blank_light_buf, UINT_MAX, l_size*l_size*sizeof(cl_uint)*6);
 
         g_shadow_light_buffer=compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
 
+
+
         for(int i=0; i<ln; i++)
         {
-            cl::cqueue.enqueue_write_buffer(g_shadow_light_buffer, sizeof(cl_uint)*l_size*l_size*6*i, sizeof(cl_uint)*l_size*l_size*6, blank_light_buf);
+            //cl::cqueue.enqueue_write_buffer(g_shadow_light_buffer, sizeof(cl_uint)*l_size*l_size*6*i, sizeof(cl_uint)*l_size*l_size*6, blank_light_buf);
         }
 
-        delete [] blank_light_buf;
+        cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
+
+        for(unsigned int i=0; i<l_size*l_size*6*ln; i++)
+        {
+            buf[i] = UINT_MAX;
+        }
+
+        clEnqueueUnmapMemObject(cl::cqueue.get(), g_shadow_light_buffer.get(), buf, 0, NULL, NULL);
+
+        //delete [] blank_light_buf;
     }
 }
 

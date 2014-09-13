@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
     //l.set_pos((cl_float4){-400, 150, -555, 0});
-    window.add_light(&l);
+   // window.add_light(&l);
 
     l.set_col((cl_float4){0.0f, 1.0f, 0.0f, 0});
 

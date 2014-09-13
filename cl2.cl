@@ -2,7 +2,7 @@
 
 #define FOV_CONST 500.0f
 
-#define LIGHTBUFFERDIM 1024
+#define LIGHTBUFFERDIM 4096
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
 #define M_PI 3.1415927f
@@ -337,7 +337,7 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, f
 
 float backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
-    return fast_normalize(cross(p1-p0, p2-p0)).z - 0.01 < 0;
+    return fast_normalize(cross(p1-p0, p2-p0)).z - 0.05 < 0;
 }
 
 float backface_cull(struct triangle *tri)
@@ -2012,7 +2012,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     bool invalid = false;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
-    float y = -100;
+    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
     ///while more pixels to write
     while(pcount < op_size)
@@ -2164,7 +2164,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
-    float y = -100;
+    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
     ///while more pixels to write
     while(pcount < op_size)
