@@ -669,8 +669,7 @@ void engine::construct_shadowmaps()
 
                 run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
-
-
+                clReleaseMemObject(temp_l_mem);
             }
             n++;
         }

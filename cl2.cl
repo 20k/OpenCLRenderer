@@ -1882,6 +1882,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         }
 
 
+        //a light would read outside this quite severely
         for(int j=0; j<3 && !is_light; j++)
         {
             int xc = round(tris_proj[i][j].x);
