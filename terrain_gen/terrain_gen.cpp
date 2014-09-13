@@ -171,6 +171,8 @@ void create_terrain(objects_container* obj, int width, int height)
         }
     }
 
+    printf("Loaded tri num %i\n", tris.size());
+
     delete [] vertex_positions;
 
     object sobj;

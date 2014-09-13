@@ -690,7 +690,6 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     }
 
 
-
     float3 p1, p2, c1, c2;
     float2 p1v, p2v, c1v, c2v;
     float3 p1l, p2l, c1l, c2l;
@@ -1521,6 +1520,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     ///extremely hacky smooth filtering additionally
     ///I dont actaully know how this works anymore
+    ///mix
     if(depthpass > 3 && dpth > ldp + len)
     {
 
@@ -2007,7 +2007,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     bool invalid = false;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
-    float y = 0;
+    float y = -100;
 
     ///while more pixels to write
     while(pcount < op_size)
@@ -2019,9 +2019,11 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         {
             x++;
 
+            //investigate not doing any of this at all
+
             float ty = y;
 
-            y = (int)(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
             if(y != ty)
             {
@@ -2157,7 +2159,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
-    float y = 0;
+    float y = -100;
 
     ///while more pixels to write
     while(pcount < op_size)
@@ -2166,7 +2168,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         float ty = y;
 
-        y = (int)(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
         if(y != ty)
         {
