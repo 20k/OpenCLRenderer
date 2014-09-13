@@ -1539,8 +1539,8 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         float fx = postrotate_pos.x - floor(postrotate_pos.x);
         float fy = postrotate_pos.y - floor(postrotate_pos.y);
 
-        float dx1 = fx * cpass_arr[3] + (1.0f-fx) * cpass_arr[2];
-        float dx2 = fx * cpass_arr[0] + (1.0f-fx) * cpass_arr[1];
+        float dx1 = fx * cpass_arr[1] + (1.0f-fx) * cpass_arr[0];
+        float dx2 = fx * cpass_arr[3] + (1.0f-fx) * cpass_arr[2];
         float fin = fy * dx2 + (1.0f-fy) * dx1;
 
 
@@ -1551,8 +1551,8 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         float fx = postrotate_pos.x - floor(postrotate_pos.x);
         float fy = postrotate_pos.y - floor(postrotate_pos.y);
 
-        float dx = fx*pass_arr[2] + (1.0f-fx)*pass_arr[3];
-        float dy = fy*pass_arr[0] + (1.0f-fy)*pass_arr[1];
+        float dx = fx*pass_arr[2] + (1.0f-fx)*pass_arr[1];
+        float dy = fy*pass_arr[3] + (1.0f-fy)*pass_arr[0];
 
         occamount += dx*dy;
     }
