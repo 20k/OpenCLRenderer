@@ -1883,16 +1883,20 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
 
         //a light would read outside this quite severely
-        for(int j=0; j<3 && !is_light; j++)
+
+        if(!is_light)
         {
-            int xc = round(tris_proj[i][j].x);
-            int yc = round(tris_proj[i][j].y);
+            for(int j=0; j<3; j++)
+            {
+                int xc = round(tris_proj[i][j].x);
+                int yc = round(tris_proj[i][j].y);
 
-            if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
-                continue;
+                if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
+                    continue;
 
-            tris_proj[i][j].xy += distort_buffer[yc*(int)ewidth + xc];
-            //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
+                tris_proj[i][j].xy += distort_buffer[yc*(int)ewidth + xc];
+                //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
+            }
         }
 
 
@@ -2585,13 +2589,12 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
 
-    //write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
+    write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
 
-    float lval = (float)light_depth_buffer[y*LIGHTBUFFERDIM + x + LIGHTBUFFERDIM*LIGHTBUFFERDIM*3] / mulint;
 
-    lval = lval * 500;
-
-    write_imagef(screen, scoord, lval);
+    //float lval = (float)light_depth_buffer[y*LIGHTBUFFERDIM + x + LIGHTBUFFERDIM*LIGHTBUFFERDIM*3] / mulint;
+    //lval = lval * 500;
+    //write_imagef(screen, scoord, lval);
 
 
     //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
