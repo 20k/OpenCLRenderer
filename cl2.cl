@@ -1465,9 +1465,10 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     float ldp = ((float)ldepth_map[(int)(postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)]/mulint);
 
     float near[4];
+    float cnear[4];
 
-
-    int2 sws[4] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+    //int2 sws[4] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+    int2 sws[4] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
     int2 mcoords[4];
 
     for(int i=0; i<4; i++)
@@ -1477,12 +1478,9 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         mcoords[i] = clamp(mcoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
     }
 
-    near[0] = (float)ldepth_map[mcoords[0].y*LIGHTBUFFERDIM + mcoords[0].x]/mulint;
-    near[1] = (float)ldepth_map[mcoords[1].y*LIGHTBUFFERDIM + mcoords[1].x]/mulint;
-    near[2] = (float)ldepth_map[mcoords[2].y*LIGHTBUFFERDIM + mcoords[2].x]/mulint;
-    near[3] = (float)ldepth_map[mcoords[3].y*LIGHTBUFFERDIM + mcoords[3].x]/mulint;
 
-    int2 corners[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+    //int2 corners[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+    int2 corners[4] = {{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
     int2 ccoords[4];
 
     for(int i=0; i<4; i++)
@@ -1492,18 +1490,19 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         ccoords[i] = clamp(ccoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
     }
 
-
-    float cnear[4];
-
     cnear[0] = (float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x]/mulint;
+    near[0] = (float)ldepth_map[mcoords[0].y*LIGHTBUFFERDIM + mcoords[0].x]/mulint;
     cnear[1] = (float)ldepth_map[ccoords[1].y*LIGHTBUFFERDIM + ccoords[1].x]/mulint;
+    near[1] = (float)ldepth_map[mcoords[1].y*LIGHTBUFFERDIM + mcoords[1].x]/mulint;
+
+    near[2] = (float)ldepth_map[mcoords[2].y*LIGHTBUFFERDIM + mcoords[2].x]/mulint;
     cnear[2] = (float)ldepth_map[ccoords[2].y*LIGHTBUFFERDIM + ccoords[2].x]/mulint;
+    near[3] = (float)ldepth_map[mcoords[3].y*LIGHTBUFFERDIM + mcoords[3].x]/mulint;
     cnear[3] = (float)ldepth_map[ccoords[3].y*LIGHTBUFFERDIM + ccoords[3].x]/mulint;
+
 
     float pass_arr[4] = {0,0,0,0};
     float cpass_arr[4] = {0,0,0,0};
-
-
 
     ///change of plan, shadows want to be static and fast at runtime, therefore going to sink the generate time into memory not runtime filtering
 
@@ -1894,7 +1893,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
                     continue;
 
-                tris_proj[i][j].xy += distort_buffer[yc*(int)ewidth + xc];
+                tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
                 //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
             }
         }
@@ -2078,16 +2077,10 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
+            ///cant be < 0 due to triangle clipping
             fmydepth = native_recip(fmydepth);
 
-            if(fmydepth < 0)
-            {
-                pcount++;
-                continue;
-            }
-
             ///retrieve original depth
-
             uint mydepth=fmydepth*mulint;
 
             uint sdepth = 0;
