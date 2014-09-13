@@ -2,10 +2,6 @@
 
 #define FOV_CONST 500.0f
 
-
-#define SCREENWIDTH 1280
-#define SCREENHEIGHT 768
-
 #define LIGHTBUFFERDIM 1024
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
@@ -1547,6 +1543,15 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
 
     return occamount;
+}
+
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+
+__kernel void atomic_64_test(__global ulong* test)
+{
+    int g_id = get_global_id(0);
+    //test[g_id] = 12;
+    atom_add(&test[g_id], 12l);
 }
 
 

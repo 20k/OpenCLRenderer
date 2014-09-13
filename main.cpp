@@ -1,5 +1,4 @@
 #include "proj.hpp"
-#include "ocl.h"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -19,9 +18,8 @@ int main(int argc, char *argv[])
     sponza.cache = false;
 
     engine window;
-    window.window.create(sf::VideoMode(1280, 768), "hmm");
-    oclstuff("cl2.cl");
-    window.load(1280,768,1000, "turtles");
+
+    window.load(1280,768,1000, "turtles", "cl2.cl");
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 

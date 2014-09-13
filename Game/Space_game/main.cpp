@@ -34,16 +34,6 @@
 
 ///fix into different runtime classes - specify ship attributes as vec
 
-template<typename T>
-std::string to_str(T i)
-{
-    std::ostringstream convert;
-
-    convert << i;
-
-    return convert.str();
-}
-
 //cl_float4 game_cam_position = {0,0,0,0};
 compute::buffer g_game_cam;
 
@@ -133,9 +123,7 @@ int main(int argc, char *argv[])
 
 
     engine window;
-    window.window.create(sf::VideoMode(1280, 768), "fixthisfixthisfixthis");
-    oclstuff("../cl2.cl");
-    window.load(1280,768,1000, "turtles");
+    window.load(1280,768,1000, "turtles", "../cl2.cl");
 
     auto cloud_buf = get_nebula();
 

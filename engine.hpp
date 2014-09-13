@@ -80,7 +80,7 @@ struct engine
 
     std::vector<object*> objects; ///obsolete?
 
-    void load(cl_uint, cl_uint, cl_uint, std::string);
+    void load(cl_uint, cl_uint, cl_uint, std::string, std::string);
 
     static cl_float4 rot_about(cl_float4, cl_float4, cl_float4);
     static cl_float4 rot_about_camera(cl_float4);

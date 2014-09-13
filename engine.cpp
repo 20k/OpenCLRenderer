@@ -21,6 +21,7 @@
 #include "vec.hpp"
 #include "ui_manager.hpp"
 #include <chrono>
+#include "ocl.h"
 
 #define FOV_CONST 500.0f
 ///this needs changing
@@ -74,8 +75,12 @@ void Timer::stop()
     stopped = true;
 }
 
-void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name)
+void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name, std::string loc)
 {
+    window.create(sf::VideoMode(pwidth, pheight), name);
+
+    oclstuff(loc.c_str(), pwidth, pheight);
+
     mdx = 0;
     mdy = 0;
     cmx = 0;

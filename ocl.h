@@ -116,7 +116,7 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     return k;
 }
 
-static void oclstuff(std::string file)
+static void oclstuff(std::string file, int w, int h)
 {
     ///need to initialise context and the like
     ///cant use boost::compute as it does not support opengl context sharing on windows
@@ -184,8 +184,20 @@ static void oclstuff(std::string file)
 
     compute::program program = compute::program::create_with_source(source, cl::context);
 
+    std::ostringstream convert;
+
+    convert << w;
+
+    std::string wstr = convert.str();
+
+    std::ostringstream converth;
+
+    converth << h;
+
+    std::string hstr = converth.str();
+
     ///does not compile properly without (breaks texture filtering), investigate this at some point
-    std::string buildoptions = "-cl-fast-relaxed-math";
+    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr;
 
     try
     {

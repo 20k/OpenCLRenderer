@@ -31,16 +31,6 @@
 
 ///fix into different runtime classes - specify ship attributes as vec
 
-template<typename T>
-std::string to_str(T i)
-{
-    std::ostringstream convert;
-
-    convert << i;
-
-    return convert.str();
-}
-
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -61,9 +51,7 @@ int main(int argc, char *argv[])
     sponza.cache = false;
 
     engine window;
-    window.window.create(sf::VideoMode(1280, 768), "hmm");
-    oclstuff("../../cl2.cl");
-    window.load(1280,768,1000, "turtles");
+    window.load(1280,768,1000, "turtles", "../../cl2.cl");
 
     window.set_camera_pos((cl_float4){0,0,0,0});
 

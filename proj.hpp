@@ -35,5 +35,14 @@ static cl_mem fake;
 
 namespace compute = boost::compute;
 
+template<typename T>
+std::string to_str(T i)
+{
+    std::ostringstream convert;
+
+    convert << i;
+
+    return convert.str();
+}
 
 #endif
