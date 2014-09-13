@@ -2007,13 +2007,13 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     bool invalid = false;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+    float y = 0;
 
     ///while more pixels to write
     while(pcount < op_size)
     {
         bool skip = false;
 
-        float y;
 
         if(!invalid)
         {
@@ -2157,11 +2157,11 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
+    float y = 0;
+
     ///while more pixels to write
     while(pcount < op_size)
     {
-        float y;
-
         x++;
 
         float ty = y;
