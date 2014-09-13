@@ -600,6 +600,7 @@ void engine::construct_shadowmaps()
     };
 
     cl_uint juan = 1;
+    cl_uint zero = 0;
 
     ///for every light, generate a cubemap for that light if its a light which casts a shadow
     for(unsigned int i=0, n=0; i<light::lightlist.size(); i++)
@@ -608,6 +609,8 @@ void engine::construct_shadowmaps()
         {
             for(int j=0; j<6; j++)
             {
+                cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+
                 cl_uint zero = 0;
 
                 cl_mem temp_l_mem;
@@ -667,7 +670,7 @@ void engine::construct_shadowmaps()
                 run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
 
-                cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+
             }
             n++;
         }
@@ -819,7 +822,7 @@ void engine::draw_bulk_objs_n()
     cl_uint zero=0;
 
     ///this is not a shadowmapping kernel. This needs to be passed in as a compile time parameter
-    compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR, &zero);
+    //compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR, &zero);
 
 
     cl_uint p3global_ws[]= {width, height};
@@ -868,6 +871,7 @@ void engine::draw_bulk_objs_n()
 
     ///clear the number of triangles that are generated after first kernel run
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
     arg_list prearg_list;
 

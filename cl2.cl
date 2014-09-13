@@ -1882,7 +1882,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         }
 
 
-        for(int j=0; j<3; j++)
+        for(int j=0; j<3 && !is_light; j++)
         {
             int xc = round(tris_proj[i][j].x);
             int yc = round(tris_proj[i][j].y);
@@ -2074,11 +2074,18 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
             fmydepth = native_recip(fmydepth);
+
+            if(fmydepth < 0)
+            {
+                pcount++;
+                continue;
+            }
+
             ///retrieve original depth
 
             uint mydepth=fmydepth*mulint;
 
-            uint sdepth = mulint;
+            uint sdepth = 0;
 
             if(!(fmydepth > 1 || mydepth == 0)) ///skip broken pixels
             {
