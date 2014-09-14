@@ -287,10 +287,10 @@ void calc_min_max(float3 points[3], float width, float height, float ret[4])
     ret[2] = min3(y[0], y[1], y[2]) - 1;
     ret[3] = max3(y[0], y[1], y[2]);
 
-    ret[0] = clamp(ret[0], 0.0f, width);
-    ret[1] = clamp(ret[1], 0.0f, width);
-    ret[2] = clamp(ret[2], 0.0f, height);
-    ret[3] = clamp(ret[3], 0.0f, height);
+    ret[0] = clamp(ret[0], 0.0f, width-1);
+    ret[1] = clamp(ret[1], 0.0f, width-1);
+    ret[2] = clamp(ret[2], 0.0f, height-1);
+    ret[3] = clamp(ret[3], 0.0f, height-1);
 
 }
 
@@ -1457,7 +1457,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
     ///off by one error hack, yes this is appallingly bad
-    postrotate_pos.xy = clamp(postrotate_pos.xy, (float2){1, 1}, (float2){LIGHTBUFFERDIM-2, LIGHTBUFFERDIM-2});
+    postrotate_pos.xy = clamp(postrotate_pos.xy, 1, LIGHTBUFFERDIM-2);
 
 
     float ldp = ((float)ldepth_map[(int)(postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)]/mulint);
@@ -1472,7 +1472,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     {
         mcoords[i] = sws[i] + (int2){postrotate_pos.x, postrotate_pos.y};
 
-        mcoords[i] = clamp(mcoords[i], 1, (int2){LIGHTBUFFERDIM-2, LIGHTBUFFERDIM-2});
+        mcoords[i] = clamp(mcoords[i], 1, LIGHTBUFFERDIM-2);
     }
 
     int2 corners[4] = {{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
@@ -1482,7 +1482,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     {
         ccoords[i] = corners[i] + (int2){postrotate_pos.x, postrotate_pos.y};
 
-        ccoords[i] = clamp(ccoords[i], 1, (int2){LIGHTBUFFERDIM-2, LIGHTBUFFERDIM-2});
+        ccoords[i] = clamp(ccoords[i], 1, LIGHTBUFFERDIM-2);
     }
 
     cnear[0] = native_divide((float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x], (float)mulint);
@@ -2053,7 +2053,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             break;
         }
 
-        if(x >= ewidth || y < 0 || x < 0)
+        if(x >= min_max[1] || y < 0 || x < 0)
         {
             pcount++;
             continue;
@@ -2206,7 +2206,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             break;
         }
 
-        if(x >= SCREENWIDTH || y < 0 || x < 0)
+        if(x >= min_max[1] || y < 0 || x < 0)
         {
             pcount++;
             continue;
