@@ -1456,18 +1456,15 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     ///cubemap depth buffer
     __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
+    ///off by one error hack, yes this is appallingly bad
+    postrotate_pos.xy = clamp(postrotate_pos.xy, (float2){1, 1}, (float2){LIGHTBUFFERDIM-2, LIGHTBUFFERDIM-2});
 
-    if(floor(postrotate_pos.y) < 0 || floor(postrotate_pos.y) > LIGHTBUFFERDIM-1 || floor(postrotate_pos.x) < 0 || floor(postrotate_pos.x) > LIGHTBUFFERDIM-1 || postrotate_pos.z <= 0)
-    {
-        return 0;
-    }
 
     float ldp = ((float)ldepth_map[(int)(postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)]/mulint);
 
     float near[4];
     float cnear[4];
 
-    //int2 sws[4] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
     int2 sws[4] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
     int2 mcoords[4];
 
@@ -1475,11 +1472,9 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     {
         mcoords[i] = sws[i] + (int2){postrotate_pos.x, postrotate_pos.y};
 
-        mcoords[i] = clamp(mcoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
+        mcoords[i] = clamp(mcoords[i], 1, (int2){LIGHTBUFFERDIM-2, LIGHTBUFFERDIM-2});
     }
 
-
-    //int2 corners[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
     int2 corners[4] = {{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
     int2 ccoords[4];
 
@@ -1487,7 +1482,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     {
         ccoords[i] = corners[i] + (int2){postrotate_pos.x, postrotate_pos.y};
 
-        ccoords[i] = clamp(ccoords[i], 0, (int2){LIGHTBUFFERDIM-1, LIGHTBUFFERDIM-1});
+        ccoords[i] = clamp(ccoords[i], 1, (int2){LIGHTBUFFERDIM-2, LIGHTBUFFERDIM-2});
     }
 
     cnear[0] = native_divide((float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x], (float)mulint);
@@ -2031,7 +2026,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }
 
 
-    bool invalid = false;
+    //bool invalid = false;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
@@ -2039,39 +2034,35 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///while more pixels to write
     while(pcount < op_size)
     {
-        bool skip = false;
 
+        x+=1;
 
-        if(!invalid)
+        //investigate not doing any of this at all
+
+        float ty = y;
+
+        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+        if(y != ty)
         {
-            x+=1;
-
-            //investigate not doing any of this at all
-
-            float ty = y;
-
-            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-            if(y != ty)
-            {
-                x = ((pixel_along + pcount) % width) + min_max[0];
-            }
+            x = ((pixel_along + pcount) % width) + min_max[0];
         }
 
         if(y >= min_max[3])
         {
-            invalid = true;
+            break;
         }
 
-        if(!invalid && (x >= ewidth || y < 0 || x < 0))
+        if(x >= ewidth || y < 0 || x < 0)
         {
-            skip = true;
+            pcount++;
+            continue;
         }
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if(!invalid && !skip && (s1 >= area - mod && s1 <= area + mod))
+        if((s1 >= area - mod && s1 <= area + mod))
         {
             __global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
             //__global uint *ftr=&reprojected_depth_buffer[(int)(y*ewidth) + (int)x];
@@ -2084,12 +2075,13 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             ///retrieve original depth
             uint mydepth=fmydepth*mulint;
 
-            uint sdepth = 0;
-
-            if(!(fmydepth > 1 || mydepth == 0)) ///skip broken pixels
+            if(fmydepth > 1 || mydepth == 0)
             {
-                sdepth = atomic_min(ft, mydepth);
+                pcount++;
+                continue;
             }
+
+            uint sdepth = atomic_min(ft, mydepth);
 
             /*if(mydepth-1000000 > (*ftr))
             {
