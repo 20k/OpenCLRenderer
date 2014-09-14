@@ -2449,8 +2449,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 mandatory_light = {0,0,0};
 
-
-
     ///rewite lighting to be in screenspace
 
     int num_lights = *lnum;
@@ -2461,37 +2459,29 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         struct light l = lights[i];
 
-        float3 lpos=l.pos.xyz;
+        float3 lpos = l.pos.xyz;
 
-        float3 l2c=lpos-global_position; ///light to pixel position
+        float3 l2c = lpos-global_position; ///light to pixel position
 
-        float light=dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
-
-        if(light < 0)
-        {
-            lightaccum += ambient * l.col.xyz;
-
-            if(l.shadow == 1)
-                shnum++;
-
-            if(l.pos.w != 1.0f)
-                continue;
-        }
+        float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
 
         //float3 l2c = light_rotated - local_position;
 
         //float light = dot(normalize(l2c), normalize(rot((float3){1, 0, 0, 0}, zero, *c_rot)));
 
-
-        //can bail out early if disteq < 0?
-        //float disteq = native_divide((rad - dist_to_pixel), rad); ///light attenuation based on pixel from light distance/radius
-
-
         float rad = l.radius;
 
         float disteq = 1.0f - native_divide(fast_length(l2c), rad);
 
-        if(disteq < 0)
+        disteq = max(disteq, 0.0f);
+
+        disteq *= disteq;
+
+        disteq = min(disteq, 1.0f);
+
+        light *= disteq;
+
+        if(light <= 0.0f)
         {
             lightaccum += ambient * l.col.xyz;
 
@@ -2501,14 +2491,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             if(l.pos.w != 1.0f)
                 continue;
         }
-
-        disteq = clamp(disteq, 0.0f, 1.0f);
-
-        disteq *= disteq;
-
-        disteq = clamp(disteq, 0.0f, 1.0f);
-
-        light *= disteq;
 
         //float3 H = fast_normalize(l2c + global_position - *c_pos);
 
@@ -2590,7 +2572,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //col/=255.0f;
 
 
-    lightaccum = clamp(lightaccum, 0, 1);//native_recip(col));
+    lightaccum = clamp(lightaccum, 0.0f, 1.0f);//native_recip(col));
 
     //float3 rot_normal;
 
