@@ -2141,7 +2141,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     uint which = fragment_id_buffer[tid*3];
 
-    uint o_id = triangles[which].vertices[0].object_id;
+    //uint o_id = triangles[which].vertices[0].object_id;
 
 
     float3 tris_proj_n[3];
@@ -2246,7 +2246,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             if(mydepth > *ft - 10 && mydepth < *ft + 10)
             {
                 int2 coord = {x, y};
-                uint4 d = {tid, o_id, 0, 0};
+                uint4 d = {tid, 0, 0, 0};
                 write_imageui(id_buffer, coord, d);
 
                 //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
@@ -2263,7 +2263,7 @@ __kernel
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __constant uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           __global float2* distort_buffer
+           __global float2* distort_buffer, __write_only image2d_t object_ids
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -2304,9 +2304,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     if(*ft == UINT_MAX)
     {
+        write_imagei(object_ids, (int2){x, y}, -1);
         write_imagef(screen, (int2){x, y}, 0.0f);
         return;
     }
+
 
     /*uint rproj_depth = reprojected_buffer[y*SCREENWIDTH + x];
 
@@ -2333,6 +2335,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     int local_id = fragment_id_buffer[id_val*3 + 2];
 
     __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
+
+
+    write_imagei(object_ids, (int2){x, y}, T->vertices[0].object_id);
+
 
     ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
 
@@ -2628,13 +2634,13 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
 
     uint4 object_read = read_imageui(object_ids, sam, (int2){x, y});
 
-    int o_id = object_read.y;
+    int o_id = object_read.x;
 
     int vals[2];
 
     //only do top left
-    vals[0] = read_imageui(object_ids, sam, (int2){x, y-1}).y;
-    vals[1] = read_imageui(object_ids, sam, (int2){x+1, y}).y;
+    vals[0] = read_imageui(object_ids, sam, (int2){x, y-1}).x;
+    vals[1] = read_imageui(object_ids, sam, (int2){x+1, y}).x;
     //vals[2] = read_imageui(object_ids, sam, (int2){x, y+1}).y;
     //vals[3] = read_imageui(object_ids, sam, (int2){x-1, y}).y;
 
@@ -2657,9 +2663,9 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     ///if none of the values are true, or nothing is currently on the screen
     ///latter is hacky proxy for no triangles written
 
-    float4 cur_val = read_imagef(old_screen, sam, (int2){x, y});
+    //float4 cur_val = read_imagef(old_screen, sam, (int2){x, y});
 
-    if(!any_true && any(cur_val.xyz != 0.0f))
+    if(!any_true)// && any(cur_val.xyz != 0.0f))
     {
         write_imagef(smoothed_screen, (int2){x, y}, read_imagef(old_screen, sam, (int2){x, y}));
         return;
@@ -2671,12 +2677,12 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
 
     read += read_imagef(old_screen, sam, (int2){x, y-1});
     read += read_imagef(old_screen, sam, (int2){x+1, y});
-    read += read_imagef(old_screen, sam, (int2){x, y+1});
-    read += read_imagef(old_screen, sam, (int2){x-1, y});
+    //read += read_imagef(old_screen, sam, (int2){x, y+1});
+    //read += read_imagef(old_screen, sam, (int2){x-1, y});
 
     read += read_imagef(old_screen, sam, (int2){x, y})*2;
 
-    read /= 6.0f;
+    read /= 4.0f;
 
     write_imagef(smoothed_screen, (int2){x, y}, read);
 }

@@ -207,9 +207,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    compute::image_format format(CL_RG, CL_UNSIGNED_INT32);
+    compute::image_format format(CL_R, CL_UNSIGNED_INT32);
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
+    g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
     g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
@@ -988,6 +989,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&g_tid_buf);
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p3arg_list.push_back(&g_distortion_buffer);
+    p3arg_list.push_back(&g_object_id_tex);
     //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
 
     ///this is the deferred screenspace pass
@@ -996,7 +998,7 @@ void engine::draw_bulk_objs_n()
 
 
     arg_list smooth_arg_list;
-    smooth_arg_list.push_back(&g_id_screen_tex);
+    smooth_arg_list.push_back(&g_object_id_tex);
     smooth_arg_list.push_back(&g_screen);
     smooth_arg_list.push_back(&g_screen_edge_smoothed);
 

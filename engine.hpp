@@ -47,6 +47,7 @@ struct engine
     compute::buffer depth_buffer[2];
     compute::buffer reprojected_depth_buffer[2];
     compute::image2d g_id_screen_tex; ///2d screen id texture
+    compute::image2d g_object_id_tex; ///object level ids
     static compute::buffer g_ui_id_screen; ///2d screen ui_id buffer
     compute::buffer g_normals_screen; ///unused 2d normal buffer
     compute::buffer g_texture_screen; ///unused 2d texture coordinate buffer
