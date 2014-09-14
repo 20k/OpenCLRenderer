@@ -2617,7 +2617,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
-
+//detect step edges, then blur gaussian and mask with object ids?
 __kernel
 void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen)
 {
@@ -2644,13 +2644,7 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     //vals[2] = read_imageui(object_ids, sam, (int2){x, y+1}).y;
     //vals[3] = read_imageui(object_ids, sam, (int2){x-1, y}).y;
 
-    /*for(int j=-1; j<2; j++)
-    {
-        for(int i=-1; i<2; i++)
-        {
-            vals[j*3 + i] = read_imageui(object_ids, sam, (int2){x+i, y+j}).y;
-        }
-    }*/
+
 
     bool any_true = false;
 
@@ -2663,15 +2657,11 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     ///if none of the values are true, or nothing is currently on the screen
     ///latter is hacky proxy for no triangles written
 
-    //float4 cur_val = read_imagef(old_screen, sam, (int2){x, y});
-
-    if(!any_true)// && any(cur_val.xyz != 0.0f))
+    if(!any_true)
     {
         write_imagef(smoothed_screen, (int2){x, y}, read_imagef(old_screen, sam, (int2){x, y}));
         return;
     }
-
-
 
     float4 read = 0;
 
