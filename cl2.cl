@@ -1561,13 +1561,15 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     return occamount;
 }
 
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+///not supported on nvidia :(
+/*#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
 
 __kernel void atomic_64_test(__global ulong* test)
 {
     int g_id = get_global_id(0);
-    atom_add(&test[g_id], 12l);
-}
+    atom_min(&test[g_id], 12l);
+}*/
 
 
 __kernel void trivial_kernel(__global struct triangle* triangles, __read_only image3d_t texture, __global uint* someout)
@@ -2644,7 +2646,13 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     //vals[2] = read_imageui(object_ids, sam, (int2){x, y+1}).y;
     //vals[3] = read_imageui(object_ids, sam, (int2){x-1, y}).y;
 
-
+    /*for(int j=-1; j<2; j++)
+    {
+        for(int i=-1; i<2; i++)
+        {
+            vals[j*3 + i] = read_imageui(object_ids, sam, (int2){x+i, y+j}).y;
+        }
+    }*/
 
     bool any_true = false;
 
