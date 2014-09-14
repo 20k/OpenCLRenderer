@@ -1941,8 +1941,9 @@ struct local_check
     uint4 val;
 };
 
-///pad buffers so i don't have to do bounds checking?
+///pad buffers so i don't have to do bounds checking? Probably slower
 ///rotates and projects triangles into screenspace, writes their depth atomically
+///do double skip so that I skip more things outside of a triangle?
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, uint is_light, __global float2* distort_buffer)
@@ -1988,7 +1989,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     calc_min_max(tris_proj_n, ewidth, eheight, min_max);
 
 
-    int width  = min_max[1] - min_max[0];
+    int width = min_max[1] - min_max[0];
 
     ///pixel to start at in triangle, ie distance is which fragment it is
     int pixel_along = op_size*distance;
@@ -2034,7 +2035,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///while more pixels to write
     while(pcount < op_size)
     {
-
         x+=1;
 
         //investigate not doing any of this at all
@@ -2478,21 +2478,33 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
                 continue;
         }
 
-        float3 light_rotated = rot(lpos, camera_pos, camera_rot);
-
         //float3 l2c = light_rotated - local_position;
 
         //float light = dot(normalize(l2c), normalize(rot((float3){1, 0, 0, 0}, zero, *c_rot)));
 
-        ///maybe do this cpu side or something?
-        float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-        float dist_to_pixel = fast_distance(projected_out, (float3){x, y, ldepth});
+        //can bail out early if disteq < 0?
+        //float disteq = native_divide((rad - dist_to_pixel), rad); ///light attenuation based on pixel from light distance/radius
+
 
         float rad = l.radius;
 
-        //can bail out early if disteq < 0?
-        float disteq = native_divide((rad - dist_to_pixel), rad); ///light attenuation based on pixel from light distance/radius
+        float disteq = 1.0f - native_divide(fast_length(l2c), rad);
+
+        if(disteq < 0)
+        {
+            lightaccum += ambient * l.col.xyz;
+
+            if(l.shadow == 1)
+                shnum++;
+
+            if(l.pos.w != 1.0f)
+                continue;
+        }
+
+        disteq = clamp(disteq, 0.0f, 1.0f);
+
+        disteq *= disteq;
 
         disteq = clamp(disteq, 0.0f, 1.0f);
 
@@ -2527,6 +2539,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ///game shader effect, creates 2d screespace 'light'
         if(l.pos.w == 1.0f) ///check light within screen
         {
+            float3 light_rotated = rot(lpos, camera_pos, camera_rot);
+
+            ///maybe do this cpu side or something?
+            float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
             if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
             {
                 float radius = 14000.0f / projected_out.z; /// obviously temporary, arbitrary radius defined
@@ -2573,7 +2590,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //col/=255.0f;
 
 
-    lightaccum = clamp(lightaccum, 0, native_recip(col));
+    lightaccum = clamp(lightaccum, 0, 1);//native_recip(col));
 
     //float3 rot_normal;
 

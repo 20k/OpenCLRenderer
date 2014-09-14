@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
     l.set_shadow_casting(1);
     l.set_brightness(1);
     l.set_pos((cl_float4){-150, 150, 0});
+    l.radius = 10000;
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
     //l.set_pos((cl_float4){-400, 150, -555, 0});
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){0, 200, -450, 0});
     l.set_pos((cl_float4){-0, 200, -500, 0});
     l.shadow=1;
+    l.radius = 10000;
 
     window.add_light(&l);
 
