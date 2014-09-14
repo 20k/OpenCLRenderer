@@ -231,6 +231,7 @@ static void oclstuff(std::string file, int w, int h)
     cl::reproject_depth = load_kernel(program, "reproject_depth");
     cl::reproject_screen = load_kernel(program, "reproject_screen");
     cl::space_nebulae = load_kernel(program, "space_nebulae");
+    cl::edge_smoothing = load_kernel(program, "edge_smoothing");
 }
 
 

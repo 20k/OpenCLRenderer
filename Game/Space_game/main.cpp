@@ -255,7 +255,6 @@ int main(int argc, char *argv[])
         //std::cout << ui_manager::offset_from_minimum["ui_slider"].y << std::endl;
 
 
-
         sf::Clock c;
         //ship.systems.pull_from_ui();
         ship.update_power_info();
@@ -268,8 +267,6 @@ int main(int argc, char *argv[])
 
         wgs.x = 10;
         wgs.y = 10;
-
-
 
 
         if(window.window.pollEvent(Event))
@@ -360,7 +357,7 @@ int main(int argc, char *argv[])
 
         window.draw_fancy_projectiles(projectile_image, projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
 
-        window.draw_space_nebulae(cloud_buf);
+        //window.draw_space_nebulae(cloud_buf);
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
 

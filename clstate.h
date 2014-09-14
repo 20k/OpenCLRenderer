@@ -47,6 +47,7 @@ namespace cl
     extern kernel reproject_depth;
     extern kernel reproject_screen;
     extern kernel space_nebulae;
+    extern kernel edge_smoothing;
 }
 
 

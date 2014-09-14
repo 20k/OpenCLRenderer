@@ -30,6 +30,7 @@
 unsigned int engine::gl_framebuffer_id=0;
 unsigned int engine::gl_reprojected_framebuffer_id=0;
 unsigned int engine::gl_screen_id=0;
+unsigned int engine::gl_smoothed_framebuffer_id=0;
 
 
 ///the empty light buffer, and number of shadow lights
@@ -49,9 +50,6 @@ cl_float4 engine::c_rot;
 
 cl_float4 engine::old_pos;
 cl_float4 engine::old_rot;
-
-
-bool engine::camera_dirty;
 
 int engine::nbuf=0; ///which depth buffer are we using?
 
@@ -73,6 +71,44 @@ void Timer::stop()
     std::cout << name << " " << time << std::endl;
 
     stopped = true;
+}
+
+compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h)
+{
+    ///OpenGL is literally the worst API
+    PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
+    PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+    PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)wglGetProcAddress("glGenRenderbuffersEXT");
+    PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
+    PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)wglGetProcAddress("glRenderbufferStorageEXT");
+    PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
+
+    GLuint screen_id;
+
+    glGenRenderbuffersEXT(1, &screen_id);
+    glBindRenderbufferEXT(GL_RENDERBUFFER, screen_id);
+
+    ///generate storage for renderbuffer
+    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA, w, h);
+
+    GLuint framebuf;
+
+    ///get a framebuffer and bind it
+    glGenFramebuffersEXT(1, &framebuf);
+    glBindFramebufferEXT(GL_FRAMEBUFFER, framebuf);
+
+
+    ///attach one to the other
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, screen_id);
+
+
+    ///have opencl nab this and store in g_screen
+    compute::opengl_renderbuffer buf = compute::opengl_renderbuffer(cl::context, screen_id, compute::memory_object::read_write);
+
+    if(renderbuffer_id != NULL)
+        *renderbuffer_id = framebuf;
+
+    return buf;
 }
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name, std::string loc)
@@ -124,46 +160,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
 
     ///generate and bind renderbuffers
-    glGenRenderbuffersEXT(1, &gl_screen_id);
-    glBindRenderbufferEXT(GL_RENDERBUFFER, gl_screen_id);
+    g_screen = gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, width, height);
 
-    ///generate storage for renderbuffer
-    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA, width, height);
+    g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
 
+    g_screen_edge_smoothed = gen_cl_gl_framebuffer_renderbuffer(&gl_smoothed_framebuffer_id, width, height);
 
-    ///get a framebuffer and bind it
-    glGenFramebuffersEXT(1, &gl_framebuffer_id);
-    glBindFramebufferEXT(GL_FRAMEBUFFER, gl_framebuffer_id);
-
-
-    ///attach one to the other
-    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, gl_screen_id);
-
-
-    ///have opencl nab this and store in g_screen
-    g_screen = compute::opengl_renderbuffer(cl::context, gl_screen_id, compute::memory_object::write_only);
-
-    unsigned int temp;
-
-    ///generate and bind renderbuffers
-    glGenRenderbuffersEXT(1, &temp);
-    glBindRenderbufferEXT(GL_RENDERBUFFER, temp);
-
-    ///generate storage for renderbuffer
-    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA, width, height);
-
-
-    ///get a framebuffer and bind it
-    glGenFramebuffersEXT(1, &gl_reprojected_framebuffer_id);
-    glBindFramebufferEXT(GL_FRAMEBUFFER, gl_reprojected_framebuffer_id);
-
-
-    ///attach one to the other
-    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, temp);
-
-
-    ///have opencl nab this and store in g_screen_reprojected
-    g_screen_reprojected = compute::opengl_renderbuffer(cl::context, temp, compute::memory_object::write_only);
+    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
+    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_edge_smoothed.get(), cl::cqueue);
 
 
     ///this is a completely arbitrary size to store triangle uids in
@@ -202,7 +207,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    compute::image_format format(CL_R, CL_UNSIGNED_INT32);
+    compute::image_format format(CL_RG, CL_UNSIGNED_INT32);
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
@@ -563,8 +568,6 @@ void engine::input()
     {
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
-
-    camera_dirty = true;
 }
 
 void engine::construct_shadowmaps()
@@ -931,7 +934,7 @@ void engine::draw_bulk_objs_n()
 
     cl_uint local2=128;
 
-    compute::buffer image_wrapper(g_id_screen_tex.get(), true);
+    //compute::buffer image_wrapper(g_id_screen_tex.get(), true);
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 
@@ -940,7 +943,7 @@ void engine::draw_bulk_objs_n()
     p2arg_list.push_back(&g_tid_buf);
     p2arg_list.push_back(&obj_mem_manager::g_tri_num);
     p2arg_list.push_back(&depth_buffer[nbuf]);
-    p2arg_list.push_back(&image_wrapper);
+    p2arg_list.push_back(&g_id_screen_tex);
     p2arg_list.push_back(&g_tid_buf_atomic_count);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
@@ -971,7 +974,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&c_pos);
     p3arg_list.push_back(&c_rot);
     p3arg_list.push_back(&depth_buffer[nbuf]);
-    p3arg_list.push_back(&image_wrapper);
+    p3arg_list.push_back(&g_id_screen_tex);
     p3arg_list.push_back(&texture_wrapper);
     p3arg_list.push_back(&screen_wrapper);
     p3arg_list.push_back(&texture_manager::g_texture_numbers);
@@ -990,6 +993,22 @@ void engine::draw_bulk_objs_n()
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
+
+
+    arg_list smooth_arg_list;
+    smooth_arg_list.push_back(&g_id_screen_tex);
+    smooth_arg_list.push_back(&g_screen);
+    smooth_arg_list.push_back(&g_screen_edge_smoothed);
+
+    run_kernel_with_list(cl::edge_smoothing, p3global_ws, p3local_ws, 2, smooth_arg_list, true);
+
+    ///swap screen for smoothed screen
+    ///this is so that kernels only need to use THE screen, rather than worrying about modifications in this kernel
+    compute::opengl_renderbuffer temp = g_screen;
+    g_screen = g_screen_edge_smoothed;
+    g_screen_edge_smoothed = temp;
+
+    //restart prearrange immediately here, and use event lists to wait for p3 in flip?
 
     //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
 
@@ -1013,9 +1032,6 @@ void engine::draw_bulk_objs_n()
 
     ///release opengl stuff
     //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
-
-
-    camera_dirty = false;
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
@@ -1274,7 +1290,8 @@ void engine::render_buffers()
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
     //glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_reprojected_framebuffer_id);
-    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
+    ///actually is smoothed id, because the screen above is a 'fake', is actually the smoothed buffer
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_smoothed_framebuffer_id);
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
     ///blit buffer to screen
@@ -1292,10 +1309,12 @@ void engine::render_buffers()
     nbuf++;
     nbuf = nbuf % 2;
 
-    camera_dirty = false;
-
-
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+
+    ///swap smoothed and proper buffers back
+    compute::opengl_renderbuffer temp = g_screen;
+    g_screen = g_screen_edge_smoothed;
+    g_screen_edge_smoothed = temp;
 }
 
 ///does this need to be somewhere more fun? Minimap vs UI
@@ -1385,13 +1404,11 @@ int engine::get_mouse_y()
 void engine::set_camera_pos(cl_float4 p)
 {
     c_pos = p;
-    camera_dirty = true;
 }
 
 void engine::set_camera_rot(cl_float4 r)
 {
     c_rot = r;
-    camera_dirty = true;
 }
 
 ///unused, and due to change in plans may be removed

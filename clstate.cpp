@@ -28,3 +28,4 @@ kernel cl::draw_fancy_projectile;
 kernel cl::reproject_depth;
 kernel cl::reproject_screen;
 kernel cl::space_nebulae;
+kernel cl::edge_smoothing;

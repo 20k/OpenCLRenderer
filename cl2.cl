@@ -94,7 +94,7 @@ struct vertex
     float4 pos;
     float4 normal;
     float2 vt;
-    uint pad;
+    uint object_id;
     uint pad2;
 };
 
@@ -631,9 +631,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback->vertices[1].vt = T->vertices[1].vt;
         passback->vertices[2].vt = T->vertices[2].vt;
 
-        passback->vertices[0].pad = T->vertices[0].pad;
-        passback->vertices[1].pad = T->vertices[1].pad;
-        passback->vertices[2].pad = T->vertices[2].pad;
+        passback->vertices[0].object_id = T->vertices[0].object_id;
+        passback->vertices[1].object_id = T->vertices[1].object_id;
+        passback->vertices[2].object_id = T->vertices[2].object_id;
 
         *num = 1;
 
@@ -690,9 +690,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     float2 p1v, p2v, c1v, c2v;
     float3 p1l, p2l, c1l, c2l;
 
-    passback[0].vertices[0].pad = T->vertices[0].pad;
-    passback[0].vertices[1].pad = T->vertices[1].pad;
-    passback[0].vertices[2].pad = T->vertices[2].pad;
+    passback[0].vertices[0].object_id = T->vertices[0].object_id;
+    passback[0].vertices[1].object_id = T->vertices[1].object_id;
+    passback[0].vertices[2].object_id = T->vertices[2].object_id;
 
 
     if(n_behind==0)
@@ -829,8 +829,8 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         for(int i=0; i<3; i++)
         {
-            passback[1].vertices[i].pad = T->vertices[i].pad;
-            //passback[1].vertices[i].pad.y = T->vertices[i].pad.y;
+            passback[1].vertices[i].object_id = T->vertices[i].object_id;
+            //passback[1].vertices[i].object_id.y = T->vertices[i].object_id.y;
         }
 
         *num = 2;
@@ -1811,7 +1811,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     __global struct triangle *T = &triangles[id];
 
-    int o_id = T->vertices[0].pad;
+    int o_id = T->vertices[0].object_id;
 
     ///this is the 3d projection 'pipeline'
 
@@ -1957,7 +1957,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         return;
     }
 
-    uint lid = get_local_id(0);
+    //uint lid = get_local_id(0);
 
     float ewidth = SCREENWIDTH;
     float eheight = SCREENHEIGHT;
@@ -2137,6 +2137,12 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     uint ctri = valid_tri_mem[id*3 + 2];
 
 
+    //uint o_id = triangles[tid].vertices[0].object_id;
+
+    uint which = fragment_id_buffer[tid*3];
+
+    uint o_id = triangles[which].vertices[0].object_id;
+
 
     float3 tris_proj_n[3];
 
@@ -2240,8 +2246,10 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             if(mydepth > *ft - 10 && mydepth < *ft + 10)
             {
                 int2 coord = {x, y};
-                uint4 d = {tid, 0, 0, 0};
+                uint4 d = {tid, o_id, 0, 0};
                 write_imageui(id_buffer, coord, d);
+
+                //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
             }
         }
 
@@ -2294,6 +2302,12 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     camera_rot = c_rot.xyz;
 
 
+    if(*ft == UINT_MAX)
+    {
+        write_imagef(screen, (int2){x, y}, 0.0f);
+        return;
+    }
+
     /*uint rproj_depth = reprojected_buffer[y*SCREENWIDTH + x];
 
     float val = (float)rproj_depth/mulint;
@@ -2320,14 +2334,13 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
 
-
     ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
 
     struct triangle tris[2];
 
     int num = 0;
 
-    int o_id=T->vertices[0].pad;
+    int o_id=T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
 
@@ -2440,7 +2453,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     ///rewite lighting to be in screenspace
 
-    for(int i=0; i<*(lnum); i++)
+    int num_lights = *lnum;
+
+    for(int i=0; i<num_lights; i++)
     {
         float ambient = 0.1f;
 
@@ -2568,10 +2583,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float hbao = 0;
 
-    if(*ft == mulint)
+    /*if(*ft == mulint)
     {
         col = 0;
-    }
+    }*/
 
     float3 colclamp = col*lightaccum + mandatory_light;
 
@@ -2594,6 +2609,76 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
+}
+
+
+__kernel
+void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen)
+{
+    uint x = get_global_id(0);
+    uint y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP           |
+                    CLK_FILTER_NEAREST;
+
+
+    uint4 object_read = read_imageui(object_ids, sam, (int2){x, y});
+
+    int o_id = object_read.y;
+
+    int vals[2];
+
+    //only do top left
+    vals[0] = read_imageui(object_ids, sam, (int2){x, y-1}).y;
+    vals[1] = read_imageui(object_ids, sam, (int2){x+1, y}).y;
+    //vals[2] = read_imageui(object_ids, sam, (int2){x, y+1}).y;
+    //vals[3] = read_imageui(object_ids, sam, (int2){x-1, y}).y;
+
+    /*for(int j=-1; j<2; j++)
+    {
+        for(int i=-1; i<2; i++)
+        {
+            vals[j*3 + i] = read_imageui(object_ids, sam, (int2){x+i, y+j}).y;
+        }
+    }*/
+
+    bool any_true = false;
+
+    for(int i=0; i<2; i++)
+    {
+        if(vals[i] != o_id)
+            any_true = true;
+    }
+
+    ///if none of the values are true, or nothing is currently on the screen
+    ///latter is hacky proxy for no triangles written
+
+    float4 cur_val = read_imagef(old_screen, sam, (int2){x, y});
+
+    if(!any_true && any(cur_val.xyz != 0.0f))
+    {
+        write_imagef(smoothed_screen, (int2){x, y}, read_imagef(old_screen, sam, (int2){x, y}));
+        return;
+    }
+
+
+
+    float4 read = 0;
+
+    read += read_imagef(old_screen, sam, (int2){x, y-1});
+    read += read_imagef(old_screen, sam, (int2){x+1, y});
+    read += read_imagef(old_screen, sam, (int2){x, y+1});
+    read += read_imagef(old_screen, sam, (int2){x-1, y});
+
+    read += read_imagef(old_screen, sam, (int2){x, y})*2;
+
+    read /= 6.0f;
+
+    write_imagef(smoothed_screen, (int2){x, y}, read);
 }
 
 __kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_clear, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)

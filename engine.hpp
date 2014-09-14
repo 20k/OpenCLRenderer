@@ -35,10 +35,9 @@ struct engine
     static cl_float4 old_pos;
     static cl_float4 old_rot;
 
-    static bool camera_dirty;
-
     compute::opengl_renderbuffer g_screen;
     compute::opengl_renderbuffer g_screen_reprojected;
+    compute::opengl_renderbuffer g_screen_edge_smoothed;
 
     ///gpu side camera position and rotation
     //compute::buffer g_c_pos;
@@ -72,6 +71,7 @@ struct engine
     static unsigned int gl_screen_id;
     static unsigned int gl_framebuffer_id;
     static unsigned int gl_reprojected_framebuffer_id;
+    static unsigned int gl_smoothed_framebuffer_id;
 
     static cl_uint *blank_light_buf;
     static cl_uint shadow_light_num;
@@ -200,7 +200,7 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
     #endif
 }
 
-static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc)
+/*static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc)
 {
     cl_uint g_ws[dimensions];
 
@@ -231,7 +231,7 @@ static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint lo
 
     //if(blocking)
     //    cl::cqueue.finish();
-}
+}*/
 
 
 #endif
