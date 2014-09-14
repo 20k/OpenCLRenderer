@@ -2445,7 +2445,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 lightaccum = 0;
 
-    int shnum=0;
+    int shnum = 0;
 
     float3 mandatory_light = {0,0,0};
 
@@ -2461,23 +2461,33 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float3 lpos = l.pos.xyz;
 
+
+        //begin lambert
+
         float3 l2c = lpos-global_position; ///light to pixel position
 
         float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
 
-        //float3 l2c = light_rotated - local_position;
+        //end lambert
 
-        //float light = dot(normalize(l2c), normalize(rot((float3){1, 0, 0, 0}, zero, *c_rot)));
+
+
+
+
+
+
+
+
+
 
         float rad = l.radius;
 
         float disteq = 1.0f - native_divide(fast_length(l2c), rad);
 
-        disteq = max(disteq, 0.0f);
+        //no need to square, gets squared at the end
+        disteq = clamp(disteq, 0.0f, 1.0f);
 
         disteq *= disteq;
-
-        disteq = min(disteq, 1.0f);
 
         light *= disteq;
 
@@ -2496,13 +2506,13 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         ///do light radius
 
-        int skip=0;
+        int skip = 0;
 
         float average_occ = 0;
 
         int which_cubeface;
 
-        if(l.shadow==1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
+        if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
         {
 
             if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) > 0) ///backface
@@ -2553,10 +2563,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         }
 
 
-        light = max(0.0f, light);
+        //light = max(0.0f, light);
 
         ///diffuse + ambient, no specular yet
-        lightaccum+=(1.0f-ambient)*light*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*l.col.xyz; //wrong, change ambient to colour
+        lightaccum+=(1.0f-ambient)*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*l.col.xyz; //wrong, change ambient to colour
     }
 
 
