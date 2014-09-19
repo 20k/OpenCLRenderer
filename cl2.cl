@@ -2052,7 +2052,9 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             break;
         }
 
-        if(x >= min_max[1] || y < 0 || x < 0)
+        int oob = x >= min_max[1] || y < 0 || x < 0;
+
+        if(oob)
         {
             pcount++;
             continue;
@@ -2060,10 +2062,12 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
+        int within_bound = s1 >= area - mod && s1 <= area + mod;
+
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if((s1 >= area - mod && s1 <= area + mod))
+        if(within_bound)
         {
-            __global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
+            //__global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
             //__global uint *ftr=&reprojected_depth_buffer[(int)(y*ewidth) + (int)x];
 
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
@@ -2080,7 +2084,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 continue;
             }
 
-            uint sdepth = atomic_min(ft, mydepth);
+            uint sdepth = atomic_min(&depth_buffer[(int)(y*ewidth) + (int)x], mydepth);
 
             /*if(mydepth-1000000 > (*ftr))
             {
@@ -2205,7 +2209,9 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             break;
         }
 
-        if(x >= min_max[1] || y < 0 || x < 0)
+        int oob = x >= min_max[1] || y < 0 || x < 0;
+
+        if(oob)
         {
             pcount++;
             continue;
@@ -2213,10 +2219,10 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        if(s1 >= area - mod && s1 <= area + mod)
-        {
-            __global uint *ft=&depth_buffer[(int)y*SCREENWIDTH + (int)x];
+        int within_bound = s1 >= area - mod && s1 <= area + mod;
 
+        if(within_bound)
+        {
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
             fmydepth = native_recip(fmydepth);
@@ -2235,8 +2241,12 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 continue;
             }
 
+            uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
+
+            int cond = mydepth > val - 10 && mydepth < val + 10;
+
             ///found depth buffer value, write the triangle id
-            if(mydepth > *ft - 10 && mydepth < *ft + 10)
+            if(cond)
             {
                 int2 coord = {x, y};
                 uint4 d = {tid, 0, 0, 0};
