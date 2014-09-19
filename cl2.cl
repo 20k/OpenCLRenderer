@@ -2,7 +2,6 @@
 
 #define FOV_CONST 500.0f
 
-#define LIGHTBUFFERDIM 2048
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
 #define M_PI 3.1415927f
@@ -2464,9 +2463,36 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         //begin lambert
 
-        float3 l2c = lpos-global_position; ///light to pixel position
+        float3 l2c = lpos - global_position; ///light to pixel position
+
+
+
+
+        float3 l2p = camera_pos - global_position;
 
         float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+
+        /*float albedo = 0.5f;
+
+        float rough = 0.3f;
+
+        float A = 1.0f - 0.5f * (native_divide(rough*rough, rough*rough + 0.33f));
+
+        float B = 0.45f * (native_divide(rough*rough, rough*rough + 0.09f));
+
+        float thetai = acos(l2c.z / fast_length(l2c));
+        float phii = atan2(l2c.y, l2c.x);
+
+        float thetar = acos(l2p.z / fast_length(l2p));
+        float phir = atan2(l2p.y, l2p.x);
+
+        float alpha = max(thetai, thetar);
+        float beta = min(thetai, thetar);
+
+
+        float lr = (albedo / M_PI) * cos(thetai) * (A + (B * max(0.0f, cos(phii - phir)) * sin(alpha) * tan(beta) )) * 1.0f;
+
+        float light = fabs(lr);*/
 
         //end lambert
 

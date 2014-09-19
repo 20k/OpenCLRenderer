@@ -115,7 +115,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
 {
     window.create(sf::VideoMode(pwidth, pheight), name);
 
-    oclstuff(loc.c_str(), pwidth, pheight);
+    ///passed in as compilation parameter to opencl
+    l_size=64;
+
+    ///including opencl compilation parameters
+    oclstuff(loc.c_str(), pwidth, pheight, l_size);
 
     mdx = 0;
     mdy = 0;
@@ -131,7 +135,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     cl_uint size = std::max(height, width);
     ///2^x=size;
 
-    l_size=2048; ///pass in as compilation parameter to opencl;
+
 
     shadow_light_num = 0;
 
