@@ -1185,7 +1185,7 @@ int ret_cubeface(float3 point, float3 light)
     {
         return 4;
     }
-    else if(zangle >= 3*M_PI/2.0f)
+    else// if(zangle >= 3*M_PI/2.0f)
     {
         return 2;
     }
