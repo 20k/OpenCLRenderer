@@ -336,7 +336,7 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, f
 
 float backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
-    return fast_normalize(cross(p1-p0, p2-p0)).z - 0.05 < 0;
+    return fast_normalize(cross(p1-p0, p2-p0)).z - 0.05f < 0;
 }
 
 float backface_cull(struct triangle *tri)
@@ -347,7 +347,7 @@ float backface_cull(struct triangle *tri)
 
 void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, float3 ret[3])
 {
-    if(rotation_offset.x == 0.0f && rotation_offset.y == 0.0f && rotation_offset.z == 0.0f)
+    /*if(rotation_offset.x == 0.0f && rotation_offset.y == 0.0f && rotation_offset.z == 0.0f)
     {
         ret[0]=rot(triangle->vertices[0].pos.xyz + offset, c_pos, c_rot);
         ret[1]=rot(triangle->vertices[1].pos.xyz + offset, c_pos, c_rot);
@@ -363,7 +363,15 @@ void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 
         ret[0]=rot(ret[0] + offset, c_pos, c_rot);
         ret[1]=rot(ret[1] + offset, c_pos, c_rot);
         ret[2]=rot(ret[2] + offset, c_pos, c_rot);
-    }
+    }*/
+
+    ret[0] = rot(triangle->vertices[0].pos.xyz, 0, rotation_offset);
+    ret[1] = rot(triangle->vertices[1].pos.xyz, 0, rotation_offset);
+    ret[2] = rot(triangle->vertices[2].pos.xyz, 0, rotation_offset);
+
+    ret[0]=rot(ret[0] + offset, c_pos, c_rot);
+    ret[1]=rot(ret[1] + offset, c_pos, c_rot);
+    ret[2]=rot(ret[2] + offset, c_pos, c_rot);
 }
 
 void rot_3_normal(__global struct triangle *triangle, float3 c_rot, float3 ret[3])
@@ -604,8 +612,8 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     //rot_3_raw(normalrot, c_rot, normalrot);
 
-    if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
-        rot_3_raw(normalrot, rotation_offset, normalrot);
+    //if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
+    rot_3_raw(normalrot, rotation_offset, normalrot);
 
 
     ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
@@ -991,7 +999,7 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     float2 vtm = vt;
 
-    if(vtm.x >= 1)
+    /*if(vtm.x >= 1)
     {
         vtm.x = 1.0f - fmod(vtm.x, 1);
     }
@@ -1009,7 +1017,17 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     if(vtm.y < 0)
     {
         vtm.y = 1.0f + fmod(vtm.y, 1);
-    }
+    }*/
+
+    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
+
+    vtm.x = vtm.x < 0 ? 1.0f + vtm.x - floor(vtm.x) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
+
+    vtm.y = vtm.y < 0 ? 1.0f + vtm.y - floor(vtm.y) : vtm.y;
+
+
 
     float2 tdiff = {fabs(maxtx - mintx), fabs(maxty - minty)};
 
@@ -1043,18 +1061,17 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     mip_lower = min(mip_lower, MIP_LEVELS);
     mip_higher = min(mip_higher, MIP_LEVELS);
 
-    if(mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS)
-        invalid_mipmap = true;
+    //if(mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS)
+    //    invalid_mipmap = true;
+
+    invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS) ? true : false;
 
     int lower_size = native_exp2((float)mip_lower);
     int higher_size= native_exp2((float)mip_higher);
 
     fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
 
-    if(invalid_mipmap)
-    {
-        fractional_mipmap_distance = 0;
-    }
+    fractional_mipmap_distance = invalid_mipmap ? 0 : fractional_mipmap_distance;
 
     ///If the texel to pixel ratio is < 1, use highest res texture
     if(worst < 1)
@@ -1149,13 +1166,15 @@ int ret_cubeface(float3 point, float3 light)
         angle2 = M_PI - fabs(angle2) + M_PI;
     }
 
+    int c1 = angle >= M_PI/2.0f && angle < M_PI && angle2 >= M_PI/2.0f && angle2 < M_PI;
+    int c2 = angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f;
 
-    if(angle >= M_PI/2.0f && angle < M_PI && angle2 >= M_PI/2.0f && angle2 < M_PI)
+    if(c1)
     {
         return 3;
     }
 
-    else if(angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f)
+    else if(c2)
     {
         return 1;
     }
