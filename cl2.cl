@@ -1002,11 +1002,21 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
 
-    vtm.x = vtm.x < 0 ? 1.0f + vtm.x - floor(vtm.x) : vtm.x;
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
 
     vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
 
-    vtm.y = vtm.y < 0 ? 1.0f + vtm.y - floor(vtm.y) : vtm.y;
+    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
+
+
+    /*    vtm.x = vtm.x >= 1 ? 1.0f - fmod(vtm.x, 1) : vtm.x;
+
+    vtm.x = vtm.x < 0 ? 1.0f + fmod(vtm.x, 1) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - fmod(vtm.y, 1) : vtm.y;
+
+    vtm.y = vtm.y < 0 ? 1.0f + fmod(vtm.y, 1) : vtm.y;
+    */
 
 
 
