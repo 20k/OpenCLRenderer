@@ -116,7 +116,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     window.create(sf::VideoMode(pwidth, pheight), name);
 
     ///passed in as compilation parameter to opencl
-    l_size=64;
+    l_size=1024;
 
     ///including opencl compilation parameters
     oclstuff(loc.c_str(), pwidth, pheight, l_size);
