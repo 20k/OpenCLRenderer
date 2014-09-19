@@ -999,25 +999,6 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     float2 vtm = vt;
 
-    /*if(vtm.x >= 1)
-    {
-        vtm.x = 1.0f - fmod(vtm.x, 1);
-    }
-
-    if(vtm.x < 0)
-    {
-        vtm.x = 1.0f + fmod(vtm.x, 1);
-    }
-
-    if(vtm.y >= 1)
-    {
-        vtm.y = 1.0f - fmod(vtm.y, 1);
-    }
-
-    if(vtm.y < 0)
-    {
-        vtm.y = 1.0f + fmod(vtm.y, 1);
-    }*/
 
     vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
 
@@ -1190,7 +1171,7 @@ int ret_cubeface(float3 point, float3 light)
     }
 
 
-    if(zangle >= 0 && zangle < M_PI/2.0f)
+    if(zangle < M_PI/2.0f)
     {
         return 5;
     }
@@ -1204,7 +1185,7 @@ int ret_cubeface(float3 point, float3 light)
     {
         return 4;
     }
-    else if(zangle >= 3*M_PI/2.0f && zangle <= 2*M_PI)
+    else if(zangle >= 3*M_PI/2.0f)
     {
         return 2;
     }
