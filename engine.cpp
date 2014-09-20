@@ -116,7 +116,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     window.create(sf::VideoMode(pwidth, pheight), name);
 
     ///passed in as compilation parameter to opencl
-    l_size=1024;
+    l_size=2048;
 
     ///including opencl compilation parameters
     oclstuff(loc.c_str(), pwidth, pheight, l_size);
@@ -1290,6 +1290,24 @@ void engine::render_buffers()
     compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 
     cl::cqueue.finish();
+
+    /*cl_event event;
+
+    clEnqueueReleaseGLObjects(cl::cqueue.get(), 1, &scr, 0, NULL, &event);
+
+    // this keeps the host thread awake, useful if latency is a concern
+    clFlush(cl::cqueue.get());
+
+    cl_int eventStatus;
+
+    clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &eventStatus, NULL);
+    while (eventStatus > 0)
+    {
+        clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &eventStatus, NULL);
+        Sleep(0);
+    }*/
+
+
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 

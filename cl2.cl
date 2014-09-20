@@ -870,7 +870,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_ADDRESS_NONE   |
                     CLK_FILTER_NEAREST;
 
     //cannot do linear interpolation on uchars
@@ -1009,17 +1009,6 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
 
 
-    /*    vtm.x = vtm.x >= 1 ? 1.0f - fmod(vtm.x, 1) : vtm.x;
-
-    vtm.x = vtm.x < 0 ? 1.0f + fmod(vtm.x, 1) : vtm.x;
-
-    vtm.y = vtm.y >= 1 ? 1.0f - fmod(vtm.y, 1) : vtm.y;
-
-    vtm.y = vtm.y < 0 ? 1.0f + fmod(vtm.y, 1) : vtm.y;
-    */
-
-
-
     float2 tdiff = {fabs(maxtx - mintx), fabs(maxty - minty)};
 
     tdiff *= tsize;
@@ -1057,8 +1046,8 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS) ? true : false;
 
-    int lower_size = native_exp2((float)mip_lower);
-    int higher_size= native_exp2((float)mip_higher);
+    int lower_size  = native_exp2((float)mip_lower);
+    int higher_size = native_exp2((float)mip_higher);
 
     fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
 
@@ -1195,12 +1184,9 @@ int ret_cubeface(float3 point, float3 light)
     {
         return 4;
     }
-    else// if(zangle >= 3*M_PI/2.0f)
-    {
-        return 2;
-    }
 
-    return -1;
+
+    return 2;
 }
 
 
@@ -1479,7 +1465,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     for(int i=0; i<4; i++)
     {
-        mcoords[i] = sws[i] + (int2){postrotate_pos.x, postrotate_pos.y};
+        mcoords[i] = sws[i] + convert_int2((postrotate_pos.xy));
 
         mcoords[i] = clamp(mcoords[i], 1, LIGHTBUFFERDIM-2);
     }
@@ -1489,7 +1475,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     for(int i=0; i<4; i++)
     {
-        ccoords[i] = corners[i] + (int2){postrotate_pos.x, postrotate_pos.y};
+        ccoords[i] = corners[i] + convert_int2((postrotate_pos.xy));
 
         ccoords[i] = clamp(ccoords[i], 1, LIGHTBUFFERDIM-2);
     }
@@ -1867,24 +1853,21 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     ///out of bounds checking for triangles
     for(int j=0; j<num; j++)
     {
-        if((tris_proj[j][0].x < 0 && tris_proj[j][1].x < 0 && tris_proj[j][2].x < 0)  ||
+        int cond = (tris_proj[j][0].x < 0 && tris_proj[j][1].x < 0 && tris_proj[j][2].x < 0)  ||
             (tris_proj[j][0].x >= ewidth && tris_proj[j][1].x >= ewidth && tris_proj[j][2].x >= ewidth) ||
             (tris_proj[j][0].y < 0 && tris_proj[j][1].y < 0 && tris_proj[j][2].y < 0) ||
-            (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight)
-           )
-        {
-            ooany[j] = 0;
-        }
+            (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight);
+
+        ooany[j] = !cond && ooany[j];
     }
 
 
     for(int i=0; i<num; i++)
     {
-        if(ooany[i]!=1) ///skip bad tris
+        if(!ooany[i]) ///skip bad tris
         {
             continue;
         }
-
 
         //a light would read outside this quite severely
 
@@ -2025,10 +2008,10 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float mod = 2;
 
-    if(area < 50)
+    /*if(area < 50)
     {
         mod = 2;
-    }
+    }*/
 
     if(area > 60000)
     {
@@ -2056,6 +2039,13 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         {
             x = ((pixel_along + pcount) % width) + min_max[0];
         }
+
+       /*// if( x >= min_max[0] + width)
+        {
+            x = ((pixel_along + pcount) % width) + min_max[0];
+            //y += 1;
+            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+        }*/
 
         if(y >= min_max[3])
         {
@@ -2095,12 +2085,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             }
 
             uint sdepth = atomic_min(&depth_buffer[(int)(y*ewidth) + (int)x], mydepth);
-
-            /*if(mydepth-1000000 > (*ftr))
-            {
-                pcount++;
-                continue;
-            }*/
 
             //barrier(CLK_GLOBAL_MEM_FENCE);
 
@@ -2146,7 +2130,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     //uint o_id = triangles[tid].vertices[0].object_id;
 
-    uint which = fragment_id_buffer[tid*3];
+    //uint which = fragment_id_buffer[tid*3];
 
     //uint o_id = triangles[which].vertices[0].object_id;
 
@@ -2175,7 +2159,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)),native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
 
     float area = calc_area(xpv, ypv);
@@ -2186,10 +2170,10 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float mod = 2;
 
-    if(area < 50)
+    /*if(area < 50)
     {
         mod = 2;
-    }
+    }*/
 
     if(area > 60000)
     {
@@ -2273,6 +2257,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 __kernel
+//__attribute__((reqd_work_group_size(8, 8, 1)))
+//__attribute__((vec_type_hint(float3)))
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __constant uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
@@ -2368,6 +2354,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
 
+    //xy coordinate can only be in one, test both tris and avoid memory read?
+
     uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
 
 
@@ -2378,7 +2366,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             int xc = round(tris[wtri].vertices[i].pos.x);
             int yc = round(tris[wtri].vertices[i].pos.y);
 
-            if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
+            int oob = xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT;
+
+            if(oob)
                 continue;
 
             tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
@@ -2421,6 +2411,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     ///get perspective fixed normal by multiplying by depth
     normal *= ldepth;
+
 
     float3 lpos = lights[0].pos.xyz;
 
@@ -2483,36 +2474,61 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         //begin lambert
 
-        float3 l2c = lpos - global_position; ///light to pixel position
-
-
+        float3 l2c = lpos - global_position; ///light to pixel positio
 
 
         float3 l2p = camera_pos - global_position;
 
-        float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+        l2c = fast_normalize(l2c);
+        l2p = fast_normalize(l2p);
 
-        /*float albedo = 0.5f;
 
-        float rough = 0.3f;
+        //float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+
+        float albedo = 0.5f;
+
+        float rough = 100.f;
 
         float A = 1.0f - 0.5f * (native_divide(rough*rough, rough*rough + 0.33f));
 
         float B = 0.45f * (native_divide(rough*rough, rough*rough + 0.09f));
 
-        float thetai = acos(l2c.z / fast_length(l2c));
+        /*float thetai = acos(l2c.z / fast_length(l2c));
         float phii = atan2(l2c.y, l2c.x);
 
         float thetar = acos(l2p.z / fast_length(l2p));
-        float phir = atan2(l2p.y, l2p.x);
+        float phir = atan2(l2p.y, l2p.x);*/
+
+        /*float thetar = atan2(l2c.y, l2c.x);
+        float phir = atan2(l2c.z, l2c.x);
+
+        float thetai = atan2(l2p.y, l2p.x);
+        float phii = atan2(l2p.z, l2p.z);
 
         float alpha = max(thetai, thetar);
-        float beta = min(thetai, thetar);
+        float beta = min(thetai, thetar);*/
 
 
-        float lr = (albedo / M_PI) * cos(thetai) * (A + (B * max(0.0f, cos(phii - phir)) * sin(alpha) * tan(beta) )) * 1.0f;
+        float2 cos_theta = clamp((float2)(dot(normal,l2c),dot(normal,l2p)), 0.0f, 1.0f);
+        float2 cos_theta2 = cos_theta * cos_theta;
+        float sin_theta = native_sqrt((1.0f-cos_theta2.x)*(1.0f-cos_theta2.y));
+        float3 light_plane = fast_normalize(l2c - cos_theta.x*normal);
+        float3 view_plane = fast_normalize(l2p - cos_theta.y*normal);
+        float cos_phi = clamp((dot(light_plane, view_plane)), 0.0f, 1.0f);
 
-        float light = fabs(lr);*/
+        //composition
+
+        float diffuse_oren_nayar = cos_phi * sin_theta / max(cos_theta.x, cos_theta.y);
+
+        float diffuse = cos_theta.x * (A + B * diffuse_oren_nayar);
+        float light;
+        light = albedo * (diffuse);
+        //col.a = 1.f;
+
+
+        //float lr = (albedo / M_PI) * cos(thetai) * (A + (B * max(0.0f, cos(phii - phir)) * sin(alpha) * tan(beta) )) * 1.0f;
+
+        //float light = fabs(lr);
 
         //end lambert
 
