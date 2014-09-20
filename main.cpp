@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     sf::Event Event;
 
     light l;
-    l.set_col((cl_float4){1.0, 0.0, 1.0, 0});
+    l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
     //l.set_shadow_bright(1, 1);
     l.set_shadow_casting(1);
     l.set_brightness(1);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){-400, 150, -555, 0});
     window.add_light(&l);
 
-    l.set_col((cl_float4){0.0f, 1.0f, 0.0f, 0});
+    l.set_col((cl_float4){1.0f, 1.0f, 1.0f, 0});
 
     //l.set_pos((cl_float4){0, 200, -450, 0});
     l.set_pos((cl_float4){-0, 200, -500, 0});

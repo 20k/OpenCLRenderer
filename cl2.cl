@@ -1455,9 +1455,9 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
     postrotate_pos.xy = clamp(postrotate_pos.xy, 1, LIGHTBUFFERDIM-2);
 
 
-    float ldp = ((float)ldepth_map[(int)(postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)]/mulint);
+    float ldp = ((float)ldepth_map[(int)round(postrotate_pos.y)*LIGHTBUFFERDIM + (int)round(postrotate_pos.x)]/mulint);
 
-    float near[4];
+    /*float near[4];
     float cnear[4];
 
     int2 sws[4] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
@@ -1545,7 +1545,11 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         float dy = fy*pass_arr[3] + (1.0f-fy)*pass_arr[0];
 
         occamount += dx*dy;
-    }
+    }*/
+
+    float len = dcalc(12);
+
+    occamount = dpth > ldp + len;
 
 
     return occamount;
@@ -2262,7 +2266,7 @@ __kernel
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __constant uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           __global float2* distort_buffer, __write_only image2d_t object_ids
+           __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -2465,7 +2469,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     for(int i=0; i<num_lights; i++)
     {
-        float ambient = 0.1f;
+        float ambient = 0.05f;
 
         struct light l = lights[i];
 
@@ -2483,30 +2487,15 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         l2p = fast_normalize(l2p);
 
 
-        //float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+        float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
 
-        float albedo = 0.5f;
+        /*float albedo = 1.0f;
 
-        float rough = 100.f;
+        float rough = 0.1f;
 
         float A = 1.0f - 0.5f * (native_divide(rough*rough, rough*rough + 0.33f));
 
         float B = 0.45f * (native_divide(rough*rough, rough*rough + 0.09f));
-
-        /*float thetai = acos(l2c.z / fast_length(l2c));
-        float phii = atan2(l2c.y, l2c.x);
-
-        float thetar = acos(l2p.z / fast_length(l2p));
-        float phir = atan2(l2p.y, l2p.x);*/
-
-        /*float thetar = atan2(l2c.y, l2c.x);
-        float phir = atan2(l2c.z, l2c.x);
-
-        float thetai = atan2(l2p.y, l2p.x);
-        float phii = atan2(l2p.z, l2p.z);
-
-        float alpha = max(thetai, thetar);
-        float beta = min(thetai, thetar);*/
 
 
         float2 cos_theta = clamp((float2)(dot(normal,l2c),dot(normal,l2p)), 0.0f, 1.0f);
@@ -2523,23 +2512,17 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         float diffuse = cos_theta.x * (A + B * diffuse_oren_nayar);
         float light;
         light = albedo * (diffuse);
-        //col.a = 1.f;
 
+        light = max(light, -ambient);*/
 
-        //float lr = (albedo / M_PI) * cos(thetai) * (A + (B * max(0.0f, cos(phii - phir)) * sin(alpha) * tan(beta) )) * 1.0f;
-
-        //float light = fabs(lr);
 
         //end lambert
+        int skip = 0;
 
-
-
-
-
-
-
-
-
+        if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) > 0) ///backface
+        {
+            skip = 1;
+        }
 
 
         float rad = l.radius;
@@ -2553,7 +2536,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         light *= disteq;
 
-        if(light <= 0.0f)
+        if(light <= 0.0f || skip)
         {
             lightaccum += ambient * l.col.xyz;
 
@@ -2568,24 +2551,16 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         ///do light radius
 
-        int skip = 0;
-
-        float average_occ = 0;
-
         int which_cubeface;
 
-        if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
-        {
+        int shadow_cond = l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1);
 
-            if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) > 0) ///backface
-            {
-                skip=1;
-            }
-            else
-            {
-                ///gets pixel occlusion. Is smooth
-                average_occ = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory
-            }
+        if(shadow_cond) ///do shadow bits and bobs
+        {
+            ///gets pixel occlusion. Is not smooth
+            float average_occ = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory
+
+            write_imagef(occlusion_buffer, (int2){x, y}, average_occ);
 
             shnum++;
         }
@@ -2628,7 +2603,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         //light = max(0.0f, light);
 
         ///diffuse + ambient, no specular yet
-        lightaccum+=(1.0f-ambient)*light*l.col.xyz*l.brightness*(1.0f-skip)*(1.0f-average_occ) + ambient*l.col.xyz; //wrong, change ambient to colour
+        lightaccum+=(1.0f-ambient)*light*l.col.xyz*l.brightness + ambient*l.col.xyz; //wrong, change ambient to colour
     }
 
 
