@@ -212,7 +212,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
-    compute::image_format format_occ(CL_R, CL_FLOAT);
+    compute::image_format format_occ(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
     g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
@@ -1013,9 +1013,19 @@ void engine::draw_bulk_objs_n()
 
     ///swap screen for smoothed screen
     ///this is so that kernels only need to use THE screen, rather than worrying about modifications in this kernel
-    compute::opengl_renderbuffer temp = g_screen;
+    /*compute::opengl_renderbuffer temp = g_screen;
     g_screen = g_screen_edge_smoothed;
-    g_screen_edge_smoothed = temp;
+    g_screen_edge_smoothed = temp;*/
+
+
+    arg_list shadow_smooth_arg_list;
+    shadow_smooth_arg_list.push_back(&g_occlusion_tex);
+    shadow_smooth_arg_list.push_back(&g_screen_edge_smoothed);
+    shadow_smooth_arg_list.push_back(&g_screen);
+    shadow_smooth_arg_list.push_back(&g_object_id_tex);
+    shadow_smooth_arg_list.push_back(&depth_buffer[nbuf]);
+
+    run_kernel_with_list(cl::shadowmap_smoothing, p3global_ws, p3local_ws, 2, shadow_smooth_arg_list, true);
 
     //restart prearrange immediately here, and use event lists to wait for p3 in flip?
 
@@ -1318,7 +1328,8 @@ void engine::render_buffers()
 
     //glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_reprojected_framebuffer_id);
     ///actually is smoothed id, because the screen above is a 'fake', is actually the smoothed buffer
-    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_smoothed_framebuffer_id);
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
+    //glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_smoothed_framebuffer_id);
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
     ///blit buffer to screen
@@ -1339,9 +1350,9 @@ void engine::render_buffers()
     compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
 
     ///swap smoothed and proper buffers back
-    compute::opengl_renderbuffer temp = g_screen;
+    /*compute::opengl_renderbuffer temp = g_screen;
     g_screen = g_screen_edge_smoothed;
-    g_screen_edge_smoothed = temp;
+    g_screen_edge_smoothed = temp;*/
 }
 
 ///does this need to be somewhere more fun? Minimap vs UI

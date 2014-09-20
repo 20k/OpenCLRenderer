@@ -1547,10 +1547,9 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         occamount += dx*dy;
     }*/
 
-    float len = dcalc(12);
+    float len = dcalc(20);
 
     occamount = dpth > ldp + len;
-
 
     return occamount;
 }
@@ -2457,7 +2456,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     global_position += camera_pos;
 
-    float3 lightaccum = 0;
+    float3 ambient_sum = 0;
 
     int shnum = 0;
 
@@ -2467,9 +2466,13 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     int num_lights = *lnum;
 
+    float occlusion = 0;
+
+    float3 diffuse_sum = 0;
+
     for(int i=0; i<num_lights; i++)
     {
-        float ambient = 0.05f;
+        float ambient = 0.2f;
 
         struct light l = lights[i];
 
@@ -2538,7 +2541,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         if(light <= 0.0f || skip)
         {
-            lightaccum += ambient * l.col.xyz;
+            ambient_sum += ambient * l.col.xyz;
 
             if(l.shadow == 1)
                 shnum++;
@@ -2551,6 +2554,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         ///do light radius
 
+
+        float occluded = 0;
+
         int which_cubeface;
 
         int shadow_cond = l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1);
@@ -2558,9 +2564,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         if(shadow_cond) ///do shadow bits and bobs
         {
             ///gets pixel occlusion. Is not smooth
-            float average_occ = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory
+            occluded = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory
 
-            write_imagef(occlusion_buffer, (int2){x, y}, average_occ);
+            occlusion += occluded;
 
             shnum++;
         }
@@ -2600,26 +2606,34 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         }
 
 
-        //light = max(0.0f, light);
+        //light = max(0.0f, light);]
+
+        float diffuse = (1.0f-ambient)*light*l.brightness;
+
+        diffuse_sum += diffuse*l.col.xyz * (1.0f - occluded);
 
         ///diffuse + ambient, no specular yet
-        lightaccum+=(1.0f-ambient)*light*l.col.xyz*l.brightness + ambient*l.col.xyz; //wrong, change ambient to colour
+        ambient_sum += ambient*l.col.xyz;
     }
+    //separate out light ambient and diffuse, write to buffer, then apply occlusion there with depth modulated gaussian
 
-
-
-
-    int2 scoord= {x, y};
+    int2 scoord = {x, y};
 
     float3 col = texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
-    //write_imagef(screen, (int2){x, y}, (float4)(col.xyz, 1));
-    //return;
-    //float3 col = (float3){ucol.x, ucol.y, ucol.z, 0};
-    //col/=255.0f;
 
 
-    lightaccum = clamp(lightaccum, 0.0f, 1.0f);//native_recip(col));
+    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+
+    diffuse_sum += ambient_sum;
+
+    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+
+
+    write_imagef(occlusion_buffer, (int2){x, y}, (float4){occlusion/(float)shnum, diffuse_sum.x, diffuse_sum.y, diffuse_sum.z});
+
+
+    //ambient_sum = clamp(ambient_sum, 0.0f, 1.0f);//native_recip(col));
 
     //float3 rot_normal;
 
@@ -2629,18 +2643,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float hbao = 0;
 
-    /*if(*ft == mulint)
-    {
-        col = 0;
-    }*/
 
-    float3 colclamp = col*lightaccum + mandatory_light;
-
-    //colclamp = min(colclamp, 1.0f);
-    //colclamp = max(colclamp, 0.0f);
+    float3 colclamp = col + mandatory_light;
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
-
 
     write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
 
@@ -2668,7 +2674,7 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
         return;
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP           |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
                     CLK_FILTER_NEAREST;
 
 
@@ -2684,13 +2690,6 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     //vals[2] = read_imageui(object_ids, sam, (int2){x, y+1}).y;
     //vals[3] = read_imageui(object_ids, sam, (int2){x-1, y}).y;
 
-    /*for(int j=-1; j<2; j++)
-    {
-        for(int i=-1; i<2; i++)
-        {
-            vals[j*3 + i] = read_imageui(object_ids, sam, (int2){x+i, y+j}).y;
-        }
-    }*/
 
     bool any_true = false;
 
@@ -2721,6 +2720,120 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     read /= 4.0f;
 
     write_imagef(smoothed_screen, (int2){x, y}, read);
+}
+
+__kernel
+void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
+{
+    float x = get_global_id(0);
+    float y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_FILTER_NEAREST;
+
+
+    sampler_t sam_2 = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE     |
+                    CLK_FILTER_NEAREST;
+
+
+    float max_d = 5;
+
+
+
+    float dpth = (float)depth[(int)y * SCREENWIDTH + (int)x] / mulint;
+
+    dpth = idcalc(dpth);
+
+    float num = max_d - clamp(dpth / (FOV_CONST/8), 0.0f, max_d - 2);
+
+    max_d = num;
+
+
+
+    float4 base_vals = read_imagef(shadow_map, sam, (float2){x, y});
+
+    int object_id = read_imageui(object_id_tex, sam, (float2){x, y}).x;
+
+    float base_occ = base_vals.x;
+    float3 base_diffuse = base_vals.s123;
+
+    int occ_border = 0;
+
+    float3 sum_diffuse = 0;
+
+    float mul = 0;
+
+    ///do separable gaussian, then can make the blur radius huuuuuuge
+    for(float j=-max_d; j<=max_d; j+=1)
+    {
+        for(float i=-max_d; i<=max_d; i+=1)
+        {
+            float4 val;
+
+            /*if(max_d > 5)
+                val = read_imagef(shadow_map, sam_2, (float2){x+i, y+j});
+            else
+                val = read_imagef(shadow_map, sam, (float2){x+i, y+j});*/
+
+            val = read_imagef(shadow_map, sam_2, (float2){x+i, y+j});
+
+            int new_id = read_imageui(object_id_tex, sam_2, (float2){x+i, y+j}).x;
+
+
+            float dist_from_centre = native_sqrt(i*i + j*j);
+
+            if(dist_from_centre > max_d)
+                continue;
+
+            float dist = max_d - dist_from_centre;
+
+            if(new_id != object_id)
+                continue;
+
+            mul += dist;
+
+            sum_diffuse += val.s123 * dist;
+
+            if(val.x != base_occ)
+            {
+                occ_border = 1;
+            }
+        }
+    }
+
+    ///im finding regions of occlusion, which includes culling i dont want
+
+    if(!occ_border)
+    {
+        float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
+
+        float3 with_diff = old_val.xyz * base_diffuse;
+
+        write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
+        return;
+    }
+
+
+    sum_diffuse /= mul;
+
+
+    float3 this_diffuse = read_imagef(shadow_map, sam_2, (float2){x, y}).yzw;
+    float this_occlusion = read_imagef(shadow_map, sam_2, (float2){x, y}).x;
+
+    ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
+
+
+    float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
+
+    float3 modded = old_val.xyz*sum_diffuse;
+
+
+    write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
 }
 
 __kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_clear, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)
