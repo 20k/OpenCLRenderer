@@ -2741,7 +2741,7 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
                     CLK_FILTER_NEAREST;
 
 
-    float max_d = 5;
+    float max_d = 12;
 
 
 
@@ -2752,7 +2752,6 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
     float num = max_d - clamp(dpth / (FOV_CONST/8), 0.0f, max_d - 2);
 
     max_d = num;
-
 
 
     float4 base_vals = read_imagef(shadow_map, sam, (float2){x, y});
@@ -2768,32 +2767,46 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
 
     float mul = 0;
 
+    int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y - max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;
+
+    if(!res)
+    {
+        float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
+
+        float3 with_diff = old_val.xyz * base_diffuse;
+
+        write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
+        return;
+
+    }
+
+    //sample corners and centre, do comparison
+
     ///do separable gaussian, then can make the blur radius huuuuuuge
     for(float j=-max_d; j<=max_d; j+=1)
     {
         for(float i=-max_d; i<=max_d; i+=1)
         {
-            float4 val;
-
-            /*if(max_d > 5)
-                val = read_imagef(shadow_map, sam_2, (float2){x+i, y+j});
-            else
-                val = read_imagef(shadow_map, sam, (float2){x+i, y+j});*/
-
-            val = read_imagef(shadow_map, sam_2, (float2){x+i, y+j});
-
-            int new_id = read_imageui(object_id_tex, sam_2, (float2){x+i, y+j}).x;
-
-
             float dist_from_centre = native_sqrt(i*i + j*j);
 
             if(dist_from_centre > max_d)
                 continue;
 
-            float dist = max_d - dist_from_centre;
+            float4 val;
+
+            val = read_imagef(shadow_map, sam_2, (float2){x+i, y+j});
+
+
+            int new_id = read_imageui(object_id_tex, sam_2, (float2){x+i, y+j}).x;
 
             if(new_id != object_id)
                 continue;
+
+
+            float dist = max_d - dist_from_centre;
 
             mul += dist;
 
@@ -2820,10 +2833,6 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
 
 
     sum_diffuse /= mul;
-
-
-    float3 this_diffuse = read_imagef(shadow_map, sam_2, (float2){x, y}).yzw;
-    float this_occlusion = read_imagef(shadow_map, sam_2, (float2){x, y}).x;
 
     ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
 
