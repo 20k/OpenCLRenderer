@@ -2772,6 +2772,7 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
     res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
     res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;
 
+    //not 100% accurate, is checking corners which are > radius
     if(!res)
     {
         float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
