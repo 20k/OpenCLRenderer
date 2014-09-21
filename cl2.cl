@@ -2566,7 +2566,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             ///gets pixel occlusion. Is not smooth
             occluded = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory
 
-            occlusion += occluded;
+            occlusion += occluded * fast_length(l.col.xyz);
 
             shnum++;
         }
@@ -2786,6 +2786,7 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
     //sample corners and centre, do comparison
 
     ///do separable gaussian, then can make the blur radius huuuuuuge
+    ///naive wont make it catch everything, do light colour multiplied by bit
     for(float j=-max_d; j<=max_d; j+=1)
     {
         for(float i=-max_d; i<=max_d; i+=1)
