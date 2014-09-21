@@ -238,7 +238,8 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::reproject_screen = load_kernel(program, "reproject_screen");
     cl::space_nebulae = load_kernel(program, "space_nebulae");
     cl::edge_smoothing = load_kernel(program, "edge_smoothing");
-    cl::shadowmap_smoothing = load_kernel(program, "shadowmap_smoothing");
+    cl::shadowmap_smoothing_x = load_kernel(program, "shadowmap_smoothing_x");
+    cl::shadowmap_smoothing_y = load_kernel(program, "shadowmap_smoothing_y");
 }
 
 

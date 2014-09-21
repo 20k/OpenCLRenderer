@@ -2722,7 +2722,243 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     write_imagef(smoothed_screen, (int2){x, y}, read);
 }
 
+///detect edges and blur in x direction
+///need to rethink entire early out strategy
 __kernel
+void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2d_t intermediate_smoothed, __read_only image2d_t object_id_tex, __global uint* depth)
+{
+    float x = get_global_id(0);
+    float y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_FILTER_NEAREST;
+
+
+    sampler_t sam_2 = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE     |
+                    CLK_FILTER_NEAREST;
+
+
+    float max_d = 15;
+
+    float dpth = (float)depth[(int)y * SCREENWIDTH + (int)x] / mulint;
+
+    dpth = idcalc(dpth);
+
+    float num = max_d - clamp(dpth / (FOV_CONST/8), 0.0f, max_d - 2);
+
+    max_d = num;
+
+
+    float4 base_vals = read_imagef(shadow_map, sam, (float2){x, y});
+
+    int object_id = read_imageui(object_id_tex, sam, (float2){x, y}).x;
+
+    float base_occ = base_vals.x;
+    float3 base_diffuse = base_vals.s123;
+
+    int occ_border = 0;
+
+    float3 sum_diffuse = 0;
+
+    float mul = 0;
+
+    int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y - max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;
+
+    //not 100% accurate, is checking corners which are > radius
+    if(!res)
+    {
+        write_imagef(intermediate_smoothed, (int2){x, y}, (float4){base_occ, base_diffuse.x, base_diffuse.y, base_diffuse.z});
+        //return;
+    }
+
+    //sample corners and centre, do comparison
+
+    ///do separable gaussian, then can make the blur radius huuuuuuge
+    ///naive wont make it catch everything, do light colour multiplied by bit
+    //for(float j=-max_d; j<=max_d; j+=1)
+    {
+        for(float i=-max_d; i<=max_d; i+=1)
+        {
+            float dist_from_centre = native_sqrt(i*i);
+
+            ///? What to do about this in separated blur?
+            if(dist_from_centre > max_d)
+                continue;
+
+            float4 val;
+
+            val = read_imagef(shadow_map, sam_2, (float2){x+i, y});
+
+
+            int new_id = read_imageui(object_id_tex, sam_2, (float2){x+i, y}).x;
+
+            if(new_id != object_id)
+                continue;
+
+
+            float dist = max_d - dist_from_centre;
+
+            mul += dist;
+
+            sum_diffuse += val.s123 * dist;
+
+            if(val.x != base_occ)
+            {
+                occ_border = 1;
+            }
+        }
+    }
+
+    ///im finding regions of occlusion, which includes culling i dont want
+
+    if(!occ_border)
+    {
+        write_imagef(intermediate_smoothed, (int2){x, y}, (float4){base_occ, base_diffuse.x, base_diffuse.y, base_diffuse.z});
+        //return;
+    }
+
+
+    sum_diffuse /= mul;
+
+    ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
+
+    write_imagef(intermediate_smoothed, (int2){x, y}, (float4){base_occ, sum_diffuse.x, sum_diffuse.y, sum_diffuse.z});
+}
+
+__kernel
+void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
+{
+    float x = get_global_id(0);
+    float y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_FILTER_NEAREST;
+
+
+    sampler_t sam_2 = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE     |
+                    CLK_FILTER_NEAREST;
+
+
+    float max_d = 15;
+
+
+
+    float dpth = (float)depth[(int)y * SCREENWIDTH + (int)x] / mulint;
+
+    dpth = idcalc(dpth);
+
+    float num = max_d - clamp(dpth / (FOV_CONST/8), 0.0f, max_d - 2);
+
+    max_d = num;
+
+
+    float4 base_vals = read_imagef(intermediate_smoothed, sam, (float2){x, y});
+
+    int object_id = read_imageui(object_id_tex, sam, (float2){x, y}).x;
+
+    float base_occ = base_vals.x;
+    float3 base_diffuse = base_vals.s123;
+
+    int occ_border = 0;
+
+    float3 sum_diffuse = 0;
+
+    float mul = 0;
+
+    ///change base_occ from x to be 0 or 1?
+    int res = read_imagef(intermediate_smoothed, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
+    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x + max_d, y - max_d}).x != base_occ;
+    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
+    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;
+
+    //not 100% accurate, is checking corners which are > radius
+    if(!res)
+    {
+        float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
+
+        float3 with_diff = old_val.xyz * base_diffuse;
+
+        write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
+        //return;
+    }
+
+    //sample corners and centre, do comparison
+
+    ///do separable gaussian, then can make the blur radius huuuuuuge
+    ///naive wont make it catch everything, do light colour multiplied by bit
+    for(float j=-max_d; j<=max_d; j+=1)
+    {
+        //for(float i=-max_d; i<=max_d; i+=1)
+        {
+            float dist_from_centre = native_sqrt(j*j);
+
+            if(dist_from_centre > max_d)
+                continue;
+
+            float4 val;
+
+            val = read_imagef(intermediate_smoothed, sam_2, (float2){x, y+j});
+
+
+            int new_id = read_imageui(object_id_tex, sam_2, (float2){x, y+j}).x;
+
+            if(new_id != object_id)
+                continue;
+
+
+            float dist = max_d - dist_from_centre;
+
+            mul += dist;
+
+            sum_diffuse += val.s123 * dist;
+
+            if(val.x != base_occ)
+            {
+                occ_border = 1;
+            }
+        }
+    }
+
+    ///im finding regions of occlusion, which includes culling i dont want
+
+    if(!occ_border)
+    {
+        float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
+
+        float3 with_diff = old_val.xyz * base_diffuse;
+
+        write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
+        //return;
+    }
+
+
+    sum_diffuse /= mul;
+
+    ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
+
+
+    float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
+
+    float3 modded = old_val.xyz*sum_diffuse;
+
+
+    write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
+}
+
+/*__kernel
 void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
 {
     float x = get_global_id(0);
@@ -2845,7 +3081,7 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
 
 
     write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
-}
+}*/
 
 __kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_clear, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)
 {

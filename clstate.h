@@ -48,7 +48,8 @@ namespace cl
     extern kernel reproject_screen;
     extern kernel space_nebulae;
     extern kernel edge_smoothing;
-    extern kernel shadowmap_smoothing;
+    extern kernel shadowmap_smoothing_x;
+    extern kernel shadowmap_smoothing_y;
 }
 
 

@@ -29,4 +29,5 @@ kernel cl::reproject_depth;
 kernel cl::reproject_screen;
 kernel cl::space_nebulae;
 kernel cl::edge_smoothing;
-kernel cl::shadowmap_smoothing;
+kernel cl::shadowmap_smoothing_x;
+kernel cl::shadowmap_smoothing_y;

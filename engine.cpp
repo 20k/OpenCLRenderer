@@ -216,6 +216,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string n
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
     g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
+    g_occlusion_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
     g_occlusion_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
 
     g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
@@ -996,7 +997,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p3arg_list.push_back(&g_distortion_buffer);
     p3arg_list.push_back(&g_object_id_tex);
-    p3arg_list.push_back(&g_occlusion_tex);
+    p3arg_list.push_back(&g_occlusion_intermediate_tex);
     //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
 
     ///this is the deferred screenspace pass
@@ -1018,14 +1019,24 @@ void engine::draw_bulk_objs_n()
     g_screen_edge_smoothed = temp;*/
 
 
-    arg_list shadow_smooth_arg_list;
-    shadow_smooth_arg_list.push_back(&g_occlusion_tex);
-    shadow_smooth_arg_list.push_back(&g_screen_edge_smoothed);
-    shadow_smooth_arg_list.push_back(&g_screen);
-    shadow_smooth_arg_list.push_back(&g_object_id_tex);
-    shadow_smooth_arg_list.push_back(&depth_buffer[nbuf]);
+    arg_list shadow_smooth_arg_list_x;
+    shadow_smooth_arg_list_x.push_back(&g_occlusion_intermediate_tex);
+    //shadow_smooth_arg_list_x.push_back(&g_screen_edge_smoothed);
+    shadow_smooth_arg_list_x.push_back(&g_occlusion_tex);
+    shadow_smooth_arg_list_x.push_back(&g_object_id_tex);
+    shadow_smooth_arg_list_x.push_back(&depth_buffer[nbuf]);
 
-    run_kernel_with_list(cl::shadowmap_smoothing, p3global_ws, p3local_ws, 2, shadow_smooth_arg_list, true);
+    run_kernel_with_list(cl::shadowmap_smoothing_x, p3global_ws, p3local_ws, 2, shadow_smooth_arg_list_x, true);
+
+
+    arg_list shadow_smooth_arg_list_y;
+    shadow_smooth_arg_list_y.push_back(&g_occlusion_tex);
+    shadow_smooth_arg_list_y.push_back(&g_screen_edge_smoothed);
+    shadow_smooth_arg_list_y.push_back(&g_screen);
+    shadow_smooth_arg_list_y.push_back(&g_object_id_tex);
+    shadow_smooth_arg_list_y.push_back(&depth_buffer[nbuf]);
+
+    run_kernel_with_list(cl::shadowmap_smoothing_y, p3global_ws, p3local_ws, 2, shadow_smooth_arg_list_y, true);
 
     //restart prearrange immediately here, and use event lists to wait for p3 in flip?
 
