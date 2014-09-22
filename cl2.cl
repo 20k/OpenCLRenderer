@@ -2767,11 +2767,6 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
 
     float mul = 0;
 
-    /*int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
-    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y - max_d}).x != base_occ;
-    res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
-    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;*/
-
     //sample randomly?
     int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y}).x != base_occ;
     res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y}).x != base_occ;
@@ -2861,7 +2856,6 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
     float max_d = 15;
 
 
-
     float dpth = (float)depth[(int)y * SCREENWIDTH + (int)x] / mulint;
 
     dpth = idcalc(dpth);
@@ -2888,7 +2882,9 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
     int res = read_imagef(intermediate_smoothed, sam_2, (float2){x, y - max_d}).x != base_occ;
     res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x, y + max_d}).x != base_occ;
 
-    //not 100% accurate, is checking corners which are > radius
+
+    ///natural -1 occlusion is impossible, signal from x kernel that this pixel must be blurred
+    ///not 100% accurate, is checking corners which are > radius
     if(base_occ != -1 && !res)
     {
         float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
@@ -2916,15 +2912,10 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
             val = read_imagef(intermediate_smoothed, sam_2, (float2){x, y+j});
 
-
             int new_id = read_imageui(object_id_tex, sam_2, (float2){x, y+j}).x;
 
             if(new_id != object_id)
                 continue;
-
-            //if(val.x == 0)
-            //    continue;
-
 
             float dist = max_d - dist_from_centre;
 
@@ -2932,7 +2923,7 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
             sum_diffuse += val.s123 * dist;
 
-            if(val.x != base_occ || base_occ == -1)
+            if(val.x != base_occ)
             {
                 occ_border = 1;
             }
@@ -2941,7 +2932,7 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
     ///im finding regions of occlusion, which includes culling i dont want
 
-    if(occ_border == 0)
+    if(occ_border == 0 && base_occ != -1)
     {
         float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
 
