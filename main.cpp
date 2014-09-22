@@ -10,6 +10,8 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
+    sf::Clock load_time;
+
     objects_container sponza;
 
     sponza.set_file("sp2/sp2.obj");
@@ -76,6 +78,8 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
+    int load_first = 0;
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -101,6 +105,12 @@ int main(int argc, char *argv[])
         for(int i=0; i<10; i++)
         {
             time += times[i];
+        }
+
+        if(!load_first)
+        {
+            std::cout << "time to load and execute 1 frame = " << load_time.getElapsedTime().asSeconds();
+            load_first = 1;
         }
 
         std::cout << time/10 << std::endl;

@@ -78,7 +78,7 @@ void texture::inactivate()
     texture_manager::inactivate_texture(id);
 }
 
-void texture::set_texture_location(std::string loc)
+void texture::set_texture_location(const std::string& loc)
 {
     texture_location = loc;
 }
@@ -103,16 +103,6 @@ void texture::push()
 void texture::load()
 {
     fp(this);
-}
-
-inline sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &p3)
-{
-    sf::Color ret;
-    ret.r=(p0.r + p1.r + p2.r + p3.r)/4.0f;
-    ret.g=(p0.g + p1.g + p2.g + p3.g)/4.0f;
-    ret.b=(p0.b + p1.b + p2.b + p3.b)/4.0f;
-
-    return ret;
 }
 
 ///create mipmap from level, where 0 = base texture, 1 = first level etc up to 4

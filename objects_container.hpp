@@ -32,7 +32,7 @@ struct objects_container
 
     void    set_pos(cl_float4);
     void    set_rot(cl_float4);
-    void    set_file(std::string);
+    void    set_file(const std::string&);
     cl_uint set_active(bool param);
     void    set_active_subobjs(bool);
     void    unload_tris();

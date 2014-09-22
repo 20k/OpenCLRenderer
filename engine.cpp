@@ -111,7 +111,7 @@ compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbu
     return buf;
 }
 
-void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, std::string name, std::string loc)
+void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc)
 {
     window.create(sf::VideoMode(pwidth, pheight), name);
 

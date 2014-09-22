@@ -63,7 +63,7 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
     }
 }
 
-void objects_container::set_file(std::string f)
+void objects_container::set_file(const std::string& f)
 {
     file = f;
 }

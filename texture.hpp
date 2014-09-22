@@ -25,6 +25,8 @@ struct texture
 
     bool has_mipmaps;
 
+    //bool cache;
+
     int id;
 
     int type;
@@ -35,7 +37,7 @@ struct texture
 
     sf::Image& get_texture_level(int);
 
-    void set_texture_location(std::string);
+    void set_texture_location(const std::string&);
 
     bool exists();
 

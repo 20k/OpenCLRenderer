@@ -15,7 +15,7 @@
 std::map<std::string, objects_container> cache_map;
 
 ///get diffuse name
-std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name)
+std::string retrieve_diffuse_new(const std::vector<std::string>& file, const std::string& name)
 {
     bool found = false;
     for(unsigned int i=0; i<file.size(); i++)
@@ -26,7 +26,7 @@ std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name
         }
         if(found && strncmp(file[i].c_str(), "map_Kd ", 7)==0)
         {
-            return file[i].substr(file[i].find_last_of(" ")+1, std::string::npos);
+            return file[i].substr(file[i].find_last_of(' ')+1, std::string::npos);
         }
     }
 
@@ -34,20 +34,20 @@ std::string retrieve_diffuse_new(std::vector<std::string> file, std::string name
 }
 
 ///get bumpmap name
-std::string retrieve_bumpmap(std::vector<std::string> file, std::string name)
+std::string retrieve_bumpmap(const std::vector<std::string>& file, const std::string& name)
 {
     bool found = false;
     for(unsigned int i=0; i<file.size(); i++)
     {
         ///found newmtl + name of material
-        if(strncmp(file[i].c_str(), "newmtl ", 7)==0 && file[i].substr(file[i].find_last_of(" ")+1, name.size()) == name)
+        if(strncmp(file[i].c_str(), "newmtl ", 7)==0 && file[i].substr(file[i].find_last_of(' ')+1, name.size()) == name)
         {
             found = true;
             continue;
         }
         if(found && strncmp(file[i].c_str(), "map_Bump ", 9)==0)
         {
-            return file[i].substr(file[i].find_last_of(" ")+1, std::string::npos);
+            return file[i].substr(file[i].find_last_of(' ')+1, std::string::npos);
         }
         if(found && strncmp(file[i].c_str(), "newmtl ", 7)==0)
         {
@@ -67,22 +67,22 @@ std::string retrieve_bumpmap(std::vector<std::string> file, std::string name)
 template <typename T>
 void decompose_attribute(const std::string &str, T a[], int n)
 {
-    size_t pos = str.find(".");
+    size_t pos = str.find('.');
     int s[n+1]; ///probably fix using varargs
     ///initialise first element to be initial position
-    s[0]=str.find(" "); ///
+    s[0] = str.find(' '); ///
     for(int i=1; i<n+1; i++)
     {
-        s[i] = str.find(" ", s[i-1]+1); ///implicitly finds end, so correct for n despite no /
-        std::string p = str.substr(s[i-1]+1, (s[i] - s[i-1] - 1));
+        s[i] = str.find(' ', s[i-1]+1); ///implicitly finds end, so correct for n despite no /
 
-        if(pos==std::string::npos)
+
+        if(pos == std::string::npos)
         {
-            a[i-1] = atoi(p.c_str());
+            a[i-1] = atoi(str.c_str() + s[i-1]+1);
         }
         else
         {
-            a[i-1] = atof(p.c_str());
+            a[i-1] = atof(str.c_str() + s[i-1]+1);
         }
     }
 }
@@ -95,17 +95,13 @@ void decompose_face(const std::string &str, int v[3], int vt[3], int vn[3])
 
     for(int i=0; i<3; i++)
     {
-        int s1 = str.find("/", start);
-        int s2 = str.find("/", s1+1);
-        int s3 = str.find(" ", s2+1);
+        int s1 = str.find('/', start);
+        int s2 = str.find('/', s1+1);
+        int s3 = str.find(' ', s2+1);
 
-        std::string p1 = str.substr(start, s1-start);
-        std::string p2 = str.substr(s1+1, (s2 - s1 - 1));
-        std::string p3 = str.substr(s2+1, (s3 - s2 - 1));
-
-        v[i]  = atoi(p1.c_str()) - 1;
-        vt[i] = atoi(p2.c_str()) - 1;
-        vn[i] = atoi(p3.c_str()) - 1;
+        v[i] = atoi(str.c_str() + start) - 1;
+        vt[i] = atoi(str.c_str() + s1+1) - 1;
+        vn[i] = atoi(str.c_str() + s2+1) - 1;
 
         start = s3 + 1;
     }
@@ -127,13 +123,15 @@ struct indices
 ///requires triangulated faces, and explicit texture coordinates, normals, usemtl statements, and a diffuse texture specified
 void obj_load(objects_container* pobj)
 {
+    sf::Clock clk;
+
     std::string filename = pobj->file;
     std::string mtlname;
-    int tp = filename.find_last_of(".");
+    int tp = filename.find_last_of('.');
     mtlname = filename.substr(0, tp) + std::string(".mtl");
     ///get mtlname
 
-    int lslash = filename.find_last_of("/");
+    int lslash = filename.find_last_of('/');
 
     std::string dir = filename.substr(0, lslash);
 
@@ -176,7 +174,8 @@ void obj_load(objects_container* pobj)
     ///find number of different types of things - vertices, faces, uv coordinates, normals
     for(size_t i=0; i<file_contents.size(); i++)
     {
-        std::string ln = file_contents[i];
+        const std::string& ln = file_contents[i];
+
         if(ln.size() < 2)
         {
             continue;
@@ -186,15 +185,15 @@ void obj_load(objects_container* pobj)
         {
             vc++;
         }
-        if(ln[0]=='v' && ln[1]=='n')
+        else if(ln[0]=='v' && ln[1]=='n')
         {
             vnc++;
         }
-        if(ln[0]=='v' && ln[1]=='t')
+        else if(ln[0]=='v' && ln[1]=='t')
         {
             vtc++;
         }
-        if(ln[0]=='f' && ln[1] == ' ')
+        else if(ln[0]=='f' && ln[1] == ' ')
         {
             fc++;
         }
@@ -213,9 +212,11 @@ void obj_load(objects_container* pobj)
 
     int usefc=0;
 
+    //sf::Clock clk2;
+
     for(size_t i=0; i<file_contents.size(); i++)
     {
-        if(strncmp(file_contents[i].c_str(), "f ", 2)==0)
+        if(file_contents[i][0] == 'f' && file_contents[i][1] == ' ')
         {
             usefc++;
             int v[3];
@@ -233,7 +234,7 @@ void obj_load(objects_container* pobj)
             continue;
         }
         ///if == n then push normals etc
-        else if(strncmp(file_contents[i].c_str(), "v ", 2)==0)
+        else if(file_contents[i][0] == 'v' && file_contents[i][1] == ' ')
         {
             float v[3];
             decompose_attribute(file_contents[i], v, 3);
@@ -244,7 +245,7 @@ void obj_load(objects_container* pobj)
             vl.push_back(t);
             continue;
         }
-        else if(strncmp(file_contents[i].c_str(), "vt ", 3)==0)
+        else if(file_contents[i][0] == 'v' && file_contents[i][1] == 't' && file_contents[i][2] == ' ')
         {
             float vt[3];
             decompose_attribute(file_contents[i], vt, 2);
@@ -255,7 +256,7 @@ void obj_load(objects_container* pobj)
             vtl.push_back(t);
             continue;
         }
-        else if(strncmp(file_contents[i].c_str(), "vn ", 3)==0)
+        else if(file_contents[i][0] == 'v' && file_contents[i][1] == 'n' && file_contents[i][2] == ' ')
         {
             float vn[3];
             decompose_attribute(file_contents[i], vn, 3);
@@ -266,13 +267,16 @@ void obj_load(objects_container* pobj)
             vnl.push_back(t);
             continue;
         }
-        else if(strncmp(file_contents[i].c_str(), "usemtl", 6)==0)
+        //dont bother with the rest of it
+        else if(file_contents[i][0] == 'u' && file_contents[i][1] == 's' && file_contents[i][2] == 'e')
         {
             usemtl_pos.push_back(usefc);
             usemtl_name.push_back(file_contents[i].substr(file_contents[i].find_last_of(" ")+1, std::string::npos));
             continue;
         }
     }
+
+    //std::cout << clk2.getElapsedTime().asSeconds() << std::endl;
 
     file_contents.clear();
 
@@ -332,7 +336,7 @@ void obj_load(objects_container* pobj)
         bool isbump = false;
         cl_uint b_id = -1;
 
-        if(bumpmap_name!=std::string("None"))
+        if(bumpmap_name != std::string("None"))
         {
             isbump = true;
             texture bumpmap;
@@ -369,4 +373,6 @@ void obj_load(objects_container* pobj)
     }
 
     c->isloaded = true;
+
+    std::cout << "Object load time " <<  clk.getElapsedTime().asSeconds() << std::endl;
 }
