@@ -17,17 +17,18 @@ texture::texture()
     set_load_func(func);
 }
 
-cl_uint texture::get_largest_dimension()
+cl_uint texture::get_largest_dimension() const
 {
     if(!is_loaded)
     {
         std::cout << "tried to find dimension of non loaded texture" << std::endl;
         exit(32323);
     }
+
     return c_image.getSize().x > c_image.getSize().y ? c_image.getSize().x : c_image.getSize().y;
 }
 
-cl_uint texture::get_largest_num(int num)
+cl_uint texture::get_largest_num(int num) const
 {
     if(num == 0)
         return get_largest_dimension();
@@ -111,10 +112,10 @@ void gen_miplevel(texture& tex, int level)
     int size = tex.get_largest_num(level);
     int newsize = size >> 1;
 
-    sf::Image& base = level == 0 ? tex.c_image : tex.mipmaps[level-1];
+    const sf::Image& base = level == 0 ? tex.c_image : tex.mipmaps[level-1];
     sf::Image& mip = tex.mipmaps[level];
 
-    tex.mipmaps[level].create(newsize, newsize);
+    mip.create(newsize, newsize);
 
     for(int j=0; j<newsize; j++)
     {

@@ -89,7 +89,7 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
         obj_mem_manager::obj_sub_nums.push_back(obj->objs.size());
         obj->arrange_id = active_count;
 
-        for(std::vector<object>::iterator it=obj->objs.begin(); it!=obj->objs.end(); it++) ///if you call this more than once, it will break. Need to store how much it has already done, and start it again from there to prevent issues with mipmaps
+        for(std::vector<object>::iterator it = obj->objs.begin(); it!=obj->objs.end(); it++) ///if you call this more than once, it will break. Need to store how much it has already done, and start it again from there to prevent issues with mipmaps
         {
             it->object_g_id = n;
             obj_g_descriptor g;
@@ -201,7 +201,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
         {
             for(int i=0; i<(*it).tri_num; i++)
             {
-                (*it).tri_list[i].vertices[0].pad=obj_id;
+                (*it).tri_list[i].vertices[0].pad = obj_id;
             }
 
             ///boost::compute fails an assertion if tri_num == 0

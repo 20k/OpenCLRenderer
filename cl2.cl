@@ -2749,7 +2749,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
 
     dpth = idcalc(dpth);
 
-    float num = max_d - clamp(dpth / (FOV_CONST/8), 0.0f, max_d - 2);
+    float num = max_d - clamp(dpth / (FOV_CONST/16), 0.0f, max_d - 2);
 
     max_d = num;
 
@@ -2772,8 +2772,13 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
     res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
     res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;*/
 
+    //sample randomly?
     int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y}).x != base_occ;
     res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d/2, y}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d/2, y}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x+1, y}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x-1, y}).x != base_occ;
 
     //not 100% accurate, is checking corners which are > radius
     if(!res)
@@ -2800,12 +2805,10 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
 
             val = read_imagef(shadow_map, sam_2, (float2){x+i, y});
 
-
             int new_id = read_imageui(object_id_tex, sam_2, (float2){x+i, y}).x;
 
             if(new_id != object_id)
                 continue;
-
 
             float dist = max_d - dist_from_centre;
 
@@ -2825,7 +2828,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
     if(!occ_border)
     {
         write_imagef(intermediate_smoothed, (int2){x, y}, (float4){base_occ, base_diffuse.x, base_diffuse.y, base_diffuse.z});
-        //return;
+        return;
     }
 
 
@@ -2833,7 +2836,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
 
     ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
 
-    write_imagef(intermediate_smoothed, (int2){x, y}, (float4){base_occ, sum_diffuse.x, sum_diffuse.y, sum_diffuse.z});
+    write_imagef(intermediate_smoothed, (int2){x, y}, (float4){-1, sum_diffuse.x, sum_diffuse.y, sum_diffuse.z});
 }
 
 __kernel
@@ -2863,7 +2866,7 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
     dpth = idcalc(dpth);
 
-    float num = max_d - clamp(dpth / (FOV_CONST/8), 0.0f, max_d - 2);
+    float num = max_d - clamp(dpth / (FOV_CONST/16), 0.0f, max_d - 2);
 
     max_d = num;
 
@@ -2882,20 +2885,18 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
     float mul = 0;
 
     ///change base_occ from x to be 0 or 1?
-    int res = read_imagef(intermediate_smoothed, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
-    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x + max_d, y - max_d}).x != base_occ;
-    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
-    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;
+    int res = read_imagef(intermediate_smoothed, sam_2, (float2){x, y - max_d}).x != base_occ;
+    res = res || read_imagef(intermediate_smoothed, sam_2, (float2){x, y + max_d}).x != base_occ;
 
     //not 100% accurate, is checking corners which are > radius
-    if(!res)
+    if(base_occ != -1 && !res)
     {
         float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
 
         float3 with_diff = old_val.xyz * base_diffuse;
 
         write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
-        //return;
+        return;
     }
 
     //sample corners and centre, do comparison
@@ -2921,6 +2922,9 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
             if(new_id != object_id)
                 continue;
 
+            //if(val.x == 0)
+            //    continue;
+
 
             float dist = max_d - dist_from_centre;
 
@@ -2928,7 +2932,7 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
             sum_diffuse += val.s123 * dist;
 
-            if(val.x != base_occ)
+            if(val.x != base_occ || base_occ == -1)
             {
                 occ_border = 1;
             }
@@ -2937,14 +2941,14 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
     ///im finding regions of occlusion, which includes culling i dont want
 
-    if(!occ_border)
+    if(occ_border == 0)
     {
         float4 old_val = read_imagef(old_screen, sam_2, (float2){x, y});
 
         float3 with_diff = old_val.xyz * base_diffuse;
 
         write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
-        //return;
+        return;
     }
 
 

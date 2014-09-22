@@ -33,7 +33,7 @@ struct texture
 
     std::string texture_location;
 
-    cl_uint get_largest_num(int);
+    cl_uint get_largest_num(int) const;
 
     sf::Image& get_texture_level(int);
 
@@ -55,7 +55,7 @@ struct texture
     texture();
 
 //private:
-    cl_uint get_largest_dimension();
+    cl_uint get_largest_dimension() const;
 
     void set_load_func(std::function<void (texture*)>);
     std::function<void (texture*)> fp;
