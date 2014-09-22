@@ -973,6 +973,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 }
 
 ///fov const is key to mipmapping?
+///textures are suddenly popping between levels, this isnt right
 float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
@@ -1030,6 +1031,12 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     float fractional_mipmap_distance = 0;
 
     bool invalid_mipmap = false;
+
+    //float lod_bias = 0.0f;
+
+    //float val = native_log2(worst) + lod_bias;
+
+    //worst = native_exp2(val);
 
     mip_lower = floor(native_log2(worst));
 
