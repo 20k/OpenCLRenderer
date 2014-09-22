@@ -251,22 +251,6 @@ void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
 {
     unsigned int final_memory_size = 0; ///doesn't do mipmaps, eh
 
-    /*for(unsigned int i=0; i<unique_sizes.size(); i++)
-    {
-        int size = unique_sizes[i].first;
-        int num  = unique_sizes[i].second;
-        int num_pages = calc_num_slices(size, num);
-
-        for(int i=0; i<num_pages; i++)
-        {
-            texture_manager::texture_sizes.push_back(size);
-            texture_manager::texture_numbers.push_back(0);
-        }
-
-        final_memory_size+=num_pages;
-    }*/
-
-
     for(unsigned int i=0; i<unique_sizes.size(); i++)
     {
         int size = unique_sizes[i].first;

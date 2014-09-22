@@ -2767,16 +2767,19 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
 
     float mul = 0;
 
-    int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
+    /*int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y - max_d}).x != base_occ;
     res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y - max_d}).x != base_occ;
     res = res || read_imagef(shadow_map, sam_2, (float2){x - max_d, y + max_d}).x != base_occ;
-    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y + max_d}).x != base_occ;*/
+
+    int res = read_imagef(shadow_map, sam_2, (float2){x - max_d, y}).x != base_occ;
+    res = res || read_imagef(shadow_map, sam_2, (float2){x + max_d, y}).x != base_occ;
 
     //not 100% accurate, is checking corners which are > radius
     if(!res)
     {
         write_imagef(intermediate_smoothed, (int2){x, y}, (float4){base_occ, base_diffuse.x, base_diffuse.y, base_diffuse.z});
-        //return;
+        return;
     }
 
     //sample corners and centre, do comparison

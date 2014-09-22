@@ -105,7 +105,7 @@ void texture::load()
     fp(this);
 }
 
-static sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &p3)
+inline sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &p3)
 {
     sf::Color ret;
     ret.r=(p0.r + p1.r + p2.r + p3.r)/4.0f;
@@ -119,16 +119,16 @@ static sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &
 void gen_miplevel(texture& tex, int level)
 {
     int size = tex.get_largest_num(level);
-    int newsize=size >> 1;
+    int newsize = size >> 1;
 
     sf::Image& base = level == 0 ? tex.c_image : tex.mipmaps[level-1];
     sf::Image& mip = tex.mipmaps[level];
 
     tex.mipmaps[level].create(newsize, newsize);
 
-    for(int i=0; i<newsize; i++)
+    for(int j=0; j<newsize; j++)
     {
-        for(int j=0; j<newsize; j++)
+        for(int i=0; i<newsize; i++)
         {
             sf::Color p4[4];
 
@@ -137,9 +137,12 @@ void gen_miplevel(texture& tex, int level)
             p4[2]=base.getPixel(i*2, j*2+1);
             p4[3]=base.getPixel(i*2+1, j*2+1);
 
-            sf::Color m=pixel4(p4[0], p4[1], p4[2], p4[3]);
+            sf::Color ret;
+            ret.r=(p4[0].r + p4[1].r + p4[2].r + p4[3].r)/4.0f;
+            ret.g=(p4[0].g + p4[1].g + p4[2].g + p4[3].g)/4.0f;
+            ret.b=(p4[0].b + p4[1].b + p4[2].b + p4[3].b)/4.0f;
 
-            mip.setPixel(i, j, m);
+            mip.setPixel(i, j, ret);
         }
     }
 }
