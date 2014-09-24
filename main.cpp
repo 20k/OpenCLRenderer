@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
     objects_container sponza;
 
     sponza.set_file("sp2/sp2.obj");
-    //sponza.set_file("Objects/pre-ruin.obj");
     sponza.set_active(true);
     sponza.cache = false;
 
@@ -30,10 +29,7 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
-    //sponza.scale(100.0f);
-
     texture_manager::allocate_textures();
-
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
@@ -41,20 +37,18 @@ int main(int argc, char *argv[])
     sf::Event Event;
 
     light l;
-    l.set_col((cl_float4){0.0, 1.0, 0.0, 0});
-    //l.set_shadow_bright(1, 1);
+    l.set_col((cl_float4){0.0f, 1.0f, 0.0f, 0.0f});
     l.set_shadow_casting(1);
     l.set_brightness(1);
     l.set_pos((cl_float4){-150, 150, 0});
     l.radius = 100000;
-    //l.set_pos((cl_float4){-200, 2000, -100, 0});
-    //l.set_pos((cl_float4){-200, 200, -100, 0});
-    //l.set_pos((cl_float4){-400, 150, -555, 0});
+    /*l.set_pos((cl_float4){-200, 2000, -100, 0});
+    l.set_pos((cl_float4){-200, 200, -100, 0});
+    l.set_pos((cl_float4){-400, 150, -555, 0});*/
     window.add_light(&l);
 
     l.set_col((cl_float4){1.0f, 0.0f, 1.0f, 0});
 
-    //l.set_pos((cl_float4){0, 200, -450, 0});
     l.set_pos((cl_float4){-0, 200, -500, 0});
     l.shadow=1;
     l.radius = 100000;
@@ -73,10 +67,11 @@ int main(int argc, char *argv[])
 
     window.add_light(&l);*/
 
-    int times[10] = {0};
-    int time_count = 0;
 
     window.construct_shadowmaps();
+
+    int times[10] = {0};
+    int time_count = 0;
 
     int load_first = 0;
 
@@ -115,6 +110,7 @@ int main(int argc, char *argv[])
 
         std::cout << time/10 << std::endl;
 
+        ///raw time
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }
