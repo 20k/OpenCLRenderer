@@ -6,13 +6,12 @@
 
 #define M_PI 3.1415927f
 
-//#define MAXDEPTH 100000
+#define depth_far 350000.0f
 
-///change calc_third_area functions to be packed
+#define mulint UINT_MAX
 
-__constant float depth_far = 350000;
-__constant uint mulint = UINT_MAX;
-__constant int depth_icutoff = 75;
+#define depth_icutoff 75
+
 #define depth_no_clear (mulint-1)
 
 struct interp_container;
@@ -31,25 +30,6 @@ float max3(float x,  float y,  float z)
 {
     return max(max(x,y),z);
 }
-
-/*float calc_third_area(float x1, float y1, float x2, float y2, float x3, float y3, float x, float y, int which)
-{
-    if(which==1)
-    {
-        return fabs((float)(x1*(y - y3) + x*(y3 - y1) + x3*(y1 - y))/2.0f);
-    }
-    else if(which==2)
-    {
-        return fabs((float)(x1*(y2 - y) + x2*(y - y1) + x*(y1 - y2))/2.0f);
-    }
-    else if(which==3)
-    {
-        return fabs((float)(x*(y2 - y3) + x2*(y3 - y) + x3*(y - y2))/2.0f);
-    }
-
-
-    return fabs((x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2))/2.0f);
-}*/
 
 float calc_area(float3 x, float3 y)
 {
@@ -113,21 +93,12 @@ struct interp_container
 
 float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
-    //return (fabs((float)((x2*y-x*y2)+(x3*y2-x2*y3)+(x*y3-x3*y))/2.0f) + fabs((float)((x*y1-x1*y)+(x3*y-x*y3)+(x1*y3-x3*y1))/2.0f) + fabs((float)((x2*y1-x1*y2)+(x*y2-x2*y)+(x1*y-x*y1))/2.0f));
-
-
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
-
-
-    //return (fabs(mad(x2, y, -mad(x, y2, mad(x3, y2, -mad(x2, y3, mad(x, y3, -x3*y)))))) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
-
-    ///form was written for this, i think
 }
 
 float calc_third_areas(struct interp_container *C, float x, float y)
 {
     return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
-    //return calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 1) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 2) + calc_third_area(C->x[0], C->y[0], C->x[1], C->y[1], C->x[2], C->y[2], x, y, 3);
 }
 
 ///rotates point about camera
@@ -175,34 +146,6 @@ float calc_rconstant_v(float3 x, float3 y)
     return native_recip(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
 }
 
-/*float interpolate_2(float4 vals, struct interp_container c, float x, float y)
-{
-    ///x1, y1, x2, y2, x3, y3, x, y, which
-
-    float a[3];
-
-    for(int i=0; i<3; i++)
-    {
-        a[i] = calc_third_area(c.x.x, c.y.x, c.x.y, c.y.y, c.x.z, c.y.z, x, y, i+1);
-    }
-
-    //float area = c.area;
-
-    return (vals.x*a[2] + vals.y*a[0] + vals.z*a[1])/(a[0] + a[1] + a[2]);
-}*/
-///hitler
-
-
-
-/*float interpolate_i(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3, float rconstant)
-{
-    float A=((f2*y3+f1*(y2-y3)-f3*y2+(f3-f2)*y1) * rconstant);
-    float B=(-(f2*x3+f1*(x2-x3)-f3*x2+(f3-f2)*x1) * rconstant);
-    float C=f1-A*x1 - B*y1;
-
-    return (float)(A*x + B*y + C);
-}*/
-
 float interpolate_p(float3 f, float xn, float yn, float3 x, float3 y, float rconstant)
 {
     float A=((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
@@ -218,29 +161,10 @@ float interpolate_p(float3 f, float xn, float yn, float3 x, float3 y, float rcon
     return interpolate_i(f1, f2, f3, x, y, x1, x2, x3, y1, y2, y3, rconstant);
 }*/
 
-/*float2 interpolate_r_pair(float2 f[3], float2 xy, float2 bounds[3])
-{
-    float2 ip;
-    ip.x = interpolate_r(f[0].x, f[1].x, f[2].x, xy.x, xy.y, bounds[0].x, bounds[1].x, bounds[2].x, bounds[0].y, bounds[1].y, bounds[2].y);
-    ip.y = interpolate_r(f[0].y, f[1].y, f[2].y, xy.x, xy.y, bounds[0].x, bounds[1].x, bounds[2].x, bounds[0].y, bounds[1].y, bounds[2].y);
-    return ip;
-}*/
-
 float interpolate(float3 f, struct interp_container *c, float x, float y)
 {
     return interpolate_p(f, x, y, c->x.xyz, c->y.xyz, c->rconstant);
 }
-
-/*int out_of_bounds(float val, float min, float max)
-{
-    if(val >= min && val < max)
-    {
-        return false;
-    }
-
-    return true;
-}*/
-
 
 ///triangle plane intersection borrowed off stack overflow
 
@@ -290,7 +214,6 @@ void calc_min_max(float3 points[3], float width, float height, float ret[4])
     ret[1] = clamp(ret[1], 0.0f, width-1);
     ret[2] = clamp(ret[2], 0.0f, height-1);
     ret[3] = clamp(ret[3], 0.0f, height-1);
-
 }
 
 
@@ -309,13 +232,12 @@ void construct_interpolation(struct triangle* tri, struct interp_container* C, f
     float minx=min3(x1, x2, x3)-1;
     float maxx=max3(x1, x2, x3);
 
-    miny=clamp(miny, 0.0f, height);
-    maxy=clamp(maxy, 0.0f, height);
-    minx=clamp(minx, 0.0f, width);
-    maxx=clamp(maxx, 0.0f, width);
+    miny=clamp(miny, 0.0f, height-1);
+    maxy=clamp(maxy, 0.0f, height-1);
+    minx=clamp(minx, 0.0f, width-1);
+    maxx=clamp(maxx, 0.0f, width-1);
 
     float rconstant = native_recip(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
-
 
     C->x.x=x1;
     C->x.y=x2;
@@ -466,7 +388,7 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     float3 p1, p2, c1, c2;
 
 
-    if(n_behind==0)
+    if(n_behind == 0)
     {
         *clip = 0;
 
@@ -513,10 +435,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     float r1 = native_divide(fast_length(p1 - points[g1]), fast_length(points[g2] - points[g1]));
     float r2 = native_divide(fast_length(p2 - points[g1]), fast_length(points[g3] - points[g1]));
 
-
-    //rconst[0] = r1;
-    //rconst[1] = r2;
-
     if(n_behind==1)
     {
         c1 = points[g2];
@@ -553,13 +471,10 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 
     int ids[3];
 
-    //float rconst[2];
-
     rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
 
     int n = 0;
 
-    //generate_new_triangles(pr, ids, rconst, &n, tris, clip);
     generate_new_triangles(pr, ids, &n, tris, clip);
 
     if(n == 0)
@@ -619,11 +534,6 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
     ///YAY
 
-    ///problem lies here ish
-
-
-
-
     if(is_clipped == 0)
     {
         passback->vertices[0].pos = cutdown_tris[id*3 + 0];
@@ -663,14 +573,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     depth_project(rotpoints, width, height, fovc, projected);
 
 
-
-
     int n_behind = 0;
-    //int w_behind[3]= {0,0,0};
     int ids_behind[2];
-    //int id_behind_2 = -1;
     int id_valid=-1;
-
 
     for(int i=0; i<3; i++)
     {
@@ -686,7 +591,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     }
 
 
-    if(n_behind>2)
+    if(n_behind > 2)
     {
         *num = 0;
         return false;
@@ -702,7 +607,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     passback[0].vertices[2].object_id = T->vertices[2].object_id;
 
 
-    if(n_behind==0)
+    if(n_behind == 0)
     {
         passback[0].vertices[0].pos = (float4)(projected[0], 0);
         passback[0].vertices[1].pos = (float4)(projected[1], 0);
@@ -722,7 +627,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     int g1, g2, g3;
 
-    if(n_behind==1)
+    if(n_behind == 1)
     {
         ///n0, v1, v2
         g1 = ids_behind[0];
@@ -730,7 +635,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         g3 = (ids_behind[0] + 2) % 3;
     }
 
-    if(n_behind==2)
+    if(n_behind == 2)
     {
         g2 = ids_behind[0];
         g3 = ids_behind[1];
@@ -772,7 +677,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     p2l = nl2;
 
 
-    if(n_behind==1)
+    if(n_behind == 1)
     {
         c1 = rotpoints[g2];
         c2 = rotpoints[g3];
@@ -837,7 +742,6 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         for(int i=0; i<3; i++)
         {
             passback[1].vertices[i].object_id = T->vertices[i].object_id;
-            //passback[1].vertices[i].object_id.y = T->vertices[i].object_id.y;
         }
 
         *num = 2;
@@ -865,8 +769,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     }
 }
 
-
-////all texture code was not rewritten for time, does not use proper functions
+///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
@@ -875,8 +778,8 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     //cannot do linear interpolation on uchars
 
-    float x=coords.x;
-    float y=coords.y;
+    float x = coords.x;
+    float y = coords.y;
 
     int slice = num[tid] >> 16;
 
@@ -934,8 +837,6 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     int which=nums[tid];
     float width=sizes[which >> 16];
 
-    //float2 mcoord = coord * width;
-
     float2 mcoord = coord * width;
 
     float2 coords[4];
@@ -966,10 +867,10 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;
 
 
+    ///if using hardware linear interpolation
     //float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
 
     return result;
-
 }
 
 ///fov const is key to mipmapping?
@@ -980,9 +881,9 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     int tsize=sizes[slice];
 
     float3 rotpoints[3];
-    rotpoints[0]=c_tri->vertices[0].pos.xyz;
-    rotpoints[1]=c_tri->vertices[1].pos.xyz;
-    rotpoints[2]=c_tri->vertices[2].pos.xyz;
+    rotpoints[0] = c_tri->vertices[0].pos.xyz;
+    rotpoints[1] = c_tri->vertices[1].pos.xyz;
+    rotpoints[2] = c_tri->vertices[2].pos.xyz;
 
 
     float minvx=min3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x); ///these are screenspace coordinates, used relative to each other so +width/2.0 cancels
@@ -1047,9 +948,6 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
 
     mip_lower = min(mip_lower, MIP_LEVELS);
     mip_higher = min(mip_higher, MIP_LEVELS);
-
-    //if(mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS)
-    //    invalid_mipmap = true;
 
     invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS) ? true : false;
 
@@ -1143,7 +1041,6 @@ int ret_cubeface(float3 point, float3 light)
         angle = M_PI - fabs(angle) + M_PI;
     }
 
-
     float angle2 = atan2(r_pl.y, r_pl.z);
 
     angle2 = angle2 + M_PI/4.0f;
@@ -1176,18 +1073,23 @@ int ret_cubeface(float3 point, float3 light)
         zangle = M_PI - fabs(zangle) + M_PI;
     }
 
+    int z1, z2, z3;
 
-    if(zangle < M_PI/2.0f)
+    z1 = zangle < M_PI/2.0f;
+    z2 = zangle >= M_PI/2.0f && zangle < M_PI;
+    z3 = zangle >= M_PI && zangle < 3*M_PI/2.0f;
+
+    if(z1)
     {
         return 5;
     }
 
-    else if(zangle >= M_PI/2.0f && zangle < M_PI)
+    else if(z2)
     {
         return 0;
     }
 
-    else if(zangle >= M_PI && zangle < 3*M_PI/2.0f)
+    else if(z3)
     {
         return 4;
     }
@@ -1202,10 +1104,6 @@ float get_horizon_direction_depth(const int2 start, const float2 dir, const int 
     float h = cdepth;
 
     int p = 0;
-    //uint e = 0;
-
-
-    //float2 rdir = {1, 1};
 
     const float2 ndir = normalize(dir)*radius/nsamples;
 
@@ -1464,6 +1362,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     float ldp = ((float)ldepth_map[(int)round(postrotate_pos.y)*LIGHTBUFFERDIM + (int)round(postrotate_pos.x)]/mulint);
 
+    ///this does hacky linear interpolation shit (which just barely works), replaced by post process smoothing
     /*float near[4];
     float cnear[4];
 
@@ -1554,6 +1453,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
         occamount += dx*dy;
     }*/
 
+    ///offset to prevent depth issues causing artifacting
     float len = dcalc(20);
 
     occamount = dpth > ldp + len;
@@ -1799,7 +1699,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 ///fixed, now it should probably scale with screen resolution
 #define op_size 300
 
-///split triangles into fragments
+///split triangles into fixed-length fragments
 __kernel
 void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
@@ -1879,8 +1779,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             continue;
         }
 
-        //a light would read outside this quite severely
-
+        ///a light would read outside this quite severely
         if(!is_light)
         {
             for(int j=0; j<3; j++)
@@ -1892,7 +1791,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                     continue;
 
                 tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
-                //tris_proj[j][1] += distort_buffer[yc*SCREENWIDTH + xc].y;
             }
         }
 
@@ -1913,7 +1811,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
         cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
 
-        //uint c = 0;
 
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
@@ -1937,15 +1834,16 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
 }
 
-struct local_check
+/*struct local_check
 {
     //x, y, set, pad
     uint4 val;
-};
+};*/
 
 ///pad buffers so i don't have to do bounds checking? Probably slower
-///rotates and projects triangles into screenspace, writes their depth atomically
 ///do double skip so that I skip more things outside of a triangle?
+
+///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, uint is_light, __global float2* distort_buffer)
@@ -2050,7 +1948,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             x = ((pixel_along + pcount) % width) + min_max[0];
         }
 
-       /*// if( x >= min_max[0] + width)
+        /*// if( x >= min_max[0] + width)
         {
             x = ((pixel_along + pcount) % width) + min_max[0];
             //y += 1;
@@ -2077,9 +1975,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(within_bound)
         {
-            //__global uint *ft=&depth_buffer[(int)(y*ewidth) + (int)x];
-            //__global uint *ftr=&reprojected_depth_buffer[(int)(y*ewidth) + (int)x];
-
             float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
             ///cant be < 0 due to triangle clipping
@@ -2118,7 +2013,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }
 }
 
-///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so its much faster than part1
+///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
 void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
@@ -2467,6 +2362,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     int shnum = 0;
 
+    ///for the laser effect
     float3 mandatory_light = {0,0,0};
 
     ///rewite lighting to be in screenspace
@@ -2486,7 +2382,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         float3 lpos = l.pos.xyz;
 
 
-        //begin lambert
+        ///begin lambert
 
         float3 l2c = lpos - global_position; ///light to pixel positio
 
@@ -2499,6 +2395,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
 
+        ///end lambert
+
+        ///oren-nayar
         /*float albedo = 1.0f;
 
         float rough = 0.1f;
@@ -2525,8 +2424,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         light = max(light, -ambient);*/
 
-
-        //end lambert
         int skip = 0;
 
         if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) > 0) ///backface
@@ -2546,7 +2443,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         light *= disteq;
 
-        if(light <= 0.0f || skip)
+        int terminate_condition = light <= 0.0f || skip;
+
+        if(terminate_condition)
         {
             ambient_sum += ambient * l.col.xyz;
 
@@ -2571,7 +2470,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         if(shadow_cond) ///do shadow bits and bobs
         {
             ///gets pixel occlusion. Is not smooth
-            occluded = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory
+            occluded = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory?
 
             occlusion += occluded * fast_length(l.col.xyz);
 
@@ -2622,7 +2521,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ///diffuse + ambient, no specular yet
         ambient_sum += ambient*l.col.xyz;
     }
-    //separate out light ambient and diffuse, write to buffer, then apply occlusion there with depth modulated gaussian
+
+    //diffuse + ambient colour is written to a separate buffer so I can abuse it for smooth shadow blurring
 
     int2 scoord = {x, y};
 
@@ -2658,10 +2558,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
 
 
+    ///debugging
     //float lval = (float)light_depth_buffer[y*LIGHTBUFFERDIM + x + LIGHTBUFFERDIM*LIGHTBUFFERDIM*3] / mulint;
     //lval = lval * 500;
     //write_imagef(screen, scoord, lval);
-
 
     //write_imagef(screen, scoord, (col*(lightaccum)*(1.0f-hbao) + mandatory_light)*0.001 + 1.0f-hbao);
 
@@ -2671,6 +2571,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 }
 
 //detect step edges, then blur gaussian and mask with object ids?
+
+///this isn't really edge smoothing, more like edge softening
 __kernel
 void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen)
 {
@@ -2694,9 +2596,6 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
     //only do top left
     vals[0] = read_imageui(object_ids, sam, (int2){x, y-1}).x;
     vals[1] = read_imageui(object_ids, sam, (int2){x+1, y}).x;
-    //vals[2] = read_imageui(object_ids, sam, (int2){x, y+1}).y;
-    //vals[3] = read_imageui(object_ids, sam, (int2){x-1, y}).y;
-
 
     bool any_true = false;
 
@@ -2719,8 +2618,6 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
 
     read += read_imagef(old_screen, sam, (int2){x, y-1});
     read += read_imagef(old_screen, sam, (int2){x+1, y});
-    //read += read_imagef(old_screen, sam, (int2){x, y+1});
-    //read += read_imagef(old_screen, sam, (int2){x-1, y});
 
     read += read_imagef(old_screen, sam, (int2){x, y})*2;
 
@@ -2730,7 +2627,6 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
 }
 
 ///detect edges and blur in x direction
-///need to rethink entire early out strategy
 __kernel
 void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2d_t intermediate_smoothed, __read_only image2d_t object_id_tex, __global uint* depth)
 {
@@ -2740,6 +2636,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
+    ///later use linear to fetch more and cheat
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE   |
                     CLK_FILTER_NEAREST;
@@ -2841,6 +2738,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __write_only image2
     write_imagef(intermediate_smoothed, (int2){x, y}, (float4){-1, sum_diffuse.x, sum_diffuse.y, sum_diffuse.z});
 }
 
+///same as above, but for y direction and blurs 'mandory' pixels set by x blur
 __kernel
 void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
 {
@@ -2963,6 +2861,7 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
     write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
 }
 
+///non separated kernel
 /*__kernel
 void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
 {
@@ -3247,6 +3146,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
 
 
     ///depth buffering
+    ///change so that if centre is true, all are true?
     atomic_min(depth_pointer, idepth);
     atomic_min(depth_pointer1, idepth);
     atomic_min(depth_pointer2, idepth);

@@ -207,7 +207,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_tid_buf_len = size_of_uid_buffer;
 
     ///number of lights
-    obj_mem_manager::g_light_num=compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+    obj_mem_manager::g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &zero);
 
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
@@ -233,17 +233,18 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 {
-    cl_uint lnum=light::lightlist.size();
+    cl_uint lnum = light::lightlist.size();
 
     ///turn pointer list into block of memory for writing to gpu
     std::vector<light> light_straight;
+
     for(int i=0; i<light::lightlist.size(); i++)
     {
         light_straight.push_back(*light::lightlist[i]);
     }
 
     ///gpu light memory
-    obj_mem_manager::g_light_mem=compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR, light_straight.data());
+    obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, light_straight.data());
 
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &lnum);
 
@@ -267,28 +268,17 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
         shadow_light_num=ln;
 
         ///blank cubemap filled with UINT_MAX
-        //blank_light_buf = new cl_uint[l_size*l_size*6];
-        //memset(blank_light_buf, UINT_MAX, l_size*l_size*sizeof(cl_uint)*6);
-
         g_shadow_light_buffer=compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
-
-
-
-        for(int i=0; i<ln; i++)
-        {
-            //cl::cqueue.enqueue_write_buffer(g_shadow_light_buffer, sizeof(cl_uint)*l_size*l_size*6*i, sizeof(cl_uint)*l_size*l_size*6, blank_light_buf);
-        }
 
         cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
 
-        for(unsigned int i=0; i<l_size*l_size*6*ln; i++)
+        ///not sure how this pans out for stalling
+        for(unsigned int i = 0; i<l_size*l_size*6*ln; i++)
         {
             buf[i] = UINT_MAX;
         }
 
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_shadow_light_buffer.get(), buf, 0, NULL, NULL);
-
-        //delete [] blank_light_buf;
     }
 }
 

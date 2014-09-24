@@ -167,7 +167,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     t.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*trianglecount, CL_MEM_READ_ONLY);
     t.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*trianglecount*3);
 
-    t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
+    t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
     t.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
 
 
