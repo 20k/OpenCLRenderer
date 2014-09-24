@@ -1038,12 +1038,10 @@ void engine::draw_ui()
 
     cl_uint local2=128;
 
-    compute::buffer wrap(scr);
-
     arg_list p1arg_list;
     p1arg_list.push_back(&obj_mem_manager::g_obj_desc);
     p1arg_list.push_back(&obj_mem_manager::g_obj_num);
-    p1arg_list.push_back(&wrap);
+    p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&c_pos);
     p1arg_list.push_back(&c_rot);
 
