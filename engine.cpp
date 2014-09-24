@@ -133,8 +133,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     blank_light_buf=NULL;
 
     cl_uint size = std::max(height, width);
-    ///2^x=size;
-
 
 
     shadow_light_num = 0;
@@ -437,6 +435,7 @@ cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float
     ret.y = ry;
     ret.z = rotated.z;
     ret.w = 0;
+
     return ret;
 }
 
@@ -659,7 +658,6 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_tid_buf);
                 p1arg_list.push_back(&obj_mem_manager::g_tri_num);
                 p1arg_list.push_back(&temp_l_mem);
-                //p1arg_list.push_back(&temp_l_mem_2);
                 p1arg_list.push_back(&g_tid_buf_atomic_count);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
@@ -682,18 +680,13 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     ///__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
 
-    cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
-    compute::buffer screen_wrapper(g_screen.get(), true);
-
     arg_list p1arg_list;
     p1arg_list.push_back(&pc.g_len);
     p1arg_list.push_back(&pc.g_points_mem);
     p1arg_list.push_back(&pc.g_colour_mem);
     p1arg_list.push_back(&g_cam);
     p1arg_list.push_back(&c_rot);
-    p1arg_list.push_back(&screen_wrapper);
+    p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&depth_buffer[nbuf]);
     p1arg_list.push_back(&g_distortion_buffer);
 
@@ -703,21 +696,12 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 
     run_kernel_with_list(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arg_list, true);
     run_kernel_with_list(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arg_list, true);
-
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
 {
     ///__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
     ///__write_only image2d_t screen, __global uint* depth_buffer)
-
-
-    //cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
-    compute::buffer screen_wrapper(g_screen.get(), true);
 
     arg_list p1arg_list;
     p1arg_list.push_back(&pc.g_len);
@@ -726,7 +710,7 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     p1arg_list.push_back(&g_cam);
     p1arg_list.push_back(&c_pos);
     p1arg_list.push_back(&c_rot);
-    p1arg_list.push_back(&screen_wrapper);
+    p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&depth_buffer[nbuf]);
     p1arg_list.push_back(&g_distortion_buffer);
 
@@ -736,22 +720,11 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     cl_uint p1global_ws = pc.len;
 
     run_kernel_with_list(cl::space_dust, &p1global_ws, &local, 1, p1arg_list, true);
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 ///merge with above kernel?
 void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offset_pos)
 {
-    ///__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* c_pos, __global float4* c_rot,
-    ///__write_only image2d_t screen, __global uint* depth_buffer)
-
-
-    cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
-    compute::buffer screen_wrapper(g_screen.get(), true);
-
     arg_list p1arg_list;
     p1arg_list.push_back(&pc.g_len);
     p1arg_list.push_back(&pc.g_points_mem);
@@ -759,7 +732,7 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     p1arg_list.push_back(&offset_pos);
     p1arg_list.push_back(&c_pos);
     p1arg_list.push_back(&c_rot);
-    p1arg_list.push_back(&screen_wrapper);
+    p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&depth_buffer[nbuf]);
     p1arg_list.push_back(&g_distortion_buffer);
 
@@ -768,32 +741,22 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     cl_uint p1global_ws = pc.len;
 
     run_kernel_with_list(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arg_list, true);
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::draw_space_nebulae(compute::image2d& tex)
 {
-    cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
-    //space_nebulae(float4 c_pos, float4 c_rot, __global uint* depth_buffer, __write_only image2d_t screen)
-
     arg_list nebulae_arg_list;
     nebulae_arg_list.push_back(&c_pos);
     nebulae_arg_list.push_back(&c_rot);
     nebulae_arg_list.push_back(&tex);
     nebulae_arg_list.push_back(&depth_buffer[nbuf]);
-    nebulae_arg_list.push_back(&scr);
-
+    nebulae_arg_list.push_back(&g_screen);
 
 
     cl_uint p3global_ws[]= {width, height};
     cl_uint p3local_ws[]= {8, 8};
 
     run_kernel_with_list(cl::space_nebulae, p3global_ws, p3local_ws, 2, nebulae_arg_list, true);
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::generate_distortion(compute::buffer& points, int num)
@@ -858,12 +821,6 @@ void engine::draw_bulk_objs_n()
     ///need a better way to clear light buffer
 
     sf::Clock c;
-
-    cl_mem scr = g_screen.get();
-    ///acquire opengl objects for opencl
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
-    //cl::cqueue.finish();
 
     ///1 thread per triangle
     cl_uint p1global_ws = obj_mem_manager::tri_num;
@@ -1011,7 +968,6 @@ void engine::draw_bulk_objs_n()
 
     arg_list shadow_smooth_arg_list_x;
     shadow_smooth_arg_list_x.push_back(&g_occlusion_intermediate_tex);
-    //shadow_smooth_arg_list_x.push_back(&g_screen_edge_smoothed);
     shadow_smooth_arg_list_x.push_back(&g_occlusion_tex);
     shadow_smooth_arg_list_x.push_back(&g_object_id_tex);
     shadow_smooth_arg_list_x.push_back(&depth_buffer[nbuf]);
@@ -1049,9 +1005,6 @@ void engine::draw_bulk_objs_n()
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
-
-    ///release opengl stuff
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
@@ -1064,10 +1017,6 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
     //test_pos.z += 5;
     //int projectile_num = 1;
 
-    cl_mem scr = g_screen.get();
-    ///acquire opengl objects for opencl
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
     //compute::buffer projectiles = compute::buffer(cl::context, sizeof(cl_float4), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &test_pos);
 
     arg_list projectile_arg_list;
@@ -1077,22 +1026,14 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
     projectile_arg_list.push_back(&c_pos);
     projectile_arg_list.push_back(&c_rot);
     projectile_arg_list.push_back(&buffer_look);
-    projectile_arg_list.push_back(&scr);
+    projectile_arg_list.push_back(&g_screen);
 
     run_kernel_with_list(cl::draw_fancy_projectile, screenspace_gws, screenspace_lws, 2, projectile_arg_list, true);
-
-    ///release opengl stuff
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 ///never going to work, would have to reproject?
 void engine::draw_ui()
 {
-    compute::buffer screen_wrapper(g_screen.get(), true);
-
-    cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
     cl_uint global_ws = obj_mem_manager::obj_num;
 
     cl_uint local2=128;
@@ -1107,9 +1048,6 @@ void engine::draw_ui()
     p1arg_list.push_back(&c_rot);
 
     run_kernel_with_list(cl::draw_ui, &global_ws, &local2, 1, p1arg_list, true);
-
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 template<typename T, typename Q>
@@ -1143,10 +1081,6 @@ bool within_bounds(float v, float min, float max)
 
 void engine::draw_holograms()
 {
-    cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-    //cl::cqueue.finish();
-
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
     {
         ///figure out parent shit
@@ -1230,19 +1164,10 @@ void engine::draw_holograms()
         //printf("T %d %d\n",g_w,g_h); ///yay actually correct!
         ///invoke kernel with this and back project nearest etc
 
+        ///once acquired, never actually needs releasing?
         hologram_manager::acquire(i);
 
-        compute::buffer wrap_scr(scr);
-        compute::buffer wrap_tex(hologram_manager::g_tex_mem[i]);
-
         compute::buffer g_br_pos = compute::buffer(cl::context, sizeof(cl_float4)*4, CL_MEM_COPY_HOST_PTR, &points);
-
-        compute::buffer position_wrap = compute::buffer(hologram_manager::g_positions[i]);
-        compute::buffer rotation_wrap = compute::buffer(hologram_manager::g_rotations[i]);
-
-        compute::buffer scale_wrap = compute::buffer(hologram_manager::g_scales[i]);
-
-        compute::buffer id_wrap = compute::buffer(hologram_manager::g_id_bufs[i]);
 
         cl_float8 posrot;
         posrot.lo = parent_pos;
@@ -1251,17 +1176,17 @@ void engine::draw_holograms()
         compute::buffer g_posrot = compute::buffer(cl::context, sizeof(cl_float8), CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, &posrot);
 
         arg_list holo_arg_list;
-        holo_arg_list.push_back(&wrap_tex);
+        holo_arg_list.push_back(&hologram_manager::g_tex_mem[i]);
         holo_arg_list.push_back(&g_posrot);
         holo_arg_list.push_back(&g_br_pos);
-        holo_arg_list.push_back(&position_wrap);
-        holo_arg_list.push_back(&rotation_wrap);
+        holo_arg_list.push_back(&hologram_manager::g_positions[i]);
+        holo_arg_list.push_back(&hologram_manager::g_rotations[i]);
         holo_arg_list.push_back(&c_pos);
         holo_arg_list.push_back(&c_rot);
-        holo_arg_list.push_back(&wrap_scr);
-        holo_arg_list.push_back(&scale_wrap);
+        holo_arg_list.push_back(&g_screen);
+        holo_arg_list.push_back(&hologram_manager::g_scales[i]);
         holo_arg_list.push_back(&depth_buffer[nbuf]);
-        holo_arg_list.push_back(&id_wrap);
+        holo_arg_list.push_back(&hologram_manager::g_id_bufs[i]);
         holo_arg_list.push_back(&g_ui_id_screen);
 
         cl_uint num[2] = {(cl_uint)g_w, (cl_uint)g_h};
@@ -1272,19 +1197,10 @@ void engine::draw_holograms()
 
         hologram_manager::release(i);
     }
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
-    //cl::cqueue.finish();
 }
 
 void engine::draw_voxel_octree(g_voxel_info& info)
 {
-    cl_mem scr = g_screen.get();
-    //compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
-
-
-    compute::buffer screen_wrap = compute::buffer(scr, true);
-
     ///broke///
     //compute::buffer* argv[] = {&screen_wrap, &info.g_voxel_mem, &g_c_pos, &g_c_rot};
 
@@ -1292,9 +1208,6 @@ void engine::draw_voxel_octree(g_voxel_info& info)
     cl_uint local[] = {16, 16};
 
     //run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
-
-
-    //compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
 }
 
 void engine::render_buffers()
@@ -1320,7 +1233,6 @@ void engine::render_buffers()
         clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &eventStatus, NULL);
         Sleep(0);
     }*/
-
 
 
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
@@ -1461,7 +1373,7 @@ void engine::check_obj_visibility()
         {
             if(!T->objs[j].isloaded && T->objs[j].call_vis_func(&T->objs[j], c_pos))
             {
-                ///fire g_arrange_mem asynchronously
+                ///fire g_arrange_mem asynchronously in the future
                 std::cout << "hi" << std::endl;
                 obj_mem_manager::g_arrange_mem();
                 obj_mem_manager::g_changeover();
