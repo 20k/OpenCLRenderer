@@ -210,12 +210,17 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
-    compute::image_format format_occ(CL_RGBA, CL_FLOAT);
+    compute::image_format format_occ(CL_R, CL_FLOAT);
+    compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
     g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
     g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
+
     g_occlusion_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
     g_occlusion_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
+
+    g_diffuse_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_diffuse, width, height, 0, NULL);
+    g_diffuse_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_diffuse, width, height, 0, NULL);
 
     g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
@@ -945,6 +950,7 @@ void engine::draw_bulk_objs_n()
     p3arg_list.push_back(&g_distortion_buffer);
     p3arg_list.push_back(&g_object_id_tex);
     p3arg_list.push_back(&g_occlusion_intermediate_tex);
+    p3arg_list.push_back(&g_diffuse_intermediate_tex);
     //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
 
     ///this is the deferred screenspace pass
@@ -968,7 +974,9 @@ void engine::draw_bulk_objs_n()
 
     arg_list shadow_smooth_arg_list_x;
     shadow_smooth_arg_list_x.push_back(&g_occlusion_intermediate_tex);
+    shadow_smooth_arg_list_x.push_back(&g_diffuse_intermediate_tex);
     shadow_smooth_arg_list_x.push_back(&g_occlusion_tex);
+    shadow_smooth_arg_list_x.push_back(&g_diffuse_tex);
     shadow_smooth_arg_list_x.push_back(&g_object_id_tex);
     shadow_smooth_arg_list_x.push_back(&depth_buffer[nbuf]);
 
@@ -977,6 +985,7 @@ void engine::draw_bulk_objs_n()
 
     arg_list shadow_smooth_arg_list_y;
     shadow_smooth_arg_list_y.push_back(&g_occlusion_tex);
+    shadow_smooth_arg_list_y.push_back(&g_diffuse_tex);
     shadow_smooth_arg_list_y.push_back(&g_screen_edge_smoothed);
     shadow_smooth_arg_list_y.push_back(&g_screen);
     shadow_smooth_arg_list_y.push_back(&g_object_id_tex);

@@ -162,6 +162,8 @@ int main()
 
     tenfingers = (float*)malloc(sizeof(float)*10*4);
 
+    //get fist positions as well
+
     DWORD word = 0;
 
     while(1)
