@@ -45,10 +45,20 @@ int main(int argc, char *argv[])
 
     //sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
-    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
+    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 100, 100));
 
     sponza.set_active(true);
     sponza.cache = false;
+
+    objects_container c1;
+    c1.set_file("../../objects/cylinder.obj");
+    c1.set_active(true);
+
+    objects_container c2;
+    c2.set_file("../../objects/cylinder.obj");
+    c2.set_active(true);
+
+    c1.set_pos({-200, 0, 0});
 
     engine window;
     window.load(1280,768,1000, "turtles", "../../cl2.cl");
