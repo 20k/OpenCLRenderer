@@ -25,9 +25,10 @@ cl_uint objects_container::push()
 
 void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 {
-    int tid = get_object_by_id(id);
+    ///duplicate setting if it is an active object? starting to seem all bit tragic
 
     pos = _pos;
+
     for(unsigned int i=0; i<objs.size(); i++)
     {
         objs[i].pos = _pos;
@@ -35,6 +36,8 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
     if(isactive)
     {
+        int tid = get_object_by_id(id);
+
         obj_container_list[tid]->pos = _pos;
         for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
         {
@@ -45,9 +48,8 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
 void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 {
-    int tid = get_object_by_id(id);
-
     rot = _rot;
+
     for(unsigned int i=0; i<objs.size(); i++)
     {
         objs[i].rot = _rot;
@@ -55,6 +57,8 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 
     if(isactive)
     {
+        int tid = get_object_by_id(id);
+
         obj_container_list[tid]->rot = _rot;
         for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
         {

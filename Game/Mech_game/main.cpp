@@ -52,13 +52,13 @@ int main(int argc, char *argv[])
 
     objects_container c1;
     c1.set_file("../../objects/cylinder.obj");
+    c1.set_pos({-2000, 0, 0});
     c1.set_active(true);
 
     objects_container c2;
     c2.set_file("../../objects/cylinder.obj");
+    c2.set_pos({0,0,0});
     c2.set_active(true);
-
-    c1.set_pos({-200, 0, 0});
 
     engine window;
     window.load(1280,768,1000, "turtles", "../../cl2.cl");
@@ -71,6 +71,12 @@ int main(int argc, char *argv[])
     obj_mem_manager::load_active_objects();
 
     //sponza.scale(100.0f);
+
+    c1.scale(100.0f);
+    c2.scale(100.0f);
+
+    c1.set_rot({M_PI/2.0f, 0, 0});
+    c2.set_rot({M_PI/2.0f, 0, 0});
 
     texture_manager::allocate_textures();
 

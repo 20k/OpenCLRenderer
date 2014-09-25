@@ -49,8 +49,14 @@ void obj_mem_manager::load_active_objects()
             if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
                 int save_id = obj->id;
+                cl_float4 save_pos = obj->pos;
+                cl_float4 save_rot = obj->rot;
+
                 *obj = object_cache[obj->file];
+
                 obj->id = save_id;
+                obj->set_pos(save_pos);
+                obj->set_rot(save_rot);
             }
             else
             {

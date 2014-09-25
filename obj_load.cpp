@@ -123,6 +123,12 @@ struct indices
 ///requires triangulated faces, and explicit texture coordinates, normals, usemtl statements, and a diffuse texture specified
 void obj_load(objects_container* pobj)
 {
+    if(!pobj)
+    {
+        std::cout << "something has gone horribly wrong in obj_load.cpp" << std::endl;
+        exit(0xDEAD);
+    }
+
     sf::Clock clk;
 
     std::string filename = pobj->file;
