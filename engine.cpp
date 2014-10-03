@@ -253,25 +253,25 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 
     ///sacrifice soul to chaos gods, allocate light buffers here
 
-    int ln=0;
+    int ln = 0;
 
     ///doesnt work quite right
     ///needs to dirty if any light buffer is changed
     for(unsigned int i=0; i<light::lightlist.size(); i++)
     {
-        if(light::lightlist[i]->shadow==1)
+        if(light::lightlist[i]->shadow == 1)
         {
             ln++;
         }
     }
 
     ///this is incorrect as per above comment
-    if(shadow_light_num!=ln)
+    if(shadow_light_num != ln)
     {
-        shadow_light_num=ln;
+        shadow_light_num = ln;
 
         ///blank cubemap filled with UINT_MAX
-        g_shadow_light_buffer=compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
+        g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
 
         cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
 
@@ -1215,6 +1215,37 @@ void engine::draw_voxel_octree(g_voxel_info& info)
     cl_uint local[] = {16, 16};
 
     //run_kernel_with_args(cl::draw_voxel_octree, glob, local, 2, argv, 4, true);
+}
+
+void engine::draw_raytrace()
+{
+    //__kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
+    arg_list ray_args;
+    ray_args.push_back(&obj_mem_manager::g_tri_mem);
+    ray_args.push_back(&obj_mem_manager::g_tri_num);
+    ray_args.push_back(&c_pos);
+    ray_args.push_back(&c_rot);
+    ray_args.push_back(&obj_mem_manager::g_light_mem);
+    ray_args.push_back(&obj_mem_manager::g_light_num);
+    ray_args.push_back(&g_screen);
+    //ray_args.push_back(&texture_manager::g_texture_numbers);
+    //ray_args.push_back(&texture_manager::g_texture_sizes);
+    //ray_args.push_back(&obj_mem_manager::g_obj_desc);
+    //ray_args.push_back(&obj_mem_manager::g_obj_num);
+    /*ray_args.push_back(&g_shadow_light_buffer);
+    ray_args.push_back(&depth_buffer[nnbuf]);
+    ray_args.push_back(&g_tid_buf);
+    ray_args.push_back(&obj_mem_manager::g_cut_tri_mem);
+    ray_args.push_back(&g_distortion_buffer);
+    ray_args.push_back(&g_object_id_tex);
+    ray_args.push_back(&g_occlusion_intermediate_tex);
+    ray_args.push_back(&g_diffuse_intermediate_tex);*/
+
+    cl_uint global_ws[2] = {width, height};
+    cl_uint local_ws[2] = {16, 16};
+
+    ///this is the deferred screenspace pass
+    run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);
 }
 
 void engine::render_buffers()

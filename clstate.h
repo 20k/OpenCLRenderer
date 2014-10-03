@@ -50,6 +50,7 @@ namespace cl
     extern kernel edge_smoothing;
     extern kernel shadowmap_smoothing_x;
     extern kernel shadowmap_smoothing_y;
+    extern kernel raytrace;
 }
 
 

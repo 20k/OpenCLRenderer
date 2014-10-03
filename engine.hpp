@@ -113,6 +113,7 @@ struct engine
     void draw_ui();
     void draw_holograms();
     void draw_voxel_octree(g_voxel_info& info);
+    void draw_raytrace();
     void render_buffers();
 
     void ui_interaction();

@@ -10,6 +10,7 @@ void ship_object::pull_from_ui()
     radar_t,
     warp_t*/
 
+    ///this seems a bit hitler
     systems[weapons_t].power = ui_manager::offset_from_minimum["ui_weapons"].y;
     systems[engines_t].power = ui_manager::offset_from_minimum["ui_engines"].y;
     systems[shields_t].power = ui_manager::offset_from_minimum["ui_shields"].y;

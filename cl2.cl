@@ -2630,6 +2630,7 @@ void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_
 ///detect edges and blur in x direction
 ///occlusion is pre applied to to diffuse lighting, this means that we can simply sum smooth occlusion and apply that to diffuse (?)
 ///need to change to cl_rg and save real + smoothed occlusion
+///can pass in old occlusion buffer because that is still ground truth
 __kernel
 void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __read_only image2d_t diffuse_map, __write_only image2d_t intermediate_smoothed, __write_only image2d_t diffuse_smoothed, __read_only image2d_t object_id_tex, __global uint* depth)
 {
@@ -4331,6 +4332,146 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
     }
 
     ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
+}
+
+#define EPSILON 0.001f
+
+int triangle_intersection( const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* out )
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    //NOT CULLING
+    if(det > -EPSILON && det < EPSILON)
+        return 0;
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+    if(u < 0.0f || u > 1.0f)
+        return 0;
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+    //The intersection lies outside of the triangle
+    if(v < 0.0f || u + v  > 1.0f)
+        return 0;
+
+    t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+    if(t > EPSILON)
+    {
+        *out = t;
+        return 1;
+    }
+
+    // No hit, no win
+    return 0;
+}
+
+///use reverse reprojection as heuristic
+__kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
+{
+    float x = get_global_id(0);
+    float y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
+
+    //float3 ray_dir = (float3){spos.x, spos.y, 1};
+
+
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = rot(spos,  0, (float3)
+    {
+        -c_rot.x, 0.0f, 0.0f
+    });
+    global_position        = rot(global_position, 0, (float3)
+    {
+        0.0f, -c_rot.y, 0.0f
+    });
+    global_position        = rot(global_position, 0, (float3)
+    {
+        0.0f, 0.0f, -c_rot.z
+    });
+
+    float3 ray_dir = global_position;
+
+    //float3 ray_dir = rot(spos, 0, c_rot.xyz);
+
+    float3 ray_origin = c_pos.xyz;
+
+
+    int min_i = -1;
+
+    //global_position += c_pos.xyz;
+
+    float val = 0;
+
+    int found = 0;
+    int fnum = 0;
+
+    float fval = 10;
+
+
+    //printf("%f %f %f\n", ray_dir.x, ray_dir.y, ray_dir.z);
+
+    int tnum = *tri_num;
+
+    for(uint i=0; i<tnum; i++)
+    {
+        int isect;
+
+        isect = triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, ray_origin, ray_dir, &val);
+
+        if(isect && val < fval)
+        {
+            found = 1;
+            fnum = i;
+            fval = val;
+        }
+    }
+
+
+    if(found)
+    {
+        write_imagef(screen, (int2){x, y}, fval);
+    }
+    else
+    {
+        write_imagef(screen, (int2){x, y}, 0);
+    }
+
+    ///start off literally hitler
 }
 
 /*///change to reverse projection
