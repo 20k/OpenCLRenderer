@@ -666,8 +666,8 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_tid_buf_atomic_count);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-                p1arg_list.push_back(&g_valid_fragment_num);
-                p1arg_list.push_back(&g_valid_fragment_mem);
+                //p1arg_list.push_back(&g_valid_fragment_num);
+                //p1arg_list.push_back(&g_valid_fragment_mem);
                 p1arg_list.push_back(&juan);
                 p1arg_list.push_back(&g_distortion_buffer);
 
@@ -862,7 +862,7 @@ void engine::draw_bulk_objs_n()
     cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
     ///clear number of valid fragments
-    cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
+    //cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
 
     ///round global args to multiple of local work size
     cl_uint p1global_ws_new = id_c;
@@ -878,19 +878,19 @@ void engine::draw_bulk_objs_n()
     p1arg_list.push_back(&g_tid_buf_atomic_count);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    p1arg_list.push_back(&g_valid_fragment_num);
-    p1arg_list.push_back(&g_valid_fragment_mem);
+    //p1arg_list.push_back(&g_valid_fragment_num);
+    //p1arg_list.push_back(&g_valid_fragment_mem);
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
     sf::Clock p2;
-    int valid_tri_num = 0;
+    //int valid_tri_num = 0;
 
-    cl::cqueue.enqueue_read_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &valid_tri_num);
+    //cl::cqueue.enqueue_read_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &valid_tri_num);
 
-    cl_uint p2global_ws = valid_tri_num;
+    cl_uint p2global_ws = p1global_ws_new;
 
     cl_uint local2=128;
 
@@ -907,8 +907,8 @@ void engine::draw_bulk_objs_n()
     p2arg_list.push_back(&g_tid_buf_atomic_count);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    p2arg_list.push_back(&g_valid_fragment_num);
-    p2arg_list.push_back(&g_valid_fragment_mem);
+    //p2arg_list.push_back(&g_valid_fragment_num);
+    //p2arg_list.push_back(&g_valid_fragment_mem);
     p2arg_list.push_back(&g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);

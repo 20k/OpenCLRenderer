@@ -1846,7 +1846,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 ///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, __global uint* valid_tri_num, __global uint* valid_tri_mem, uint is_light, __global float2* distort_buffer)
+           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
 
@@ -1993,40 +1993,40 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             //barrier(CLK_GLOBAL_MEM_FENCE);
 
-            if(mydepth < sdepth) ///triangle has had at least one pixel make it to the screen
-            {
-                valid = true;
-            }
+            //if(mydepth < sdepth) ///triangle has had at least one pixel make it to the screen
+            //{
+            //    valid = true;
+           // }
         }
 
         pcount++;
     }
 
     ///only write triangels that have any valid pixels to buffer
-    if(valid)
+    /*if(valid)
     {
         uint v_id = atomic_inc(valid_tri_num);
 
         valid_tri_mem[v_id*3 + 0] = id;
         valid_tri_mem[v_id*3 + 1] = distance;
         valid_tri_mem[v_id*3 + 2] = ctri;
-    }
+    }*/
 }
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
 void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
-            __global uint* valid_tri_num, __global uint* valid_tri_mem, __global float2* distort_buffer)
+            __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
 
-    if(id >= *valid_tri_num)
+    if(id >= *f_len)
     {
         return;
     }
 
-    uint tid = valid_tri_mem[id*3];
+    /*uint tid = valid_tri_mem[id*3];
 
     uint distance = valid_tri_mem[id*3 + 1];
 
@@ -2040,6 +2040,19 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     //uint o_id = triangles[which].vertices[0].object_id;
 
 
+    float3 tris_proj_n[3];
+
+    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;*/
+
+
+
+    uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
+
+    uint ctri = fragment_id_buffer[id*3 + 2];
+
+    ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];
 
     tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
@@ -2148,7 +2161,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             if(cond)
             {
                 int2 coord = {x, y};
-                uint4 d = {tid, 0, 0, 0};
+                uint4 d = {id, 0, 0, 0};
                 write_imageui(id_buffer, coord, d);
 
                 //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
@@ -4353,6 +4366,8 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
     float det, inv_det, u, v;
     float t;
 
+    *out = 0.0f;
+
     //Find vectors for two edges sharing V1
     e1 = V2 - V1;
     e2 = V3 - V1;
@@ -4400,6 +4415,8 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
     }
 
     // No hit, no win
+
+    //mmm
     return 0;
 }
 
@@ -4494,10 +4511,56 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
         float3 norm = n1*l1 + n2*l2 + n3*l3;
 
+        float3 p1, p2, p3;
+
+        p1 = tris[fnum].vertices[0].pos.xyz;
+        p2 = tris[fnum].vertices[1].pos.xyz;
+        p3 = tris[fnum].vertices[2].pos.xyz;
+
+        float3 pos = p1*l1 + p2*l2 + p3*l3;
+
         ///this just works, which is utterly terrifying
         norm = fast_normalize(norm);
 
-        write_imagef(screen, (int2){x, y}, norm.xyzz);
+        //pos += norm*8;
+
+        //float3 reflect = ray_dir - 2.0f*dot(ray_dir, norm)*norm;
+
+        float3 to_light;
+
+        to_light = lights[0].pos.xyz - pos;
+
+        int found_2 = 0;
+        float fval_2 = 10;
+
+        for(uint i=0; i<tnum; i++)
+        {
+            float tval = 10;
+            float tuval;
+            float tvval;
+
+            int isect;
+
+            ///need 3d coordinate of where we struct triangle as pos
+            isect = triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, pos, to_light, &tval, &tuval, &tvval);
+
+            if(isect && tval < fval_2 && ((int)i != fnum))
+            {
+                found_2 = 1;
+
+                fval_2 = tval;
+            }
+        }
+
+        float mod = 1;
+
+        if(found_2 && fval_2 < 1)
+        {
+            mod = 0;
+        }
+
+
+        write_imagef(screen, (int2){x, y}, norm.xyzz * mod);
     }
     else
     {

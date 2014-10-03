@@ -14,22 +14,23 @@ int main(int argc, char *argv[])
 
     objects_container sponza;
 
-    sponza.set_file("sp2/cornellfixed.obj");
+    sponza.set_file("sp2/sp2.obj");
+    //sponza.set_file("sp2/cornellfixed.obj");
     sponza.set_active(true);
     sponza.cache = false;
 
     engine window;
 
-    window.load(800,600,1000, "turtles", "cl2.cl");
+    window.load(1280,768,1000, "turtles", "cl2.cl");
 
-    //window.set_camera_pos((cl_float4){-800,150,-570});
+    window.set_camera_pos((cl_float4){-800,150,-570});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
     obj_mem_manager::load_active_objects();
 
-    sponza.scale(100.0f);
+    //sponza.scale(400.0f);
 
     texture_manager::allocate_textures();
 
@@ -42,7 +43,8 @@ int main(int argc, char *argv[])
     l.set_col((cl_float4){0.0f, 1.0f, 0.0f, 0.0f});
     l.set_shadow_casting(1);
     l.set_brightness(1);
-    l.set_pos((cl_float4){-150, 150, 0});
+    l.set_pos((cl_float4){-200, 100, 0});
+    //l.set_pos((cl_float4){-150, 150, 300});
     l.radius = 100000;
     /*l.set_pos((cl_float4){-200, 2000, -100, 0});
     l.set_pos((cl_float4){-200, 200, -100, 0});
@@ -57,8 +59,8 @@ int main(int argc, char *argv[])
 
     window.add_light(&l);
 
-    window.set_camera_pos({0, 100, 200});
-    window.set_camera_rot({0.1, M_PI, 0});
+    //window.set_camera_pos({0, 100, 200});
+    //window.set_camera_rot({0.1, M_PI, 0});
 
     /*l.set_col({1.0, 0.5, 0.0});
     l.set_pos((cl_float4){-0, 2000,-0, 0});
@@ -92,9 +94,9 @@ int main(int argc, char *argv[])
 
         window.input();
 
-        //window.draw_bulk_objs_n();
+        window.draw_bulk_objs_n();
 
-        window.draw_raytrace();
+        //window.draw_raytrace();
 
         window.render_buffers();
 
@@ -115,9 +117,9 @@ int main(int argc, char *argv[])
             load_first = 1;
         }
 
-        //std::cout << time/10 << std::endl;
+        std::cout << time/10 << std::endl;
 
         ///raw time
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }
