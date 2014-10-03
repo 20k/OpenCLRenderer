@@ -2317,6 +2317,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     ///get perspective fixed normal by multiplying by depth
     normal *= ldepth;
 
+    normal = fast_normalize(normal);
+
 
     float3 lpos = lights[0].pos.xyz;
 
@@ -2393,7 +2395,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         l2p = fast_normalize(l2p);
 
 
-        float light = dot(fast_normalize(l2c), fast_normalize(normal)); ///diffuse
+        float light = dot(fast_normalize(l2c), normal); ///diffuse
 
         ///end lambert
 
@@ -2426,7 +2428,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         int skip = 0;
 
-        if((dot(fast_normalize(normal), fast_normalize(global_position - lpos))) > 0) ///backface
+        if((dot(normal, fast_normalize(global_position - lpos))) > 0) ///backface
         {
             skip = 1;
         }
@@ -4341,7 +4343,9 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
                            const float3   V3,
                            const float3    O,  //Ray origin
                            const float3    D,  //Ray direction
-                                 float* out )
+                                 float* out,
+                                 float* uout,
+                                 float* vout)
 {
     float3 e1, e2;  //Edge1, Edge2
     float3 P, Q, T;
@@ -4388,6 +4392,10 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
     if(t > EPSILON)
     {
         *out = t;
+
+        *uout = u;
+        *vout = v;
+
         return 1;
     }
 
@@ -4426,45 +4434,70 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
     float3 ray_dir = global_position;
 
-    //float3 ray_dir = rot(spos, 0, c_rot.xyz);
-
     float3 ray_origin = c_pos.xyz;
 
-
-    int min_i = -1;
-
-    //global_position += c_pos.xyz;
-
-    float val = 0;
-
     int found = 0;
-    int fnum = 0;
+    int fnum = -1;
 
     float fval = 10;
-
-
-    //printf("%f %f %f\n", ray_dir.x, ray_dir.y, ray_dir.z);
+    float uval, vval;
 
     int tnum = *tri_num;
 
     for(uint i=0; i<tnum; i++)
     {
+        float tuval, tvval;
+        float tval = 10;
+
         int isect;
 
-        isect = triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, ray_origin, ray_dir, &val);
+        isect = triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, ray_origin, ray_dir, &tval, &tuval, &tvval);
 
-        if(isect && val < fval)
+        if(isect && tval < fval)
         {
             found = 1;
+
             fnum = i;
-            fval = val;
+
+            fval = tval;
+            uval = tuval;
+            vval = tvval;
         }
     }
 
 
     if(found)
     {
-        write_imagef(screen, (int2){x, y}, fval);
+        ///barycentric coords
+
+        float y1, y2, y3;
+        float x1, x2, x3;
+
+        y1 = 0, y2 = 0, y3 = 1;
+        x1 = 0, x2 = 1, x3 = 0;
+
+        float l1, l2, l3;
+
+        float lx = uval;
+        float ly = vval;
+
+        l1 = (y2 - y3)*(lx - x3) + (x3 - x2)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+        l2 = (y3 - y1)*(lx - x3) + (x1 - x3)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+
+        l3 = 1.0f - l1 - l2;
+
+        float3 n1, n2, n3;
+
+        n1 = tris[fnum].vertices[0].normal.xyz;
+        n2 = tris[fnum].vertices[1].normal.xyz;
+        n3 = tris[fnum].vertices[2].normal.xyz;
+
+        float3 norm = n1*l1 + n2*l2 + n3*l3;
+
+        ///this just works, which is utterly terrifying
+        norm = fast_normalize(norm);
+
+        write_imagef(screen, (int2){x, y}, norm.xyzz);
     }
     else
     {
