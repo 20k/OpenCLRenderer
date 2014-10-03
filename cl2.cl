@@ -2026,28 +2026,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         return;
     }
 
-    /*uint tid = valid_tri_mem[id*3];
-
-    uint distance = valid_tri_mem[id*3 + 1];
-
-    uint ctri = valid_tri_mem[id*3 + 2];
-
-
-    //uint o_id = triangles[tid].vertices[0].object_id;
-
-    //uint which = fragment_id_buffer[tid*3];
-
-    //uint o_id = triangles[which].vertices[0].object_id;
-
-
-    float3 tris_proj_n[3];
-
-    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
-    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
-    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;*/
-
-
-
     uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
 
     uint ctri = fragment_id_buffer[id*3 + 2];
@@ -2059,10 +2037,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
 
-
     float min_max[4];
     calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
-
 
     int width  = min_max[1] - min_max[0];
 
@@ -2263,7 +2239,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     int num = 0;
 
-    int o_id=T->vertices[0].object_id;
+    int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
 
@@ -2274,6 +2250,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     //xy coordinate can only be in one, test both tris and avoid memory read?
 
+    ///work this out manually, rather than doing a memory access
     uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
 
 

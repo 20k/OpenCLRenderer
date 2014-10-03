@@ -195,9 +195,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    g_valid_fragment_num   = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+    //g_valid_fragment_num   = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    g_valid_fragment_mem   = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
+    //g_valid_fragment_mem   = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
     g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
@@ -653,7 +653,7 @@ void engine::construct_shadowmaps()
 
                 cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
-                cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
+                //cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
 
 
                 cl_uint p1global_ws_new = id_c;
@@ -666,8 +666,6 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_tid_buf_atomic_count);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-                //p1arg_list.push_back(&g_valid_fragment_num);
-                //p1arg_list.push_back(&g_valid_fragment_mem);
                 p1arg_list.push_back(&juan);
                 p1arg_list.push_back(&g_distortion_buffer);
 
@@ -878,8 +876,6 @@ void engine::draw_bulk_objs_n()
     p1arg_list.push_back(&g_tid_buf_atomic_count);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    //p1arg_list.push_back(&g_valid_fragment_num);
-    //p1arg_list.push_back(&g_valid_fragment_mem);
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&g_distortion_buffer);
 
@@ -907,8 +903,6 @@ void engine::draw_bulk_objs_n()
     p2arg_list.push_back(&g_tid_buf_atomic_count);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    //p2arg_list.push_back(&g_valid_fragment_num);
-    //p2arg_list.push_back(&g_valid_fragment_mem);
     p2arg_list.push_back(&g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
