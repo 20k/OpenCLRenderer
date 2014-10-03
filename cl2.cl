@@ -2416,13 +2416,12 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         light = max(light, -ambient);*/
 
-        int skip = 0;
-
-        if((dot(normal, fast_normalize(global_position - lpos))) > 0) ///backface
+        /*if((dot(normal, fast_normalize(global_position - lpos))) > 0) ///backface
         {
             skip = 1;
-        }
+        }*/
 
+        int skip = (dot(normal, fast_normalize(global_position - lpos))) > 0;
 
         float rad = l.radius;
 
