@@ -146,6 +146,8 @@ float calc_rconstant_v(float3 x, float3 y)
     return native_recip(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
 }
 
+///remember to do this in a less shit way with bayesian coordinates, this is definitely not the right way
+///would reduce to 3 multiplications per interpolation
 float interpolate_p(float3 f, float xn, float yn, float3 x, float3 y, float rconstant)
 {
     float A=((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
@@ -4327,7 +4329,7 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
 
 #define EPSILON 0.001f
 
-int triangle_intersection( const float3   V1,  // Triangle vertices
+void triangle_intersection( const float3   V1,  // Triangle vertices
                            const float3   V2,
                            const float3   V3,
                            const float3    O,  //Ray origin
@@ -4342,8 +4344,6 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
     float det, inv_det, u, v;
     float t;
 
-    *out = 0.0f;
-
     //Find vectors for two edges sharing V1
     e1 = V2 - V1;
     e2 = V3 - V1;
@@ -4355,7 +4355,7 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
 
     //NOT CULLING
     if(det > -EPSILON && det < EPSILON)
-        return 0;
+        return;
 
     inv_det = native_recip(det);
 
@@ -4366,7 +4366,7 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
     u = dot(T, P) * inv_det;
     //The intersection lies outside of the triangle
     if(u < 0.0f || u > 1.0f)
-        return 0;
+        return;
 
     //Prepare to test v parameter
     Q = cross(T, e1);
@@ -4375,7 +4375,7 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
     v = dot(D, Q) * inv_det;
     //The intersection lies outside of the triangle
     if(v < 0.0f || u + v  > 1.0f)
-        return 0;
+        return;
 
     t = dot(e2, Q) * inv_det;
 
@@ -4386,14 +4386,9 @@ int triangle_intersection( const float3   V1,  // Triangle vertices
 
         *uout = u;
         *vout = v;
-
-        return 1;
     }
 
     // No hit, no win
-
-    //mmm
-    return 0;
 }
 
 ///use reverse reprojection as heuristic
@@ -4439,14 +4434,13 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
     for(uint i=0; i<tnum; i++)
     {
+
         float tuval, tvval;
         float tval = 10;
 
-        int isect;
+        triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, ray_origin, ray_dir, &tval, &tuval, &tvval);
 
-        isect = triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, ray_origin, ray_dir, &tval, &tuval, &tvval);
-
-        if(isect && tval < fval)
+        if(tval < fval)
         {
             found = 1;
 
@@ -4496,7 +4490,7 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
         float3 pos = p1*l1 + p2*l2 + p3*l3;
 
         ///this just works, which is utterly terrifying
-        norm = fast_normalize(norm);
+        norm = normalize(norm);
 
         //pos += norm*8;
 
@@ -4506,37 +4500,67 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
         to_light = lights[0].pos.xyz - pos;
 
+        ///cheat
+        float phong_diffuse = dot(fast_normalize(to_light), norm);
+
         int found_2 = 0;
         float fval_2 = 10;
+        float fval_max = -1;
 
+        ///shade based on length of intersection?
         for(uint i=0; i<tnum; i++)
         {
             float tval = 10;
             float tuval;
             float tvval;
 
-            int isect;
-
+            ///we're almost certainly just waiting on global memory here
             ///need 3d coordinate of where we struct triangle as pos
-            isect = triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, pos, to_light, &tval, &tuval, &tvval);
+            triangle_intersection(tris[i].vertices[0].pos.xyz, tris[i].vertices[1].pos.xyz, tris[i].vertices[2].pos.xyz, pos, to_light, &tval, &tuval, &tvval);
 
-            if(isect && tval < fval_2 && ((int)i != fnum))
+            if(tval < 1)
             {
-                found_2 = 1;
+                found_2++;
 
-                fval_2 = tval;
+                fval_2 = min(fval_2, tval);
+
+                fval_max = max(fval_max, tval);
             }
         }
 
         float mod = 1;
 
-        if(found_2 && fval_2 < 1)
+        ///these next two steps are called 'cheating without shame'
+        ///Fixes some artifacts, gives 'smooth' shadows (by modulating shadow intensity by amount of intersection through an object)
+        if(found_2 == 1)
         {
             mod = 0;
+
+            float diff = fval_max * fast_length(to_light);
+
+            diff = min(diff, 50.0f);
+
+            diff /= 50.0f;
+
+            mod = 1.0f - diff;
         }
 
+        ///with optional making shadows 'smoother'
+        ///50 is the amount of solid material a light can pass through and not be blocked
+        ///max depth difference that can be tolerated, so technically incorrect
+        ///make bound more leniant the more the distance is?
+        if(found_2 > 1)
+        {
+            float diff = (fval_max - fval_2) * fast_length(to_light);
 
-        write_imagef(screen, (int2){x, y}, norm.xyzz * mod);
+            diff = min(diff, 50.0f);
+
+            diff /= 50.0f;
+
+            mod = 1.0f - diff;
+        }
+
+        write_imagef(screen, (int2){x, y}, phong_diffuse * mod);
     }
     else
     {
