@@ -64,6 +64,7 @@ void smoke::init(int _width, int _height, int _depth)
     }
 }
 
+///do async
 void smoke::tick(float dt)
 {
     ///__kernel void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in,
@@ -76,7 +77,7 @@ void smoke::tick(float dt)
     ///dens step
 
     cl_uint global_ws[3] = {width, height, depth};
-    cl_uint local_ws[3] = {16, 16, 1};
+    cl_uint local_ws[3] = {64, 2, 2};
 
 
     int zero = 0;

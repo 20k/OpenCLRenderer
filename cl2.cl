@@ -4685,7 +4685,12 @@ __kernel void diffuse_unstable(int width, int height, int depth, int b, __global
 }
 
 ///combine all 3 uvw velocities into 1 kernel?
-__kernel void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
+///nope, slower
+///textures for free interpolation, would be extremely, extremely much fasterer
+///might be worth combining them then
+__kernel
+//__attribute__((reqd_work_group_size(16, 16, 1)))
+void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -4697,6 +4702,18 @@ __kernel void advect(int width, int height, int depth, int b, __global float* d_
         return;
     }
 
+    //__local float local_d_in[16][16][3];
+
+    //int mx, my, mz;
+
+    //mx = get_local_id(0);
+    //my = get_local_id(1);
+    //mz = get_local_id(2);
+
+    ///change ordering?
+    //local_d_in[mx][my][mz-1] = d_in[IX(x,y,z-1)];
+    //local_d_in[mx][my][mz]   = d_in[IX(x,y,z)];
+    //local_d_in[mx][my][mz+1] = d_in[IX(x,y,z+1)];
 
     float dt0x = dt*width;
     float dt0y = dt*height;
