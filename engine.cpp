@@ -966,7 +966,7 @@ void engine::draw_bulk_objs_n()
     g_screen_edge_smoothed = temp;*/
 
 
-    arg_list shadow_smooth_arg_list_x;
+    /*arg_list shadow_smooth_arg_list_x;
     shadow_smooth_arg_list_x.push_back(&g_occlusion_intermediate_tex);
     shadow_smooth_arg_list_x.push_back(&g_diffuse_intermediate_tex);
     shadow_smooth_arg_list_x.push_back(&g_occlusion_tex);
@@ -978,14 +978,15 @@ void engine::draw_bulk_objs_n()
 
 
     arg_list shadow_smooth_arg_list_y;
+    shadow_smooth_arg_list_y.push_back(&g_occlusion_intermediate_tex);
     shadow_smooth_arg_list_y.push_back(&g_occlusion_tex);
     shadow_smooth_arg_list_y.push_back(&g_diffuse_tex);
     shadow_smooth_arg_list_y.push_back(&g_screen_edge_smoothed);
     shadow_smooth_arg_list_y.push_back(&g_screen);
     shadow_smooth_arg_list_y.push_back(&g_object_id_tex);
-    shadow_smooth_arg_list_y.push_back(&depth_buffer[nbuf]);
+    shadow_smooth_arg_list_y.push_back(&depth_buffer[nbuf]);*/
 
-    run_kernel_with_list(cl::shadowmap_smoothing_y, p3global_ws, p3local_ws, 2, shadow_smooth_arg_list_y, true);
+    //run_kernel_with_list(cl::shadowmap_smoothing_y, p3global_ws, p3local_ws, 2, shadow_smooth_arg_list_y, true);
 
     //restart prearrange immediately here, and use event lists to wait for p3 in flip?
 
@@ -1240,6 +1241,30 @@ void engine::draw_raytrace()
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);
+}
+
+void engine::draw_smoke(smoke& s)
+{
+    /*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+                            __write_only image2d_t screen, __global uint* depth_buffer)*/
+
+    arg_list smoke_args;
+    smoke_args.push_back(&s.g_voxel[s.n]);
+    smoke_args.push_back(&s.width);
+    smoke_args.push_back(&s.height);
+    smoke_args.push_back(&s.depth);
+    smoke_args.push_back(&c_pos);
+    smoke_args.push_back(&c_rot);
+    smoke_args.push_back(&s.pos);
+    smoke_args.push_back(&s.rot);
+    smoke_args.push_back(&g_screen);
+    smoke_args.push_back(&depth_buffer[nbuf]);
+
+    ///we may need to go into screenspace later
+    cl_uint global_ws[3] = {s.width, s.height, s.depth};
+    cl_uint local_ws[3] = {16, 16, 1};
+
+    run_kernel_with_list(cl::render_voxels, global_ws, local_ws, 3, smoke_args);
 }
 
 void engine::render_buffers()

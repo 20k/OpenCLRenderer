@@ -51,6 +51,9 @@ namespace cl
     extern kernel shadowmap_smoothing_x;
     extern kernel shadowmap_smoothing_y;
     extern kernel raytrace;
+    extern kernel render_voxels;
+    extern kernel diffuse_unstable;
+    extern kernel advect;
 }
 
 

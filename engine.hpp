@@ -17,6 +17,8 @@
 
 #include <chrono>
 
+#include "smoke.hpp"
+
 namespace compute = boost::compute;
 
 struct point_cloud_info;
@@ -114,6 +116,7 @@ struct engine
     void draw_holograms();
     void draw_voxel_octree(g_voxel_info& info);
     void draw_raytrace();
+    void draw_smoke(smoke& s);
     void render_buffers();
 
     void ui_interaction();
@@ -142,6 +145,13 @@ struct arg_list
         args.push_back(buf);
         sizes.push_back(sizeof(T));
     }
+
+    /*template<typename T>
+    void push_back(const T& buf)
+    {
+        args.push_back(buf);
+        sizes.push_back(sizeof(T));
+    }*/
 };
 
 

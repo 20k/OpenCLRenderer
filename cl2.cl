@@ -2380,14 +2380,13 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float3 l2c = lpos - global_position; ///light to pixel positio
 
-
         float3 l2p = camera_pos - global_position;
 
         l2c = fast_normalize(l2c);
         l2p = fast_normalize(l2p);
 
 
-        float light = dot(fast_normalize(l2c), normal); ///diffuse
+        float light = dot(l2c, normal); ///diffuse
 
         ///end lambert
 
@@ -2465,7 +2464,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             ///gets pixel occlusion. Is not smooth
             occluded = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory?
 
-            occlusion += occluded * fast_length(l.col.xyz);
+            ///multiplying by val fixes stupidity cases
+            occlusion += occluded;// * fast_length(l.col.xyz);
 
             shnum++;
         }
@@ -2549,7 +2549,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
-    write_imagef(screen, scoord, (float4)(colclamp, 0.0f));
+    write_imagef(screen, scoord, (float4)(colclamp*diffuse_sum, 0.0f));
 
 
     ///debugging
@@ -2665,7 +2665,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __read_only image2d
 
     int occ_border = 0;
 
-    float3 sum_diffuse = 0;
+    float sum_occ = 0;
 
     float mul = 0;
 
@@ -2682,7 +2682,7 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __read_only image2d
     {
         write_imagef(intermediate_smoothed, (int2){x, y}, base_occ);
         write_imagef(diffuse_smoothed, (int2){x, y}, (float4){base_diffuse.x, base_diffuse.y, base_diffuse.z, 0.0f});
-        return;
+        //return;
     }
 
     //sample corners and centre, do comparison
@@ -2708,13 +2708,13 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __read_only image2d
             if(new_id != object_id)
                 continue;
 
-            float3 vals = read_imagef(diffuse_map, sam_2, (float2){x+i, y}).xyz;
+            //float3 vals = read_imagef(diffuse_map, sam_2, (float2){x+i, y}).xyz;
 
             float dist = max_d - dist_from_centre;
 
             mul += dist;
 
-            sum_diffuse += vals * dist;
+            sum_occ += val * dist;
 
             if(val != base_occ)
             {
@@ -2729,21 +2729,22 @@ void shadowmap_smoothing_x(__read_only image2d_t shadow_map, __read_only image2d
     {
         write_imagef(intermediate_smoothed, (int2){x, y}, base_occ);
         write_imagef(diffuse_smoothed, (int2){x, y}, (float4){base_diffuse.x, base_diffuse.y, base_diffuse.z, 0.0f});
-        return;
+        //return;
     }
 
 
-    sum_diffuse /= mul;
+    sum_occ /= mul;
 
     ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
 
-    write_imagef(intermediate_smoothed, (int2){x, y}, -1.0f);
-    write_imagef(diffuse_smoothed, (int2){x, y}, (float4){sum_diffuse.x, sum_diffuse.y, sum_diffuse.z, 0.0f});
+    ///we can tell if a value is touched, because it is not 0 or 1
+    write_imagef(intermediate_smoothed, (int2){x, y}, sum_occ);
+    write_imagef(diffuse_smoothed, (int2){x, y}, (float4){base_diffuse.x, base_diffuse.y, base_diffuse.z, 0.0f});
 }
 
 ///same as above, but for y direction and blurs 'mandory' pixels set by x blur
 __kernel
-void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_only image2d_t diffuse_smoothed, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
+void shadowmap_smoothing_y(__read_only image2d_t shadow_map, __read_only image2d_t intermediate_smoothed, __read_only image2d_t diffuse_smoothed, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen, __read_only image2d_t object_id_tex, __global uint* depth)
 {
     float x = get_global_id(0);
     float y = get_global_id(1);
@@ -2773,17 +2774,15 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
     max_d = num;
 
 
-    float base_val = read_imagef(intermediate_smoothed, sam, (float2){x, y}).x;
+    float base_occ = read_imagef(intermediate_smoothed, sam, (float2){x, y}).x;
 
     float3 base_diffuse = read_imagef(diffuse_smoothed, sam, (float2){x, y}).xyz;
 
     int object_id = read_imageui(object_id_tex, sam, (float2){x, y}).x;
 
-    float base_occ = base_val;
-
     int occ_border = 0;
 
-    float3 sum_diffuse = 0;
+    float sum_occ = 0;
 
     float mul = 0;
 
@@ -2797,12 +2796,13 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
     ///natural -1 occlusion is impossible, signal from x kernel that this pixel must be blurred
     ///not 100% accurate, is checking corners which are > radius
-    if(base_occ != -1.0f && !res)
+    ///poor mans checking
+    if((base_occ == 0 || base_occ == 1) && !res)
     {
         float3 with_diff = old_val.xyz * base_diffuse;
 
         write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
-        return;
+        //return;
     }
 
     //sample corners and centre, do comparison
@@ -2820,6 +2820,7 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
 
             float val;
 
+            ///reading from pre x-smoothed image
             val = read_imagef(intermediate_smoothed, sam_2, (float2){x, y+j}).x;
 
             int new_id = read_imageui(object_id_tex, sam_2, (float2){x, y+j}).x;
@@ -2827,13 +2828,13 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
             if(new_id != object_id)
                 continue;
 
-            float3 vals = read_imagef(diffuse_smoothed, sam_2, (float2){x, y+j}).xyz;
+            //float3 vals = read_imagef(diffuse_smoothed, sam_2, (float2){x, y+j}).xyz;
 
             float dist = max_d - dist_from_centre;
 
             mul += dist;
 
-            sum_diffuse += vals * dist;
+            sum_occ += val * dist;
 
             if(val != base_occ)
             {
@@ -2842,25 +2843,31 @@ void shadowmap_smoothing_y(__read_only image2d_t intermediate_smoothed, __read_o
         }
     }
 
+    ///currently applying occlusion twice? ;_;
 
 
     ///im finding regions of occlusion, which includes culling i dont want
 
-    if(occ_border == 0 && base_occ != -1)
+    if(occ_border == 0 && (base_occ == 0 || base_occ == 1))
     {
         float3 with_diff = old_val.xyz * base_diffuse;
 
         write_imagef(smoothed_screen, (int2){x, y}, (float4){with_diff.x, with_diff.y, with_diff.z, 0});
-        return;
+        //return;
     }
 
 
-    sum_diffuse /= mul;
+    sum_occ /= mul;
 
     ///sum_vals is the occlusion term for this location, between 0 and 1, only want to apply to diffuse bit
 
+    float original = read_imagef(shadow_map, sam, (float2){x, y}).x;
 
-    float3 modded = old_val.xyz*sum_diffuse;
+    //float3 modded = old_val.xyz*(1.0f - sum_occ)*base_diffuse;
+
+    float3 modded = old_val.xyz * sum_occ;
+
+    //float3 modded = old_val.xyz * base_diffuse;
 
     write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
 }
@@ -4569,6 +4576,167 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
     ///start off literally hitler
 }
+
+#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
+
+///do separate rendering onto real sized buffer, then back project from screen into that
+__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+                            __write_only image2d_t screen, __global uint* depth_buffer)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= width-1 || y >= height-1 || z >= depth-1 || x < 1 || y < 1 || z < 1)
+    {
+        return;
+    }
+
+
+    float3 camera_pos = c_pos.xyz - v_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 point = {x, y, z};
+
+    float3 rotated = rot(point, camera_pos, camera_rot);
+
+    float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+    ///now in screenspace
+
+    float myval = voxel[IX(x, y, z)];
+
+    if(myval < 0.1f)
+        return;
+
+    if(projected.z < 0.001f)
+        return;
+
+    if(myval > 1)
+        myval = 1;
+
+    write_imagef(screen, (int2){projected.x, projected.y}, myval);
+}
+
+///?__kernel void add_source(int width, int height, int depth, )
+
+
+
+///no boundaries for the moment, gas just escapes
+/*__kernel void set_bnd(int width, int height, int depth, int b, __global float* val)
+{
+    for(int i=1; i<width; i++)
+    {
+        val[IX(0, 0, i)]       = b == 1 ? -x[IX(1, i)] : x[IX(1, i)];
+        val[IX(width-1, i)] = b == 1 ? -x[IX(width-2, i)] : x[IX(width-2, i)];
+    }
+}*/
+
+///must be iterated ridiculously in current form
+/*__kernel void linear_solver(int width, int height, int depth, int b, __global float* x_in, __global float* x_out, __global float* x0, float a, float c)
+{
+    //int n = 20;
+
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= width || y >= height || z >= depth)
+    {
+        return;
+    }
+
+
+}*/
+
+__kernel void diffuse_unstable(int width, int height, int depth, int b, __global float* x_out, __global float* x_in, float diffuse, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
+    {
+        return;
+    }
+
+    ///be wary of this constant?
+    float a = dt*diffuse*width*height*depth;
+
+    a = 1.01f/6.f;
+
+    ///wont diffuse outside of cube, no zero values
+    float val = 0;
+
+    if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
+        //val = x_in[IX(x,y,z)] + a*(x_in[IX(x+1, y, z)] + x_in[IX(x-1, y, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y, z+1)] + x_in[IX(x, y, z-1)] - 6*x_in[IX(x, y, z)]);
+        val = (x_in[IX(x+1, y, z)] + x_in[IX(x-1, y, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y, z+1)] + x_in[IX(x, y, z-1)])/6;
+
+
+    //if(val < 0.01f)
+    //    val = 0;
+
+    ///cause diffusion into outside world (pretend)
+    //if(x == 0 || x == width-1 || y == 0 || y == height-1 || z == 0 || z == depth-1)
+    //    val = 0;
+
+    x_out[IX(x,y,z)] = max(val, 0.0f);
+}
+
+///combine all 3 uvw velocities into 1 kernel?
+__kernel void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    if(x >= width || y >= height || z >= depth || x < 1 || y < 1 || z < 1)
+    {
+        return;
+    }
+
+    //float dt0 = dt*(width + height + depth)/3;
+
+
+    float dt0x = dt*width;
+    float dt0y = dt*height;
+    float dt0z = dt*depth;
+
+    float vx = x - dt0x * xvel[IX(x,y,z)];
+    float vy = y - dt0y * yvel[IX(x,y,z)];
+    float vz = z - dt0z * zvel[IX(x,y,z)];
+
+    vx = clamp(vx, 0.5f, width - 1.5f);
+    vy = clamp(vy, 0.5f, height - 1.5f);
+    vz = clamp(vz, 0.5f, depth - 1.5f);
+
+    float3 v0s = floor((float3){vx, vy, vz});
+
+    int3 iv0s = convert_int3(v0s);
+
+    float3 v1s = v0s + 1;
+
+    float3 fracs = (float3){vx, vy, vz} - v0s;
+
+    float3 ifracs = 1.0f - fracs;
+
+    float xy0 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z)];
+    float xy1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z)];
+
+    float xy0z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z+1)];
+    float xy1z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z+1)];
+
+    float yz0 = ifracs.y * xy0 + fracs.y * xy1;
+    float yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
+
+    float val = ifracs.z * yz0 + fracs.z * yz1;
+
+    d_out[IX(x, y, z)] = val;
+
+    //d_out[IX(x,y,z)] = d_in[IX(x,y,z)];
+}
+
 
 /*///change to reverse projection
 __kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
