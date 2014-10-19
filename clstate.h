@@ -53,7 +53,9 @@ namespace cl
     extern kernel raytrace;
     extern kernel render_voxels;
     extern kernel diffuse_unstable;
+    extern kernel diffuse_unstable_vec;
     extern kernel advect;
+    extern kernel advect_vec;
 }
 
 

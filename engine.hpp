@@ -180,8 +180,9 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
 
         if(g_ws[i] % local_ws[i]!=0)
         {
-            int rem=g_ws[i] % local_ws[i];
-            g_ws[i]-=(rem);
+            int rem = g_ws[i] % local_ws[i];
+
+            g_ws[i]-=rem;
             g_ws[i]+=local_ws[i];
         }
 

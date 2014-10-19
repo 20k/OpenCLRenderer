@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
         window.input();
 
         s.tick(1.0f);
+
         window.draw_bulk_objs_n();
         window.draw_smoke(s);
 

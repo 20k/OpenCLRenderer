@@ -34,5 +34,7 @@ kernel cl::shadowmap_smoothing_y;
 kernel cl::raytrace;
 kernel cl::render_voxels;
 kernel cl::diffuse_unstable;
+kernel cl::diffuse_unstable_vec;
 kernel cl::advect;
+kernel cl::advect_vec;
 

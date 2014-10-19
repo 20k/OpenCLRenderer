@@ -243,7 +243,9 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::raytrace = load_kernel(program, "raytrace");
     cl::render_voxels = load_kernel(program, "render_voxels");
     cl::diffuse_unstable = load_kernel(program, "diffuse_unstable");
+    cl::diffuse_unstable_vec = load_kernel(program, "diffuse_unstable_vec");
     cl::advect = load_kernel(program, "advect");
+    cl::advect_vec = load_kernel(program, "advect_vec");
 }
 
 
