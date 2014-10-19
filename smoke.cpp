@@ -24,25 +24,22 @@ void smoke::init(int _width, int _height, int _depth)
     for(int i=0; i<2; i++)
     {
         g_voxel[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
-        g_velocities[i] = compute::buffer(cl::context, sizeof(cl_float4)*width*height*depth, CL_MEM_READ_WRITE, NULL);
-        //g_velocity_y[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
-        //g_velocity_z[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
+        g_velocity_x[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
+        g_velocity_y[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
+        g_velocity_z[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
 
         cl_float* buf = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-        cl_float4* buf1 = (cl_float4*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocities[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float4)*width*height*depth, 0, NULL, NULL, NULL);
-        //cl_float* buf2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_y[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-        //cl_float* buf3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+        cl_float* buf1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_x[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+        cl_float* buf2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_y[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+        cl_float* buf3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
 
         ///not sure how this pans out for stalling
         for(unsigned int i = 0; i<width*height*depth; i++)
         {
             buf[i] = 0.0f;
-            buf1[i].x = 0.0f;
-            buf1[i].y = 0.0f;
-            buf1[i].z = 0.0f;
-            buf1[i].w = 0.0f;
-            //buf2[i] = 0.0f;
-            //buf3[i] = 0.0f;
+            buf1[i] = 0.0f;
+            buf2[i] = 0.0f;
+            buf3[i] = 0.0f;
         }
 
         ///init some stuff in the centre of the array
@@ -55,15 +52,15 @@ void smoke::init(int _width, int _height, int _depth)
         {
             for(int j=-20; j<=20; j++)
             {
-                buf1[(width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height)].x = 1000.0f;
+                buf1[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100.0f;
                 //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
             }
         }
 
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_voxel[i].get(), buf, 0, NULL, NULL);
-        clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocities[i].get(), buf1, 0, NULL, NULL);
-        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_y[i].get(), buf2, 0, NULL, NULL);
-        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_z[i].get(), buf3, 0, NULL, NULL);
+        clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_x[i].get(), buf1, 0, NULL, NULL);
+        clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_y[i].get(), buf2, 0, NULL, NULL);
+        clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_z[i].get(), buf3, 0, NULL, NULL);
     }
 }
 
@@ -111,16 +108,15 @@ void smoke::tick(float dt)
     dens_advect.push_back(&zero); ///unused
     dens_advect.push_back(&g_voxel[n]); ///out
     dens_advect.push_back(&g_voxel[next]); ///in
-    //dens_advect.push_back(&g_velocity_x[n]); ///make float3
-    //dens_advect.push_back(&g_velocity_y[n]);
-    //dens_advect.push_back(&g_velocity_z[n]);
-    dens_advect.push_back(&g_velocities[n]);
+    dens_advect.push_back(&g_velocity_x[n]); ///make float3
+    dens_advect.push_back(&g_velocity_y[n]);
+    dens_advect.push_back(&g_velocity_z[n]);
     dens_advect.push_back(&dt_const); ///temp
 
     run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);
 
     ///just modify relevant arguments
-    /*dens_diffuse.args[4] = &g_velocity_x[next];
+    dens_diffuse.args[4] = &g_velocity_x[next];
     dens_diffuse.args[5] = &g_velocity_x[n];
 
     run_kernel_with_list(cl::diffuse_unstable, global_ws, local_ws, 3, dens_diffuse);
@@ -135,15 +131,10 @@ void smoke::tick(float dt)
     dens_diffuse.args[4] = &g_velocity_z[next];
     dens_diffuse.args[5] = &g_velocity_z[n];
 
-    run_kernel_with_list(cl::diffuse_unstable, global_ws, local_ws, 3, dens_diffuse);*/
-
-    dens_diffuse.args[4] = &g_velocities[next];
-    dens_diffuse.args[5] = &g_velocities[n];
-
-    run_kernel_with_list(cl::diffuse_unstable_vec, global_ws, local_ws, 3, dens_diffuse);
+    run_kernel_with_list(cl::diffuse_unstable, global_ws, local_ws, 3, dens_diffuse);
 
     ///nexts now valid
-    /*dens_advect.args[4] = &g_velocity_x[n];
+    dens_advect.args[4] = &g_velocity_x[n];
     dens_advect.args[5] = &g_velocity_x[next];
 
     run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);
@@ -156,12 +147,7 @@ void smoke::tick(float dt)
     dens_advect.args[4] = &g_velocity_z[n];
     dens_advect.args[5] = &g_velocity_z[next];
 
-    run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);*/
-
-    dens_advect.args[4] = &g_velocities[n];
-    dens_advect.args[5] = &g_velocities[next];
-
-    run_kernel_with_list(cl::advect_vec, global_ws, local_ws, 3, dens_advect);
+    run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);
 
 
     //n = next;

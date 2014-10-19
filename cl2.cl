@@ -4684,52 +4684,15 @@ __kernel void diffuse_unstable(int width, int height, int depth, int b, __global
     x_out[IX(x,y,z)] = max(val, 0.0f);
 }
 
-__kernel void diffuse_unstable_vec(int width, int height, int depth, int b, __global float4* x_out, __global float4* x_in, float diffuse, float dt)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    ///lazy for < 1
-    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
-    {
-        return;
-    }
-
-    ///be wary of this constant?
-    float a = dt*diffuse*width*height*depth;
-
-    a = 1.01f/6.f;
-
-    ///wont diffuse outside of cube, no zero values
-    float3 val = 0;
-
-    if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
-        //val = x_in[IX(x,y,z)] + a*(x_in[IX(x+1, y, z)] + x_in[IX(x-1, y, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y, z+1)] + x_in[IX(x, y, z-1)] - 6*x_in[IX(x, y, z)]);
-        val = (x_in[IX(x+1, y, z)].xyz + x_in[IX(x-1, y, z)].xyz + x_in[IX(x, y+1, z)].xyz + x_in[IX(x, y-1, z)].xyz + x_in[IX(x, y, z+1)].xyz + x_in[IX(x, y, z-1)].xyz)/6.0f;
-
-
-    //if(val < 0.01f)
-    //    val = 0;
-
-    ///cause diffusion into outside world (pretend)
-    //if(x == 0 || x == width-1 || y == 0 || y == height-1 || z == 0 || z == depth-1)
-    //    val = 0;
-
-    float3 res = max(val, 0.0f);
-
-    x_out[IX(x,y,z)] = (float4){res.x, res.y, res.z, 0.0f};
-}
-
 ///combine all 3 uvw velocities into 1 kernel?
-__kernel void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float4* vels, float dt)
+__kernel void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(x >= width-1 || y >= height-1 || z >= depth-1 || x < 1 || y < 1 || z < 1)
+    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
     {
         return;
     }
@@ -4739,9 +4702,9 @@ __kernel void advect(int width, int height, int depth, int b, __global float* d_
     float dt0y = dt*height;
     float dt0z = dt*depth;
 
-    float vx = x - dt0x * vels[IX(x,y,z)].x;
-    float vy = y - dt0y * vels[IX(x,y,z)].y;
-    float vz = z - dt0z * vels[IX(x,y,z)].z;
+    float vx = x - dt0x * xvel[IX(x,y,z)];
+    float vy = y - dt0y * yvel[IX(x,y,z)];
+    float vz = z - dt0z * zvel[IX(x,y,z)];
 
     vx = clamp(vx, 0.5f, width - 1.5f);
     vy = clamp(vy, 0.5f, height - 1.5f);
@@ -4769,58 +4732,6 @@ __kernel void advect(int width, int height, int depth, int b, __global float* d_
     float val = ifracs.z * yz0 + fracs.z * yz1;
 
     d_out[IX(x, y, z)] = val;
-
-    //d_out[IX(x,y,z)] = d_in[IX(x,y,z)];
-}
-
-__kernel void advect_vec(int width, int height, int depth, int b, __global float4* d_out, __global float4* d_in, __global float4* vels, float dt)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    ///lazy for < 1
-    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
-    {
-        return;
-    }
-
-    float dt0x = dt*width;
-    float dt0y = dt*height;
-    float dt0z = dt*depth;
-
-    /*float vx = x - dt0x * xvel[IX(x,y,z)];
-    float vy = y - dt0y * yvel[IX(x,y,z)];
-    float vz = z - dt0z * zvel[IX(x,y,z)];
-
-    vx = clamp(vx, 0.5f, width - 1.5f);
-    vy = clamp(vy, 0.5f, height - 1.5f);
-    vz = clamp(vz, 0.5f, depth - 1.5f);*/
-
-    float3 vs = (float3){x, y, z} - (float3){dt0x, dt0y, dt0z} * vels[IX(x,y,z)].xyz;
-
-    float3 v0s = floor(vs);
-
-    int3 iv0s = convert_int3(v0s);
-
-    float3 v1s = v0s + 1;
-
-    float3 fracs = vs - v0s;
-
-    float3 ifracs = 1.0f - fracs;
-
-    float3 xy0 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z)].xyz + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z)].xyz;
-    float3 xy1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z)].xyz + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z)].xyz;
-
-    float3 xy0z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z+1)].xyz + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z+1)].xyz;
-    float3 xy1z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z+1)].xyz + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z+1)].xyz;
-
-    float3 yz0 = ifracs.y * xy0 + fracs.y * xy1;
-    float3 yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
-
-    float3 val = ifracs.z * yz0 + fracs.z * yz1;
-
-    d_out[IX(x, y, z)] = (float4){val.x, val.y, val.z, 0.0f};
 
     //d_out[IX(x,y,z)] = d_in[IX(x,y,z)];
 }
