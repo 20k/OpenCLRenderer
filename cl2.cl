@@ -4581,6 +4581,8 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
 ///draw from front backwards until we hit something?
 ///do separate rendering onto real sized buffer, then back project from screen into that
+///this really needs doing next
+///expand size? Make variable?
 __kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)
 {
@@ -4588,7 +4590,7 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     int y = get_global_id(1);
     int z = get_global_id(2);
 
-    if(x >= width-1 || y >= height-1 || z >= depth-1 || x < 1 || y < 1 || z < 1)
+    if(x >= width-1 || y >= height-1 || z >= depth-1 || x < 0 || y < 0 || z < 0)
     {
         return;
     }
@@ -4606,6 +4608,20 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
 
     float myval = voxel[IX(x, y, z)];
 
+    ///only render outer hull for the moment
+    int c = 0;
+    c = voxel[IX(x-1, y, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x+1, y, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y-1, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y+1, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y, z-1)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y, z+1)] >= 0.1f ? c+1 : c;
+
+    int cond = c == 0 || c == 6;
+
+    if(cond)
+        return;
+
     if(myval < 0.1f)
         return;
 
@@ -4614,6 +4630,8 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
 
     if(myval > 1)
         myval = 1;
+
+    myval = 1;
 
     write_imagef(screen, (int2){projected.x, projected.y}, myval);
 }
@@ -4661,17 +4679,39 @@ __kernel void diffuse_unstable(int width, int height, int depth, int b, __global
         return;
     }
 
-    ///be wary of this constant?
-    float a = dt*diffuse*width*height*depth;
+    ///z,y,x
+    //__local float vals[2][2][64];
 
-    a = 1.01f/6.f;
+    //int lx, ly, lz;
+    //lx = get_local_id(0);
+    //ly = get_local_id(1);
+    //lz = get_local_id(2);
+
+    //vals[lz][ly][lx] = x_in[IX(x,y,z)];
+
+    //barrier(CLK_LOCAL_MEM_FENCE);
+
+    //float v1,v2,v3,v4,v5,v6;
+
+    //v1 = (lx == 0)  ? x_in[IX(x-1, y, z)] : vals[lz][ly][lx-1];
+    //v2 = (lx == 63) ? x_in[IX(x+1, y, z)] : vals[lz][ly][lx+1];
+    //v3 = (ly == 0)  ? x_in[IX(x, y-1, z)] : vals[lz][ly-1][lx];
+    //v4 = (ly == 1)  ? x_in[IX(x, y+1, z)] : vals[lz][ly+1][lx];
+    //v5 = (lz == 0)  ? x_in[IX(x, y, z-1)] : vals[lz-1][ly][lx];
+    //v6 = (lz == 1)  ? x_in[IX(x, y, z+1)] : vals[lz+1][ly][lx];
+
+    ///be wary of this constant?
+    //float a = dt*diffuse*width*height*depth;
+
+    //a = 1.01f/6.f;
 
     ///wont diffuse outside of cube, no zero values
     float val = 0;
 
     if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
         //val = x_in[IX(x,y,z)] + a*(x_in[IX(x+1, y, z)] + x_in[IX(x-1, y, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y, z+1)] + x_in[IX(x, y, z-1)] - 6*x_in[IX(x, y, z)]);
-        val = (x_in[IX(x+1, y, z)] + x_in[IX(x-1, y, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y, z+1)] + x_in[IX(x, y, z-1)])/6.0f;
+        val = (x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
+        //val = (v1 + v2 + v3 + v4 + v5 + v6)/6.0f;
 
 
     //if(val < 0.01f)
