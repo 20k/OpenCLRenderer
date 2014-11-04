@@ -1,6 +1,8 @@
 #include "../proj.hpp"
 
 #include "Include/OVR.h"
+#include "Include/OVR_Kernel.h"
+//#include "Include/OVR_Math.h"
 #include "Src/OVR_CAPI.h"
 
 #define          SDK_RENDER 1  //Do NOT switch until you have viewed and understood the Health and Safety message.
@@ -24,6 +26,9 @@ ovrHmd             HMD = 0;
 ///fix memory management to not be atrocious
 
 ///we're completely hampered by memory latency
+
+using namespace OVR; // hitler
+
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -97,6 +102,8 @@ int main(int argc, char *argv[])
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
 
+    //window.c_rot.z += 0.9;
+
     sf::Event Event;
 
     light l;
@@ -156,6 +163,14 @@ int main(int argc, char *argv[])
         printf("pos %f %f %f\n", HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  HmdState.HeadPose.ThePose.Position.z);
 
         HeadPos.y = ovrHmd_GetFloat(HMD, OVR_KEY_EYE_HEIGHT, HeadPos.y);
+
+        Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
+
+        float tempHeadPitch, tempHeadRoll, HeadYaw;
+        PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
+
+        printf("angle %f %f %f\n", HeadYaw, tempHeadPitch, tempHeadRoll);
+
         ///endrift
 
 
@@ -170,8 +185,6 @@ int main(int argc, char *argv[])
         window.input();
 
         window.draw_bulk_objs_n();
-
-        //window.draw_raytrace();
 
         window.render_buffers();
 
