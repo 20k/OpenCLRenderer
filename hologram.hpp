@@ -4,7 +4,7 @@
 #include <vector>
 #include <utility>
 #include <gl/glew.h>
-#include <gl/gl3.h>
+#include <gl/gl.h>
 #include <gl/glext.h>
 #include <sfml/graphics.hpp>
 #include <cl/cl.h>

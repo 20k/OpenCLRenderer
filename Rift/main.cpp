@@ -1,5 +1,22 @@
 #include "../proj.hpp"
 
+#include "Include/OVR.h"
+#include "Src/OVR_CAPI.h"
+
+#define          SDK_RENDER 1  //Do NOT switch until you have viewed and understood the Health and Safety message.
+                               //Disabling this makes it a non-compliant app, and not suitable for demonstration. In place for development only.
+const bool       FullScreen = true; // Set to false for direct mode (recommended), true for extended mode operation.
+
+
+/*ovrHmd             HMD = 0;
+ovrEyeRenderDesc   EyeRenderDesc[2];
+ovrRecti           EyeRenderViewport[2];
+RenderDevice*      pRender = 0;
+Texture*           pRendertargetTexture = 0;
+Scene*             pRoomScene = 0;*/
+
+ovrHmd             HMD = 0;
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -23,6 +40,46 @@ int main(int argc, char *argv[])
     engine window;
 
     window.load(1280,768,1000, "turtles", "../cl2.cl");
+
+
+
+    ///rift
+    ovr_Initialize();
+
+    if (!HMD)
+    {
+        HMD = ovrHmd_Create(0);
+        if (!HMD)
+        {
+            MessageBoxA(NULL, "Oculus Rift not detected.", "", MB_OK);
+            return(1);
+        }
+        if (HMD->ProductName[0] == '\0')
+            MessageBoxA(NULL, "Rift detected, display not enabled.", "", MB_OK);
+    }
+
+    ovrHmd_SetEnabledCaps(HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+
+	// Start the sensor which informs of the Rift's pose and motion
+    ovrHmd_ConfigureTracking(HMD,   ovrTrackingCap_Orientation |
+                                    ovrTrackingCap_MagYawCorrection |
+                                    ovrTrackingCap_Position, 0);
+
+    ovrEyeRenderDesc EyeRenderDesc[2];
+    ovrFovPort eyeFov[2] = { HMD->DefaultEyeFov[0], HMD->DefaultEyeFov[1] } ;
+
+    EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
+    EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
+
+
+    static float    BodyYaw(3.141592f);
+	static ovrVector3f HeadPos{0.0f, 1.6f, -5.0f};
+    static ovrTrackingState HmdState;
+
+    static ovrPosef eyeRenderPose[2];
+
+    printf("RIFT SUCCESS\n");
+    ///endrift
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
@@ -87,6 +144,21 @@ int main(int argc, char *argv[])
 
     while(window.window.isOpen())
     {
+        ///rift
+        //ovrHmd_BeginFrame(HMD, 0);
+
+        ovrHmd_BeginFrameTiming(HMD, 0);
+
+        ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset, EyeRenderDesc[1].HmdToEyeViewOffset };
+
+        ovrHmd_GetEyePoses(HMD, 0, hmdToEyeViewOffset, eyeRenderPose, &HmdState);
+
+        printf("pos %f %f %f\n", HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  HmdState.HeadPose.ThePose.Position.z);
+
+        HeadPos.y = ovrHmd_GetFloat(HMD, OVR_KEY_EYE_HEIGHT, HeadPos.y);
+        ///endrift
+
+
         sf::Clock c;
 
         if(window.window.pollEvent(Event))
@@ -120,7 +192,15 @@ int main(int argc, char *argv[])
             load_first = 1;
         }
 
-        std::cout << time/10 << std::endl;
+        //std::cout << time/10 << std::endl;
+
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+
+        ///rift
+        ovrHmd_EndFrameTiming(HMD);
+        ///endrift
+
+
 
         ///raw time
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

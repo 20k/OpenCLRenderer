@@ -1,11 +1,11 @@
-
 #include <gl/glew.h>
+#include <gl/gl.h>
 #include "engine.hpp"
 #include <math.h>
 //
-
-#include <gl/gl3.h>
 #include <gl/glext.h>
+//#include <gl/gl3.h>
+
 
 #include "clstate.h"
 #include <iostream>

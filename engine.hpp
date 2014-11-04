@@ -172,11 +172,13 @@ float idcalc(float);
 ///runs a kernel with a particular set of arguments
 static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
 {
-    cl_uint g_ws[dimensions];
+    size_t g_ws[dimensions];
+    size_t l_ws[dimensions];
 
     for(int i=0; i<dimensions; i++)
     {
         g_ws[i] = global_ws[i];
+        l_ws[i] = local_ws[i];
 
         if(g_ws[i] % local_ws[i]!=0)
         {
@@ -197,7 +199,9 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
 
-    compute::event event = cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
+
+
+    compute::event event = cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, l_ws);
 
     #ifdef PROFILING
     cl::cqueue.finish();
