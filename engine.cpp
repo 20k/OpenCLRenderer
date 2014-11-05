@@ -626,8 +626,8 @@ void engine::input()
 
     Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
 
-    float tempHeadPitch, tempHeadRoll, HeadYaw;
-    PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
+    //float tempHeadPitch, tempHeadRoll, HeadYaw;
+    //PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
 
     //Matrix4f test =  Matrix4f::RotationZ(-tempHeadRoll) * Matrix4f(PoseOrientation);
     //PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
@@ -640,8 +640,8 @@ void engine::input()
 
     //printf("angle %f %f %f\n", HeadYaw, tempHeadPitch, tempHeadRoll);
 
-    head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  HmdState.HeadPose.ThePose.Position.z};
-    head_rotation = {tempHeadPitch, HeadYaw, tempHeadRoll};
+    head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
+    /*head_rotation = {tempHeadPitch, HeadYaw, tempHeadRoll};
 
     std::swap(head_rotation.x, head_rotation.y);
 
@@ -649,7 +649,7 @@ void engine::input()
 
     std::swap(head_rotation.z, head_rotation.y);
 
-    std::swap(head_rotation.x, head_rotation.z);
+    std::swap(head_rotation.x, head_rotation.z);*/
 
     Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
     Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(PoseOrientation);
@@ -664,7 +664,7 @@ void engine::input()
 
     newpos.GetEulerAngles<Axis_X, Axis_Y, Axis_Z>(&hrx, &hry, &hrz);
 
-    head_rotation = {hrx, hry, hrz};
+    head_rotation = {-hrx, -hry, hrz};
 
     //view.ToEulerAngles< Axis_X, Axis_Y, Axis_Z, Rotate_CCW, Handed_R >(&hrx, &hry, &hrz);
     ///?
@@ -691,7 +691,7 @@ void engine::input()
 
 
 
-    printf("angle: %f %f %f\n", head_rotation.x, head_rotation.y, head_rotation.z);
+    //printf("angle: %f %f %f\n", head_rotation.x, head_rotation.y, head_rotation.z);
 
     //Vector3<float> angle =
 
