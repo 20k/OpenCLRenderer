@@ -19,7 +19,12 @@
 
 #include "smoke.hpp"
 
+#include "Rift/Include/OVR.h"
+#include "Rift/Include/OVR_Kernel.h"
+#include "Rift/Src/OVR_CAPI.h"
+
 namespace compute = boost::compute;
+using namespace OVR;
 
 struct point_cloud_info;
 
@@ -86,6 +91,16 @@ struct engine
     sf::RenderWindow window;
 
     std::vector<object*> objects; ///obsolete?
+
+    ///rift
+    ovrHmd HMD = 0;
+    ovrEyeRenderDesc EyeRenderDesc[2];
+    ovrFovPort eyeFov[2];
+    ovrPosef eyeRenderPose[2];
+
+    ovrTrackingState HmdState;
+
+    cl_float4 head_position, head_rotation;
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&);
 

@@ -104,26 +104,48 @@ float calc_third_areas(struct interp_container *C, float x, float y)
 ///rotates point about camera
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
-    float3 cos_rot = native_cos(c_rot);
-    float3 sin_rot = native_sin(c_rot);
+    float3 c = native_cos(c_rot);
+    float3 s = native_sin(c_rot);
 
     //float3 ret;
     //ret.x =      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
     //ret.y =      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
     //ret.z =      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
 
-    float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
-    float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
-    float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};
+    //float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
+    //float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
+    //float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};
+
+
+    //float3 r1 = {cr.x*cr.y, cr.x*sr.y*sr.z - cr.z*sr.x, sr.x*sr.z + cr.x*cr.z*sr.y};
+    //float3 r2 = {cr.y*sr.x, cr.x*cr.z + sr.x*sr.y*sr.z, cr.z*sr.x*sr.y - cr.x*sr.z};
+    //float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};
+
+    //float3 r1 = {cr.x*cr.z - sr.x*sr.y*sr.z, -cr.y*sr.x, cr.x*sr.z + cr.z*sr.x*sr.y};
+    //float3 r2 = {cr.z*sr.x + cr.x*sr.y*sr.z, cr.x*cr.y, sr.x*sr.z - cr.x*cr.z*sr.y};
+    //float3 r3 = {-cr.y*sr.z, sr.y, cr.y*cr.z};
+
+
+    /*float3 r1 = {cr.x*cr.z - cr.y*sr.x*sr.z, sr.x*sr.y, cr.x*sr.z + cr.y*cr.z*sr.x};
+    float3 r2 = {sr.y*sr.z, cr.y, -cr.z*sr.y};
+    float3 r3 = {-cr.z*sr.x - cr.x*cr.y*sr.z, cr.x*sr.y, cr.x*cr.y*cr.z - sr.x*sr.z};*/
+
 
     float3 rel = point - c_pos;
 
+    float3 r1, r2, r3;
+
     float3 ret;
 
-    ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
-    ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
-    ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
+    ret.x = c.y * (s.z * rel.y + c.z*rel.x) - s.y*rel.z;
+    ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
+    ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);
 
+    //float3 ret;
+
+    //ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
+    //ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
+    //ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
 
     return ret;
 }

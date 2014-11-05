@@ -23,6 +23,11 @@
 #include <chrono>
 #include "ocl.h"
 
+#include "Rift/Include/OVR.h"
+#include "Rift/Include/OVR_Kernel.h"
+#include "Rift/Src/OVR_CAPI.h"
+
+
 #define FOV_CONST 500.0f
 ///this needs changing
 
@@ -230,6 +235,44 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     old_pos = {0};
     old_rot = {0};
+
+
+    ///rift
+
+    ovr_Initialize();
+
+    if (!HMD)
+    {
+        HMD = ovrHmd_Create(0);
+        if (!HMD)
+        {
+            MessageBoxA(NULL, "Oculus Rift not detected.", "", MB_OK);
+
+            printf("no oculus rift detected, check oculus configurator");
+        }
+        if (HMD->ProductName[0] == '\0')
+            MessageBoxA(NULL, "Rift detected, display not enabled.", "", MB_OK);
+    }
+
+    ovrHmd_SetEnabledCaps(HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+
+	// Start the sensor which informs of the Rift's pose and motion
+    ovrHmd_ConfigureTracking(HMD,   ovrTrackingCap_Orientation |
+                                    ovrTrackingCap_MagYawCorrection |
+                                    ovrTrackingCap_Position, 0);
+
+
+    //eyeFov = { HMD->DefaultEyeFov[0], HMD->DefaultEyeFov[1] } ;
+
+    eyeFov[0] = HMD->DefaultEyeFov[0];
+    eyeFov[1] = HMD->DefaultEyeFov[1];
+
+    EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
+    EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
+
+    head_position = {0};
+    head_rotation = {0};
+
 
     //glEnable(GL_TEXTURE2D); ///?
 }
@@ -548,12 +591,12 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::Up))
     {
-        c_rot.x-=0.001*30;
+        c_rot.z-=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Down))
     {
-        c_rot.x+=0.001*30;
+        c_rot.z+=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
@@ -570,6 +613,92 @@ void engine::input()
     {
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
+
+    ovrHmd_BeginFrameTiming(HMD, 0);
+
+    ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset, EyeRenderDesc[1].HmdToEyeViewOffset };
+
+    ovrHmd_GetEyePoses(HMD, 0, hmdToEyeViewOffset, eyeRenderPose, &HmdState);
+
+    //printf("pos %f %f %f\n", HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  HmdState.HeadPose.ThePose.Position.z);
+
+    //HeadPos.y = ovrHmd_GetFloat(HMD, OVR_KEY_EYE_HEIGHT, HeadPos.y);
+
+    Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
+
+    float tempHeadPitch, tempHeadRoll, HeadYaw;
+    PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
+
+    //Matrix4f test =  Matrix4f::RotationZ(-tempHeadRoll) * Matrix4f(PoseOrientation);
+    //PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
+
+    //test.toEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw, &tempHeadPitch, &tempHeadRoll);
+
+    //Quatf q(test);
+
+    //q.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
+
+    //printf("angle %f %f %f\n", HeadYaw, tempHeadPitch, tempHeadRoll);
+
+    head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  HmdState.HeadPose.ThePose.Position.z};
+    head_rotation = {tempHeadPitch, HeadYaw, tempHeadRoll};
+
+    std::swap(head_rotation.x, head_rotation.y);
+
+    std::swap(head_rotation.x, head_rotation.z);
+
+    std::swap(head_rotation.z, head_rotation.y);
+
+    std::swap(head_rotation.x, head_rotation.z);
+
+    Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
+    Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(PoseOrientation);
+    Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
+    Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
+    Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
+    Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
+
+    Quatf newpos(view);
+
+    float hrx, hry, hrz;
+
+    newpos.GetEulerAngles<Axis_X, Axis_Y, Axis_Z>(&hrx, &hry, &hrz);
+
+    head_rotation = {hrx, hry, hrz};
+
+    //view.ToEulerAngles< Axis_X, Axis_Y, Axis_Z, Rotate_CCW, Handed_R >(&hrx, &hry, &hrz);
+    ///?
+    //Matrix4f proj = ovrMatrix4f_Projection(EyeRenderDesc[0].Fov, 0.01f, 10000.0f, true);
+
+
+
+
+
+    /*for(int eye = 0; eye<2; eye++)
+    {
+        ovrMatrix4f timeWarpMatrices[2];
+		ovrHmd_GetEyeTimewarpMatrices(HMD, (ovrEyeType)eye, eyeRenderPose[eye], timeWarpMatrices);
+
+        Matrix4f rollPitchYaw       = Matrix4f::RotationY(c_rot.x + head_rotation.y);
+        Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(eyeRenderPose[eye].Orientation);
+        Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
+        Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
+        Vector3f shiftedEyePos      = Vector3<float>{head_position.x, head_position.y, head_position.z} + rollPitchYaw.Transform(eyeRenderPose[eye].Position);
+        printf("???? %f %f\n", finalUp, finalForward);
+
+
+    }*/
+
+
+
+    printf("angle: %f %f %f\n", head_rotation.x, head_rotation.y, head_rotation.z);
+
+    //Vector3<float> angle =
+
+
+    //head_rotation.z = 0;
+
+
 }
 
 void engine::construct_shadowmaps()
@@ -823,6 +952,12 @@ void engine::draw_bulk_objs_n()
 
     ///need a better way to clear light buffer
 
+    //head_rotation.z = 0;
+
+    float fudge = 100;
+    cl_float4 pos_offset = add(c_pos, mult(head_position, fudge));
+    cl_float4 rot_offset = sub((cl_float4){0, 0, 0, 0}, head_rotation);// sub(c_rot, head_rotation);
+
     sf::Clock c;
 
     ///1 thread per triangle
@@ -837,8 +972,8 @@ void engine::draw_bulk_objs_n()
 
     prearg_list.push_back(&obj_mem_manager::g_tri_mem);
     prearg_list.push_back(&obj_mem_manager::g_tri_num);
-    prearg_list.push_back(&c_pos);
-    prearg_list.push_back(&c_rot);
+    prearg_list.push_back(&pos_offset);
+    prearg_list.push_back(&rot_offset);
     prearg_list.push_back(&g_tid_buf);
     prearg_list.push_back(&g_tid_buf_max_len);
     prearg_list.push_back(&g_tid_buf_atomic_count);
@@ -925,8 +1060,8 @@ void engine::draw_bulk_objs_n()
     arg_list p3arg_list;
     p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
     p3arg_list.push_back(&obj_mem_manager::g_tri_num);
-    p3arg_list.push_back(&c_pos);
-    p3arg_list.push_back(&c_rot);
+    p3arg_list.push_back(&pos_offset);
+    p3arg_list.push_back(&rot_offset);
     p3arg_list.push_back(&depth_buffer[nbuf]);
     p3arg_list.push_back(&g_id_screen_tex);
     p3arg_list.push_back(&texture_wrapper);
@@ -1309,6 +1444,8 @@ void engine::render_buffers()
     interact::clear();
 
     text_handler::render();
+
+    ovrHmd_EndFrameTiming(HMD);
 
     //rendering to wrong buffer?
     window.display();
