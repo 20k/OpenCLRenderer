@@ -937,7 +937,7 @@ void engine::draw_bulk_objs_n()
 
 
     cl_float4 pos_offset = c_pos;
-    cl_float4 rot_offset = c_rot;
+    cl_float4 rot_offset = sub({0,0,0,0}, c_rot); ///convert between oculus format and curr. Rotation may not be correct
 
     if(rift::enabled)
     {
