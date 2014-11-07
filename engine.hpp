@@ -28,6 +28,21 @@ using namespace OVR;
 
 struct point_cloud_info;
 
+namespace rift
+{
+    extern bool enabled;
+
+    ///rift
+    extern ovrHmd HMD;
+    extern ovrEyeRenderDesc EyeRenderDesc[2];
+    extern ovrFovPort eyeFov[2];
+    extern ovrPosef eyeRenderPose[2];
+
+    extern ovrTrackingState HmdState;
+
+    extern cl_float4 head_position, head_rotation;
+};
+
 struct engine
 {
     sf::Mouse mouse;
@@ -92,21 +107,7 @@ struct engine
 
     std::vector<object*> objects; ///obsolete?
 
-    struct oculus
-    {
-        bool enabled = false;
 
-        ///rift
-        ovrHmd HMD = 0;
-        ovrEyeRenderDesc EyeRenderDesc[2];
-        ovrFovPort eyeFov[2];
-        ovrPosef eyeRenderPose[2];
-
-        ovrTrackingState HmdState;
-
-        cl_float4 head_position = {0}, head_rotation = {0};
-
-    } oculus;
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&);
 

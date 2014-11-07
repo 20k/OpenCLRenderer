@@ -29,6 +29,22 @@
 
 
 #define FOV_CONST 500.0f
+
+bool rift::enabled = false;
+
+///rift
+ovrHmd rift::HMD = 0;
+ovrEyeRenderDesc rift::EyeRenderDesc[2];
+ovrFovPort rift::eyeFov[2];
+ovrPosef rift::eyeRenderPose[2];
+
+ovrTrackingState rift::HmdState;
+
+cl_float4 rift::head_position = {0};
+
+cl_float4 rift::head_rotation = {0};
+
+
 ///this needs changing
 
 ///opengl ids
@@ -241,47 +257,52 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     ovr_Initialize();
 
-    if (!oculus.HMD)
     {
-        bool state = true;
+        using namespace rift;
 
-        oculus.HMD = ovrHmd_Create(0);
-        if (!oculus.HMD)
+        if(!HMD)
         {
-            printf("no oculus rift detected, check oculus configurator\n");
+            bool state = true;
 
-            state = false;
+            HMD = ovrHmd_Create(0);
+
+            if(!HMD)
+            {
+                printf("No oculus rift detected, check oculus configurator\n");
+
+                state = false;
+            }
+            else if(HMD->ProductName[0] == '\0')
+            {
+                printf("Oculus display not enabled (???)\n");
+
+                state = false;
+            }
+
+            rift::enabled = state;
         }
-        if (oculus.HMD->ProductName[0] == '\0')
+
+        if(rift::enabled)
         {
-            printf("Oculus display not enabled (???)\n");
+            printf("Oculus rift support enabled\n");
 
-            state = false;
+            ovrHmd_SetEnabledCaps(HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+
+            // Start the sensor which informs of the Rift's pose and motion
+            ovrHmd_ConfigureTracking(HMD,   ovrTrackingCap_Orientation |
+                                            ovrTrackingCap_MagYawCorrection |
+                                            ovrTrackingCap_Position, 0);
+
+
+            eyeFov[0] = HMD->DefaultEyeFov[0];
+            eyeFov[1] = HMD->DefaultEyeFov[1];
+
+            EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
+            EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
+
+            head_position = {0};
+            head_rotation = {0};
         }
-
-        oculus.enabled = state;
-    }
-
-    if(oculus.enabled)
-    {
-        printf("Oculus rift support enabled\n");
-
-        ovrHmd_SetEnabledCaps(oculus.HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
-
-        // Start the sensor which informs of the Rift's pose and motion
-        ovrHmd_ConfigureTracking(oculus.HMD,   ovrTrackingCap_Orientation |
-                                        ovrTrackingCap_MagYawCorrection |
-                                        ovrTrackingCap_Position, 0);
-
-
-        oculus.eyeFov[0] = oculus.HMD->DefaultEyeFov[0];
-        oculus.eyeFov[1] = oculus.HMD->DefaultEyeFov[1];
-
-        oculus.EyeRenderDesc[0] = ovrHmd_GetRenderDesc(oculus.HMD, (ovrEyeType) 0,  oculus.eyeFov[0]);
-        oculus.EyeRenderDesc[1] = ovrHmd_GetRenderDesc(oculus.HMD, (ovrEyeType) 1,  oculus.eyeFov[1]);
-
-        oculus.head_position = {0};
-        oculus.head_rotation = {0};
     }
 
 
@@ -592,22 +613,22 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::Left))
     {
-        c_rot.y-=0.001*30;
+        c_rot.y+=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Right))
     {
-        c_rot.y+=0.001*30;
+        c_rot.y-=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Up))
     {
-        c_rot.z-=0.001*30;
+        c_rot.x+=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Down))
     {
-        c_rot.z+=0.001*30;
+        c_rot.x-=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
@@ -625,42 +646,30 @@ void engine::input()
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
 
-    ovrHmd_BeginFrameTiming(HMD, 0);
-
-    ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset, EyeRenderDesc[1].HmdToEyeViewOffset };
-
-    ovrHmd_GetEyePoses(HMD, 0, hmdToEyeViewOffset, eyeRenderPose, &HmdState);
-
-    //printf("pos %f %f %f\n", HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  HmdState.HeadPose.ThePose.Position.z);
-
-    //HeadPos.y = ovrHmd_GetFloat(HMD, OVR_KEY_EYE_HEIGHT, HeadPos.y);
-
-    Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
-
-    //float tempHeadPitch, tempHeadRoll, HeadYaw;
-    //PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
-
-    //Matrix4f test =  Matrix4f::RotationZ(-tempHeadRoll) * Matrix4f(PoseOrientation);
-    //PoseOrientation.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
-
-    //test.toEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw, &tempHeadPitch, &tempHeadRoll);
-
-    //Quatf q(test);
-
-    //q.GetEulerAngles<Axis_Y, Axis_X, Axis_Z>(&HeadYaw,&tempHeadPitch, &tempHeadRoll);
-
-    //printf("angle %f %f %f\n", HeadYaw, tempHeadPitch, tempHeadRoll);
-
-
-    if(oculus.enabled)
+    ///am I going to have to add camera to quaternion here to avoid problems?
+    if(rift::enabled)
     {
+        using namespace rift;
+
+        ovrHmd_BeginFrameTiming(HMD, 0);
+
+        ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset, EyeRenderDesc[1].HmdToEyeViewOffset };
+
+        ovrHmd_GetEyePoses(HMD, 0, hmdToEyeViewOffset, eyeRenderPose, &HmdState);
+
+        Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
+
+
         head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
 
-        Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
-        Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(PoseOrientation);
+        //Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
+        Matrix4f xr = Matrix4f::RotationX(c_rot.x);
+        Matrix4f yr = Matrix4f::RotationY(c_rot.y);
+        Matrix4f zr = Matrix4f::RotationZ(c_rot.z);
+        Matrix4f finalRollPitchYaw  = xr * yr * zr * Matrix4f(PoseOrientation);
         Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
         Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
-        Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
+        Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position;//?d + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
         Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
 
         Quatf newpos(view);
@@ -671,40 +680,6 @@ void engine::input()
 
         head_rotation = {-hrx, -hry, hrz};
     }
-
-    //view.ToEulerAngles< Axis_X, Axis_Y, Axis_Z, Rotate_CCW, Handed_R >(&hrx, &hry, &hrz);
-    ///?
-    //Matrix4f proj = ovrMatrix4f_Projection(EyeRenderDesc[0].Fov, 0.01f, 10000.0f, true);
-
-
-
-
-
-    /*for(int eye = 0; eye<2; eye++)
-    {
-        ovrMatrix4f timeWarpMatrices[2];
-		ovrHmd_GetEyeTimewarpMatrices(HMD, (ovrEyeType)eye, eyeRenderPose[eye], timeWarpMatrices);
-
-        Matrix4f rollPitchYaw       = Matrix4f::RotationY(c_rot.x + head_rotation.y);
-        Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(eyeRenderPose[eye].Orientation);
-        Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
-        Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
-        Vector3f shiftedEyePos      = Vector3<float>{head_position.x, head_position.y, head_position.z} + rollPitchYaw.Transform(eyeRenderPose[eye].Position);
-        printf("???? %f %f\n", finalUp, finalForward);
-
-
-    }*/
-
-
-
-    //printf("angle: %f %f %f\n", head_rotation.x, head_rotation.y, head_rotation.z);
-
-    //Vector3<float> angle =
-
-
-    //head_rotation.z = 0;
-
-
 }
 
 void engine::construct_shadowmaps()
@@ -960,9 +935,19 @@ void engine::draw_bulk_objs_n()
 
     //head_rotation.z = 0;
 
-    float fudge = 100;
-    cl_float4 pos_offset = add(c_pos, mult(head_position, fudge));
-    cl_float4 rot_offset = sub((cl_float4){0, 0, 0, 0}, head_rotation);// sub(c_rot, head_rotation);
+
+    cl_float4 pos_offset = c_pos;
+    cl_float4 rot_offset = c_rot;
+
+    if(rift::enabled)
+    {
+        using namespace rift;
+
+        float fudge = 100;
+
+        pos_offset = add(c_pos, mult(head_position, fudge));
+        rot_offset = sub({0,0,0,0}, head_rotation);//, c_rot); //sub(c_rot, head_rotation);
+    }
 
     sf::Clock c;
 
@@ -1451,7 +1436,12 @@ void engine::render_buffers()
 
     text_handler::render();
 
-    ovrHmd_EndFrameTiming(HMD);
+    if(rift::enabled)
+    {
+        using namespace rift;
+
+        ovrHmd_EndFrameTiming(HMD);
+    }
 
     //rendering to wrong buffer?
     window.display();
