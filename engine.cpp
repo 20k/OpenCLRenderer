@@ -659,14 +659,14 @@ void engine::input()
 
         Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
 
-
         head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
 
         //Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
         Matrix4f xr = Matrix4f::RotationX(c_rot.x);
         Matrix4f yr = Matrix4f::RotationY(c_rot.y);
         Matrix4f zr = Matrix4f::RotationZ(c_rot.z);
-        Matrix4f finalRollPitchYaw  = xr * yr * zr * Matrix4f(PoseOrientation);
+
+        Matrix4f finalRollPitchYaw  = zr * yr * xr * Matrix4f(PoseOrientation);
         Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
         Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
         Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position;//?d + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
@@ -856,6 +856,7 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
     run_kernel_with_list(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arg_list, true);
 }
 
+///16x16?
 void engine::draw_space_nebulae(compute::image2d& tex)
 {
     arg_list nebulae_arg_list;
