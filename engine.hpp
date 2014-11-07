@@ -92,15 +92,21 @@ struct engine
 
     std::vector<object*> objects; ///obsolete?
 
-    ///rift
-    ovrHmd HMD = 0;
-    ovrEyeRenderDesc EyeRenderDesc[2];
-    ovrFovPort eyeFov[2];
-    ovrPosef eyeRenderPose[2];
+    struct oculus
+    {
+        bool enabled = false;
 
-    ovrTrackingState HmdState;
+        ///rift
+        ovrHmd HMD = 0;
+        ovrEyeRenderDesc EyeRenderDesc[2];
+        ovrFovPort eyeFov[2];
+        ovrPosef eyeRenderPose[2];
 
-    cl_float4 head_position, head_rotation;
+        ovrTrackingState HmdState;
+
+        cl_float4 head_position = {0}, head_rotation = {0};
+
+    } oculus;
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&);
 

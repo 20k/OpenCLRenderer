@@ -241,37 +241,48 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     ovr_Initialize();
 
-    if (!HMD)
+    if (!oculus.HMD)
     {
-        HMD = ovrHmd_Create(0);
-        if (!HMD)
-        {
-            MessageBoxA(NULL, "Oculus Rift not detected.", "", MB_OK);
+        bool state = true;
 
-            printf("no oculus rift detected, check oculus configurator");
+        oculus.HMD = ovrHmd_Create(0);
+        if (!oculus.HMD)
+        {
+            printf("no oculus rift detected, check oculus configurator\n");
+
+            state = false;
         }
-        if (HMD->ProductName[0] == '\0')
-            MessageBoxA(NULL, "Rift detected, display not enabled.", "", MB_OK);
+        if (oculus.HMD->ProductName[0] == '\0')
+        {
+            printf("Oculus display not enabled (???)\n");
+
+            state = false;
+        }
+
+        oculus.enabled = state;
     }
 
-    ovrHmd_SetEnabledCaps(HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+    if(oculus.enabled)
+    {
+        printf("Oculus rift support enabled\n");
 
-	// Start the sensor which informs of the Rift's pose and motion
-    ovrHmd_ConfigureTracking(HMD,   ovrTrackingCap_Orientation |
-                                    ovrTrackingCap_MagYawCorrection |
-                                    ovrTrackingCap_Position, 0);
+        ovrHmd_SetEnabledCaps(oculus.HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+
+        // Start the sensor which informs of the Rift's pose and motion
+        ovrHmd_ConfigureTracking(oculus.HMD,   ovrTrackingCap_Orientation |
+                                        ovrTrackingCap_MagYawCorrection |
+                                        ovrTrackingCap_Position, 0);
 
 
-    //eyeFov = { HMD->DefaultEyeFov[0], HMD->DefaultEyeFov[1] } ;
+        oculus.eyeFov[0] = oculus.HMD->DefaultEyeFov[0];
+        oculus.eyeFov[1] = oculus.HMD->DefaultEyeFov[1];
 
-    eyeFov[0] = HMD->DefaultEyeFov[0];
-    eyeFov[1] = HMD->DefaultEyeFov[1];
+        oculus.EyeRenderDesc[0] = ovrHmd_GetRenderDesc(oculus.HMD, (ovrEyeType) 0,  oculus.eyeFov[0]);
+        oculus.EyeRenderDesc[1] = ovrHmd_GetRenderDesc(oculus.HMD, (ovrEyeType) 1,  oculus.eyeFov[1]);
 
-    EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
-    EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
-
-    head_position = {0};
-    head_rotation = {0};
+        oculus.head_position = {0};
+        oculus.head_rotation = {0};
+    }
 
 
     //glEnable(GL_TEXTURE2D); ///?
@@ -640,31 +651,26 @@ void engine::input()
 
     //printf("angle %f %f %f\n", HeadYaw, tempHeadPitch, tempHeadRoll);
 
-    head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
-    /*head_rotation = {tempHeadPitch, HeadYaw, tempHeadRoll};
 
-    std::swap(head_rotation.x, head_rotation.y);
+    if(oculus.enabled)
+    {
+        head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
 
-    std::swap(head_rotation.x, head_rotation.z);
+        Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
+        Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(PoseOrientation);
+        Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
+        Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
+        Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
+        Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
 
-    std::swap(head_rotation.z, head_rotation.y);
+        Quatf newpos(view);
 
-    std::swap(head_rotation.x, head_rotation.z);*/
+        float hrx, hry, hrz;
 
-    Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
-    Matrix4f finalRollPitchYaw  = rollPitchYaw * Matrix4f(PoseOrientation);
-    Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
-    Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
-    Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
-    Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
+        newpos.GetEulerAngles<Axis_X, Axis_Y, Axis_Z>(&hrx, &hry, &hrz);
 
-    Quatf newpos(view);
-
-    float hrx, hry, hrz;
-
-    newpos.GetEulerAngles<Axis_X, Axis_Y, Axis_Z>(&hrx, &hry, &hrz);
-
-    head_rotation = {-hrx, -hry, hrz};
+        head_rotation = {-hrx, -hry, hrz};
+    }
 
     //view.ToEulerAngles< Axis_X, Axis_Y, Axis_Z, Rotate_CCW, Handed_R >(&hrx, &hry, &hrz);
     ///?

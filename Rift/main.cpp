@@ -47,16 +47,6 @@ int main(int argc, char *argv[])
 
     window.load(1280,768,1000, "turtles", "../cl2.cl");
 
-    ///rift
-
-
-    static float    BodyYaw(3.141592f);
-	static ovrVector3f HeadPos{0.0f, 1.6f, -5.0f};
-
-
-    printf("RIFT SUCCESS\n");
-    ///endrift
-
     window.set_camera_pos((cl_float4){-800,150,-570});
 
     //window.window.setVerticalSyncEnabled(false);
