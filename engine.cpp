@@ -579,7 +579,7 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {
-        cl_float4 t=rot(0, 0, distance, c_rot);
+        cl_float4 t=rot(0, 0, distance, sub({0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -587,7 +587,7 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::S))
     {
-        cl_float4 t=rot(0, 0, -distance, c_rot);
+        cl_float4 t=rot(0, 0, -distance, sub({0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -595,7 +595,7 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::A))
     {
-        cl_float4 t=rot(-distance, 0, 0, c_rot);
+        cl_float4 t=rot(-distance, 0, 0, sub({0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -603,7 +603,7 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::D))
     {
-        cl_float4 t=rot(distance, 0, 0, c_rot);
+        cl_float4 t=rot(distance, 0, 0, sub({0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
