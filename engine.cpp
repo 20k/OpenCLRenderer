@@ -40,9 +40,9 @@ ovrPosef rift::eyeRenderPose[2];
 
 ovrTrackingState rift::HmdState;
 
-cl_float4 rift::head_position = {0};
+cl_float4 rift::eye_position[2] = {0};
 
-cl_float4 rift::head_rotation = {0};
+cl_float4 rift::eye_rotation[2] = {0};
 
 
 ///this needs changing
@@ -134,27 +134,85 @@ compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbu
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc)
 {
-    window.create(sf::VideoMode(pwidth, pheight), name);
+    ovr_Initialize();
+
+    width = pwidth;
+    height = pheight;
+    depth = pdepth;
+
+    {
+        using namespace rift;
+
+        if(!HMD)
+        {
+            bool state = true;
+
+            HMD = ovrHmd_Create(0);
+
+            if(!HMD)
+            {
+                printf("No oculus rift detected, check oculus configurator\n");
+
+                state = false;
+            }
+            else if(HMD->ProductName[0] == '\0')
+            {
+                printf("Oculus display not enabled (???)\n");
+
+                state = false;
+            }
+
+            rift::enabled = state;
+        }
+
+        if(rift::enabled)
+        {
+            printf("Oculus rift support enabled\n");
+
+            ovrHmd_SetEnabledCaps(HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+
+            // Start the sensor which informs of the Rift's pose and motion
+            ovrHmd_ConfigureTracking(HMD,   ovrTrackingCap_Orientation |
+                                            ovrTrackingCap_MagYawCorrection |
+                                            ovrTrackingCap_Position, 0);
+
+
+            eyeFov[0] = HMD->DefaultEyeFov[0];
+            eyeFov[1] = HMD->DefaultEyeFov[1];
+
+            EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
+            EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
+
+
+            Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(HMD, ovrEye_Left,  HMD->DefaultEyeFov[0], 1.0f);
+            Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(HMD, ovrEye_Right, HMD->DefaultEyeFov[1], 1.0f);
+
+            width = recommendedTex0Size.w;
+            height = recommendedTex0Size.h;
+
+            width *= 2;
+        }
+    }
+
+    printf("Initialised with width %i and height %i\n", width, height);
+
+
+    window.create(sf::VideoMode(width, height), name);
 
     ///passed in as compilation parameter to opencl
-    l_size=2048;
+    l_size = 2048;
 
     ///including opencl compilation parameters
-    oclstuff(loc.c_str(), pwidth, pheight, l_size);
+    oclstuff(loc.c_str(), width, height, l_size);
 
     mdx = 0;
     mdy = 0;
     cmx = 0;
     cmy = 0;
 
-    width=pwidth;
-    height=pheight;
-    depth=pdepth;
-
     blank_light_buf=NULL;
 
     cl_uint size = std::max(height, width);
-
 
     shadow_light_num = 0;
 
@@ -254,56 +312,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     ///rift
-
-    ovr_Initialize();
-
-    {
-        using namespace rift;
-
-        if(!HMD)
-        {
-            bool state = true;
-
-            HMD = ovrHmd_Create(0);
-
-            if(!HMD)
-            {
-                printf("No oculus rift detected, check oculus configurator\n");
-
-                state = false;
-            }
-            else if(HMD->ProductName[0] == '\0')
-            {
-                printf("Oculus display not enabled (???)\n");
-
-                state = false;
-            }
-
-            rift::enabled = state;
-        }
-
-        if(rift::enabled)
-        {
-            printf("Oculus rift support enabled\n");
-
-            ovrHmd_SetEnabledCaps(HMD, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
-
-            // Start the sensor which informs of the Rift's pose and motion
-            ovrHmd_ConfigureTracking(HMD,   ovrTrackingCap_Orientation |
-                                            ovrTrackingCap_MagYawCorrection |
-                                            ovrTrackingCap_Position, 0);
-
-
-            eyeFov[0] = HMD->DefaultEyeFov[0];
-            eyeFov[1] = HMD->DefaultEyeFov[1];
-
-            EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
-            EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
-
-            head_position = {0};
-            head_rotation = {0};
-        }
-    }
 
 
     //glEnable(GL_TEXTURE2D); ///?
@@ -646,39 +654,51 @@ void engine::input()
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
 
-    ///am I going to have to add camera to quaternion here to avoid problems?
+    ///am I going to have to add camera to quaternion here to avoid problems? Yes
+    ///convert to produce two eye camera outputs
     if(rift::enabled)
     {
         using namespace rift;
 
         ovrHmd_BeginFrameTiming(HMD, 0);
 
+
         ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset, EyeRenderDesc[1].HmdToEyeViewOffset };
 
         ovrHmd_GetEyePoses(HMD, 0, hmdToEyeViewOffset, eyeRenderPose, &HmdState);
 
-        Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
+        //Quatf PoseOrientation = HmdState.HeadPose.ThePose.Orientation;
 
-        head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
+        //float head_vert = ovrHmd_GetFloat(HMD, OVR_KEY_EYE_HEIGHT, HeadPos.y);
+
+        //head_position = {HmdState.HeadPose.ThePose.Position.x,  HmdState.HeadPose.ThePose.Position.y,  -HmdState.HeadPose.ThePose.Position.z};
 
         //Matrix4f rollPitchYaw = Matrix4f::RotationY(c_rot.y);
-        Matrix4f xr = Matrix4f::RotationX(c_rot.x);
-        Matrix4f yr = Matrix4f::RotationY(c_rot.y);
-        Matrix4f zr = Matrix4f::RotationZ(c_rot.z);
 
-        Matrix4f finalRollPitchYaw  = zr * yr * xr * Matrix4f(PoseOrientation);
-        Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
-        Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
-        Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position;//?d + rollPitchYaw.Transform((ovrVector3f){c_pos.x, c_pos.y, c_pos.z});
-        Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
+        for(int eye=0; eye<2; eye++)
+        {
+            Matrix4f xr = Matrix4f::RotationX(c_rot.x);
+            Matrix4f yr = Matrix4f::RotationY(c_rot.y);
+            Matrix4f zr = Matrix4f::RotationZ(c_rot.z);
 
-        Quatf newpos(view);
+            Matrix4f finalRollPitchYaw  = zr * yr * xr * Matrix4f(eyeRenderPose[eye].Orientation);
+            Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
+            Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
 
-        float hrx, hry, hrz;
+            ///add c_pos and use as additional position
+            Vector3f shiftedEyePos      = (Vector3f)HmdState.HeadPose.ThePose.Position + (zr*yr*xr).Transform(eyeRenderPose[eye].Position);
+            Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
 
-        newpos.GetEulerAngles<Axis_X, Axis_Y, Axis_Z>(&hrx, &hry, &hrz);
+            eye_position[eye] = {shiftedEyePos.x, shiftedEyePos.y, -shiftedEyePos.z};
 
-        head_rotation = {-hrx, -hry, hrz};
+            Quatf newpos(view);
+
+            float hrx, hry, hrz;
+
+            newpos.GetEulerAngles<Axis_X, Axis_Y, Axis_Z>(&hrx, &hry, &hrz);
+
+            eye_rotation[eye] = {-hrx, -hry, hrz};
+        }
     }
 }
 
@@ -888,31 +908,34 @@ void engine::generate_distortion(compute::buffer& points, int num)
     run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true);
 }
 
-///this function is horrible and needs to be reworked into multiple smaller functions
-void engine::draw_bulk_objs_n()
+///the beginnings of making rendering more configurable
+void render_tris(engine& eng, cl_float4 position, cl_float4 rotation)
 {
-    static bool argd = true;
+    sf::Clock c;
 
-    sf::Clock start;
+    cl_uint zero = 0;
 
+    ///1 thread per triangle
+    cl_uint p1global_ws = obj_mem_manager::tri_num;
+    cl_uint local = 128;
 
-    cl_uint zero=0;
+    ///clear the number of triangles that are generated after first kernel run
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_write_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
-    ///this is not a shadowmapping kernel. This needs to be passed in as a compile time parameter
-    //compute::buffer is_light(cl::context,  sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR, &zero);
+    cl_uint p3global_ws[] = {eng.width, eng.height};
+    cl_uint p3local_ws[] = {8, 8};
 
+    ///convert between oculus format and curr. Rotation may not be correct
 
-    cl_uint p3global_ws[]= {width, height};
-    cl_uint p3local_ws[]= {8, 8};
-
-    static int first;
+    /*static int first;
 
     if(!first)
     {
         old_pos = c_pos;
         old_rot = c_rot;
         first = 1;
-    }
+    }*/
 
     //__global uint* old_depth, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot
     /*arg_list reprojection_arg_list;
@@ -926,54 +949,21 @@ void engine::draw_bulk_objs_n()
 
     run_kernel_with_list(cl::reproject_depth, p3global_ws, p3local_ws, 2, reprojection_arg_list, true);*/
 
-    //old_pos = add(old_pos, sub(c_pos, (cl_float4){-800,150,-570}));
-    //old_rot = add(old_rot, c_rot);
-
-    //c_pos = (cl_float4){-800,150,-570};
-    //c_rot = {0,0,0,0};
-
-    ///need a better way to clear light buffer
-
-    //head_rotation.z = 0;
-
-
-    cl_float4 pos_offset = c_pos;
-    cl_float4 rot_offset = sub({0,0,0,0}, c_rot); ///convert between oculus format and curr. Rotation may not be correct
-
-    if(rift::enabled)
-    {
-        using namespace rift;
-
-        float fudge = 100;
-
-        pos_offset = add(c_pos, mult(head_position, fudge));
-        rot_offset = sub({0,0,0,0}, head_rotation);//, c_rot); //sub(c_rot, head_rotation);
-    }
-
-    sf::Clock c;
-
-    ///1 thread per triangle
-    cl_uint p1global_ws = obj_mem_manager::tri_num;
-    cl_uint local=128;
-
-    ///clear the number of triangles that are generated after first kernel run
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
-    cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
     arg_list prearg_list;
 
     prearg_list.push_back(&obj_mem_manager::g_tri_mem);
     prearg_list.push_back(&obj_mem_manager::g_tri_num);
-    prearg_list.push_back(&pos_offset);
-    prearg_list.push_back(&rot_offset);
-    prearg_list.push_back(&g_tid_buf);
-    prearg_list.push_back(&g_tid_buf_max_len);
-    prearg_list.push_back(&g_tid_buf_atomic_count);
+    prearg_list.push_back(&position);
+    prearg_list.push_back(&rotation);
+    prearg_list.push_back(&eng.g_tid_buf);
+    prearg_list.push_back(&eng.g_tid_buf_max_len);
+    prearg_list.push_back(&eng.g_tid_buf_atomic_count);
     prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     prearg_list.push_back(&zero);
     prearg_list.push_back(&obj_mem_manager::g_obj_desc);
-    prearg_list.push_back(&g_distortion_buffer);
+    prearg_list.push_back(&eng.g_distortion_buffer);
 
     run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
@@ -984,10 +974,7 @@ void engine::draw_bulk_objs_n()
     cl_uint id_c = 0;
 
     ///read back number of fragments
-    cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
-
-    ///clear number of valid fragments
-    //cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_read_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
     ///round global args to multiple of local work size
     cl_uint p1global_ws_new = id_c;
@@ -996,41 +983,37 @@ void engine::draw_bulk_objs_n()
 
     arg_list p1arg_list;
     p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
-    p1arg_list.push_back(&g_tid_buf);
+    p1arg_list.push_back(&eng.g_tid_buf);
     p1arg_list.push_back(&obj_mem_manager::g_tri_num);
-    p1arg_list.push_back(&depth_buffer[nbuf]);
+    p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
-    p1arg_list.push_back(&g_tid_buf_atomic_count);
+    p1arg_list.push_back(&eng.g_tid_buf_atomic_count);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p1arg_list.push_back(&zero);
-    p1arg_list.push_back(&g_distortion_buffer);
+    p1arg_list.push_back(&eng.g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
     sf::Clock p2;
-    //int valid_tri_num = 0;
 
-    //cl::cqueue.enqueue_read_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &valid_tri_num);
-
+    ///no longer only rendering valid fragments, this is faster seemingly due to pipeline break
     cl_uint p2global_ws = p1global_ws_new;
 
     cl_uint local2=128;
-
-    //compute::buffer image_wrapper(g_id_screen_tex.get(), true);
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 
     arg_list p2arg_list;
     p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
-    p2arg_list.push_back(&g_tid_buf);
+    p2arg_list.push_back(&eng.g_tid_buf);
     p2arg_list.push_back(&obj_mem_manager::g_tri_num);
-    p2arg_list.push_back(&depth_buffer[nbuf]);
-    p2arg_list.push_back(&g_id_screen_tex);
-    p2arg_list.push_back(&g_tid_buf_atomic_count);
+    p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p2arg_list.push_back(&eng.g_id_screen_tex);
+    p2arg_list.push_back(&eng.g_tid_buf_atomic_count);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    p2arg_list.push_back(&g_distortion_buffer);
+    p2arg_list.push_back(&eng.g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
@@ -1040,38 +1023,38 @@ void engine::draw_bulk_objs_n()
     //cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
 
-    int nnbuf = (nbuf + 1) % 2;
+    int nnbuf = (eng.nbuf + 1) % 2;
 
 
-    compute::buffer screen_wrapper(g_screen.get(), true);
+    //compute::buffer screen_wrapper(g_screen.get(), true);
 
-    compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
+    //compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
 
     /// many arguments later
 
     arg_list p3arg_list;
     p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
     p3arg_list.push_back(&obj_mem_manager::g_tri_num);
-    p3arg_list.push_back(&pos_offset);
-    p3arg_list.push_back(&rot_offset);
-    p3arg_list.push_back(&depth_buffer[nbuf]);
-    p3arg_list.push_back(&g_id_screen_tex);
-    p3arg_list.push_back(&texture_wrapper);
-    p3arg_list.push_back(&screen_wrapper);
+    p3arg_list.push_back(&position);
+    p3arg_list.push_back(&rotation);
+    p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p3arg_list.push_back(&eng.g_id_screen_tex);
+    p3arg_list.push_back(&texture_manager::g_texture_array);
+    p3arg_list.push_back(&eng.g_screen);
     p3arg_list.push_back(&texture_manager::g_texture_numbers);
     p3arg_list.push_back(&texture_manager::g_texture_sizes);
     p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
     p3arg_list.push_back(&obj_mem_manager::g_obj_num);
     p3arg_list.push_back(&obj_mem_manager::g_light_num);
     p3arg_list.push_back(&obj_mem_manager::g_light_mem);
-    p3arg_list.push_back(&g_shadow_light_buffer);
-    p3arg_list.push_back(&depth_buffer[nnbuf]);
-    p3arg_list.push_back(&g_tid_buf);
+    p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
+    p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
+    p3arg_list.push_back(&eng.g_tid_buf);
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    p3arg_list.push_back(&g_distortion_buffer);
-    p3arg_list.push_back(&g_object_id_tex);
-    p3arg_list.push_back(&g_occlusion_intermediate_tex);
-    p3arg_list.push_back(&g_diffuse_intermediate_tex);
+    p3arg_list.push_back(&eng.g_distortion_buffer);
+    p3arg_list.push_back(&eng.g_object_id_tex);
+    p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
+    p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
     //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
 
     ///this is the deferred screenspace pass
@@ -1080,9 +1063,9 @@ void engine::draw_bulk_objs_n()
 
 
     arg_list smooth_arg_list;
-    smooth_arg_list.push_back(&g_object_id_tex);
-    smooth_arg_list.push_back(&g_screen);
-    smooth_arg_list.push_back(&g_screen_edge_smoothed);
+    smooth_arg_list.push_back(&eng.g_object_id_tex);
+    smooth_arg_list.push_back(&eng.g_screen);
+    smooth_arg_list.push_back(&eng.g_screen_edge_smoothed);
 
     run_kernel_with_list(cl::edge_smoothing, p3global_ws, p3local_ws, 2, smooth_arg_list, true);
 
@@ -1136,6 +1119,43 @@ void engine::draw_bulk_objs_n()
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
+}
+
+///this function is horrible and needs to be reworked into multiple smaller functions
+void engine::draw_bulk_objs_n()
+{
+    ///this is not a shadowmapping kernel. is_light needs to be passed in as a compile time parameter
+
+
+
+
+    //old_pos = add(old_pos, sub(c_pos, (cl_float4){-800,150,-570}));
+    //old_rot = add(old_rot, c_rot);
+
+    //c_pos = (cl_float4){-800,150,-570};
+    //c_rot = {0,0,0,0};
+
+    ///need a better way to clear light buffer
+
+    //head_rotation.z = 0;
+
+
+    cl_float4 pos_offset = c_pos;
+    cl_float4 rot_offset = sub({0,0,0,0}, c_rot);
+
+    ///now we have both eye positions and rotations, need to render in 3d and apply distortion
+    if(rift::enabled)
+    {
+        using namespace rift;
+
+        float fudge = 40;
+
+        pos_offset = add(c_pos, mult(eye_position[0], fudge));
+        rot_offset = sub({0,0,0,0}, eye_rotation[0]);
+    }
+
+    render_tris(*this, pos_offset, rot_offset);
+
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)

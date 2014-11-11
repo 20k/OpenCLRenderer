@@ -34,6 +34,22 @@
 					<Add option="-s" />
 				</Linker>
 			</Target>
+			<Target title="Profile">
+				<Option output="bin/Profile/Rift" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Profile/" />
+				<Option type="1" />
+				<Option compiler="mingw64" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-Ofast" />
+					<Add option="-march=native" />
+					<Add option="-msse3 -mavx" />
+					<Add option="-DPROFILING" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
@@ -86,12 +102,6 @@
 		<Unit filename="../Game/space_dust.hpp" />
 		<Unit filename="../Game/version.hpp" />
 		<Unit filename="../Interface_DLL/main.h" />
-		<Unit filename="../Leap/LeapSDK/include/Leap.h" />
-		<Unit filename="../Leap/LeapSDK/include/LeapMath.h" />
-		<Unit filename="../Leap/LeapSDK/util/LeapScene.h" />
-		<Unit filename="../Leap/LeapSDK/util/LeapUtil.h" />
-		<Unit filename="../Leap/LeapSDK/util/LeapUtilGL.h" />
-		<Unit filename="../Leap/leap_control.hpp" />
 		<Unit filename="../SVO/voxel.cpp" />
 		<Unit filename="../SVO/voxel.h" />
 		<Unit filename="../cl2.cl" />

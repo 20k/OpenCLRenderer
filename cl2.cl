@@ -395,6 +395,8 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
     return ret;
 }
 
+///this clips with the near plane, but do we want to clip with the screen instead?
+///could be generating huge triangles that fragment massively
 void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2][3], int* clip)
 {
     int id_valid;
@@ -551,9 +553,8 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 }*/
 
 ///change width/height to be defines by compiler
-bool full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped, int id, __global float4* cutdown_tris)
+bool full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped)
 {
-
     __global struct triangle *T=triangle;
 
     float3 normalrot[3];
@@ -571,11 +572,24 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
     ///YAY
 
+
+    float3 rotpoints[3];
+    rot_3(T, c_pos, c_rot, offset, rotation_offset, rotpoints);
+
+    ///this will cause errors, need to fix lighting to use rotated normals rather than globals
+    ///did i fix this?
+    //
+    //rot_3_normal(T, c_rot, normalrot);
+
+
+    float3 projected[3];
+    depth_project(rotpoints, width, height, fovc, projected);
+
     if(is_clipped == 0)
     {
-        passback->vertices[0].pos = cutdown_tris[id*3 + 0];
-        passback->vertices[1].pos = cutdown_tris[id*3 + 1];
-        passback->vertices[2].pos = cutdown_tris[id*3 + 2];
+        passback->vertices[0].pos = (float4)(projected[0], 0);
+        passback->vertices[1].pos = (float4)(projected[1], 0);
+        passback->vertices[2].pos = (float4)(projected[2], 0);
 
         passback->vertices[0].normal = (float4)(normalrot[0], 0);
         passback->vertices[1].normal = (float4)(normalrot[1], 0);
@@ -593,22 +607,6 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         return false;
     }
-
-
-
-
-    float3 rotpoints[3];
-    rot_3(T, c_pos, c_rot, offset, rotation_offset, rotpoints);
-
-    ///this will cause errors, need to fix lighting to use rotated normals rather than globals
-    ///did i fix this?
-    //
-    //rot_3_normal(T, c_rot, normalrot);
-
-
-    float3 projected[3];
-    depth_project(rotpoints, width, height, fovc, projected);
-
 
     int n_behind = 0;
     int ids_behind[2];
@@ -1737,6 +1735,8 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 #define op_size 300
 
 ///split triangles into fixed-length fragments
+
+///something is causing massive slowdown when we're within the triangles, just rendering them causes very little slowdown. Out of bounds massive-ness?
 __kernel
 void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
@@ -1980,10 +1980,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
-        if(y != ty)
-        {
-            x = ((pixel_along + pcount) % width) + min_max[0];
-        }
+        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
 
         /*// if( x >= min_max[0] + width)
         {
@@ -2124,10 +2121,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
-        if(y != ty)
-        {
-            x = ((pixel_along + pcount) % width) + min_max[0];
-        }
+        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
 
         if(y >= min_max[3])
         {
@@ -2158,7 +2152,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 continue;
             }
 
-            uint mydepth=fmydepth*mulint;
+            uint mydepth = fmydepth*mulint;
 
             if(mydepth==0)
             {
@@ -2187,6 +2181,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
+///rewrite using the raytracers triangle bits
 __kernel
 //__attribute__((reqd_work_group_size(8, 8, 1)))
 //__attribute__((vec_type_hint(float3)))
@@ -2262,7 +2257,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     struct interp_container icontainer;
 
     //remove all this fragment id buffer rubbish
-    int local_id = fragment_id_buffer[id_val*3 + 2];
+    //int local_id = fragment_id_buffer[id_val*3 + 2];
 
     __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
 
@@ -2283,7 +2278,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
 
 
-    bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped, local_id, cutdown_tris);
+    bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
 
     //xy coordinate can only be in one, test both tris and avoid memory read?
 

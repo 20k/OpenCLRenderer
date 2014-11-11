@@ -40,7 +40,10 @@ namespace rift
 
     extern ovrTrackingState HmdState;
 
-    extern cl_float4 head_position, head_rotation;
+    //extern cl_float4 head_position, head_rotation;
+
+    extern cl_float4 eye_position[2];
+    extern cl_float4 eye_rotation[2];
 };
 
 struct engine
@@ -58,6 +61,7 @@ struct engine
     static cl_float4 old_rot;
 
     compute::opengl_renderbuffer g_screen;
+    compute::opengl_renderbuffer g_rift_screen[2];
     compute::opengl_renderbuffer g_screen_reprojected;
     compute::opengl_renderbuffer g_screen_edge_smoothed;
 
