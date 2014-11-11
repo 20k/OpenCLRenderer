@@ -557,16 +557,16 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 {
     __global struct triangle *T=triangle;
 
-    float3 normalrot[3];
+    //float3 normalrot[3];
 
-    normalrot[0] = T->vertices[0].normal.xyz;
-    normalrot[1] = T->vertices[1].normal.xyz;
-    normalrot[2] = T->vertices[2].normal.xyz;
+    //normalrot[0] = T->vertices[0].normal.xyz;
+    //normalrot[1] = T->vertices[1].normal.xyz;
+    //normalrot[2] = T->vertices[2].normal.xyz;
 
     //rot_3_raw(normalrot, c_rot, normalrot);
 
     //if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
-    rot_3_raw(normalrot, rotation_offset, normalrot);
+    //rot_3_raw(normalrot, rotation_offset, normalrot);
 
 
     ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
@@ -591,17 +591,17 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback->vertices[1].pos = (float4)(projected[1], 0);
         passback->vertices[2].pos = (float4)(projected[2], 0);
 
-        passback->vertices[0].normal = (float4)(normalrot[0], 0);
-        passback->vertices[1].normal = (float4)(normalrot[1], 0);
-        passback->vertices[2].normal = (float4)(normalrot[2], 0);
+        //passback->vertices[0].normal = (float4)(normalrot[0], 0);
+        //passback->vertices[1].normal = (float4)(normalrot[1], 0);
+        //passback->vertices[2].normal = (float4)(normalrot[2], 0);
 
         passback->vertices[0].vt = T->vertices[0].vt;
         passback->vertices[1].vt = T->vertices[1].vt;
         passback->vertices[2].vt = T->vertices[2].vt;
 
-        passback->vertices[0].object_id = T->vertices[0].object_id;
-        passback->vertices[1].object_id = T->vertices[1].object_id;
-        passback->vertices[2].object_id = T->vertices[2].object_id;
+        //passback->vertices[0].object_id = T->vertices[0].object_id;
+        //passback->vertices[1].object_id = T->vertices[1].object_id;
+        //passback->vertices[2].object_id = T->vertices[2].object_id;
 
         *num = 1;
 
@@ -626,20 +626,13 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     }
 
 
-    if(n_behind > 2)
-    {
-        *num = 0;
-        return false;
-    }
-
-
     float3 p1, p2, c1, c2;
     float2 p1v, p2v, c1v, c2v;
     float3 p1l, p2l, c1l, c2l;
 
-    passback[0].vertices[0].object_id = T->vertices[0].object_id;
-    passback[0].vertices[1].object_id = T->vertices[1].object_id;
-    passback[0].vertices[2].object_id = T->vertices[2].object_id;
+    //passback[0].vertices[0].object_id = T->vertices[0].object_id;
+    //passback[0].vertices[1].object_id = T->vertices[1].object_id;
+    //passback[0].vertices[2].object_id = T->vertices[2].object_id;
 
 
     if(n_behind == 0)
@@ -648,9 +641,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback[0].vertices[1].pos = (float4)(projected[1], 0);
         passback[0].vertices[2].pos = (float4)(projected[2], 0);
 
-        passback[0].vertices[0].normal = (float4)(normalrot[0], 0);
-        passback[0].vertices[1].normal = (float4)(normalrot[1], 0);
-        passback[0].vertices[2].normal = (float4)(normalrot[2], 0);
+        //passback[0].vertices[0].normal = (float4)(normalrot[0], 0);
+        //passback[0].vertices[1].normal = (float4)(normalrot[1], 0);
+        //passback[0].vertices[2].normal = (float4)(normalrot[2], 0);
 
         passback[0].vertices[0].vt = T->vertices[0].vt;
         passback[0].vertices[1].vt = T->vertices[1].vt;
@@ -658,6 +651,12 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
         *num = 1;
         return true;
+    }
+
+    if(n_behind > 2)
+    {
+        *num = 0;
+        return false;
     }
 
     int g1, g2, g3;
@@ -676,6 +675,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         g3 = ids_behind[1];
         g1 = id_valid;
     }
+    ///back rotate and do barycentric interpolation?
 
     //i think the jittering is caused by numerical accuracy problems here
 
@@ -702,14 +702,14 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
 
 
-    float3 vl1 = normalrot[g2] - normalrot[g1];
+    /*float3 vl1 = normalrot[g2] - normalrot[g1];
     float3 vl2 = normalrot[g3] - normalrot[g1];
 
     float3 nl1 = r1 * vl1 + normalrot[g1];
     float3 nl2 = r2 * vl2 + normalrot[g1];
 
     p1l = nl1;
-    p2l = nl2;
+    p2l = nl2;*/
 
 
     if(n_behind == 1)
@@ -718,14 +718,14 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         c2 = rotpoints[g3];
         c1v = T->vertices[g2].vt;
         c2v = T->vertices[g3].vt;
-        c1l = normalrot[g2];
-        c2l = normalrot[g3];
+        //c1l = normalrot[g2];
+        //c2l = normalrot[g3];
     }
     else
     {
         c1 = rotpoints[g1];
         c1v = T->vertices[g1].vt;
-        c1l = normalrot[g1];
+        //c1l = normalrot[g1];
     }
 
 
@@ -758,9 +758,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback[0].vertices[1].vt = c1v;
         passback[0].vertices[2].vt = c2v;
 
-        passback[0].vertices[0].normal = (float4)(p1l, 0);
-        passback[0].vertices[1].normal = (float4)(c1l, 0);
-        passback[0].vertices[2].normal = (float4)(c2l, 0);
+        //passback[0].vertices[0].normal = (float4)(p1l, 0);
+        //passback[0].vertices[1].normal = (float4)(c1l, 0);
+        //passback[0].vertices[2].normal = (float4)(c2l, 0);
 
         passback[1].vertices[0].pos = (float4)(p1, 0);
         passback[1].vertices[1].pos = (float4)(c2, 0);
@@ -770,14 +770,14 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback[1].vertices[1].vt = c2v;
         passback[1].vertices[2].vt = p2v;
 
-        passback[1].vertices[0].normal = (float4)(p1l, 0);
-        passback[1].vertices[1].normal = (float4)(c2l, 0);
-        passback[1].vertices[2].normal = (float4)(p2l, 0);
+        //passback[1].vertices[0].normal = (float4)(p1l, 0);
+        //passback[1].vertices[1].normal = (float4)(c2l, 0);
+        //passback[1].vertices[2].normal = (float4)(p2l, 0);
 
-        for(int i=0; i<3; i++)
+        /*for(int i=0; i<3; i++)
         {
             passback[1].vertices[i].object_id = T->vertices[i].object_id;
-        }
+        }*/
 
         *num = 2;
 
@@ -794,9 +794,9 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
         passback[0].vertices[ids_behind[1]].vt = p2v;
         passback[0].vertices[id_valid].vt = c1v;
 
-        passback[0].vertices[ids_behind[0]].normal = (float4)(p1l, 0);
-        passback[0].vertices[ids_behind[1]].normal = (float4)(p2l, 0);
-        passback[0].vertices[id_valid].normal = (float4)(c1l, 0);
+        //passback[0].vertices[ids_behind[0]].normal = (float4)(p1l, 0);
+        //passback[0].vertices[ids_behind[1]].normal = (float4)(p2l, 0);
+        //passback[0].vertices[id_valid].normal = (float4)(c1l, 0);
 
         *num = 1;
 
@@ -1953,16 +1953,15 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float mod = 2;
 
-    /*if(area < 50)
+    if(area < 50)
     {
-        mod = 2;
-    }*/
+        mod = 1;
+    }
 
     if(area > 60000)
     {
         mod = 100;
     }
-
 
     //bool invalid = false;
 
@@ -2047,6 +2046,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }*/
 }
 
+#define BUF_ERROR 10
+
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
 void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
@@ -2098,10 +2099,10 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float mod = 2;
 
-    /*if(area < 50)
+    if(area < 50)
     {
-        mod = 2;
-    }*/
+        mod = 1;
+    }
 
     if(area > 60000)
     {
@@ -2162,7 +2163,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
 
-            int cond = mydepth > val - 10 && mydepth < val + 10;
+            int cond = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
 
             ///found depth buffer value, write the triangle id
             if(cond)
@@ -2177,6 +2178,119 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         pcount++;
     }
+}
+
+#define EPSILON 0.001f
+
+void triangle_intersection(const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* out,
+                                 float* uout,
+                                 float* vout)
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    //NOT CULLING
+    if(det > -EPSILON && det < EPSILON)
+        return;
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+    if(u < 0.0f || u > 1.0f)
+        return;
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+    //The intersection lies outside of the triangle
+    if(v < 0.0f || u + v  > 1.0f)
+        return;
+
+    t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+    if(t > EPSILON)
+    {
+        *out = t;
+
+        *uout = u;
+        *vout = v;
+    }
+
+    // No hit, no win
+}
+
+///assume hit
+void triangle_intersection_always(const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* uout,
+                                 float* vout)
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+
+    //t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+
+    *uout = u;
+    *vout = v;
+
+    // No hit, no win
 }
 
 ///screenspace step, this is slow and needs improving
@@ -2226,7 +2340,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     camera_pos = c_pos.xyz;
     camera_rot = c_rot.xyz;
 
-
     if(*ft == UINT_MAX)
     {
         write_imagei(object_ids, (int2){x, y}, -1);
@@ -2234,129 +2347,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         return;
     }
 
-
-    /*uint rproj_depth = reprojected_buffer[y*SCREENWIDTH + x];
-
-    float val = (float)rproj_depth/mulint;
-    val = idcalc(val);
-
-    val /= 10000;
-
-    write_imagef(screen, (int2){x, y}, val);
-
-    return;*/
-
-    //float4 normals_out[3];
-
-
-    /*if(*ft==depth_no_clear) ///the thing currently on the depth buffer shouldn't be cleared. There is no overlapping triangle either
-    {
-        return;
-    }*/
-
-    struct interp_container icontainer;
-
-    //remove all this fragment id buffer rubbish
-    //int local_id = fragment_id_buffer[id_val*3 + 2];
-
-    __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
-
-
-    write_imagei(object_ids, (int2){x, y}, T->vertices[0].object_id);
-
-
-    ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
-
-    struct triangle tris[2];
-
-    int num = 0;
-
-    int o_id = T->vertices[0].object_id;
-
-    __global struct obj_g_descriptor *G = &gobj[o_id];
-
-    int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
-
-
-    bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
-
-    //xy coordinate can only be in one, test both tris and avoid memory read?
-
-    ///work this out manually, rather than doing a memory access
-    uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
-
-
-    if(needs_modification)
-    {
-        for(int i=0; i<3; i++)
-        {
-            int xc = round(tris[wtri].vertices[i].pos.x);
-            int yc = round(tris[wtri].vertices[i].pos.y);
-
-            int oob = xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT;
-
-            if(oob)
-                continue;
-
-            tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
-        }
-    }
-
-    construct_interpolation(&tris[wtri], &icontainer, SCREENWIDTH, SCREENHEIGHT);
-
-    struct triangle *c_tri = &tris[wtri];
-
-
-    float cz[3] = {c_tri->vertices[0].pos.z, c_tri->vertices[1].pos.z, c_tri->vertices[2].pos.z};
-
-
     float ldepth = idcalc((float)*ft/mulint);
-
-
-    float2 vt;
-
-
-    float3 xvt = {native_divide(c_tri->vertices[0].vt.x, cz[0]), native_divide(c_tri->vertices[1].vt.x, cz[1]), native_divide(c_tri->vertices[2].vt.x, cz[2])};
-    vt.x = interpolate(xvt, &icontainer, x, y);
-
-    float3 yvt = {native_divide(c_tri->vertices[0].vt.y, cz[0]), native_divide(c_tri->vertices[1].vt.y, cz[1]), native_divide(c_tri->vertices[2].vt.y, cz[2])};
-    vt.y = interpolate(yvt, &icontainer, x, y);
-
-    vt *= ldepth;
-
-    ///perspective correct normals
-    float3 normalsx = {native_divide(c_tri->vertices[0].normal.x, cz[0]), native_divide(c_tri->vertices[1].normal.x, cz[1]), native_divide(c_tri->vertices[2].normal.x, cz[2])};
-    float3 normalsy = {native_divide(c_tri->vertices[0].normal.y, cz[0]), native_divide(c_tri->vertices[1].normal.y, cz[1]), native_divide(c_tri->vertices[2].normal.y, cz[2])};
-    float3 normalsz = {native_divide(c_tri->vertices[0].normal.z, cz[0]), native_divide(c_tri->vertices[1].normal.z, cz[1]), native_divide(c_tri->vertices[2].normal.z, cz[2])};
-
-    ///interpolated normal
-    float3 normal;
-
-    normal.x=interpolate(normalsx, &icontainer, x, y);
-    normal.y=interpolate(normalsy, &icontainer, x, y);
-    normal.z=interpolate(normalsz, &icontainer, x, y);
-
-    ///get perspective fixed normal by multiplying by depth
-    normal *= ldepth;
-
-    normal = fast_normalize(normal);
-
-
-    float3 lpos = lights[0].pos.xyz;
-
-    //float l = dot(lpos, normal) / sqrt(lpos.x*lpos.x + lpos.y*lpos.y + lpos.z*lpos.z + normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
-
-    //float l = dot(normalize(lpos), c_tri->vertices[1].normal.xyz);
-
-    //float3 rot_lpos = rot(lpos, (float3)0, camera_rot);
-
-    //float l = dot(normalize(lpos), normalize(normal));
-
-    //write_imagef(screen, (int2){x, y}, (float4)(l));
-    //write_imagef(screen, (int2){x, y}, (float4)(ldepth / 1000));
-
-    //return;
-
 
     float actual_depth = ldepth;
 
@@ -2382,6 +2373,68 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     global_position += camera_pos;
 
+
+    float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
+
+    //float3 ray_dir = (float3){spos.x, spos.y, 1};
+
+
+
+    ///backrotate pixel coordinate into globalspace
+    float3 ray_dir = rot(spos,  0, (float3)
+    {
+        -c_rot.x, 0.0f, 0.0f
+    });
+    ray_dir        = rot(ray_dir, 0, (float3)
+    {
+        0.0f, -c_rot.y, 0.0f
+    });
+    ray_dir        = rot(ray_dir, 0, (float3)
+    {
+        0.0f, 0.0f, -c_rot.z
+    });
+
+    float3 ray_origin = camera_pos;
+
+    __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
+
+    write_imagei(object_ids, (int2){x, y}, T->vertices[0].object_id);
+
+
+    ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
+
+
+    float uout = 0, vout = 0;
+
+    triangle_intersection_always(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, ray_origin, ray_dir, &uout, &vout);
+
+    float y1, y2, y3;
+    float x1, x2, x3;
+
+    y1 = 0, y2 = 0, y3 = 1;
+    x1 = 0, x2 = 1, x3 = 0;
+
+    float l1, l2, l3;
+
+    float lx = uout;
+    float ly = vout;
+
+    l1 = (y2 - y3)*(lx - x3) + (x3 - x2)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+    l2 = (y3 - y1)*(lx - x3) + (x1 - x3)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+
+    l3 = 1.0f - l1 - l2;
+
+
+    float2 vt;
+    vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
+
+    ///interpolated normal
+    float3 normal;
+    normal = T->vertices[0].normal.xyz * l1 + T->vertices[1].normal.xyz * l2 + T->vertices[2].normal.xyz * l3;
+
+    normal = fast_normalize(normal);
+
+
     float3 ambient_sum = 0;
 
     int shnum = 0;
@@ -2397,6 +2450,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 diffuse_sum = 0;
 
+    float3 l2p = camera_pos - global_position;
+    l2p = fast_normalize(l2p);
+
     for(int i=0; i<num_lights; i++)
     {
         float ambient = 0.2f;
@@ -2410,10 +2466,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         float3 l2c = lpos - global_position; ///light to pixel positio
 
-        float3 l2p = camera_pos - global_position;
-
         l2c = fast_normalize(l2c);
-        l2p = fast_normalize(l2p);
 
 
         float light = dot(l2c, normal); ///diffuse
@@ -2544,6 +2597,43 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ///diffuse + ambient, no specular yet
         ambient_sum += ambient*l.col.xyz;
     }
+
+    struct triangle tris[2];
+
+    int num = 0;
+
+    int o_id = T->vertices[0].object_id;
+
+    __global struct obj_g_descriptor *G = &gobj[o_id];
+
+    int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
+
+
+    bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
+
+    //xy coordinate can only be in one, test both tris and avoid memory read?
+
+    ///work this out manually, rather than doing a memory access
+    uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
+
+    if(needs_modification)
+    {
+        for(int i=0; i<3; i++)
+        {
+            int xc = round(tris[wtri].vertices[i].pos.x);
+            int yc = round(tris[wtri].vertices[i].pos.y);
+
+            int oob = xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT;
+
+            if(oob)
+                continue;
+
+            tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
+        }
+    }
+
+    struct triangle *c_tri = &tris[wtri];
+
 
     //diffuse + ambient colour is written to a separate buffer so I can abuse it for smooth shadow blurring
 
@@ -4364,69 +4454,6 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
     ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
 }
 
-#define EPSILON 0.001f
-
-void triangle_intersection( const float3   V1,  // Triangle vertices
-                           const float3   V2,
-                           const float3   V3,
-                           const float3    O,  //Ray origin
-                           const float3    D,  //Ray direction
-                                 float* out,
-                                 float* uout,
-                                 float* vout)
-{
-    float3 e1, e2;  //Edge1, Edge2
-    float3 P, Q, T;
-
-    float det, inv_det, u, v;
-    float t;
-
-    //Find vectors for two edges sharing V1
-    e1 = V2 - V1;
-    e2 = V3 - V1;
-
-    //Begin calculating determinant - also used to calculate u parameter
-    P = cross(D, e2);
-    //if determinant is near zero, ray lies in plane of triangle
-    det = dot(e1, P);
-
-    //NOT CULLING
-    if(det > -EPSILON && det < EPSILON)
-        return;
-
-    inv_det = native_recip(det);
-
-    //calculate distance from V1 to ray origin
-    T = O - V1;
-
-    //Calculate u parameter and test bound
-    u = dot(T, P) * inv_det;
-    //The intersection lies outside of the triangle
-    if(u < 0.0f || u > 1.0f)
-        return;
-
-    //Prepare to test v parameter
-    Q = cross(T, e1);
-
-    //Calculate V parameter and test bound
-    v = dot(D, Q) * inv_det;
-    //The intersection lies outside of the triangle
-    if(v < 0.0f || u + v  > 1.0f)
-        return;
-
-    t = dot(e2, Q) * inv_det;
-
-    //ray intersection
-    if(t > EPSILON)
-    {
-        *out = t;
-
-        *uout = u;
-        *vout = v;
-    }
-
-    // No hit, no win
-}
 
 ///use reverse reprojection as heuristic
 __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
