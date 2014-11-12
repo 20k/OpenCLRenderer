@@ -101,6 +101,7 @@ float calc_third_areas(struct interp_container *C, float x, float y)
     return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
 }
 
+///intrinsic xyz (extrinsic zyx)
 ///rotates point about camera
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
@@ -146,6 +147,32 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
     //ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
     //ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
     //ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
+
+    return ret;
+}
+
+///a rot then a back rot 'cancel' out
+float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
+{
+    float3 cr = native_cos(c_rot);
+    float3 sr = native_sin(c_rot);
+
+    float3 r1 = {cr.x*cr.y, cr.x*sr.y*sr.z - cr.z*sr.x, sr.x*sr.z + cr.x*cr.z*sr.y};
+    float3 r2 = {cr.y*sr.x, cr.x*cr.z + sr.x*sr.y*sr.z, cr.z*sr.x*sr.y - cr.x*sr.z};
+    float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};
+
+    /*float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
+    float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
+    float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};*/
+
+
+    float3 rel = point - c_pos;
+
+    float3 ret;
+
+    ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
+    ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
+    ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
 
     return ret;
 }
@@ -2180,70 +2207,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }
 }
 
-#define EPSILON 0.001f
-
-void triangle_intersection(const float3   V1,  // Triangle vertices
-                           const float3   V2,
-                           const float3   V3,
-                           const float3    O,  //Ray origin
-                           const float3    D,  //Ray direction
-                                 float* out,
-                                 float* uout,
-                                 float* vout)
-{
-    float3 e1, e2;  //Edge1, Edge2
-    float3 P, Q, T;
-
-    float det, inv_det, u, v;
-    float t;
-
-    //Find vectors for two edges sharing V1
-    e1 = V2 - V1;
-    e2 = V3 - V1;
-
-    //Begin calculating determinant - also used to calculate u parameter
-    P = cross(D, e2);
-    //if determinant is near zero, ray lies in plane of triangle
-    det = dot(e1, P);
-
-    //NOT CULLING
-    if(det > -EPSILON && det < EPSILON)
-        return;
-
-    inv_det = native_recip(det);
-
-    //calculate distance from V1 to ray origin
-    T = O - V1;
-
-    //Calculate u parameter and test bound
-    u = dot(T, P) * inv_det;
-    //The intersection lies outside of the triangle
-    if(u < 0.0f || u > 1.0f)
-        return;
-
-    //Prepare to test v parameter
-    Q = cross(T, e1);
-
-    //Calculate V parameter and test bound
-    v = dot(D, Q) * inv_det;
-    //The intersection lies outside of the triangle
-    if(v < 0.0f || u + v  > 1.0f)
-        return;
-
-    t = dot(e2, Q) * inv_det;
-
-    //ray intersection
-    if(t > EPSILON)
-    {
-        *out = t;
-
-        *uout = u;
-        *vout = v;
-    }
-
-    // No hit, no win
-}
-
 ///assume hit
 void triangle_intersection_always(const float3   V1,  // Triangle vertices
                            const float3   V2,
@@ -2328,7 +2291,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     to_clear[y*SCREENWIDTH + x] = UINT_MAX;
 
-    __global uint *ft=&depth_buffer[y*SCREENWIDTH + x];
+    __global uint *ft = &depth_buffer[y*SCREENWIDTH + x];
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
@@ -2354,22 +2317,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     ///unprojected pixel coordinate
     float3 local_position= {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
 
-
-    float3 zero = {0,0,0};
-
     ///backrotate pixel coordinate into globalspace
-    float3 global_position = rot(local_position,  zero, (float3)
-    {
-        -camera_rot.x, 0.0f, 0.0f
-    });
-    global_position        = rot(global_position, zero, (float3)
-    {
-        0.0f, -camera_rot.y, 0.0f
-    });
-    global_position        = rot(global_position, zero, (float3)
-    {
-        0.0f, 0.0f, -camera_rot.z
-    });
+    float3 global_position = back_rot(local_position, 0, camera_rot);
 
     global_position += camera_pos;
 
@@ -2380,19 +2329,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
 
 
-    ///backrotate pixel coordinate into globalspace
-    float3 ray_dir = rot(spos,  0, (float3)
-    {
-        -c_rot.x, 0.0f, 0.0f
-    });
-    ray_dir        = rot(ray_dir, 0, (float3)
-    {
-        0.0f, -c_rot.y, 0.0f
-    });
-    ray_dir        = rot(ray_dir, 0, (float3)
-    {
-        0.0f, 0.0f, -c_rot.z
-    });
+
+    float3 ray_dir = back_rot(spos, 0, camera_rot);
 
     float3 ray_origin = camera_pos;
 
@@ -4452,6 +4390,71 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
     }
 
     ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
+}
+
+
+#define EPSILON 0.001f
+
+void triangle_intersection(const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* out,
+                                 float* uout,
+                                 float* vout)
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    //NOT CULLING
+    if(det > -EPSILON && det < EPSILON)
+        return;
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+    if(u < 0.0f || u > 1.0f)
+        return;
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+    //The intersection lies outside of the triangle
+    if(v < 0.0f || u + v  > 1.0f)
+        return;
+
+    t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+    if(t > EPSILON)
+    {
+        *out = t;
+
+        *uout = u;
+        *vout = v;
+    }
+
+    // No hit, no win
 }
 
 
