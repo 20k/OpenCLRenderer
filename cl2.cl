@@ -154,27 +154,33 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 ///a rot then a back rot 'cancel' out
 float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
-    float3 cr = native_cos(c_rot);
+    //c_rot.z = -c_rot.z;
+
+   /* float3 cr = native_cos(c_rot);
     float3 sr = native_sin(c_rot);
 
     float3 r1 = {cr.x*cr.y, cr.x*sr.y*sr.z - cr.z*sr.x, sr.x*sr.z + cr.x*cr.z*sr.y};
     float3 r2 = {cr.y*sr.x, cr.x*cr.z + sr.x*sr.y*sr.z, cr.z*sr.x*sr.y - cr.x*sr.z};
-    float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};
+    float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};*/
 
     /*float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
     float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
     float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};*/
 
 
-    float3 rel = point - c_pos;
+    /*float3 rel = point - c_pos;
 
     float3 ret;
 
     ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
     ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
-    ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
+    ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;*/
 
-    return ret;
+    float3 pos = rot(point, c_pos, (float3){-c_rot.x, 0, 0});
+    pos = rot(pos, c_pos, (float3){0, -c_rot.y, 0});
+    pos = rot(pos, c_pos, (float3){0, 0, -c_rot.z});
+
+    return pos;
 }
 
 /*float3 optirot(float3 point, float3 c_pos, float3 sin_c_rot, float3 cos_c_rot)
@@ -580,7 +586,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 }*/
 
 ///change width/height to be defines by compiler
-bool full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped)
+bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped)
 {
     __global struct triangle *T=triangle;
 
@@ -614,17 +620,17 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(is_clipped == 0)
     {
-        passback->vertices[0].pos = (float4)(projected[0], 0);
-        passback->vertices[1].pos = (float4)(projected[1], 0);
-        passback->vertices[2].pos = (float4)(projected[2], 0);
+        passback[0][0] = projected[0];
+        passback[0][1] = projected[1];
+        passback[0][2] = projected[2];
 
         //passback->vertices[0].normal = (float4)(normalrot[0], 0);
         //passback->vertices[1].normal = (float4)(normalrot[1], 0);
         //passback->vertices[2].normal = (float4)(normalrot[2], 0);
 
-        passback->vertices[0].vt = T->vertices[0].vt;
-        passback->vertices[1].vt = T->vertices[1].vt;
-        passback->vertices[2].vt = T->vertices[2].vt;
+        //passback->vertices[0].vt = T->vertices[0].vt;
+        //passback->vertices[1].vt = T->vertices[1].vt;
+        //passback->vertices[2].vt = T->vertices[2].vt;
 
         //passback->vertices[0].object_id = T->vertices[0].object_id;
         //passback->vertices[1].object_id = T->vertices[1].object_id;
@@ -664,17 +670,17 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(n_behind == 0)
     {
-        passback[0].vertices[0].pos = (float4)(projected[0], 0);
-        passback[0].vertices[1].pos = (float4)(projected[1], 0);
-        passback[0].vertices[2].pos = (float4)(projected[2], 0);
+        passback[0][0] = projected[0];
+        passback[0][1] = projected[1];
+        passback[0][2] = projected[2];
 
         //passback[0].vertices[0].normal = (float4)(normalrot[0], 0);
         //passback[0].vertices[1].normal = (float4)(normalrot[1], 0);
         //passback[0].vertices[2].normal = (float4)(normalrot[2], 0);
 
-        passback[0].vertices[0].vt = T->vertices[0].vt;
-        passback[0].vertices[1].vt = T->vertices[1].vt;
-        passback[0].vertices[2].vt = T->vertices[2].vt;
+        //passback[0].vertices[0].vt = T->vertices[0].vt;
+        //passback[0].vertices[1].vt = T->vertices[1].vt;
+        //passback[0].vertices[2].vt = T->vertices[2].vt;
 
         *num = 1;
         return true;
@@ -715,7 +721,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
 
 
-    float r1 = native_divide(fast_length(p1 - rotpoints[g1]), fast_length(rotpoints[g2] - rotpoints[g1]));
+    /*float r1 = native_divide(fast_length(p1 - rotpoints[g1]), fast_length(rotpoints[g2] - rotpoints[g1]));
     float r2 = native_divide(fast_length(p2 - rotpoints[g1]), fast_length(rotpoints[g3] - rotpoints[g1]));
 
     float2 vv1 = T->vertices[g2].vt - T->vertices[g1].vt;
@@ -725,7 +731,7 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     float2 nv2 = r2 * vv2 + T->vertices[g1].vt;
 
     p1v = nv1;
-    p2v = nv2;
+    p2v = nv2;*/
 
 
 
@@ -743,15 +749,15 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
     {
         c1 = rotpoints[g2];
         c2 = rotpoints[g3];
-        c1v = T->vertices[g2].vt;
-        c2v = T->vertices[g3].vt;
+        //c1v = T->vertices[g2].vt;
+        //c2v = T->vertices[g3].vt;
         //c1l = normalrot[g2];
         //c2l = normalrot[g3];
     }
     else
     {
         c1 = rotpoints[g1];
-        c1v = T->vertices[g1].vt;
+        //c1v = T->vertices[g1].vt;
         //c1l = normalrot[g1];
     }
 
@@ -777,25 +783,25 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(n_behind==1)
     {
-        passback[0].vertices[0].pos = (float4)(p1, 0);
-        passback[0].vertices[1].pos = (float4)(c1, 0);
-        passback[0].vertices[2].pos = (float4)(c2, 0);
+        passback[0][0] = p1;
+        passback[0][1] = c1;
+        passback[0][2] = c2;
 
-        passback[0].vertices[0].vt = p1v;
-        passback[0].vertices[1].vt = c1v;
-        passback[0].vertices[2].vt = c2v;
+        //passback[0][0].vt = p1v;
+        //passback[0][1].vt = c1v;
+        //passback[0][2].vt = c2v;
 
         //passback[0].vertices[0].normal = (float4)(p1l, 0);
         //passback[0].vertices[1].normal = (float4)(c1l, 0);
         //passback[0].vertices[2].normal = (float4)(c2l, 0);
 
-        passback[1].vertices[0].pos = (float4)(p1, 0);
-        passback[1].vertices[1].pos = (float4)(c2, 0);
-        passback[1].vertices[2].pos = (float4)(p2, 0);
+        passback[1][0] = p1;
+        passback[1][1] = c2;
+        passback[1][2] = p2;
 
-        passback[1].vertices[0].vt = p1v;
-        passback[1].vertices[1].vt = c2v;
-        passback[1].vertices[2].vt = p2v;
+        //passback[1].vertices[0].vt = p1v;
+        //passback[1].vertices[1].vt = c2v;
+        //passback[1].vertices[2].vt = p2v;
 
         //passback[1].vertices[0].normal = (float4)(p1l, 0);
         //passback[1].vertices[1].normal = (float4)(c2l, 0);
@@ -813,13 +819,13 @@ bool full_rotate(__global struct triangle *triangle, struct triangle *passback, 
 
     if(n_behind==2)
     {
-        passback[0].vertices[ids_behind[0]].pos = (float4)(p1, 0);
-        passback[0].vertices[ids_behind[1]].pos = (float4)(p2, 0);
-        passback[0].vertices[id_valid].pos = (float4)(c1, 0);
+        passback[0][ids_behind[0]] = p1;
+        passback[0][ids_behind[1]] = p2;
+        passback[0][id_valid] = c1;
 
-        passback[0].vertices[ids_behind[0]].vt = p1v;
-        passback[0].vertices[ids_behind[1]].vt = p2v;
-        passback[0].vertices[id_valid].vt = c1v;
+        //passback[0].vertices[ids_behind[0]].vt = p1v;
+        //passback[0].vertices[ids_behind[1]].vt = p2v;
+        //passback[0].vertices[id_valid].vt = c1v;
 
         //passback[0].vertices[ids_behind[0]].normal = (float4)(p1l, 0);
         //passback[0].vertices[ids_behind[1]].normal = (float4)(p2l, 0);
@@ -937,15 +943,16 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
-float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
+///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
+float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
 
     float3 rotpoints[3];
-    rotpoints[0] = c_tri->vertices[0].pos.xyz;
-    rotpoints[1] = c_tri->vertices[1].pos.xyz;
-    rotpoints[2] = c_tri->vertices[2].pos.xyz;
+    rotpoints[0] = c_tri[0];
+    rotpoints[1] = c_tri[1];
+    rotpoints[2] = c_tri[2];
 
 
     float minvx=min3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x); ///these are screenspace coordinates, used relative to each other so +width/2.0 cancels
@@ -955,11 +962,11 @@ float3 texture_filter(struct triangle* c_tri, float2 vt, float depth, float3 c_p
     float maxvy=max3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
 
 
-    float mintx=min3(c_tri->vertices[0].vt.x, c_tri->vertices[1].vt.x, c_tri->vertices[2].vt.x);
-    float maxtx=max3(c_tri->vertices[0].vt.x, c_tri->vertices[1].vt.x, c_tri->vertices[2].vt.x);
+    float mintx=min3(tri->vertices[0].vt.x, tri->vertices[1].vt.x, tri->vertices[2].vt.x);
+    float maxtx=max3(tri->vertices[0].vt.x, tri->vertices[1].vt.x, tri->vertices[2].vt.x);
 
-    float minty=min3(c_tri->vertices[0].vt.y, c_tri->vertices[1].vt.y, c_tri->vertices[2].vt.y);
-    float maxty=max3(c_tri->vertices[0].vt.y, c_tri->vertices[1].vt.y, c_tri->vertices[2].vt.y);
+    float minty=min3(tri->vertices[0].vt.y, tri->vertices[1].vt.y, tri->vertices[2].vt.y);
+    float maxty=max3(tri->vertices[0].vt.y, tri->vertices[1].vt.y, tri->vertices[2].vt.y);
 
     float2 vtm = vt;
 
@@ -1357,7 +1364,7 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
 ///ONLY HARD SHADOWS ONLY ONLY___
 ///THIS IS LIKE, THE SHADOWS GENERATED BY SHADOW CASTING LIGHTS
-
+///SWIZZLE ME BITCH
 float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_depth_buffer, int which_cubeface, float3 back_rotated, int shnum)
 {
     float3 zero = {0,0,0};
@@ -2336,7 +2343,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
 
-    write_imagei(object_ids, (int2){x, y}, T->vertices[0].object_id);
+
 
 
     ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
@@ -2526,7 +2533,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         }
 
 
-        //light = max(0.0f, light);]
+        //light = max(0.0f, light);
 
         float diffuse = (1.0f-ambient)*light*l.brightness;
 
@@ -2536,7 +2543,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ambient_sum += ambient*l.col.xyz;
     }
 
-    struct triangle tris[2];
+    float3 tris_proj[2][3];
 
     int num = 0;
 
@@ -2547,7 +2554,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
 
 
-    bool needs_modification = full_rotate(T, tris, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
+    bool needs_modification = full_rotate(T, tris_proj, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
 
     //xy coordinate can only be in one, test both tris and avoid memory read?
 
@@ -2558,26 +2565,28 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     {
         for(int i=0; i<3; i++)
         {
-            int xc = round(tris[wtri].vertices[i].pos.x);
-            int yc = round(tris[wtri].vertices[i].pos.y);
+            int xc = round(tris_proj[wtri][i].x);
+            int yc = round(tris_proj[wtri][i].y);
 
             int oob = xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT;
 
             if(oob)
                 continue;
 
-            tris[wtri].vertices[i].pos.xy += distort_buffer[yc*SCREENWIDTH + xc];
+            tris_proj[wtri][i].xy += distort_buffer[yc*SCREENWIDTH + xc];
         }
     }
 
-    struct triangle *c_tri = &tris[wtri];
+    //struct triangle *c_tri = &tris[wtri];
+
+    //float3 *c_tri[3] = &tris_proj[wtri];
 
 
     //diffuse + ambient colour is written to a separate buffer so I can abuse it for smooth shadow blurring
 
     int2 scoord = {x, y};
 
-    float3 col = texture_filter(c_tri, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+    float3 col = texture_filter(tris_proj[wtri], T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
 
 
@@ -2590,6 +2599,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     write_imagef(occlusion_buffer, (int2){x, y}, occlusion/(float)shnum);
     write_imagef(diffuse_buffer, (int2){x, y}, (float4){diffuse_sum.x, diffuse_sum.y, diffuse_sum.z, 0.0f});
+    write_imagei(object_ids, (int2){x, y}, (int4){T->vertices[0].object_id, 0, 0, 0});
 
 
     //ambient_sum = clamp(ambient_sum, 0.0f, 1.0f);//native_recip(col));
@@ -2601,7 +2611,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
 
     float hbao = 0;
-
 
     float3 colclamp = col + mandatory_light;
 

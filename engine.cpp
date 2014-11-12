@@ -289,6 +289,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
+    compute::image_format format_ids(CL_R, CL_UNSIGNED_INT16);
     compute::image_format format_occ(CL_R, CL_FLOAT);
     compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
