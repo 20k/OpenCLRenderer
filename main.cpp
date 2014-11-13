@@ -7,6 +7,8 @@
 ///fix memory management to not be atrocious
 
 ///we're completely hampered by memory latency
+
+///move to two eye rendering and optimise for that instead, do duel view render at once
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!

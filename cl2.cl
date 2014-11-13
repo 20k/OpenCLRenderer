@@ -2148,6 +2148,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
     ///while more pixels to write
+    ///write to local memory, then flush to texture?
     while(pcount < op_size)
     {
         x+=1;
