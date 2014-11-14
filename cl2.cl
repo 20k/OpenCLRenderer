@@ -225,6 +225,13 @@ float interpolate_p(float3 f, float xn, float yn, float3 x, float3 y, float rcon
     return (A*xn + B*yn + C);
 }
 
+float interpolate_get_const(float3 f, float3 x, float3 y, float rconstant, float* A, float* B, float* C)
+{
+    *A = ((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
+    *B = (-(f.y*x.z+f.x*(x.y-x.z)-f.z*x.y+(f.z-f.y)*x.x) * rconstant);
+    *C = f.x-(*A)*x.x - (*B)*y.x;
+}
+
 /*float interpolate_r(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3)
 {
     float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
@@ -1911,6 +1918,60 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     uint4 val;
 };*/
 
+///assume hit
+void triangle_intersection_always(const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* uout,
+                                 float* vout)
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+
+    //t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+
+    *uout = u;
+    *vout = v;
+
+    // No hit, no win
+}
+
+bool side(float2 p1, float2 p2, float2 p3)
+{
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y) <= 0.0f;
+}
+
 ///pad buffers so i don't have to do bounds checking? Probably slower
 ///do double skip so that I skip more things outside of a triangle?
 
@@ -1997,10 +2058,13 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         mod = 100;
     }
 
-    //bool invalid = false;
-
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
     ///while more pixels to write
     while(pcount < op_size)
@@ -2035,20 +2099,45 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+        /*float2 v0 = tris_proj_n[1].xy - tris_proj_n[0].xy ;
+        float2 v1 = tris_proj_n[2].xy - tris_proj_n[0].xy;
+        float2 v2 = (float2)(x, y) - tris_proj_n[0].xy;
 
-        int within_bound = s1 >= area - mod && s1 <= area + mod;
+        // Compute dot products
+        float dot00 = dot(v0, v0);
+        float dot01 = dot(v0, v1);
+        float dot02 = dot(v0, v2);
+        float dot11 = dot(v1, v1);
+        float dot12 = dot(v1, v2);
+
+        // Compute barycentric coordinates
+        float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+        float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+        float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+        // Check if point is in triangle
+        bool cond = (u >= 0.01f) && (v >= 0.01f) && (u + v <= 0.99f);*/
+
+        bool cond = side((float2){x, y}, tris_proj_n[0].xy, tris_proj_n[1].xy);
+        cond = cond && side((float2){x, y}, tris_proj_n[1].xy, tris_proj_n[2].xy);
+        cond = cond && side((float2){x, y}, tris_proj_n[2].xy, tris_proj_n[0].xy);
+
+        //float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+        //int within_bound = s1 >= area - mod && s1 <= area + mod;
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if(within_bound)
+        if(cond)
         {
-            float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
+            //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
+
+            float fmydepth = A * x + B * y + C;
 
             ///cant be < 0 due to triangle clipping
             fmydepth = native_recip(fmydepth);
 
             ///retrieve original depth
-            uint mydepth=fmydepth*mulint;
+            uint mydepth = fmydepth*mulint;
 
             if(fmydepth > 1 || mydepth == 0)
             {
@@ -2147,6 +2236,31 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
+    /*float uout = 0, vout = 0;
+
+    triangle_intersection_always(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2], ray_origin, ray_dir, &uout, &vout);
+
+    float y1, y2, y3;
+    float x1, x2, x3;
+
+    y1 = 0, y2 = 0, y3 = 1;
+    x1 = 0, x2 = 1, x3 = 0;
+
+    float l1, l2, l3;
+
+    float lx = uout;
+    float ly = vout;
+
+    l1 = (y2 - y3)*(lx - x3) + (x3 - x2)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+    l2 = (y3 - y1)*(lx - x3) + (x1 - x3)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+
+    l3 = 1.0f - l1 - l2;*/
+
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
     ///while more pixels to write
     ///write to local memory, then flush to texture?
     while(pcount < op_size)
@@ -2178,7 +2292,9 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(within_bound)
         {
-            float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
+            //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
+
+            float fmydepth = A * x + B * y + C;
 
             fmydepth = native_recip(fmydepth);
 
@@ -2215,54 +2331,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }
 }
 
-///assume hit
-void triangle_intersection_always(const float3   V1,  // Triangle vertices
-                           const float3   V2,
-                           const float3   V3,
-                           const float3    O,  //Ray origin
-                           const float3    D,  //Ray direction
-                                 float* uout,
-                                 float* vout)
-{
-    float3 e1, e2;  //Edge1, Edge2
-    float3 P, Q, T;
 
-    float det, inv_det, u, v;
-    float t;
-
-    //Find vectors for two edges sharing V1
-    e1 = V2 - V1;
-    e2 = V3 - V1;
-
-    //Begin calculating determinant - also used to calculate u parameter
-    P = cross(D, e2);
-    //if determinant is near zero, ray lies in plane of triangle
-    det = dot(e1, P);
-
-    inv_det = native_recip(det);
-
-    //calculate distance from V1 to ray origin
-    T = O - V1;
-
-    //Calculate u parameter and test bound
-    u = dot(T, P) * inv_det;
-    //The intersection lies outside of the triangle
-
-    //Prepare to test v parameter
-    Q = cross(T, e1);
-
-    //Calculate V parameter and test bound
-    v = dot(D, Q) * inv_det;
-
-    //t = dot(e2, Q) * inv_det;
-
-    //ray intersection
-
-    *uout = u;
-    *vout = v;
-
-    // No hit, no win
-}
 
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
