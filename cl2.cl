@@ -1976,6 +1976,9 @@ bool side(float2 p1, float2 p2, float2 p3)
 ///do double skip so that I skip more things outside of a triangle?
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
+
+#define ERR_COMP -4.f
+
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
@@ -2066,6 +2069,10 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
+    tris_proj_n[0] = round(tris_proj_n[0]);
+    tris_proj_n[1] = round(tris_proj_n[1]);
+    tris_proj_n[2] = round(tris_proj_n[2]);
+
     ///while more pixels to write
     while(pcount < op_size)
     {
@@ -2099,32 +2106,24 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-        /*float2 v0 = tris_proj_n[1].xy - tris_proj_n[0].xy ;
-        float2 v1 = tris_proj_n[2].xy - tris_proj_n[0].xy;
-        float2 v2 = (float2)(x, y) - tris_proj_n[0].xy;
 
-        // Compute dot products
-        float dot00 = dot(v0, v0);
-        float dot01 = dot(v0, v1);
-        float dot02 = dot(v0, v2);
-        float dot11 = dot(v1, v1);
-        float dot12 = dot(v1, v2);
+        //bool cond = side((float2){x, y}, round(tris_proj_n[0].xy), round(tris_proj_n[1].xy));
+        //cond = cond && side((float2){x, y}, round(tris_proj_n[1].xy), round(tris_proj_n[2].xy));
+        //cond = cond && side((float2){x, y}, round(tris_proj_n[2].xy), round(tris_proj_n[0].xy));
 
-        // Compute barycentric coordinates
-        float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-        float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-        float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+        /*float2 v1 = {tris_proj_n[1].y - tris_proj_n[0].y, -tris_proj_n[1].x + tris_proj_n[0].x};
+        float2 v2 = {tris_proj_n[2].y - tris_proj_n[1].y, -tris_proj_n[2].x + tris_proj_n[1].x};
+        float2 v3 = {tris_proj_n[0].y - tris_proj_n[2].y, -tris_proj_n[0].x + tris_proj_n[2].x};
 
-        // Check if point is in triangle
-        bool cond = (u >= 0.01f) && (v >= 0.01f) && (u + v <= 0.99f);*/
+        float2 iv1 = (float2)(x, y) - tris_proj_n[0].xy;
+        float2 iv2 = (float2)(x, y) - tris_proj_n[1].xy;
+        float2 iv3 = (float2)(x, y) - tris_proj_n[2].xy;
 
-        bool cond = side((float2){x, y}, tris_proj_n[0].xy, tris_proj_n[1].xy);
-        cond = cond && side((float2){x, y}, tris_proj_n[1].xy, tris_proj_n[2].xy);
-        cond = cond && side((float2){x, y}, tris_proj_n[2].xy, tris_proj_n[0].xy);
+        bool cond = dot(v1, iv1) >= ERR_COMP && dot(v2, iv2) >= ERR_COMP && dot(v3, iv3) >= ERR_COMP;*/
 
-        //float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        //int within_bound = s1 >= area - mod && s1 <= area + mod;
+        bool cond = s1 >= area - mod && s1 <= area + mod;
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
@@ -2261,6 +2260,10 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
+    tris_proj_n[0] = round(tris_proj_n[0]);
+    tris_proj_n[1] = round(tris_proj_n[1]);
+    tris_proj_n[2] = round(tris_proj_n[2]);
+
     ///while more pixels to write
     ///write to local memory, then flush to texture?
     while(pcount < op_size)
@@ -2288,9 +2291,25 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        int within_bound = s1 >= area - mod && s1 <= area + mod;
+        bool cond = s1 >= area - mod && s1 <= area + mod;
 
-        if(within_bound)
+        /*float2 v1 = {tris_proj_n[1].y - tris_proj_n[0].y, -tris_proj_n[1].x + tris_proj_n[0].x};
+        float2 v2 = {tris_proj_n[2].y - tris_proj_n[1].y, -tris_proj_n[2].x + tris_proj_n[1].x};
+        float2 v3 = {tris_proj_n[0].y - tris_proj_n[2].y, -tris_proj_n[0].x + tris_proj_n[2].x};
+
+        float2 iv1 = (float2)(x, y) - tris_proj_n[0].xy;
+        float2 iv2 = (float2)(x, y) - tris_proj_n[1].xy;
+        float2 iv3 = (float2)(x, y) - tris_proj_n[2].xy;
+
+        bool cond = dot(v1, iv1) >= ERR_COMP && dot(v2, iv2) >= ERR_COMP && dot(v3, iv3) >= ERR_COMP;*/
+
+
+        //bool cond = side((float2){x, y}, round(tris_proj_n[0].xy), round(tris_proj_n[1].xy));
+        //cond = cond && side((float2){x, y}, round(tris_proj_n[1].xy), round(tris_proj_n[2].xy));
+        //cond = cond && side((float2){x, y}, round(tris_proj_n[2].xy), round(tris_proj_n[0].xy));
+
+
+        if(cond)
         {
             //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
