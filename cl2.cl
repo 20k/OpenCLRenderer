@@ -2297,7 +2297,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             if(cond)
             {
                 int2 coord = {x, y};
-                uint4 d = {id, tri_id, 0, 0};
+                uint4 d = {ctri, tri_id, 0, 0};
                 write_imageui(id_buffer, coord, d);
 
                 //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
@@ -2349,8 +2349,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
-    uint id_val = id_val4.x;
-    uint ctri = id_val4.y;
+    uint ctri = id_val4.x;
+    uint tri_global = id_val4.y;
 
     float3 camera_pos;
     float3 camera_rot;
@@ -2389,7 +2389,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 ray_origin = camera_pos;
 
-    __global struct triangle* T = &triangles[ctri];
+    __global struct triangle* T = &triangles[tri_global];
 
 
 
@@ -2591,7 +2591,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ambient_sum += ambient*l.col.xyz;
     }
 
-    float3 tris_proj[2][3];
+    //float3 tris_proj[2][3];
 
     int num = 0;
 
@@ -2599,42 +2599,18 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
 
-    int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
+    float3 tris_proj[3];
 
-    ///we could just use cutdown tri? No need to rotate at all?
-    bool needs_modification = full_rotate(T, tris_proj, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
-
-    //xy coordinate can only be in one, test both tris and avoid memory read?
-
-    ///work this out manually, rather than doing a memory access
-    uint wtri = (fragment_id_buffer[id_val*3 + 1] >> 29) & 0x3;
-
-    if(needs_modification)
-    {
-        for(int i=0; i<3; i++)
-        {
-            int xc = round(tris_proj[wtri][i].x);
-            int yc = round(tris_proj[wtri][i].y);
-
-            int oob = xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT;
-
-            if(oob)
-                continue;
-
-            tris_proj[wtri][i].xy += distort_buffer[yc*SCREENWIDTH + xc];
-        }
-    }
-
-    //struct triangle *c_tri = &tris[wtri];
-
-    //float3 *c_tri[3] = &tris_proj[wtri];
+    tris_proj[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
 
     //diffuse + ambient colour is written to a separate buffer so I can abuse it for smooth shadow blurring
 
     int2 scoord = {x, y};
 
-    float3 col = texture_filter(tris_proj[wtri], T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
 
 
