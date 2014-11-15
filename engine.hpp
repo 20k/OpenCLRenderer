@@ -61,7 +61,7 @@ struct engine
     static cl_float4 old_rot;
 
     compute::opengl_renderbuffer g_screen;
-    compute::opengl_renderbuffer g_rift_screen[2];
+    compute::opengl_renderbuffer g_rift_screen[2]; ///eye-ist to have two eyes?
     compute::opengl_renderbuffer g_screen_reprojected;
     compute::opengl_renderbuffer g_screen_edge_smoothed;
 
@@ -100,6 +100,7 @@ struct engine
 
     ///opengl ids
     static unsigned int gl_screen_id;
+    static unsigned int gl_rift_screen_id[2];
     static unsigned int gl_framebuffer_id;
     static unsigned int gl_reprojected_framebuffer_id;
     static unsigned int gl_smoothed_framebuffer_id;
@@ -144,6 +145,8 @@ struct engine
     void draw_raytrace();
     void draw_smoke(smoke& s);
     void render_buffers();
+
+    void swap_depth_buffers();
 
     void ui_interaction();
     void input();

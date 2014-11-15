@@ -368,9 +368,9 @@ void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 
     ret[1] = rot(triangle->vertices[1].pos.xyz, 0, rotation_offset);
     ret[2] = rot(triangle->vertices[2].pos.xyz, 0, rotation_offset);
 
-    ret[0]=rot(ret[0] + offset, c_pos, c_rot);
-    ret[1]=rot(ret[1] + offset, c_pos, c_rot);
-    ret[2]=rot(ret[2] + offset, c_pos, c_rot);
+    ret[0] = rot(ret[0] + offset, c_pos, c_rot);
+    ret[1] = rot(ret[1] + offset, c_pos, c_rot);
+    ret[2] = rot(ret[2] + offset, c_pos, c_rot);
 }
 
 void rot_3_normal(__global struct triangle *triangle, float3 c_rot, float3 ret[3])
@@ -383,10 +383,9 @@ void rot_3_normal(__global struct triangle *triangle, float3 c_rot, float3 ret[3
 
 void rot_3_raw(const float3 raw[3], const float3 rotation, float3 ret[3])
 {
-    float3 zero = 0;
-    ret[0]=rot(raw[0], zero, rotation);
-    ret[1]=rot(raw[1], zero, rotation);
-    ret[2]=rot(raw[2], zero, rotation);
+    ret[0]=rot(raw[0], 0, rotation);
+    ret[1]=rot(raw[1], 0, rotation);
+    ret[2]=rot(raw[2], 0, rotation);
 }
 
 void rot_3_pos(const float3 raw[3], const float3 pos, const float3 rotation, float3 ret[3])
@@ -455,6 +454,14 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
             id_valid = i;
         }
     }
+
+    /*id_valid = points[0].z > depth_icutoff ? 0 : id_valid;
+    id_valid = points[1].z > depth_icutoff ? 1 : id_valid;
+    id_valid = points[2].z > depth_icutoff ? 2 : id_valid;
+
+    ids_behind[n_behind] = points[0].z <= depth_icutoff ? n_behind++, 0 : ids_behind[n_behind];
+    ids_behind[n_behind] = points[1].z <= depth_icutoff ? n_behind++, 1 : ids_behind[n_behind];
+    ids_behind[n_behind] = points[2].z <= depth_icutoff ? n_behind++, 2 : ids_behind[n_behind];*/
 
     if(n_behind > 2)
     {
@@ -556,9 +563,10 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 
     generate_new_triangles(pr, ids, &n, tris, clip);
 
+    *num = n;
+
     if(n == 0)
     {
-        *num = n;
         return;
     }
 
@@ -568,8 +576,6 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
     {
         depth_project(tris[1], width, height, fovc, passback[1]);
     }
-
-    *num = n;
 }
 
 
@@ -1773,7 +1779,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
-#define op_size 300
+#define op_size 400
 
 ///split triangles into fixed-length fragments
 
@@ -1900,6 +1906,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             {
                 ///work out if is valid, if not do c++ then continue;
 
+                ///make texture?
                 fragment_id_buffer[f++] = id;
                 fragment_id_buffer[f++] = (i << 29) | (is_clipped << 31) | a; ///for memory reasons, 2^28 is more than enough fragment ids
                 fragment_id_buffer[f++] = c_id;
@@ -2106,21 +2113,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             continue;
         }
 
-
-        //bool cond = side((float2){x, y}, round(tris_proj_n[0].xy), round(tris_proj_n[1].xy));
-        //cond = cond && side((float2){x, y}, round(tris_proj_n[1].xy), round(tris_proj_n[2].xy));
-        //cond = cond && side((float2){x, y}, round(tris_proj_n[2].xy), round(tris_proj_n[0].xy));
-
-        /*float2 v1 = {tris_proj_n[1].y - tris_proj_n[0].y, -tris_proj_n[1].x + tris_proj_n[0].x};
-        float2 v2 = {tris_proj_n[2].y - tris_proj_n[1].y, -tris_proj_n[2].x + tris_proj_n[1].x};
-        float2 v3 = {tris_proj_n[0].y - tris_proj_n[2].y, -tris_proj_n[0].x + tris_proj_n[2].x};
-
-        float2 iv1 = (float2)(x, y) - tris_proj_n[0].xy;
-        float2 iv2 = (float2)(x, y) - tris_proj_n[1].xy;
-        float2 iv3 = (float2)(x, y) - tris_proj_n[2].xy;
-
-        bool cond = dot(v1, iv1) >= ERR_COMP && dot(v2, iv2) >= ERR_COMP && dot(v3, iv3) >= ERR_COMP;*/
-
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
         bool cond = s1 >= area - mod && s1 <= area + mod;
@@ -2183,6 +2175,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         return;
     }
 
+    uint tri_id = fragment_id_buffer[id*3 + 0];
+
     uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
 
     uint ctri = fragment_id_buffer[id*3 + 2];
@@ -2197,7 +2191,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float min_max[4];
     calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
 
-    int width  = min_max[1] - min_max[0];
+    int width = min_max[1] - min_max[0];
 
     int pixel_along = op_size*distance;
 
@@ -2234,26 +2228,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-    /*float uout = 0, vout = 0;
-
-    triangle_intersection_always(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2], ray_origin, ray_dir, &uout, &vout);
-
-    float y1, y2, y3;
-    float x1, x2, x3;
-
-    y1 = 0, y2 = 0, y3 = 1;
-    x1 = 0, x2 = 1, x3 = 0;
-
-    float l1, l2, l3;
-
-    float lx = uout;
-    float ly = vout;
-
-    l1 = (y2 - y3)*(lx - x3) + (x3 - x2)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
-    l2 = (y3 - y1)*(lx - x3) + (x1 - x3)*(ly - y3) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
-
-    l3 = 1.0f - l1 - l2;*/
 
 
     float A, B, C;
@@ -2293,22 +2267,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         bool cond = s1 >= area - mod && s1 <= area + mod;
 
-        /*float2 v1 = {tris_proj_n[1].y - tris_proj_n[0].y, -tris_proj_n[1].x + tris_proj_n[0].x};
-        float2 v2 = {tris_proj_n[2].y - tris_proj_n[1].y, -tris_proj_n[2].x + tris_proj_n[1].x};
-        float2 v3 = {tris_proj_n[0].y - tris_proj_n[2].y, -tris_proj_n[0].x + tris_proj_n[2].x};
-
-        float2 iv1 = (float2)(x, y) - tris_proj_n[0].xy;
-        float2 iv2 = (float2)(x, y) - tris_proj_n[1].xy;
-        float2 iv3 = (float2)(x, y) - tris_proj_n[2].xy;
-
-        bool cond = dot(v1, iv1) >= ERR_COMP && dot(v2, iv2) >= ERR_COMP && dot(v3, iv3) >= ERR_COMP;*/
-
-
-        //bool cond = side((float2){x, y}, round(tris_proj_n[0].xy), round(tris_proj_n[1].xy));
-        //cond = cond && side((float2){x, y}, round(tris_proj_n[1].xy), round(tris_proj_n[2].xy));
-        //cond = cond && side((float2){x, y}, round(tris_proj_n[2].xy), round(tris_proj_n[0].xy));
-
-
         if(cond)
         {
             //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
@@ -2339,7 +2297,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             if(cond)
             {
                 int2 coord = {x, y};
-                uint4 d = {id, 0, 0, 0};
+                uint4 d = {id, tri_id, 0, 0};
                 write_imageui(id_buffer, coord, d);
 
                 //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
@@ -2392,6 +2350,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
     uint id_val = id_val4.x;
+    uint ctri = id_val4.y;
 
     float3 camera_pos;
     float3 camera_rot;
@@ -2430,7 +2389,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 ray_origin = camera_pos;
 
-    __global struct triangle* T = &triangles[fragment_id_buffer[id_val*3]];
+    __global struct triangle* T = &triangles[ctri];
 
 
 
@@ -2642,7 +2601,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     int is_clipped = fragment_id_buffer[id_val*3 + 1] >> 31;
 
-
+    ///we could just use cutdown tri? No need to rotate at all?
     bool needs_modification = full_rotate(T, tris_proj, &num, camera_pos, camera_rot, (G->world_pos).xyz, (G->world_rot).xyz, FOV_CONST, SCREENWIDTH, SCREENHEIGHT, is_clipped);
 
     //xy coordinate can only be in one, test both tris and avoid memory read?
@@ -2706,6 +2665,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
     write_imagef(screen, scoord, (float4)(colclamp*diffuse_sum, 0.0f));
+    //write_imagef(screen, scoord, 1);
 
 
     ///debugging

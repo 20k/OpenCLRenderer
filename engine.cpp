@@ -51,6 +51,7 @@ cl_float4 rift::eye_rotation[2] = {0};
 unsigned int engine::gl_framebuffer_id=0;
 unsigned int engine::gl_reprojected_framebuffer_id=0;
 unsigned int engine::gl_screen_id=0;
+unsigned int engine::gl_rift_screen_id[2]={0};
 unsigned int engine::gl_smoothed_framebuffer_id=0;
 
 
@@ -187,17 +188,21 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(HMD, ovrEye_Left,  HMD->DefaultEyeFov[0], 1.0f);
             Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(HMD, ovrEye_Right, HMD->DefaultEyeFov[1], 1.0f);
 
+            ///do this properly?
             width = recommendedTex0Size.w;
             height = recommendedTex0Size.h;
-
-            width *= 2;
         }
     }
 
-    printf("Initialised with width %i and height %i\n", width, height);
+    //width = 1920;
+    //height = 1080;
+
+    int videowidth = rift::enabled ? width*2 : width;
+
+    printf("Initialised with width %i and height %i\n", videowidth, height);
 
 
-    window.create(sf::VideoMode(width, height), name);
+    window.create(sf::VideoMode(videowidth, height), name);
 
     ///passed in as compilation parameter to opencl
     l_size = 2048;
@@ -211,8 +216,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     cmy = 0;
 
     blank_light_buf=NULL;
-
-    cl_uint size = std::max(height, width);
 
     shadow_light_num = 0;
 
@@ -230,7 +233,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     cl_uint *arr = new cl_uint[width*height];
     memset(arr, UINT_MAX, width*height*sizeof(cl_uint));
 
+    #ifdef DEBUGGING
     d_depth_buf = new cl_uint[width*height];
+    #endif
 
     ///opengl is the best, getting function ptrs
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
@@ -241,13 +246,27 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
 
     ///generate and bind renderbuffers
-    g_screen = gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, width, height);
+    if(!rift::enabled)
+    {
+        g_screen = gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, width, height);
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+    }
+    else
+    {
+        for(int i=0; i<2; i++)
+        {
+            g_rift_screen[i] = gen_cl_gl_framebuffer_renderbuffer(&gl_rift_screen_id[i], width, height);
+
+            compute::opengl_enqueue_acquire_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
+        }
+    }
 
     g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
 
     g_screen_edge_smoothed = gen_cl_gl_framebuffer_renderbuffer(&gl_smoothed_framebuffer_id, width, height);
 
-    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+    //? compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
     compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
     compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_edge_smoothed.get(), cl::cqueue);
 
@@ -262,9 +281,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     ///change depth to be image2d_t ///not possible
 
-    ///creates the two depth buffers and 2d triangle id buffer with size g_size, ie power of two closest to the screen resolution
-    depth_buffer[0]=    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-    depth_buffer[1]=    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    ///creates the two depth buffers and 2d triangle id buffer with size width*height
+    depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
@@ -289,11 +308,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
-    compute::image_format format_ids(CL_R, CL_UNSIGNED_INT16);
+    compute::image_format format_ids(CL_RG, CL_UNSIGNED_INT32);
     compute::image_format format_occ(CL_R, CL_FLOAT);
     compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
-    g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
+    g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
     g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
     g_occlusion_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
@@ -910,7 +929,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
 }
 
 ///the beginnings of making rendering more configurable
-void render_tris(engine& eng, cl_float4 position, cl_float4 rotation)
+void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
     sf::Clock c;
 
@@ -1041,7 +1060,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation)
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
     p3arg_list.push_back(&texture_manager::g_texture_array);
-    p3arg_list.push_back(&eng.g_screen);
+    p3arg_list.push_back(&g_screen_out);
     p3arg_list.push_back(&texture_manager::g_texture_numbers);
     p3arg_list.push_back(&texture_manager::g_texture_sizes);
     p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
@@ -1063,12 +1082,12 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation)
 
 
 
-    arg_list smooth_arg_list;
+    /*arg_list smooth_arg_list;
     smooth_arg_list.push_back(&eng.g_object_id_tex);
     smooth_arg_list.push_back(&eng.g_screen);
     smooth_arg_list.push_back(&eng.g_screen_edge_smoothed);
 
-    run_kernel_with_list(cl::edge_smoothing, p3global_ws, p3local_ws, 2, smooth_arg_list, true);
+    run_kernel_with_list(cl::edge_smoothing, p3global_ws, p3local_ws, 2, smooth_arg_list, true);*/
 
     ///swap screen for smoothed screen
     ///this is so that kernels only need to use THE screen, rather than worrying about modifications in this kernel
@@ -1144,18 +1163,33 @@ void engine::draw_bulk_objs_n()
     cl_float4 pos_offset = c_pos;
     cl_float4 rot_offset = sub({0,0,0,0}, c_rot);
 
+
+    if(!rift::enabled)
+    {
+        render_tris(*this, pos_offset, rot_offset, g_screen);
+    }
     ///now we have both eye positions and rotations, need to render in 3d and apply distortion
-    if(rift::enabled)
+    ///directly render barrel distortion @1080p
+    else
     {
         using namespace rift;
 
         float fudge = 40;
 
-        pos_offset = add(c_pos, mult(eye_position[0], fudge));
-        rot_offset = sub({0,0,0,0}, eye_rotation[0]);
-    }
+        ///merge kernels to produce two eyes at once, or reproject
+        for(int i=0; i<2; i++)
+        {
+            pos_offset = add(c_pos, mult(eye_position[i], fudge));
+            rot_offset = sub({0,0,0,0}, eye_rotation[i]);
 
-    render_tris(*this, pos_offset, rot_offset);
+
+            render_tris(*this, pos_offset, rot_offset, g_rift_screen[i]);
+
+            ///have to manually swap depth_buffers between eye renderings
+            if(i == 0)
+                swap_depth_buffers();
+        }
+    }
 
 }
 
@@ -1417,9 +1451,18 @@ void engine::draw_smoke(smoke& s)
 
 void engine::render_buffers()
 {
-    cl_mem scr = g_screen.get();
-
-    compute::opengl_enqueue_release_gl_objects(1, &scr, cl::cqueue);
+    ///any way to avoid this?
+    if(!rift::enabled)
+    {
+        compute::opengl_enqueue_release_gl_objects(1, &g_screen.get(), cl::cqueue);
+    }
+    else
+    {
+        for(int i=0; i<2; i++)
+        {
+            compute::opengl_enqueue_release_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
+        }
+    }
 
     cl::cqueue.finish();
 
@@ -1444,15 +1487,38 @@ void engine::render_buffers()
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
-    //glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_reprojected_framebuffer_id);
-    ///actually is smoothed id, because the screen above is a 'fake', is actually the smoothed buffer
-    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
-    //glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_smoothed_framebuffer_id);
-    glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
-    ///blit buffer to screen
-    glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    if(!rift::enabled)
+    {
+        glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
 
+        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+        ///blit buffer to screen
+        glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+    else
+    {
+        for(int i=0; i<2; i++)
+        {
+            glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_rift_screen_id[i]);
+
+            glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+            int x, y, dx, dy;
+
+            x = width*i;
+            y = 0;
+            dx = width + width*i;
+            dy = height;
+
+
+            ///blit buffer to screen
+            glBlitFramebufferEXT(0, 0, width, height, x, y, dx, dy, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        }
+    }
+
+    ///going to be incorrect on rift
     interact::deplete_stack();
     interact::clear();
 
@@ -1468,16 +1534,30 @@ void engine::render_buffers()
     //rendering to wrong buffer?
     window.display();
 
-    ///swap depth buffers
-    nbuf++;
-    nbuf = nbuf % 2;
+    swap_depth_buffers();
 
-    compute::opengl_enqueue_acquire_gl_objects(1, &scr, cl::cqueue);
+    if(!rift::enabled)
+    {
+        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+    }
+    else
+    {
+        for(int i=0; i<2; i++)
+        {
+            compute::opengl_enqueue_acquire_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
+        }
+    }
 
     ///swap smoothed and proper buffers back
     /*compute::opengl_renderbuffer temp = g_screen;
     g_screen = g_screen_edge_smoothed;
     g_screen_edge_smoothed = temp;*/
+}
+
+void engine::swap_depth_buffers()
+{
+    nbuf++;
+    nbuf = nbuf % 2;
 }
 
 ///does this need to be somewhere more fun? Minimap vs UI
