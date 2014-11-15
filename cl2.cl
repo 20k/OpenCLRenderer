@@ -470,7 +470,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
         return;
     }
 
-
     float3 p1, p2, c1, c2;
 
 
@@ -487,7 +486,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     }
 
     *clip = 1;
-
 
     int g1, g2, g3;
 
@@ -922,7 +920,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     float2 coords[4];
 
-    int2 pos= {floor(mcoord.x), floor(mcoord.y)};
+    int2 pos = {floor(mcoord.x), floor(mcoord.y)};
 
     coords[0].x=pos.x, coords[0].y=pos.y;
     coords[1].x=pos.x+1, coords[1].y=pos.y;
@@ -1132,19 +1130,15 @@ int ret_cubeface(float3 point, float3 light)
         angle2 = M_PI - fabs(angle2) + M_PI;
     }
 
-    int c1 = angle >= M_PI/2.0f && angle < M_PI && angle2 >= M_PI/2.0f && angle2 < M_PI;
-    int c2 = angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f;
-
-    if(c1)
+    if(angle >= M_PI/2.0f && angle < M_PI && angle2 >= M_PI/2.0f && angle2 < M_PI)
     {
         return 3;
     }
 
-    else if(c2)
+    else if(angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f)
     {
         return 1;
     }
-
 
     float zangle = atan2(r_pl.z, r_pl.x);
 
@@ -1155,27 +1149,20 @@ int ret_cubeface(float3 point, float3 light)
         zangle = M_PI - fabs(zangle) + M_PI;
     }
 
-    int z1, z2, z3;
-
-    z1 = zangle < M_PI/2.0f;
-    z2 = zangle >= M_PI/2.0f && zangle < M_PI;
-    z3 = zangle >= M_PI && zangle < 3*M_PI/2.0f;
-
-    if(z1)
+    if(zangle < M_PI/2.0f)
     {
         return 5;
     }
 
-    else if(z2)
+    else if(zangle >= M_PI/2.0f && zangle < M_PI)
     {
         return 0;
     }
 
-    else if(z3)
+    else if(zangle >= M_PI && zangle < 3*M_PI/2.0f)
     {
         return 4;
     }
-
 
     return 2;
 }
@@ -1384,30 +1371,26 @@ float generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dep
 
     float occamount=0;
 
-    float3 r_struct[6];
-    r_struct[0]=(float3)
+    const float3 r_struct[6] =
     {
-        0.0f,            0.0f,            0.0f
-    };
-    r_struct[1]=(float3)
-    {
-        M_PI/2.0f,       0.0f,            0.0f
-    };
-    r_struct[2]=(float3)
-    {
-        0.0f,            M_PI,            0.0f
-    };
-    r_struct[3]=(float3)
-    {
-        3.0f*M_PI/2.0f,  0.0f,            0.0f
-    };
-    r_struct[4]=(float3)
-    {
-        0.0f,            3.0f*M_PI/2.0f,  0.0f
-    };
-    r_struct[5]=(float3)
-    {
-        0.0f,            M_PI/2.0f,       0.0f
+        {
+            0,              0,               0
+        },
+        {
+            M_PI/2.0f,      0,               0
+        },
+        {
+            0,              M_PI,            0
+        },
+        {
+            3.0f*M_PI/2.0f, 0,               0
+        },
+        {
+            0,              3.0f*M_PI/2.0f,  0
+        },
+        {
+            0,              M_PI/2.0f,       0
+        }
     };
 
 
@@ -1779,7 +1762,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
-#define op_size 400
+#define op_size 300
 
 ///split triangles into fixed-length fragments
 
@@ -1855,6 +1838,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         ooany[j] = !cond && ooany[j];
     }
 
+    uint b_id = atomic_add(id_cutdown_tris, num);
 
     for(int i=0; i<num; i++)
     {
@@ -1886,9 +1870,10 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
         float thread_num = ceil(area/op_size);
-        ///threads to render one triangle based on its bounding-box area
+        ///threads to renderone triangle based on its bounding-box area
 
-        uint c_id = atomic_inc(id_cutdown_tris);
+        ///makes no apparently difference moving atomic out, presumably its a pretty rare case
+        uint c_id = b_id + i;
 
         //shouldnt do this here?
         cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
@@ -1896,6 +1881,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
 
 
+        //uint base = atomic_add(id_buffer_atomc, thread_num);
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
         uint f = base*3;
@@ -1916,7 +1902,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         }
 
     }
-
 }
 
 /*struct local_check
@@ -2060,7 +2045,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 1;
+        mod = 2;
     }
 
     if(area > 60000)
@@ -2217,7 +2202,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 1;
+        mod = 2;
     }
 
     if(area > 60000)
@@ -2591,8 +2576,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ambient_sum += ambient*l.col.xyz;
     }
 
-    //float3 tris_proj[2][3];
-
     int num = 0;
 
     int o_id = T->vertices[0].object_id;
@@ -2621,9 +2604,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
 
 
-    write_imagef(occlusion_buffer, (int2){x, y}, occlusion/(float)shnum);
-    write_imagef(diffuse_buffer, (int2){x, y}, (float4){diffuse_sum.x, diffuse_sum.y, diffuse_sum.z, 0.0f});
-    write_imagei(object_ids, (int2){x, y}, (int4){T->vertices[0].object_id, 0, 0, 0});
+    ///tmp
+    //write_imagef(occlusion_buffer, (int2){x, y}, occlusion/(float)shnum);
+    //write_imagef(diffuse_buffer, (int2){x, y}, (float4){diffuse_sum.x, diffuse_sum.y, diffuse_sum.z, 0.0f});
+    //write_imagei(object_ids, (int2){x, y}, (int4){T->vertices[0].object_id, 0, 0, 0});
 
 
     //ambient_sum = clamp(ambient_sum, 0.0f, 1.0f);//native_recip(col));
