@@ -2119,12 +2119,14 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             float fmydepth = A * x + B * y + C;
 
             ///cant be < 0 due to triangle clipping
-            fmydepth = native_recip(fmydepth);
+            //fmydepth = native_recip(fmydepth);
 
             ///retrieve original depth
-            uint mydepth = fmydepth*mulint;
+            //uint mydepth = fmydepth*mulint;
 
-            if(fmydepth > 1 || mydepth == 0)
+            uint mydepth = native_divide((float)mulint, fmydepth);
+
+            if(fmydepth < 1 || mydepth == 0)
             {
                 continue;
             }
@@ -2204,7 +2206,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
 
-    int pcount=-1;
+    int pcount = -1;
 
     //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
 
@@ -2271,11 +2273,13 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             float fmydepth = A * x + B * y + C;
 
-            fmydepth = native_recip(fmydepth);
+            //fmydepth = native_recip(fmydepth);
 
-            uint mydepth = fmydepth*mulint;
+            //uint mydepth = mulint / fmydepth;//fmydepth*mulint;
 
-            if(fmydepth > 1 || mydepth==0)
+            uint mydepth = native_divide((float)mulint, fmydepth);
+
+            if(fmydepth < 1 || mydepth==0)
             {
                 continue;
             }
