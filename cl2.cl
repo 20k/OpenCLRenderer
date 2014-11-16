@@ -2126,7 +2126,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             uint mydepth = native_divide((float)mulint, fmydepth);
 
-            if(fmydepth < 1 || mydepth == 0)
+            if(mydepth == 0)
             {
                 continue;
             }
@@ -2279,7 +2279,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             uint mydepth = native_divide((float)mulint, fmydepth);
 
-            if(fmydepth < 1 || mydepth==0)
+            if(mydepth==0)
             {
                 continue;
             }
