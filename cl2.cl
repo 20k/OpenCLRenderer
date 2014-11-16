@@ -504,12 +504,12 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     ids[2] = g3;
 
 
-    float l1 = native_divide((depth_icutoff - points[g2].z), (points[g1].z - points[g2].z));
-    float l2 = native_divide((depth_icutoff - points[g3].z), (points[g1].z - points[g3].z));
+    //float l1 = native_divide((depth_icutoff - points[g2].z), (points[g1].z - points[g2].z));
+    //float l2 = native_divide((depth_icutoff - points[g3].z), (points[g1].z - points[g3].z));
 
 
-    p1 = points[g2] + l1*(points[g1] - points[g2]);
-    p2 = points[g3] + l2*(points[g1] - points[g3]);
+    p1 = points[g2] + native_divide((depth_icutoff - points[g2].z)*(points[g1] - points[g2]), points[g1].z - points[g2].z);
+    p2 = points[g3] + native_divide((depth_icutoff - points[g3].z)*(points[g1] - points[g3]), points[g1].z - points[g3].z);
 
     float r1 = native_divide(fast_length(p1 - points[g1]), fast_length(points[g2] - points[g1]));
     float r2 = native_divide(fast_length(p2 - points[g1]), fast_length(points[g3] - points[g1]));
@@ -2027,7 +2027,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     float area = calc_area(xpv, ypv);
 
-    int pcount=0;
+    int pcount = 0;
 
     ///interpolation constant
     float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);

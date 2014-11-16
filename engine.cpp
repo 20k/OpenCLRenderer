@@ -1458,10 +1458,9 @@ void engine::render_buffers()
     }
     else
     {
-        for(int i=0; i<2; i++)
-        {
-            compute::opengl_enqueue_release_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
-        }
+        cl_mem bufs[2] = {g_rift_screen[0].get(), g_rift_screen[1].get()};
+
+        compute::opengl_enqueue_release_gl_objects(2, bufs, cl::cqueue);
     }
 
     cl::cqueue.finish();
@@ -1542,10 +1541,9 @@ void engine::render_buffers()
     }
     else
     {
-        for(int i=0; i<2; i++)
-        {
-            compute::opengl_enqueue_acquire_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
-        }
+        cl_mem bufs[2] = {g_rift_screen[0].get(), g_rift_screen[1].get()};
+
+        compute::opengl_enqueue_acquire_gl_objects(2, bufs, cl::cqueue);
     }
 
     ///swap smoothed and proper buffers back
