@@ -436,7 +436,7 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
 
 ///this clips with the near plane, but do we want to clip with the screen instead?
 ///could be generating huge triangles that fragment massively
-void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2][3], int* clip)
+void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2][3])
 {
     int id_valid;
     int ids_behind[2];
@@ -465,7 +465,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
 
     if(n_behind > 2)
     {
-        *clip = 1;
         *num = 0;
         return;
     }
@@ -475,8 +474,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
 
     if(n_behind == 0)
     {
-        *clip = 0;
-
         ret[0][0] = points[0]; ///copy nothing?
         ret[0][1] = points[1];
         ret[0][2] = points[2];
@@ -484,8 +481,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
         *num = 1;
         return;
     }
-
-    *clip = 1;
 
     int g1, g2, g3;
 
@@ -543,7 +538,7 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     }
 }
 
-void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][3], int *num, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, const float fovc, const float width, const float height, int* clip)
+void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][3], int *num, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, const float fovc, const float width, const float height)
 {
     ///void rot_3(__global struct triangle *triangle, float3 c_pos, float4 c_rot, float4 ret[3])
     ///void generate_new_triangles(float4 points[3], int ids[3], float lconst[2], int *num, float4 ret[2][3])
@@ -559,7 +554,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 
     int n = 0;
 
-    generate_new_triangles(pr, ids, &n, tris, clip);
+    generate_new_triangles(pr, ids, &n, tris);
 
     *num = n;
 
@@ -864,19 +859,19 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     int which = num[tid] & 0x0000FFFF;
 
-    const int max_tex_size = 2048;
+    const float max_tex_size = 2048;
 
-    int width=size[slice];
+    float width = size[slice];
 
-    int hnum=max_tex_size/width;
+    int hnum = native_divide(max_tex_size, width);
     ///max horizontal and vertical nums
 
-    float tnumx=which % hnum;
-    float tnumy=which / hnum;
+    float tnumx = which % hnum;
+    float tnumy = which / hnum;
 
 
-    float tx=tnumx*width;
-    float ty=tnumy*width;
+    float tx = tnumx*width;
+    float ty = tnumy*width;
 
     y = width - y;
 
@@ -887,10 +882,9 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float4 coord = {tx + x, ty + y, slice, 0};
 
     uint4 col;
-    col=read_imageui(array, sam, coord);
+    col = read_imageui(array, sam, coord);
 
-    float3 t;
-    t = convert_float3(col.xyz) / 255.0f;
+    float3 t = convert_float3(col.xyz);
 
     return t;
 }
@@ -997,7 +991,7 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     float2 vdiff = {fabs(maxvx - minvx), fabs(maxvy - minvy)};
 
-    float tex_per_pix = tdiff.x*tdiff.y / (vdiff.x*vdiff.y);
+    float tex_per_pix = native_divide(tdiff.x*tdiff.y, vdiff.x*vdiff.y);
 
     float worst = native_sqrt(tex_per_pix);
 
@@ -1019,15 +1013,16 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     //worst = native_exp2(val);
 
-    mip_lower = floor(native_log2(worst));
+    mip_lower = native_log2(worst);
 
-    mip_lower = max(mip_lower, 0);
+
+    mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
 
     mip_higher = mip_lower + 1;
 
-
-    mip_lower = min(mip_lower, MIP_LEVELS);
     mip_higher = min(mip_higher, MIP_LEVELS);
+
+
 
     invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS) ? true : false;
 
@@ -1052,13 +1047,13 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     float fmd = fractional_mipmap_distance;
 
-    float3 col1=return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
-    float3 col2=return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+    float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
     float3 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
-    return finalcol;
+    return native_divide(finalcol, 255.0f);
 }
 
 
@@ -1762,7 +1757,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
-#define op_size 300
+#define op_size 400
 
 ///split triangles into fixed-length fragments
 
@@ -1808,10 +1803,8 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     __global struct obj_g_descriptor *G =  &gobj[o_id];
 
-    int is_clipped = 0;
-
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight, &is_clipped);
+    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     if(num == 0)
@@ -1894,7 +1887,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
                 ///make texture?
                 fragment_id_buffer[f++] = id;
-                fragment_id_buffer[f++] = (i << 29) | (is_clipped << 31) | a; ///for memory reasons, 2^28 is more than enough fragment ids
+                fragment_id_buffer[f++] = a;
                 fragment_id_buffer[f++] = c_id;
 
             }
@@ -2000,7 +1993,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     //all agree on a minimum depth
 
 
-    uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
+    uint distance = fragment_id_buffer[id*3 + 1];
 
     uint ctri = fragment_id_buffer[id*3 + 2];
 
@@ -2045,7 +2038,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 2;
+        mod = 1;
     }
 
     if(area > 60000)
@@ -2061,9 +2054,9 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
-    tris_proj_n[0] = round(tris_proj_n[0]);
+    /*tris_proj_n[0] = round(tris_proj_n[0]);
     tris_proj_n[1] = round(tris_proj_n[1]);
-    tris_proj_n[2] = round(tris_proj_n[2]);
+    tris_proj_n[2] = round(tris_proj_n[2]);*/
 
     ///while more pixels to write
     while(pcount < op_size)
@@ -2162,7 +2155,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     uint tri_id = fragment_id_buffer[id*3 + 0];
 
-    uint distance = fragment_id_buffer[id*3 + 1] & 0x1FFFFFFF;
+    uint distance = fragment_id_buffer[id*3 + 1];
 
     uint ctri = fragment_id_buffer[id*3 + 2];
 
@@ -2202,7 +2195,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     if(area < 50)
     {
-        mod = 2;
+        mod = 1;
     }
 
     if(area > 60000)
@@ -2219,9 +2212,9 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
-    tris_proj_n[0] = round(tris_proj_n[0]);
+    /*tris_proj_n[0] = round(tris_proj_n[0]);
     tris_proj_n[1] = round(tris_proj_n[1]);
-    tris_proj_n[2] = round(tris_proj_n[2]);
+    tris_proj_n[2] = round(tris_proj_n[2]);*/
 
     ///while more pixels to write
     ///write to local memory, then flush to texture?
@@ -2230,6 +2223,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         x+=1;
 
         float ty = y;
+
+        ///finally going to have to fix this to get optimal performance
 
         y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
