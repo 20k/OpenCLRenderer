@@ -209,7 +209,7 @@ float calc_rconstant(float x[3], float y[3])
     return native_recip(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
-float calc_rconstant_v(float3 x, float3 y)
+const float calc_rconstant_v(const float3 x, const float3 y)
 {
     return native_recip(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
 }
@@ -1855,6 +1855,13 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             }
         }
 
+        float3 xpv, ypv;
+
+        xpv = round((float3){tris_proj[i][0].x, tris_proj[i][1].x, tris_proj[i][2].x});
+        ypv = round((float3){tris_proj[i][0].y, tris_proj[i][1].y, tris_proj[i][2].y});
+
+        float true_area = calc_area(xpv, ypv);
+        float rconst = calc_rconstant_v(xpv, ypv);
 
 
         float min_max[4];
@@ -1877,7 +1884,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         //uint base = atomic_add(id_buffer_atomc, thread_num);
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
-        uint f = base*3;
+        uint f = base*5;
 
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
@@ -1889,6 +1896,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 fragment_id_buffer[f++] = id;
                 fragment_id_buffer[f++] = a;
                 fragment_id_buffer[f++] = c_id;
+
+                fragment_id_buffer[f++] = as_int(true_area);
+                fragment_id_buffer[f++] = as_int(rconst);
 
             }
 
@@ -1993,9 +2003,12 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     //all agree on a minimum depth
 
 
-    uint distance = fragment_id_buffer[id*3 + 1];
+    uint distance = fragment_id_buffer[id*5 + 1];
 
-    uint ctri = fragment_id_buffer[id*3 + 2];
+    uint ctri = fragment_id_buffer[id*5 + 2];
+
+    float area = as_float(fragment_id_buffer[id*5 + 3]);
+    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
 
     ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];
@@ -2025,12 +2038,14 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     ///calculate area by triangle 3rd area method
 
-    float area = calc_area(xpv, ypv);
+    //float area = calc_area(xpv, ypv);
 
-    int pcount = 0;
+
+
+    int pcount = -1;
 
     ///interpolation constant
-    float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
+    //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
 
     bool valid = false;
 
@@ -2061,6 +2076,8 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///while more pixels to write
     while(pcount < op_size)
     {
+        pcount++;
+
         x+=1;
 
         //investigate not doing any of this at all
@@ -2087,7 +2104,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(oob)
         {
-            pcount++;
             continue;
         }
 
@@ -2110,7 +2126,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             if(fmydepth > 1 || mydepth == 0)
             {
-                pcount++;
                 continue;
             }
 
@@ -2124,7 +2139,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
            // }
         }
 
-        pcount++;
     }
 
     ///only write triangels that have any valid pixels to buffer
@@ -2153,13 +2167,18 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
         return;
     }
 
-    uint tri_id = fragment_id_buffer[id*3 + 0];
+    ///cannot collide
+    uint tri_id = fragment_id_buffer[id*5 + 0];
 
-    uint distance = fragment_id_buffer[id*3 + 1];
+    uint distance = fragment_id_buffer[id*5 + 1];
 
-    uint ctri = fragment_id_buffer[id*3 + 2];
+    uint ctri = fragment_id_buffer[id*5 + 2];
+
+    float area = as_float(fragment_id_buffer[id*5 + 3]);
+    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
 
     ///triangle retrieved from depth buffer
+    ///could well collide in memory. This is extremely slow?
     float3 tris_proj_n[3];
 
     tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
@@ -2185,11 +2204,9 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
 
-    float area = calc_area(xpv, ypv);
+    int pcount=-1;
 
-    int pcount=0;
-
-    float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
+    //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
 
     float mod = 2;
 
@@ -2220,6 +2237,8 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///write to local memory, then flush to texture?
     while(pcount < op_size)
     {
+        pcount++;
+
         x+=1;
 
         float ty = y;
@@ -2239,7 +2258,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(oob)
         {
-            pcount++;
             continue;
         }
 
@@ -2255,17 +2273,10 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             fmydepth = native_recip(fmydepth);
 
-            if(fmydepth > 1)
-            {
-                pcount++;
-                continue;
-            }
-
             uint mydepth = fmydepth*mulint;
 
-            if(mydepth==0)
+            if(fmydepth > 1 || mydepth==0)
             {
-                pcount++;
                 continue;
             }
 
@@ -2283,8 +2294,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
             }
         }
-
-        pcount++;
     }
 }
 
@@ -2322,10 +2331,12 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     //write_imagef(screen, scoord1, clear_col);
 
+    __global uint *ft = &depth_buffer[y*SCREENWIDTH + x];
+
+    //?
+    prefetch(ft, 1);
 
     to_clear[y*SCREENWIDTH + x] = UINT_MAX;
-
-    __global uint *ft = &depth_buffer[y*SCREENWIDTH + x];
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
@@ -2340,7 +2351,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     if(*ft == UINT_MAX)
     {
-        write_imagei(object_ids, (int2){x, y}, -1);
+        ///temp, remember to fix when we're back in action
+        //write_imagei(object_ids, (int2){x, y}, -1);
         write_imagef(screen, (int2){x, y}, 0.0f);
         return;
     }
@@ -2571,7 +2583,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ambient_sum += ambient*l.col.xyz;
     }
 
-    int num = 0;
+    //int num = 0;
 
     int o_id = T->vertices[0].object_id;
 
@@ -2589,6 +2601,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     int2 scoord = {x, y};
 
     float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+
+    //float3 col = 1.0f;
 
 
 

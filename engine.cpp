@@ -994,6 +994,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint id_c = 0;
 
     ///read back number of fragments
+    ///try eliminating readback?
     cl::cqueue.enqueue_read_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
     ///round global args to multiple of local work size

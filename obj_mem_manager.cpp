@@ -148,6 +148,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     cl_uint obj_descriptor_size = object_descriptors.size();
 
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
+    compute::image_format triformat(CL_RGB, CL_FLOAT);
 
     temporaries& t = obj_mem_manager::temporary_objects;
 
@@ -172,6 +173,10 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     t.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*trianglecount, CL_MEM_READ_ONLY);
     t.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*trianglecount*3);
+
+    ///must fit in 2d texture, 4096 because nvidia r bad
+    //int height = ceilf(trianglecount*3/4096.0f);
+    //t.g_cut_tri_mem = compute::image2d(cl::context, CL_MEM_READ_WRITE, triformat, 4096, height, );
 
     t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
     t.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
