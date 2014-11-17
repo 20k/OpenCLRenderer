@@ -1985,10 +1985,10 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     int len = *f_len;
 
-    for(int id = l_id; id < *f_len; id += l_size)
+    for(int id = l_id; id < len; id += l_size)
     {
 
-        if(id >= *f_len)
+        if(id >= len)
         {
             return;
         }
@@ -2189,12 +2189,12 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     int len = *f_len;
 
-    for(int id = l_id; id < *f_len; id += l_size)
+    for(int id = l_id; id < len; id += l_size)
     {
 
         //uint id = get_global_id(0);
 
-        if(id >= *f_len)
+        if(id >= len)
         {
             return;
         }

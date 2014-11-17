@@ -197,8 +197,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //width = 1920;
     //height = 1080;
 
-    //width = 1920/2;
-    //height = 1080;
+    width = 1920/2;
+    height = 1080;
 
     int videowidth = rift::enabled ? width*2 : width;
 
@@ -700,11 +700,11 @@ void engine::input()
 
         for(int eye=0; eye<2; eye++)
         {
-            Matrix4f xr = Matrix4f::RotationX(c_rot.x);
+            Matrix4f xr = Matrix4f::RotationZ(-c_rot.x);
             Matrix4f yr = Matrix4f::RotationY(c_rot.y);
-            Matrix4f zr = Matrix4f::RotationZ(c_rot.z);
+            Matrix4f zr = Matrix4f::RotationX(c_rot.z);
 
-            Matrix4f finalRollPitchYaw  = zr * yr * xr * Matrix4f(eyeRenderPose[eye].Orientation);
+            Matrix4f finalRollPitchYaw  = zr * yr * xr * Matrix4f(eyeRenderPose[eye].Orientation);//xr * yr * zr * Matrix4f(eyeRenderPose[eye].Orientation);
             Vector3f finalUp            = finalRollPitchYaw.Transform(Vector3f(0,1,0));
             Vector3f finalForward       = finalRollPitchYaw.Transform(Vector3f(0,0,-1));
 
@@ -996,17 +996,10 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     sf::Clock p1;
 
-    //cl_uint id_c = 0;
-
-    ///read back number of fragments
-    ///try eliminating readback?
-    //cl::cqueue.enqueue_read_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
-
-    //printf("%i\n", id_c);
 
     local = 256;
 
-    ///round global args to multiple of local work size
+    ///infernal satanic magic
     cl_uint p1global_ws_new = local * 4000;
 
     ///write depth of triangles to buffer, ie z buffering
@@ -1028,10 +1021,10 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     sf::Clock p2;
 
-    ///no longer only rendering valid fragments, this is faster seemingly due to pipeline break
+    ///makes literally no sense, just roll with it
     cl_uint p2global_ws = local * 4000;
 
-    cl_uint local2=256;
+    cl_uint local2 = 256;
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 
