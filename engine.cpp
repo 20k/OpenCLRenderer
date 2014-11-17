@@ -996,16 +996,18 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     sf::Clock p1;
 
-    cl_uint id_c = 0;
+    //cl_uint id_c = 0;
 
     ///read back number of fragments
     ///try eliminating readback?
-    cl::cqueue.enqueue_read_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
+    //cl::cqueue.enqueue_read_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
     //printf("%i\n", id_c);
 
+    local = 256;
+
     ///round global args to multiple of local work size
-    cl_uint p1global_ws_new = id_c;
+    cl_uint p1global_ws_new = local * 4000;
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -1027,9 +1029,9 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     sf::Clock p2;
 
     ///no longer only rendering valid fragments, this is faster seemingly due to pipeline break
-    cl_uint p2global_ws = p1global_ws_new;
+    cl_uint p2global_ws = local * 4000;
 
-    cl_uint local2=128;
+    cl_uint local2=256;
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 

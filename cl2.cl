@@ -1979,177 +1979,186 @@ __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
 {
-    uint id = get_global_id(0);
+    uint l_id = get_global_id(0);
 
-    if(id >= *f_len)
+    uint l_size = get_global_size(0);
+
+    int len = *f_len;
+
+    for(int id = l_id; id < *f_len; id += l_size)
     {
-        return;
-    }
 
-    //uint lid = get_local_id(0);
-
-    float ewidth = SCREENWIDTH;
-    float eheight = SCREENHEIGHT;
-
-    if(is_light == 1)
-    {
-        ewidth = LIGHTBUFFERDIM;
-        eheight = LIGHTBUFFERDIM;
-    }
-
-    //__local int isset[128];
-
-    //isset[lid] = {0,0,0,0};
-    //set x, y, etc, then just iterate (hnnng)
-    //all agree on a minimum depth
-
-    uint tri_id = fragment_id_buffer[id*5 + 0];
-
-    uint distance = fragment_id_buffer[id*5 + 1];
-
-    uint ctri = fragment_id_buffer[id*5 + 2];
-
-    float area = as_float(fragment_id_buffer[id*5 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
-
-    ///triangle retrieved from depth buffer
-    float3 tris_proj_n[3];
-
-    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
-    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
-    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
-
-
-    float min_max[4];
-    calc_min_max(tris_proj_n, ewidth, eheight, min_max);
-
-
-    int width = min_max[1] - min_max[0];
-
-    ///pixel to start at in triangle, ie distance is which fragment it is
-    int pixel_along = op_size*distance;
-
-    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
-    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
-
-    xpv = round(xpv);
-    ypv = round(ypv);
-
-    ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
-
-    ///calculate area by triangle 3rd area method
-
-    //float area = calc_area(xpv, ypv);
-
-
-    int pcount = -1;
-
-    ///interpolation constant
-    //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
-
-    bool valid = false;
-
-    float mod = 2;
-
-    if(area < 50)
-    {
-        mod = 1;
-    }
-
-    if(area > 60000)
-    {
-        mod = 100;
-    }
-
-    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
-    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-
-    float A, B, C;
-
-    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
-
-    /*tris_proj_n[0] = round(tris_proj_n[0]);
-    tris_proj_n[1] = round(tris_proj_n[1]);
-    tris_proj_n[2] = round(tris_proj_n[2]);*/
-
-    ///while more pixels to write
-    while(pcount < op_size)
-    {
-        pcount++;
-
-        x+=1;
-
-        //investigate not doing any of this at all
-
-        float ty = y;
-
-        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
-
-        /*// if( x >= min_max[0] + width)
+        if(id >= *f_len)
         {
-            x = ((pixel_along + pcount) % width) + min_max[0];
-            //y += 1;
+            return;
+        }
+
+        //uint lid = get_local_id(0);
+
+        float ewidth = SCREENWIDTH;
+        float eheight = SCREENHEIGHT;
+
+        if(is_light == 1)
+        {
+            ewidth = LIGHTBUFFERDIM;
+            eheight = LIGHTBUFFERDIM;
+        }
+
+        //__local int isset[128];
+
+        //isset[lid] = {0,0,0,0};
+        //set x, y, etc, then just iterate (hnnng)
+        //all agree on a minimum depth
+
+        uint tri_id = fragment_id_buffer[id*5 + 0];
+
+        uint distance = fragment_id_buffer[id*5 + 1];
+
+        uint ctri = fragment_id_buffer[id*5 + 2];
+
+        float area = as_float(fragment_id_buffer[id*5 + 3]);
+        float rconst = as_float(fragment_id_buffer[id*5 + 4]);
+
+        ///triangle retrieved from depth buffer
+        float3 tris_proj_n[3];
+
+        tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+        tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+        tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+
+        float min_max[4];
+        calc_min_max(tris_proj_n, ewidth, eheight, min_max);
+
+
+        int width = min_max[1] - min_max[0];
+
+        ///pixel to start at in triangle, ie distance is which fragment it is
+        int pixel_along = op_size*distance;
+
+        float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+        float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+        xpv = round(xpv);
+        ypv = round(ypv);
+
+        ///have to interpolate inverse to be perspective correct
+        float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+
+        ///calculate area by triangle 3rd area method
+
+        //float area = calc_area(xpv, ypv);
+
+
+        int pcount = -1;
+
+        ///interpolation constant
+        //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
+
+        bool valid = false;
+
+        float mod = 2;
+
+        if(area < 50)
+        {
+            mod = 1;
+        }
+
+        if(area > 60000)
+        {
+            mod = 100;
+        }
+
+        float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+        float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+
+        float A, B, C;
+
+        interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+        /*tris_proj_n[0] = round(tris_proj_n[0]);
+        tris_proj_n[1] = round(tris_proj_n[1]);
+        tris_proj_n[2] = round(tris_proj_n[2]);*/
+
+        ///while more pixels to write
+        while(pcount < op_size)
+        {
+            pcount++;
+
+            x+=1;
+
+            //investigate not doing any of this at all
+
+            float ty = y;
+
             y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-        }*/
 
-        if(y >= min_max[3])
-        {
-            break;
-        }
+            x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
 
-        bool oob = x >= min_max[1];
+            /*// if( x >= min_max[0] + width)
+            {
+                x = ((pixel_along + pcount) % width) + min_max[0];
+                //y += 1;
+                y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+            }*/
 
-        if(oob)
-        {
-            continue;
-        }
+            if(y >= min_max[3])
+            {
+                break;
+            }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+            bool oob = x >= min_max[1];
 
-        bool cond = s1 >= area - mod && s1 <= area + mod;
-
-        ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if(cond)
-        {
-            //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
-
-            float fmydepth = A * x + B * y + C;
-
-            ///cant be < 0 due to triangle clipping
-            //fmydepth = native_recip(fmydepth);
-
-            ///retrieve original depth
-            //uint mydepth = fmydepth*mulint;
-
-            uint mydepth = native_divide((float)mulint, fmydepth);
-
-            if(mydepth == 0)
+            if(oob)
             {
                 continue;
             }
 
-            __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
+            float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-            uint sdepth = atomic_min(ft, mydepth);
+            bool cond = s1 >= area - mod && s1 <= area + mod;
 
-            /*barrier(CLK_GLOBAL_MEM_FENCE);
-
-            if(mydepth == *ft)
+            ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+            if(cond)
             {
-                int2 coord = {x, y};
-                uint4 d = {ctri, tri_id, 0, 0};
-                write_imageui(id_buffer, coord, d);
-            }*/
+                //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
+
+                float fmydepth = A * x + B * y + C;
+
+                ///cant be < 0 due to triangle clipping
+                //fmydepth = native_recip(fmydepth);
+
+                ///retrieve original depth
+                //uint mydepth = fmydepth*mulint;
+
+                uint mydepth = native_divide((float)mulint, fmydepth);
+
+                if(mydepth == 0)
+                {
+                    continue;
+                }
+
+                __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
+
+                uint sdepth = atomic_min(ft, mydepth);
+
+                /*barrier(CLK_GLOBAL_MEM_FENCE);
+
+                if(mydepth == *ft)
+                {
+                    int2 coord = {x, y};
+                    uint4 d = {ctri, tri_id, 0, 0};
+                    write_imageui(id_buffer, coord, d);
+                }*/
 
 
-            //if(mydepth < sdepth) ///triangle has had at least one pixel make it to the screen
-            //{
-            //    valid = true;
-           // }
+                //if(mydepth < sdepth) ///triangle has had at least one pixel make it to the screen
+                //{
+                //    valid = true;
+               // }
+            }
+
         }
 
     }
@@ -2173,140 +2182,151 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
             __global float2* distort_buffer)
 {
-    uint id = get_global_id(0);
 
-    if(id >= *f_len)
+    uint l_id = get_global_id(0);
+
+    uint l_size = get_global_size(0);
+
+    int len = *f_len;
+
+    for(int id = l_id; id < *f_len; id += l_size)
     {
-        return;
-    }
 
-    ///cannot collide
-    uint tri_id = fragment_id_buffer[id*5 + 0];
+        //uint id = get_global_id(0);
 
-    uint distance = fragment_id_buffer[id*5 + 1];
-
-    uint ctri = fragment_id_buffer[id*5 + 2];
-
-    float area = as_float(fragment_id_buffer[id*5 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
-
-    ///triangle retrieved from depth buffer
-    ///could well collide in memory. This is extremely slow?
-    float3 tris_proj_n[3];
-
-    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
-    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
-    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
-
-    float min_max[4];
-    calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
-
-    int width = min_max[1] - min_max[0];
-
-    int pixel_along = op_size*distance;
-
-
-    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
-    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
-
-    xpv = round(xpv);
-    ypv = round(ypv);
-
-
-    ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
-
-
-    int pcount = -1;
-
-    //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
-
-    float mod = 2;
-
-    if(area < 50)
-    {
-        mod = 1;
-    }
-
-    if(area > 60000)
-    {
-        mod = 100;
-    }
-
-    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
-
-    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-
-    float A, B, C;
-
-    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
-
-    /*tris_proj_n[0] = round(tris_proj_n[0]);
-    tris_proj_n[1] = round(tris_proj_n[1]);
-    tris_proj_n[2] = round(tris_proj_n[2]);*/
-
-    ///while more pixels to write
-    ///write to local memory, then flush to texture?
-    while(pcount < op_size)
-    {
-        pcount++;
-
-        x+=1;
-
-        float ty = y;
-
-        ///finally going to have to fix this to get optimal performance
-
-        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
-
-        if(y >= min_max[3])
+        if(id >= *f_len)
         {
-            break;
+            return;
         }
 
-        bool oob = x >= min_max[1];
+        ///cannot collide
+        uint tri_id = fragment_id_buffer[id*5 + 0];
 
-        if(oob)
+        uint distance = fragment_id_buffer[id*5 + 1];
+
+        uint ctri = fragment_id_buffer[id*5 + 2];
+
+        float area = as_float(fragment_id_buffer[id*5 + 3]);
+        float rconst = as_float(fragment_id_buffer[id*5 + 4]);
+
+        ///triangle retrieved from depth buffer
+        ///could well collide in memory. This is extremely slow?
+        float3 tris_proj_n[3];
+
+        tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+        tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+        tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+        float min_max[4];
+        calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
+
+        int width = min_max[1] - min_max[0];
+
+        int pixel_along = op_size*distance;
+
+
+        float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+        float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+        xpv = round(xpv);
+        ypv = round(ypv);
+
+
+        ///have to interpolate inverse to be perspective correct
+        float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+
+
+        int pcount = -1;
+
+        //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
+
+        float mod = 2;
+
+        if(area < 50)
         {
-            continue;
+            mod = 1;
         }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
-
-        bool cond = s1 >= area - mod && s1 <= area + mod;
-
-        if(cond)
+        if(area > 60000)
         {
-            //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
+            mod = 100;
+        }
 
-            float fmydepth = A * x + B * y + C;
+        float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
-            //fmydepth = native_recip(fmydepth);
+        float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
-            //uint mydepth = mulint / fmydepth;//fmydepth*mulint;
 
-            uint mydepth = native_divide((float)mulint, fmydepth);
+        float A, B, C;
 
-            if(mydepth==0)
+        interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+        /*tris_proj_n[0] = round(tris_proj_n[0]);
+        tris_proj_n[1] = round(tris_proj_n[1]);
+        tris_proj_n[2] = round(tris_proj_n[2]);*/
+
+        ///while more pixels to write
+        ///write to local memory, then flush to texture?
+        while(pcount < op_size)
+        {
+            pcount++;
+
+            x+=1;
+
+            float ty = y;
+
+            ///finally going to have to fix this to get optimal performance
+
+            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+            x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+
+            if(y >= min_max[3])
+            {
+                break;
+            }
+
+            bool oob = x >= min_max[1];
+
+            if(oob)
             {
                 continue;
             }
 
-            uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
+            float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-            int cond = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
+            bool cond = s1 >= area - mod && s1 <= area + mod;
 
-            ///found depth buffer value, write the triangle id
             if(cond)
             {
-                int2 coord = {x, y};
-                uint4 d = {ctri, tri_id, 0, 0};
-                write_imageui(id_buffer, coord, d);
+                //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
 
-                //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
+                float fmydepth = A * x + B * y + C;
+
+                //fmydepth = native_recip(fmydepth);
+
+                //uint mydepth = mulint / fmydepth;//fmydepth*mulint;
+
+                uint mydepth = native_divide((float)mulint, fmydepth);
+
+                if(mydepth==0)
+                {
+                    continue;
+                }
+
+                uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
+
+                int cond = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
+
+                ///found depth buffer value, write the triangle id
+                if(cond)
+                {
+                    int2 coord = {x, y};
+                    uint4 d = {ctri, tri_id, 0, 0};
+                    write_imageui(id_buffer, coord, d);
+
+                    //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
+                }
             }
         }
     }
