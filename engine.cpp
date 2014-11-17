@@ -197,6 +197,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //width = 1920;
     //height = 1080;
 
+    //width = 1920/2;
+    //height = 1080;
+
     int videowidth = rift::enabled ? width*2 : width;
 
     printf("Initialised with width %i and height %i\n", videowidth, height);
@@ -818,6 +821,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
                 p1arg_list.push_back(&juan);
                 p1arg_list.push_back(&g_distortion_buffer);
+                //p1arg_list.push_back(&g_id_screen_tex);
 
                 run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
@@ -929,6 +933,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
 }
 
 ///the beginnings of making rendering more configurable
+///reduce arguments to what we actually need now
 void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
     sf::Clock c;
@@ -997,6 +1002,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     ///try eliminating readback?
     cl::cqueue.enqueue_read_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
+    //printf("%i\n", id_c);
+
     ///round global args to multiple of local work size
     cl_uint p1global_ws_new = id_c;
 
@@ -1013,6 +1020,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&eng.g_distortion_buffer);
+    //p1arg_list.push_back(&eng.g_id_screen_tex);
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
