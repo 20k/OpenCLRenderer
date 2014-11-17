@@ -181,6 +181,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             eyeFov[0] = HMD->DefaultEyeFov[0];
             eyeFov[1] = HMD->DefaultEyeFov[1];
 
+            //printf("%f\n", eyeFov[0]);
+
             EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
             EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
 

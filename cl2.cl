@@ -1758,7 +1758,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
-#define op_size 400
+#define op_size 300
 
 ///split triangles into fixed-length fragments
 
