@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
             zebra::update(&zebras[i]);
         }
 
-        window.c_pos.y += 50.0f;
+        window.c_pos.y += 10.0f;
 
         window.input();
 
