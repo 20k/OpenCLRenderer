@@ -25,6 +25,12 @@
 
 #include "../../cloud_gen/cloud_gen.hpp"
 
+#include "../../Rift/Include/OVR.h"
+#include "../../Rift/Include/OVR_Kernel.h"
+//#include "Include/OVR_Math.h"
+#include "../../Rift/Src/OVR_CAPI.h"
+
+
 ///todo eventually
 ///split into dynamic and static objects
 
