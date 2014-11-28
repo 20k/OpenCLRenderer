@@ -13,6 +13,12 @@
     float x, y;
 };*/
 
+struct zebra_info
+{
+    float vx, vz;
+    objects_container* obj;
+};
+
 struct zebra
 {
     //cl_float4 pos = {0,0,0,0};
@@ -23,10 +29,12 @@ struct zebra
     static std::map<objects_container*, float> angles;
 
     static std::vector<objects_container*> objects;
+    static std::vector<zebra_info> zebra_objects;
 
     static void add_object(objects_container* obj)
     {
         objects.push_back(obj);
+        zebra_objects.push_back({fmod(rand() - RAND_MAX/2, 5), 0.0f, obj});
 
         cl_float4 pos = obj->pos;
 
@@ -36,49 +44,69 @@ struct zebra
         obj->set_pos(pos);
     }
 
-    static void separate()
+    static void repulse()
     {
-        /*int bound = 1000000000;
+        float repulse_dist = 2000;
+        float min_dist = 10;
+        //float force = 10;
 
-        bool success = false;
-
-        std::cout << objects.size() << std::endl;
-
-        while(!success)
+        for(int i=0; i<objects.size(); i++)
         {
-            bool tmp = true;
+            cl_float4 p1 = objects[i]->pos;
 
-            for(int i=0; i<objects.size(); i++)
+            for(int j=0; j<objects.size(); j++)
             {
-                cl_float4 p1 = objects[i]->pos;
+                if(j == i)
+                    continue;
 
-                for(int j=0; j<objects.size(); j++)
+                cl_float4 p2 = objects[j]->pos;
+
+                float distance = dist(p1, p2);
+
+                if(distance < repulse_dist)
                 {
-                    cl_float4 p2 = objects[j]->pos;
+                    if(distance < min_dist)
+                        distance = min_dist;
 
-                    float d1 = dist(p1, p2);
+                    float force = (repulse_dist - distance)/100000.0f;
 
-                    //printf("%f\n", d1);
+                    if(force > 0.033f)
+                        force = 0.033f;
 
-                    if(d1 < 10)
-                    {
-                        //printf("ostrich\n\n\n\n\n\n\n\n\n\n");
+                    ///not in 3d
 
-                        tmp = false;
+                    float dx = p2.x - p1.x;
+                    float dz = p2.z - p1.z;
 
-                        p2.x = fmod(rand() - RAND_MAX/2,  bound);
-                        p2.z = fmod(rand() - RAND_MAX/2,  bound);
+                    float angle = atan2(dz, dx);
 
-                        //printf("tits\n");
+                    float fx = force * cosf(angle);
+                    float fz = force * sinf(angle);
 
-                        objects[j]->set_pos(p2);
-                    }
+                    //p2.x += fx;
+                    //p2.z += fz;
+
+                    zebra_info zinfo = zebra_objects[j];
+
+                    zinfo.vx += fx;
+                    zinfo.vz += fz;
+
+                    zebra_objects[j] = zinfo;
+
+                    zinfo = zebra_objects[i];
+
+                    zinfo.vx -= fx;
+                    zinfo.vz -= fz;
+
+                    zebra_objects[i] = zinfo;
                 }
             }
+        }
 
-            success = tmp;
-        }*/
+    }
 
+    static void separate()
+    {
         int xgrid = sqrtf(objects.size());
         int ygrid = sqrtf(objects.size());
 
@@ -113,44 +141,64 @@ struct zebra
         }
     }
 
-    static void update(objects_container* zeb)
+    static void update()
     {
         ///angle is in 2d plane
 
-        cl_float4 pos = zeb->pos;
-        cl_float rot = zeb->rot.y;//?
-
-        float speed = 50.0f;
-
-        //float new_angle = (fmod(rand(), 3.14159) + rot*70) / 71;
-
-        if(angles[zeb] == 0)
+        for(int i=0; i<objects.size(); i++)
         {
-            angles[zeb] = fmod(rand(), 3.14159);
+            objects_container* zeb = objects[i];
+
+            cl_float4 pos = zeb->pos;
+            cl_float rot = zeb->rot.y;//?
+
+            //float speed = 50.0f;
+
+            //float new_angle = (fmod(rand(), 3.14159) + rot*70) / 71;
+
+            if(angles[zeb] == 0)
+            {
+                angles[zeb] = fmod(rand(), 3.14159);
+            }
+
+            if(zebra_objects[i].vx > 0.1)
+                zebra_objects[i].vx = 0.1;
+
+            if(zebra_objects[i].vz > 0.1)
+                zebra_objects[i].vz = 0.1;
+
+            if(zebra_objects[i].vx < -0.1)
+                zebra_objects[i].vx = -0.1;
+
+            if(zebra_objects[i].vz < -0.1)
+                zebra_objects[i].vz = -0.1;
+
+            zebra_info zinfo = zebra_objects[i];
+
+            float new_angle = atan2(zinfo.vz, zinfo.vx);//angles[zeb];
+
+            //float new_angle = rot;
+
+            float xdir=zinfo.vx, zdir=zinfo.vz;
+
+            //xdir = speed*cos(new_angle);
+            //zdir = speed*sin(new_angle);
+
+            //zdir = -speed;
+
+            pos.x += xdir;
+            pos.z += zdir;
+
+            zeb->set_pos(pos);
+            zeb->set_rot({zeb->rot.x, new_angle, zeb->rot.z});
+
+            zeb->g_flush_objects();
         }
-
-        float new_angle = angles[zeb];
-
-        //float new_angle = rot;
-
-        float xdir, zdir;
-
-        //xdir = speed*cos(new_angle);
-        //zdir = speed*sin(new_angle);
-
-        zdir = -speed;
-
-        pos.x += xdir;
-        pos.z += zdir;
-
-        zeb->set_pos(pos);
-        zeb->set_rot({zeb->rot.x, new_angle, zeb->rot.z});
-
-        zeb->g_flush_objects();
     }
 };
 
 std::map<objects_container*, float> zebra::angles;
+std::vector<zebra_info> zebra::zebra_objects;
 
 int zebra::bound = -3000;
 
@@ -160,7 +208,7 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    constexpr int zebra_count = 3025;
+    constexpr int zebra_count = 36;
 
     sf::Clock load_time;
 
@@ -179,7 +227,7 @@ int main(int argc, char *argv[])
     window.load(1280,768,1000, "turtles", "../../cl2.cl");
 
     window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
-    window.c_rot.x = -M_PI/2;
+    //window.c_rot.x = -M_PI/2;
 
 
     //window.window.setVerticalSyncEnabled(false);
@@ -261,12 +309,17 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        for(int i=0; i<zebra_count; i++)
+        /*for(int i=0; i<zebra_count; i++)
         {
             zebra::update(&zebras[i]);
-        }
+        }*/
 
-        window.c_pos.y += 10.0f;
+        zebra::repulse();
+        zebra::update();
+
+        //window.c_pos.y += 10.0f;
+
+        zebra::repulse();
 
         window.input();
 
