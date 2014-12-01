@@ -270,27 +270,24 @@ struct zebra
         zebra_info* zinfo = &zebra_objects[zid];
         objects_container* zeb = objects[zid];
 
-
-        //cl_float4 in_camera = engine::rot_about(zeb->pos, zeb->pos, zeb->rot)
-
         cl_float4 centre = zeb->pos;
 
         cl_float4 local = engine::project(centre);
 
-        float radius = 200;
+        float radius = 700*340 / local.z;
 
         sf::CircleShape cs;
 
         cs.setRadius(radius);
 
-        cs.setPosition(local.x, local.y);
+        cs.setPosition(local.x - radius, win.getSize().y - local.y - radius);
 
         cs.setOutlineColor(sf::Color(255, 0, 0));
-        cs.setFillColor(sf::Color(0,0,0));
+        cs.setOutlineThickness(2.0f);
+        cs.setFillColor(sf::Color(0,0,0,0));
+        cs.setPointCount(300);
 
         win.draw(cs);
-
-        printf("%f %f\n", local.x, local.y);
     }
 
 

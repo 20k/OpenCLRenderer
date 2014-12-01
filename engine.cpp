@@ -606,7 +606,7 @@ cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float
 
 cl_float4 engine::project(cl_float4 val)
 {
-    cl_float4 rotated = rot_about(val, c_pos, c_rot);
+    cl_float4 rotated = rot_about(val, c_pos, sub({0,0,0,0}, c_rot));
 
     cl_float4 projected = depth_project_singular(rotated, width, height, FOV_CONST);
 
