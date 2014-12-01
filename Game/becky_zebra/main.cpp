@@ -17,6 +17,8 @@ struct zebra_info
 {
     float vx, vz;
     objects_container* obj;
+
+    int side;
 };
 
 struct zebra
@@ -31,10 +33,12 @@ struct zebra
     static std::vector<objects_container*> objects;
     static std::vector<zebra_info> zebra_objects;
 
+    //static int counter;
+
     static void add_object(objects_container* obj)
     {
         objects.push_back(obj);
-        zebra_objects.push_back({fmod(rand() - RAND_MAX/2, 5), 0.0f, obj});
+        zebra_objects.push_back({fmod(rand() - RAND_MAX/2, 5), 0.0f, obj, rand() % 2});
 
         cl_float4 pos = obj->pos;
 
@@ -46,7 +50,7 @@ struct zebra
 
     static void repulse()
     {
-        float repulse_dist = 2000;
+        float repulse_dist = 1500;
         float min_dist = 10;
         //float force = 10;
 
@@ -65,12 +69,12 @@ struct zebra
 
                 if(distance < repulse_dist)
                 {
-                    if(distance < min_dist)
-                        distance = min_dist;
-
                     float force = (repulse_dist - distance)/100000.0f;
 
                     if(force > 0.033f)
+                        force = 0.033f;
+
+                    if(distance < min_dist)
                         force = 0.033f;
 
                     ///not in 3d
@@ -101,6 +105,40 @@ struct zebra
                     zebra_objects[i] = zinfo;
                 }
             }
+
+            float vx, vz;
+
+            vx = zebra_objects[i].vx;
+            vz = zebra_objects[i].vz;
+
+            if(p1.x < 0)
+            {
+                //vx = -vx > 0.033f ? 0.033f : -vx;
+
+                vx += 0.01;
+            }
+            if(p1.x > bound)
+            {
+                //vx = vx - bound > 0.033f ? 0.033f : vx - bound;
+                vx -= 0.01;
+            }
+            if(p1.z < 0)
+            {
+                //vz = -vz > 0.033f ? 0.033f : -vz;
+
+                vz += 0.01;
+            }
+            if(p1.z > bound)
+            {
+               //vz = vz - bound > 0.033f ? 0.033f : vz - bound;
+
+               vz -= 0.01;
+            }
+
+
+            zebra_objects[i].vx = vx;
+            zebra_objects[i].vz = vz;
+
         }
 
     }
@@ -141,12 +179,24 @@ struct zebra
         }
     }
 
+    ///keep internal counter of bias and then move like then, randomness is how often bias updates + how much?
     static void update()
     {
         ///angle is in 2d plane
 
+        constexpr float zig_probability = 0.01;
+        constexpr float ideal_speed = 2.f;
+
         for(int i=0; i<objects.size(); i++)
         {
+            ///not great, use real random
+            float val = (float)rand() / RAND_MAX;
+
+            if(val < zig_probability)
+            {
+                zebra_objects[i].side = !zebra_objects[i].side;
+            }
+
             objects_container* zeb = objects[i];
 
             cl_float4 pos = zeb->pos;
@@ -161,25 +211,44 @@ struct zebra
                 angles[zeb] = fmod(rand(), 3.14159);
             }
 
-            if(zebra_objects[i].vx > 0.1)
-                zebra_objects[i].vx = 0.1;
+            if(zebra_objects[i].vx > 2)
+                zebra_objects[i].vx = 2;
 
-            if(zebra_objects[i].vz > 0.1)
-                zebra_objects[i].vz = 0.1;
+            if(zebra_objects[i].vz > 2)
+                zebra_objects[i].vz = 2;
 
-            if(zebra_objects[i].vx < -0.1)
-                zebra_objects[i].vx = -0.1;
+            if(zebra_objects[i].vx < -2)
+                zebra_objects[i].vx = -2;
 
-            if(zebra_objects[i].vz < -0.1)
-                zebra_objects[i].vz = -0.1;
+            if(zebra_objects[i].vz < -2)
+                zebra_objects[i].vz = -2;
 
             zebra_info zinfo = zebra_objects[i];
 
             float new_angle = atan2(zinfo.vz, zinfo.vx);//angles[zeb];
 
+            float fside = zinfo.side - 0.5;
+            fside *= 2; /// -1 -> 1
+
+            ///move towards side
+            new_angle += fside / 1000.0f;
+
+            float speed = sqrtf(zinfo.vz*zinfo.vz + zinfo.vx*zinfo.vx);
+
+            if(speed < ideal_speed)
+                speed += ideal_speed / 20.0f;
+
+            float nvx = speed*cosf(new_angle);
+            float nvz = speed*sinf(new_angle);
+
+
+            zebra_objects[i].vx = nvx;
+            zebra_objects[i].vz = nvz;
+
+
             //float new_angle = rot;
 
-            float xdir=zinfo.vx, zdir=zinfo.vz;
+            float xdir = zinfo.vx, zdir = zinfo.vz;
 
             //xdir = speed*cos(new_angle);
             //zdir = speed*sin(new_angle);
@@ -195,12 +264,42 @@ struct zebra
             zeb->g_flush_objects();
         }
     }
+
+    static void highlight_zebra(int zid, sf::RenderWindow& win)
+    {
+        zebra_info* zinfo = &zebra_objects[zid];
+        objects_container* zeb = objects[zid];
+
+
+        //cl_float4 in_camera = engine::rot_about(zeb->pos, zeb->pos, zeb->rot)
+
+        cl_float4 centre = zeb->pos;
+
+        cl_float4 local = engine::project(centre);
+
+        float radius = 200;
+
+        sf::CircleShape cs;
+
+        cs.setRadius(radius);
+
+        cs.setPosition(local.x, local.y);
+
+        cs.setOutlineColor(sf::Color(255, 0, 0));
+        cs.setFillColor(sf::Color(0,0,0));
+
+        win.draw(cs);
+
+        printf("%f %f\n", local.x, local.y);
+    }
+
+
 };
 
 std::map<objects_container*, float> zebra::angles;
 std::vector<zebra_info> zebra::zebra_objects;
 
-int zebra::bound = -3000;
+int zebra::bound = 9000;
 
 std::vector<objects_container*> zebra::objects;
 
@@ -326,6 +425,10 @@ int main(int argc, char *argv[])
         window.draw_bulk_objs_n();
 
         window.render_buffers();
+
+        zebra::highlight_zebra(0, window.window);
+
+        window.display();
 
         times[time_count] = c.getElapsedTime().asMicroseconds();
 

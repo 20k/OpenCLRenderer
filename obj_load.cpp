@@ -137,9 +137,14 @@ void obj_load(objects_container* pobj)
     mtlname = filename.substr(0, tp) + std::string(".mtl");
     ///get mtlname
 
-    int lslash = filename.find_last_of('/');
+    size_t lslash = filename.find_last_of('/');
 
     std::string dir = filename.substr(0, lslash);
+
+    if(lslash == std::string::npos)
+    {
+        dir = ".";
+    }
 
     std::ifstream file;
     std::ifstream mtlfile;
@@ -332,7 +337,7 @@ void obj_load(objects_container* pobj)
     {
         std::string texture_name = retrieve_diffuse_new(mtlf_contents, usemtl_name[i]);
         std::string bumpmap_name = retrieve_bumpmap    (mtlf_contents, usemtl_name[i]);
-        std::string full = dir + std::string("/") + texture_name;
+        std::string full = dir + "/" + texture_name;
 
         texture tex;
         tex.type = 0;
@@ -346,7 +351,7 @@ void obj_load(objects_container* pobj)
         {
             isbump = true;
             texture bumpmap;
-            std::string bump_full = dir + std::string("/") + bumpmap_name;
+            std::string bump_full = dir + "/" + bumpmap_name;
 
             bumpmap.type = 1;
             bumpmap.set_texture_location(bump_full);

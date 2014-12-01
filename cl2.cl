@@ -96,6 +96,13 @@ float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
 }
 
+float calc_third_areas_get(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* A, float* B, float* C)
+{
+    *A = fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) * 0.5f;
+    *B = fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) * 0.5f;
+    *C = fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1) * 0.5f;
+}
+
 float calc_third_areas(struct interp_container *C, float x, float y)
 {
     return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
@@ -2332,6 +2339,20 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }
 }
 
+void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v, float* w)
+{
+    float3 v0 = b - a, v1 = c - a, v2 = p - a;
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    *v = (d11 * d20 - d01 * d21) / denom;
+    *w = (d00 * d21 - d01 * d20) / denom;
+    *u = 1.0f - *v - *w;
+}
+
 
 
 ///screenspace step, this is slow and needs improving
@@ -2392,6 +2413,16 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         return;
     }
 
+    __global struct triangle* T = &triangles[tri_global];
+
+
+
+    int o_id = T->vertices[0].object_id;
+
+    __global struct obj_g_descriptor *G = &gobj[o_id];
+
+
+
     float ldepth = idcalc((float)*ft/mulint);
 
     float actual_depth = ldepth;
@@ -2405,6 +2436,14 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     global_position += camera_pos;
 
 
+
+    global_position = back_rot(global_position, 0, G->world_rot.xyz);
+
+    global_position += G->world_pos.xyz;
+
+
+
+
     float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
 
     //float3 ray_dir = (float3){spos.x, spos.y, 1};
@@ -2414,17 +2453,30 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 ray_dir = back_rot(spos, 0, camera_rot);
 
-    float3 ray_origin = camera_pos;
+    //ray_dir = back_rot(ray_dir, 0, G->world_rot.xyz);
 
-    __global struct triangle* T = &triangles[tri_global];
+    float3 ray_origin = camera_pos;// - G->world_pos.xyz;
+
+
+    float3 rotated[3] = {T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz};
+
+    rotated[0] = rot(rotated[0], 0, G->world_rot.xyz);
+    rotated[1] = rot(rotated[1], 0, G->world_rot.xyz);
+    rotated[2] = rot(rotated[2], 0, G->world_rot.xyz);
+
+    rotated[0] += G->world_pos.xyz;
+    rotated[1] += G->world_pos.xyz;
+    rotated[2] += G->world_pos.xyz;
 
 
     ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
 
 
+
+
     float uout = 0, vout = 0;
 
-    triangle_intersection_always(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, ray_origin, ray_dir, &uout, &vout);
+    triangle_intersection_always(rotated[0], rotated[1], rotated[2], ray_origin, ray_dir, &uout, &vout);
 
     float y1, y2, y3;
     float x1, x2, x3;
@@ -2441,6 +2493,25 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     l2 = native_divide((y3 - y1)*(lx - x3) + (x1 - x3)*(ly - y3), ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3)));
 
     l3 = 1.0f - l1 - l2;
+
+
+    /*float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    float rconst = calc_rconstant_v(xpv, ypv);*/
+
+
+    //float vxA, vxB, vxC;
+
+    //interpolate_get_const((float3){T->vertices[0].vt.x, T->vertices[1].vt.x, T->vertices[2].vt.x}, xpv, ypv, rconst, &vxA, &vxB, &vxC);
+
+
+    //float l1,l2,l3;
+
+    //get_barycentric(global_position, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
 
 
     float2 vt;
@@ -2618,9 +2689,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     //int num = 0;
 
-    int o_id = T->vertices[0].object_id;
 
-    __global struct obj_g_descriptor *G = &gobj[o_id];
 
     float3 tris_proj[3];
 

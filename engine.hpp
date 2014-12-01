@@ -145,6 +145,7 @@ struct engine
     void draw_raytrace();
     void draw_smoke(smoke& s);
     void render_buffers();
+    void display();
 
     void swap_depth_buffers();
 

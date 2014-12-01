@@ -199,8 +199,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //width = 1920;
     //height = 1080;
 
-    width = 1920/2;
-    height = 1080;
+    //width = 1920/2;
+    //height = 1080;
 
     int videowidth = rift::enabled ? width*2 : width;
 
@@ -419,6 +419,7 @@ void engine::g_flush_light(light* l) ///just position?
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*lid, sizeof(light), light::lightlist[lid]);
 }
 
+///error
 cl_float4 rot(double x, double y, double z, cl_float4 rotation)
 {
     double i0x=x;
@@ -449,7 +450,7 @@ cl_float4 rot(double x, double y, double z, cl_float4 rotation)
 
 cl_float4 engine::rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
 {
-    cl_float4 cos_rot;
+    /*cl_float4 cos_rot;
     cos_rot.x = cos(c_rot.x);
     cos_rot.y = cos(c_rot.y);
     cos_rot.z = cos(c_rot.z);
@@ -463,9 +464,60 @@ cl_float4 engine::rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
     ret.x=      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
     ret.y=      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
     ret.z=      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
-    ret.w = 0;
+    ret.w = 0;*/
 
-    return ret;
+    cl_float3 c;
+
+    c.x = cos(c_rot.x);
+    c.y = cos(c_rot.y);
+    c.z = cos(c_rot.z);
+
+    cl_float3 s;
+    s.x = sin(c_rot.x);
+    s.y = sin(c_rot.y);
+    s.z = sin(c_rot.z);
+
+    //float3 ret;
+    //ret.x =      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
+    //ret.y =      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    //ret.z =      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+
+    //float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
+    //float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
+    //float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};
+
+
+    //float3 r1 = {cr.x*cr.y, cr.x*sr.y*sr.z - cr.z*sr.x, sr.x*sr.z + cr.x*cr.z*sr.y};
+    //float3 r2 = {cr.y*sr.x, cr.x*cr.z + sr.x*sr.y*sr.z, cr.z*sr.x*sr.y - cr.x*sr.z};
+    //float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};
+
+    //float3 r1 = {cr.x*cr.z - sr.x*sr.y*sr.z, -cr.y*sr.x, cr.x*sr.z + cr.z*sr.x*sr.y};
+    //float3 r2 = {cr.z*sr.x + cr.x*sr.y*sr.z, cr.x*cr.y, sr.x*sr.z - cr.x*cr.z*sr.y};
+    //float3 r3 = {-cr.y*sr.z, sr.y, cr.y*cr.z};
+
+
+    /*float3 r1 = {cr.x*cr.z - cr.y*sr.x*sr.z, sr.x*sr.y, cr.x*sr.z + cr.y*cr.z*sr.x};
+    float3 r2 = {sr.y*sr.z, cr.y, -cr.z*sr.y};
+    float3 r3 = {-cr.z*sr.x - cr.x*cr.y*sr.z, cr.x*sr.y, cr.x*cr.y*cr.z - sr.x*sr.z};*/
+
+
+    cl_float3 rel = sub(point, c_pos);
+
+    cl_float3 r1, r2, r3;
+
+    cl_float3 ret;
+
+    ret.x = c.y * (s.z * rel.y + c.z*rel.x) - s.y*rel.z;
+    ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
+    ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);
+
+    //float3 ret;
+
+    //ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
+    //ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
+    //ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
+
+    return (cl_float4){ret.x, ret.y, ret.z, 0.0f};
 }
 
 cl_float4 engine::rot_about_camera(cl_float4 val)
@@ -1471,6 +1523,7 @@ void engine::render_buffers()
 
     cl::cqueue.finish();
 
+    ///reinstate this without the sleep 0
     /*cl_event event;
 
     clEnqueueReleaseGLObjects(cl::cqueue.get(), 1, &scr, 0, NULL, &event);
@@ -1484,7 +1537,7 @@ void engine::render_buffers()
     while (eventStatus > 0)
     {
         clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &eventStatus, NULL);
-        Sleep(0);
+        ///Sleep(0);
     }*/
 
 
@@ -1537,7 +1590,7 @@ void engine::render_buffers()
     }
 
     //rendering to wrong buffer?
-    window.display();
+    //window.display();
 
     swap_depth_buffers();
 
@@ -1556,6 +1609,11 @@ void engine::render_buffers()
     /*compute::opengl_renderbuffer temp = g_screen;
     g_screen = g_screen_edge_smoothed;
     g_screen_edge_smoothed = temp;*/
+}
+
+void engine::display()
+{
+    window.display();
 }
 
 void engine::swap_depth_buffers()
