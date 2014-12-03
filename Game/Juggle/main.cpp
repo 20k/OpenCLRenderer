@@ -8,6 +8,128 @@
 #include "../../vec.hpp"
 #include "../../Leap/leap_control.hpp"
 
+/*struct ball : newtonian_body
+{
+    void tick(float t);
+
+    void collided(newtonian_body* other);
+
+    newtonian_body* push();
+
+    newtonian_body* clone();
+};
+
+void ball::tick(float t)
+{
+
+}
+
+void ball::collided(newtonian_body* other)
+{
+
+}
+
+newtonian_body* ball::clone()
+{
+    return new ball(*this);
+}
+
+newtonian_body* ball::push()
+{
+    type = 2;
+    newtonian_manager::add_body(this);
+    return newtonian_manager::body_list[newtonian_manager::body_list.size()-1];
+}
+
+newtonian_body* add_collision(newtonian_body* n, objects_container* obj)
+{
+    collision_object obj;
+    obj.calculate_collision_ellipsoid(obj);
+
+    newtonian_body* newtonian = n->push();
+    newtonian->add_collision_object(collision);
+
+    return newtonian;
+}*/
+
+struct finger_manager
+{
+    //std::vector<objects_container*> fingers;
+
+    finger_data fdata;
+
+    std::vector<objects_container*> balls;
+
+    float grab_threshold = 0.5;
+    float dist_threshold = 500;
+
+    void add_finger_data(finger_data& dat)
+    {
+        fdata = dat;
+
+        for(int i=0; i<10; i++)
+        {
+            fdata.fingers[i].x *= 10;
+            fdata.fingers[i].y *= 10;
+            fdata.fingers[i].z *= 10;
+        }
+    }
+
+    void add_ball(objects_container* b)
+    {
+        balls.push_back(b);
+    }
+
+    void collide_fingers_balls()
+    {
+        for(int hand=0; hand<2; hand++)
+        {
+            cl_float4 tmp_hand_pos = {0};
+
+            int cube_grabbed = -1;
+
+            for(int f=0; f<5; f++)
+            {
+                int id = hand*5 + f;
+
+                bool grab = fdata.hand_grab_confidence[hand] > grab_threshold;
+
+                if(grab)
+                {
+                    //printf("grabby %i\n", balls.size());
+
+                    for(int i=0; i<balls.size(); i++)
+                    {
+                        cl_float4 p1 = fdata.fingers[id];
+                        cl_float4 p2 = balls[i]->pos;
+
+                        //printf("%f\n", dist(p1, p2));
+
+                        if(dist(p1, p2) < dist_threshold)
+                        {
+                            //printf("grabbed\n");
+
+                            cube_grabbed = i;
+                            break;
+                        }
+                    }
+                }
+
+                tmp_hand_pos = add(tmp_hand_pos, fdata.fingers[f]);
+            }
+
+            tmp_hand_pos = div(tmp_hand_pos, 5.0f);
+
+            if(cube_grabbed != -1)
+            {
+                printf("doing things %f %f %f\n", tmp_hand_pos.x, tmp_hand_pos.y, tmp_hand_pos.z);
+
+                balls[cube_grabbed]->set_pos(tmp_hand_pos);
+                balls[cube_grabbed]->g_flush_objects();
+            }
+        }
+    }
+};
 
 int main(int argc, char *argv[])
 {
@@ -23,6 +145,8 @@ int main(int argc, char *argv[])
     window.set_camera_pos((cl_float4){500,600,-570});
     //window.c_rot.x = -M_PI/2;
 
+    finger_manager fmanage;
+
     constexpr int cube_num = 3;
 
     objects_container cubes[cube_num];
@@ -31,6 +155,10 @@ int main(int argc, char *argv[])
     {
         cubes[i].set_file("../Res/tex_cube.obj");
         cubes[i].set_active(true);
+
+        cubes[i].set_pos({0, 1000, 0});
+
+        fmanage.add_ball(&cubes[i]);
     }
 
     objects_container fingers[10];
@@ -125,13 +253,17 @@ int main(int argc, char *argv[])
 
         finger_data dat = get_finger_positions();
 
+        fmanage.add_finger_data(dat);
+
         for(int i=0; i<10; i++)
         {
             //printf("%f %f %f\n", dat.fingers[i].x, dat.fingers[i].y, dat.fingers[i].z);
 
-            fingers[i].set_pos({dat.fingers[i].x, dat.fingers[i].y + 1000, dat.fingers[i].z});
+            fingers[i].set_pos({dat.fingers[i].x*10, dat.fingers[i].y*10, dat.fingers[i].z*10});
             fingers[i].g_flush_objects();
         }
+
+        fmanage.collide_fingers_balls();
 
         //window.c_pos.y += 10.0f;
 

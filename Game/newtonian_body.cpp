@@ -359,6 +359,8 @@ void newtonian_manager::collide_lasers_with_ships()
     for(int i=0; i<body_list.size(); i++)
     {
         newtonian_body* b = body_list[i];
+
+        ///special casing lasers, this is bad
         if(b->type == 1)
         {
             for(int j=0; j<collision_bodies.size(); j++)
@@ -377,17 +379,28 @@ void newtonian_manager::collide_lasers_with_ships()
                     newtonian_manager::remove_body(b);
                     i--;
                     break;
-
-
                 }
             }
         }
+
+        /*for(int j=0; j<collision_bodies.size(); j++)
+        {
+            collision_object& c = collision_bodies[j].second;
+            newtonian_body* other = collision_bodies[j].first;
+
+            float val = c.evaluate(b->position.x, b->position.y, b->position.z, other->position, other->rotation);
+
+            if(val <= 1 && b->parent!=other && b->collides)
+            {
+                other->collided(b);
+            }
+        }*/
     }
 }
 
 void newtonian_body::collided(newtonian_body* other)
 {
-    std::cout << "this shouldn't really have happened" << std::endl;
+    //std::cout << "this shouldn't really have happened" << std::endl;
 }
 
 void ship_newtonian::collided(newtonian_body* other)
