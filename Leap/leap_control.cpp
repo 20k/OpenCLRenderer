@@ -133,32 +133,42 @@ finger_data get_finger_positions()
 
     DWORD numRead;
 
-    float data[10*4];
 
     if(init == 0)
     {
+        printf("trying to connect\n");
+
         pipe = CreateNamedPipe(PNAME, PIPE_ACCESS_INBOUND | PIPE_ACCESS_OUTBOUND , PIPE_WAIT, 1, 1024, 1024, 120 * 1000, NULL);
 
         ConnectNamedPipe(pipe, NULL);
 
+        printf("connected\n");
+
         init = 1;
     }
 
-    ReadFile(pipe, data, sizeof(float)*10*4, &numRead, NULL);
+    constexpr int read_chunk = 5;
 
-    finger_data fdata;
+    //float data[10*4*read_chunk];
+
+    finger_data data[read_chunk] = {0};
+
+    ReadFile(pipe, data, sizeof(finger_data)*read_chunk, &numRead, NULL);
+
+    /*finger_data fdata;
 
     for(int i=0; i<10; i++)
     {
         fdata.fingers[i] = {0,0,0,0};
     }
 
+    ///discard all extra data afterwards, might this break?
     if(numRead > 0)
     {
         for(int i=0; i<10; i++)
             fdata.fingers[i] = (cl_float4){data[i*4 + 0], data[i*4 + 1], data[i*4 + 2], data[i*4 + 3]};
 
-    }
+    }*/
 
-    return fdata;
+    return data[0];
 }

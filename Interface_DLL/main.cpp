@@ -9,9 +9,15 @@
 
 Leap::Controller control;
 
-float* tenfingers;
+struct fdata
+{
+    float fingers[40];
+    float grab_confidence[2];
+};
 
-float* get_finger_positions()
+//float* tenfingers;
+
+fdata get_finger_positions()
 {
     Leap::Frame frame = control.frame();
     Leap::FingerList fingers = frame.fingers();
@@ -20,43 +26,50 @@ float* get_finger_positions()
 
     //std::vector<std::pair<cl_float4, int>> positions;
 
+    fdata hand_data;
+
 
     int p = 0;
 
     for(int i=0; i<40; i++)
     {
-        tenfingers[i] = -1.0f;
+        hand_data.fingers[i] = 0.0f;
     }
 
+    ///will explode if more than 2
     for(int i=0; i<hands.count(); i++)
     {
         const Leap::Hand hand = hands[i];
         Leap::FingerList h_fingers = hand.fingers();
 
+        float grab_strength = hand.grabStrength();
+
+        hand_data.grab_confidence[i] = grab_strength;
+
         for(int j=0; j<h_fingers.count(); j++)
         {
             const Leap::Finger finger = h_fingers[j];
 
-            float mfingerposx = finger.stabilizedTipPosition().x;
-            float mfingerposy = finger.stabilizedTipPosition().y;
-            float mfingerposz = finger.stabilizedTipPosition().z;
+            float mfingerposx = finger.tipPosition().x;
+            float mfingerposy = finger.tipPosition().y;
+            float mfingerposz = finger.tipPosition().z;
 
             //cl_float4 ps = {mfingerposx, mfingerposy, mfingerposz, 0.0f};
             //cl_float4 ps = {mfingerposx, mfingerposy, mfingerposz, 0.0f};
 
             int id = finger.id();
 
-            tenfingers[p++] = mfingerposx;
-            tenfingers[p++] = mfingerposy;
-            tenfingers[p++] = mfingerposz;
-            tenfingers[p++] = 0.0f;
+            hand_data.fingers[p++] = mfingerposx;
+            hand_data.fingers[p++] = mfingerposy;
+            hand_data.fingers[p++] = mfingerposz;
+            hand_data.fingers[p++] = 0.0f;
 
             //positions.push_back(std::pair<cl_float4, int>(ps, id));
 
         }
     }
 
-    return tenfingers;
+    return hand_data;
 }
 
 
@@ -154,13 +167,24 @@ float* get_finger_positions()
     CloseHandle(hMapFile);
 }*/
 
+HANDLE pipe;
+
+void fin()
+{
+    CloseHandle(pipe);
+}
+
 int main()
 {
     control.setPolicyFlags(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-    HANDLE pipe = CreateFile(PNAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    pipe = CreateFile(PNAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-    tenfingers = (float*)malloc(sizeof(float)*10*4);
+    atexit(fin);
+
+    //tenfingers = (float*)malloc(sizeof(float)*10*4);
+
+    printf("connected\n");
 
     //get fist positions as well
 
@@ -168,12 +192,12 @@ int main()
 
     while(1)
     {
-        float* ret = get_finger_positions();
+        fdata ret = get_finger_positions();
 
-        WriteFile(pipe, (char*)ret, sizeof(float)*10*4, &word, NULL);
+        WriteFile(pipe, (char*)&ret, sizeof(fdata), &word, NULL);
 
         Sleep(1);
     }
 
-    CloseHandle(pipe);
+    //CloseHandle(pipe);
 }

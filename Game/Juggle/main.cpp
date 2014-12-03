@@ -1,32 +1,45 @@
-#include "proj.hpp"
+#include "../../proj.hpp"
+#include <map>
 
-///todo eventually
-///split into dynamic and static objects
+#include "../../Rift/Include/OVR.h"
+#include "../../Rift/Include/OVR_Kernel.h"
+//#include "Include/OVR_Math.h"
+#include "../../Rift/Src/OVR_CAPI.h"
+#include "../../vec.hpp"
+#include "../../Leap/leap_control.hpp"
 
-///todo
-///fix memory management to not be atrocious
 
-///we're completely hampered by memory latency
-
-///move to two eye rendering and optimise for that instead, do duel view render at once
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
     sf::Clock load_time;
 
-    objects_container sponza;
-
-    sponza.set_file("sp2/sp2.obj");
-    //sponza.set_file("sp2/cornellfixed.obj");
-    sponza.set_active(true);
-    sponza.cache = false;
 
     engine window;
 
-    window.load(1280,768,1000, "turtles", "cl2.cl");
+    window.load(1280,768,1000, "turtles", "../../cl2.cl");
 
-    window.set_camera_pos((cl_float4){-800,150,-570});
+    window.set_camera_pos((cl_float4){500,600,-570});
+    //window.c_rot.x = -M_PI/2;
+
+    constexpr int cube_num = 3;
+
+    objects_container cubes[cube_num];
+
+    for(int i=0; i<cube_num; i++)
+    {
+        cubes[i].set_file("../Res/tex_cube.obj");
+        cubes[i].set_active(true);
+    }
+
+    objects_container fingers[10];
+
+    for(int i=0; i<10; i++)
+    {
+        fingers[i].set_file("../Res/tex_cube.obj");
+        fingers[i].set_active(true);
+    }
 
     //window.window.setVerticalSyncEnabled(false);
 
@@ -35,22 +48,30 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
-    //sponza.scale(400.0f);
+    for(int i=0; i<cube_num; i++)
+        cubes[i].scale(200.0f);
+
+    for(int i=0; i<10; i++)
+    {
+        fingers[i].scale(10.0f);
+    }
 
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
 
+    //window.c_rot.z += 0.9;
+
     sf::Event Event;
 
     light l;
     l.set_col((cl_float4){0.0f, 1.0f, 0.0f, 0.0f});
-    l.set_shadow_casting(1);
+    l.set_shadow_casting(0);
     l.set_brightness(1);
     l.set_pos((cl_float4){-200, 100, 0});
     //l.set_pos((cl_float4){-150, 150, 300});
-    l.radius = 100000;
+    l.radius = 1000000;
     /*l.set_pos((cl_float4){-200, 2000, -100, 0});
     l.set_pos((cl_float4){-200, 200, -100, 0});
     l.set_pos((cl_float4){-400, 150, -555, 0});*/
@@ -59,8 +80,8 @@ int main(int argc, char *argv[])
     l.set_col((cl_float4){1.0f, 0.0f, 1.0f, 0});
 
     l.set_pos((cl_float4){-0, 200, -500, 0});
-    l.shadow = 1;
-    l.radius = 100000;
+    l.shadow = 0;
+    l.radius = 1000000;
 
     window.add_light(&l);
 
@@ -89,6 +110,11 @@ int main(int argc, char *argv[])
 
     while(window.window.isOpen())
     {
+        ///rift
+        //ovrHmd_BeginFrame(HMD, 0);
+        ///endrift
+
+
         sf::Clock c;
 
         if(window.window.pollEvent(Event))
@@ -97,13 +123,24 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
+        finger_data dat = get_finger_positions();
+
+        for(int i=0; i<10; i++)
+        {
+            //printf("%f %f %f\n", dat.fingers[i].x, dat.fingers[i].y, dat.fingers[i].z);
+
+            fingers[i].set_pos({dat.fingers[i].x, dat.fingers[i].y + 1000, dat.fingers[i].z});
+            fingers[i].g_flush_objects();
+        }
+
+        //window.c_pos.y += 10.0f;
+
         window.input();
 
         window.draw_bulk_objs_n();
 
-        //window.draw_raytrace();
-
         window.render_buffers();
+
         window.display();
 
         times[time_count] = c.getElapsedTime().asMicroseconds();
@@ -123,7 +160,15 @@ int main(int argc, char *argv[])
             load_first = 1;
         }
 
-        std::cout << time/10 << std::endl;
+        //std::cout << time/10 << std::endl;
+
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+
+        ///rift
+
+        ///endrift
+
+
 
         ///raw time
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

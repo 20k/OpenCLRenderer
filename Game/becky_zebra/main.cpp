@@ -211,17 +211,17 @@ struct zebra
                 angles[zeb] = fmod(rand(), 3.14159);
             }
 
-            if(zebra_objects[i].vx > 2)
-                zebra_objects[i].vx = 2;
+            if(zebra_objects[i].vx > 8)
+                zebra_objects[i].vx = 8;
 
-            if(zebra_objects[i].vz > 2)
-                zebra_objects[i].vz = 2;
+            if(zebra_objects[i].vz > 8)
+                zebra_objects[i].vz = 8;
 
-            if(zebra_objects[i].vx < -2)
-                zebra_objects[i].vx = -2;
+            if(zebra_objects[i].vx < -8)
+                zebra_objects[i].vx = -8;
 
-            if(zebra_objects[i].vz < -2)
-                zebra_objects[i].vz = -2;
+            if(zebra_objects[i].vz < -8)
+                zebra_objects[i].vz = -8;
 
             zebra_info zinfo = zebra_objects[i];
 
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
 
     for(int i=0; i<zebra_count; i++)
     {
-        zebras[i].set_file("tex_cube.obj");
+        zebras[i].set_file("../Res/tex_cube.obj");
         zebras[i].set_active(true);
 
         zebra::add_object(&zebras[i]);
@@ -390,6 +390,8 @@ int main(int argc, char *argv[])
 
     int load_first = 0;
 
+    sf::Clock zebra_clock;
+
     while(window.window.isOpen())
     {
         ///rift
@@ -423,7 +425,8 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        zebra::highlight_zebra(0, window.window);
+        if(zebra_clock.getElapsedTime().asMilliseconds() < 2000)
+            zebra::highlight_zebra(0, window.window);
 
         window.display();
 

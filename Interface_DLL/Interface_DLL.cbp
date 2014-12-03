@@ -9,10 +9,9 @@
 			<Target title="Debug">
 				<Option output="bin/Debug/Interface_DLL" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
-				<Option type="3" />
+				<Option type="1" />
 				<Option compiler="msvc10" />
-				<Option createDefFile="1" />
-				<Option createStaticLib="1" />
+				<Option use_console_runner="0" />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-DBUILD_DLL" />
@@ -25,10 +24,9 @@
 			<Target title="Release">
 				<Option output="bin/Release/Interface_DLL" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
-				<Option type="3" />
+				<Option type="1" />
 				<Option compiler="msvc10" />
-				<Option createDefFile="1" />
-				<Option createStaticLib="1" />
+				<Option use_console_runner="0" />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-DBUILD_DLL" />
@@ -41,7 +39,7 @@
 			</Target>
 		</Build>
 		<Linker>
-			<Add library="D:\Stuff\Visual studio\VC\lib\Leap.lib" />
+			<Add library="D:/Stuff/Visual studio/VC/lib/Leap.lib" />
 		</Linker>
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />

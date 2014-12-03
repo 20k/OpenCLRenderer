@@ -353,6 +353,7 @@ ship_newtonian* ship_newtonian::clone()
     return new ship_newtonian(*this);
 }
 
+///need to make this generic collision manager
 void newtonian_manager::collide_lasers_with_ships()
 {
     for(int i=0; i<body_list.size(); i++)

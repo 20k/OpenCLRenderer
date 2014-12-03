@@ -10,6 +10,7 @@
 struct finger_data
 {
     cl_float4 fingers[10];
+    cl_float hand_grab_confidence[2];
 };
 
 finger_data get_finger_positions();
