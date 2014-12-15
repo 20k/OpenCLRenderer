@@ -462,7 +462,9 @@ int main(int argc, char *argv[])
         }
         if(!k.isKeyPressed(sf::Keyboard::H))
         {
-            lasth = false;
+            lasth = fa3025ZEBRA <3<3 I LO VE YHE DARL HO,ELESS PLACE LOL I WENYT DOWN TO THE HGARVBOUT ANC BASIOCALY UST WONDERED ALONG THAT FORA A WHILE AND HTERN BASICALY JUSY HGOT HORRIBLEY WRNG FOR A WHIE THE HAROUBOURSIDE I WENT RIHT UP THE RIIVER DO YOU MEAN PAT ZAZA AND PASTY WHERER I WORKEDFOR TEN WEEKS I DON'T KNOW WHERE @BRISOTOL FOR A WEEK IS I WENT CACROSS AND RIGHT WHAT IS ACOIESS TYHE BRISGE WATER I WANSN'T PAYUING ATTENTION AT ALL WAS I5T BUY THE PUBM,PHOUSE PUB DID YUOU WALK ALONG THE REIVER FOR A LONG TIME I SAT THERE FOR QUITE A WHILE I WONDERED A QUITE A I HAVEN;T AMAGED ALL OF IT WHERE DID I GO AAGERMTJAST YPI CRPSSED THJE NBRODE YPI
+            RE PM SPGHERT5UJOHUIO[GEABFGDUBUJGREOAFVBUJASFGVB THE UYOU GO AND THEN I WONDERED LIKE LEFT AT THE END AND I WONDERED IN THART DIRECTIPO GOR AB IT TYHERE WAS LIKE A BRIDHE THERE WAS LIKE DID YOU EVERY SWW THE C.IFTON SUSPENTIPON  I ENDED UP BEING ]
+            lse;
         }
 
         newtonian_manager::tick_all(); ///get this to just bloody manage its own timestep?
@@ -548,7 +550,8 @@ int main(int argc, char *argv[])
             if(last_selected!=-1)
                 interact::unset_selected(last_selected);
 
-            interact::set_selected(rect_id);
+            interact::set_selected(rect_id);0.
+
 
             last_selected = rect_id;
 
@@ -577,6 +580,7 @@ int main(int argc, char *argv[])
         window.ui_interaction();
 
         window.render_buffers();
+        window.display();
 
         hologram_manager::clear_buffers();
 

@@ -26,7 +26,8 @@ struct zebra
     //cl_float4 pos = {0,0,0,0};
     //cl_float angle = 0;
 
-    static int bound;
+    static int boundx;
+    static int boundz;
 
     static std::map<objects_container*, float> angles;
 
@@ -42,19 +43,102 @@ struct zebra
 
         cl_float4 pos = obj->pos;
 
-        pos.x = fmod(rand() - RAND_MAX/2,  bound);
-        pos.z = fmod(rand() - RAND_MAX/2,  bound);
+        pos.x = fmod(rand() - RAND_MAX/2,  boundx);
+        pos.z = fmod(rand() - RAND_MAX/2,  boundz);
 
         obj->set_pos(pos);
     }
 
     static void repulse()
     {
-        float repulse_dist = 1500;
-        float min_dist = 10;
+        float max_dist = 1500;
+        float min_dist = 700;
         //float force = 10;
 
+        const float force = 0.043f;
+
         for(int i=0; i<objects.size(); i++)
+        {
+            cl_float4 p1 = objects[i]->pos;
+
+            for(int j=0; j<objects.size(); j++)
+            {
+                if(j == i)
+                    continue;
+
+                cl_float4 p2 = objects[j]->pos;
+
+                float distance = dist(p1, p2);
+
+                if(distance > max_dist)
+                    continue;
+
+                float frac = distance - min_dist;
+                frac /= (max_dist - min_dist);
+
+                frac = 1.0f - frac;
+
+                frac *= frac;
+
+                float my_force = frac*force;
+
+                my_force = clamp(my_force, 0, force);
+
+
+                float dx = p2.x - p1.x;
+                float dz = p2.z - p1.z;
+
+                float angle = atan2(dz, dx);
+
+                float fx = my_force * cosf(angle);
+                float fz = my_force * sinf(angle);
+
+
+                zebra_info zinfo = zebra_objects[j];
+
+                zinfo.vx += fx;
+                zinfo.vz += fz;
+
+                zebra_objects[j] = zinfo;
+
+                zinfo = zebra_objects[i];
+
+                zinfo.vx -= fx;
+                zinfo.vz -= fz;
+
+                zebra_objects[i] = zinfo;
+            }
+
+
+            float vx, vz;
+
+            vx = zebra_objects[i].vx;
+            vz = zebra_objects[i].vz;
+
+            if(p1.x < 0)
+            {
+                vx += 0.04;
+            }
+            if(p1.x > boundx)
+            {
+                vx -= 0.04;
+            }
+            if(p1.z < 0)
+            {
+                vz += 0.04;
+            }
+            if(p1.z > boundz)
+            {
+                vz -= 0.04;
+            }
+
+
+            zebra_objects[i].vx = vx;
+            zebra_objects[i].vz = vz;
+        }
+
+
+        /*for(int i=0; i<objects.size(); i++)
         {
             cl_float4 p1 = objects[i]->pos;
 
@@ -139,7 +223,7 @@ struct zebra
             zebra_objects[i].vx = vx;
             zebra_objects[i].vz = vz;
 
-        }
+        }*/
 
     }
 
@@ -184,7 +268,7 @@ struct zebra
     {
         ///angle is in 2d plane
 
-        constexpr float zig_probability = 0.01;
+        constexpr float zig_probability = 0.005;
         constexpr float ideal_speed = 2.f;
 
         for(int i=0; i<objects.size(); i++)
@@ -231,7 +315,7 @@ struct zebra
             fside *= 2; /// -1 -> 1
 
             ///move towards side
-            new_angle += fside / 1000.0f;
+            new_angle += fside / 100.0f;
 
             float speed = sqrtf(zinfo.vz*zinfo.vz + zinfo.vx*zinfo.vx);
 
@@ -265,8 +349,16 @@ struct zebra
         }
     }
 
-    static void highlight_zebra(int zid, sf::RenderWindow& win)
+    static void highlight_zebra(int zid, sf::RenderWindow& win, float time_after)
     {
+        float fade_duration = 2000.0f;
+
+        float fade = time_after / fade_duration;
+
+        fade = 1.0f - fade;
+
+        fade = clamp(fade, 0.0f, 1.0f);
+
         zebra_info* zinfo = &zebra_objects[zid];
         objects_container* zeb = objects[zid];
 
@@ -282,7 +374,7 @@ struct zebra
 
         cs.setPosition(local.x - radius, win.getSize().y - local.y - radius);
 
-        cs.setOutlineColor(sf::Color(255, 0, 0));
+        cs.setOutlineColor(sf::Color(255, 0, 0, fade*255));
         cs.setOutlineThickness(2.0f);
         cs.setFillColor(sf::Color(0,0,0,0));
         cs.setPointCount(300);
@@ -296,7 +388,8 @@ struct zebra
 std::map<objects_container*, float> zebra::angles;
 std::vector<zebra_info> zebra::zebra_objects;
 
-int zebra::bound = 9000;
+int zebra::boundx = 9000;
+int zebra::boundz = 1000;
 
 std::vector<objects_container*> zebra::objects;
 
@@ -318,6 +411,10 @@ int main(int argc, char *argv[])
         zebra::add_object(&zebras[i]);
     }
 
+    objects_container base;
+    base.set_file("../../objects/square.obj");
+    base.set_active(true);
+
     engine window;
 
     window.load(1280,768,1000, "turtles", "../../cl2.cl");
@@ -335,6 +432,10 @@ int main(int argc, char *argv[])
 
     for(int i=0; i<zebra_count; i++)
         zebras[i].scale(200.0f);
+
+    base.scale(20000.0f);
+
+    base.set_pos({0, -200, 0});
 
     zebra::separate();
 
@@ -357,11 +458,11 @@ int main(int argc, char *argv[])
     /*l.set_pos((cl_float4){-200, 2000, -100, 0});
     l.set_pos((cl_float4){-200, 200, -100, 0});
     l.set_pos((cl_float4){-400, 150, -555, 0});*/
-    window.add_light(&l);
+    //window.add_light(&l);
 
-    l.set_col((cl_float4){1.0f, 0.0f, 1.0f, 0});
+    l.set_col((cl_float4){1.0f, 1.0f, 1.0f, 0});
 
-    l.set_pos((cl_float4){-0, 200, -500, 0});
+    l.set_pos((cl_float4){-0, 20000, -500, 0});
     l.shadow = 0;
     l.radius = 1000000;
 
@@ -417,7 +518,7 @@ int main(int argc, char *argv[])
 
         //window.c_pos.y += 10.0f;
 
-        zebra::repulse();
+        //zebra::repulse();
 
         window.input();
 
@@ -426,7 +527,7 @@ int main(int argc, char *argv[])
         window.render_buffers();
 
         if(zebra_clock.getElapsedTime().asMilliseconds() < 2000)
-            zebra::highlight_zebra(0, window.window);
+            zebra::highlight_zebra(0, window.window, zebra_clock.getElapsedTime().asMilliseconds());
 
         window.display();
 

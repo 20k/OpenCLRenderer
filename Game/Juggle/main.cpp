@@ -54,14 +54,18 @@ newtonian_body* add_collision(newtonian_body* n, objects_container* obj)
 
 struct finger_manager
 {
-    //std::vector<objects_container*> fingers;
-
     finger_data fdata;
 
     std::vector<objects_container*> balls;
+    std::vector<cl_float4> ball_speeds;
+    std::vector<bool> do_speed;
+    std::vector<int> frame_counter;
+    std::vector<std::vector<cl_float4>> speed_history;
 
     float grab_threshold = 0.5;
     float dist_threshold = 500;
+
+    int frame_history = 5;
 
     void add_finger_data(finger_data& dat)
     {
@@ -69,15 +73,61 @@ struct finger_manager
 
         for(int i=0; i<10; i++)
         {
-            fdata.fingers[i].x *= 10;
-            fdata.fingers[i].y *= 10;
-            fdata.fingers[i].z *= 10;
+            fdata.fingers[i].x *= 15;
+            fdata.fingers[i].y *= 15;
+            fdata.fingers[i].z *= 15;
         }
     }
 
     void add_ball(objects_container* b)
     {
         balls.push_back(b);
+        ball_speeds.push_back({0,0,0,0});
+        do_speed.push_back(true);
+
+        frame_counter.push_back(0);
+
+        std::vector<cl_float4> speeds;
+
+        for(int i=0; i<frame_history; i++)
+        {
+            speeds.push_back({0,0,0,0});
+        }
+
+        speed_history.push_back(speeds);
+    }
+
+    void do_ball_physics()
+    {
+        float base = 500;
+
+        float gravity = 0.098f;
+
+        for(int i=0; i<ball_speeds.size(); i++)
+        {
+            cl_float4 speed = ball_speeds[i];
+            objects_container* obj = balls[i];
+
+            cl_float4 pos = obj->pos;
+
+            if(pos.y <= base)
+            {
+                pos.y = base;
+                speed = (cl_float4){0,0,0,0};
+            }
+            else if(do_speed[i])
+            {
+                printf("travelling %i %f %f %f\n", i, speed.x, speed.y, speed.z);
+                pos = add(pos, speed);
+                speed.y -= gravity;
+            }
+
+            ball_speeds[i] = speed;
+            obj->set_pos(pos);
+            obj->g_flush_objects();
+
+            do_speed[i] = true;
+        }
     }
 
     void collide_fingers_balls()
@@ -96,36 +146,64 @@ struct finger_manager
 
                 if(grab)
                 {
-                    //printf("grabby %i\n", balls.size());
-
                     for(int i=0; i<balls.size(); i++)
                     {
                         cl_float4 p1 = fdata.fingers[id];
                         cl_float4 p2 = balls[i]->pos;
 
-                        //printf("%f\n", dist(p1, p2));
-
                         if(dist(p1, p2) < dist_threshold)
                         {
-                            //printf("grabbed\n");
-
                             cube_grabbed = i;
                             break;
                         }
                     }
                 }
 
-                tmp_hand_pos = add(tmp_hand_pos, fdata.fingers[f]);
+                tmp_hand_pos = add(tmp_hand_pos, fdata.fingers[id]);
             }
 
             tmp_hand_pos = div(tmp_hand_pos, 5.0f);
 
             if(cube_grabbed != -1)
             {
-                printf("doing things %f %f %f\n", tmp_hand_pos.x, tmp_hand_pos.y, tmp_hand_pos.z);
+                //printf("doing things %f %f %f\n", tmp_hand_pos.x, tmp_hand_pos.y, tmp_hand_pos.z);
+
+                cl_float4 old_pos = balls[cube_grabbed]->pos;
+
 
                 balls[cube_grabbed]->set_pos(tmp_hand_pos);
                 balls[cube_grabbed]->g_flush_objects();
+
+                cl_float4 speed = sub(tmp_hand_pos, old_pos);
+
+                //speed = mult(speed, 10.0f);
+
+                printf("Goin %i %f %f %f\n", cube_grabbed, speed.x, speed.y, speed.z);
+
+                ///workaround for sensor data possible not being new when polleed
+                if(!is_equal(old_pos, tmp_hand_pos))
+                {
+                    int current_frame = frame_counter[cube_grabbed];
+
+                    speed = clamp(speed, -20, 20);
+
+                    speed_history[cube_grabbed][current_frame] = speed;
+
+                    frame_counter[cube_grabbed] = (frame_counter[cube_grabbed] + 1) % frame_history;
+
+                    cl_float4 avg_speed = {0};
+
+                    for(int i=0; i<frame_history; i++)
+                    {
+                        avg_speed = add(avg_speed, speed_history[cube_grabbed][i]);
+                    }
+
+                    avg_speed = div(avg_speed, frame_history);
+
+                    ball_speeds[cube_grabbed] = avg_speed;
+                }
+
+                do_speed[cube_grabbed] = false;
             }
         }
     }
@@ -259,9 +337,11 @@ int main(int argc, char *argv[])
         {
             //printf("%f %f %f\n", dat.fingers[i].x, dat.fingers[i].y, dat.fingers[i].z);
 
-            fingers[i].set_pos({dat.fingers[i].x*10, dat.fingers[i].y*10, dat.fingers[i].z*10});
+            fingers[i].set_pos({dat.fingers[i].x*15, dat.fingers[i].y*15, dat.fingers[i].z*15});
             fingers[i].g_flush_objects();
         }
+
+        fmanage.do_ball_physics();
 
         fmanage.collide_fingers_balls();
 

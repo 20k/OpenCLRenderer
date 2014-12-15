@@ -112,9 +112,6 @@ float calc_third_areas(struct interp_container *C, float x, float y)
 ///rotates point about camera
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
-    float3 c = native_cos(c_rot);
-    float3 s = native_sin(c_rot);
-
     //float3 ret;
     //ret.x =      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
     //ret.y =      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
@@ -138,6 +135,8 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
     float3 r2 = {sr.y*sr.z, cr.y, -cr.z*sr.y};
     float3 r3 = {-cr.z*sr.x - cr.x*cr.y*sr.z, cr.x*sr.y, cr.x*cr.y*cr.z - sr.x*sr.z};*/
 
+    float3 c = native_cos(c_rot);
+    float3 s = native_sin(c_rot);
 
     float3 rel = point - c_pos;
 
@@ -2073,7 +2072,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(area > 60000)
         {
-            mod = 100;
+            mod = 2500;
         }
 
         float x = ((pixel_along + 0) % width) + min_max[0] - 1;
@@ -2181,7 +2180,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     }*/
 }
 
-#define BUF_ERROR 10
+#define BUF_ERROR 20
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
@@ -2256,7 +2255,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
         if(area > 60000)
         {
-            mod = 100;
+            mod = 2500;
         }
 
         float x = ((pixel_along + 0) % width) + min_max[0] - 1;

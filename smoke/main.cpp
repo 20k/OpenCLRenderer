@@ -105,6 +105,7 @@ int main(int argc, char *argv[])
         window.draw_smoke(s);
 
         window.render_buffers();
+        window.display();
 
         times[time_count] = c.getElapsedTime().asMicroseconds();
 

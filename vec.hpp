@@ -155,4 +155,9 @@ inline cl_float4 clamp(cl_float4 v, float _min, float _max)
     return nv;
 }
 
+inline bool is_equal(cl_float4 v1, cl_float4 v2)
+{
+    return (v1.x == v2.x) && (v1.y == v2.y) && (v1.z == v2.z);
+}
+
 #endif // INCLUDED_HPP_VEC
