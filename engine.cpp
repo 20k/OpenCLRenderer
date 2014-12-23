@@ -656,7 +656,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {
-        cl_float4 t=rot(0, 0, distance, sub({0}, c_rot));
+        //cl_float4 t=rot(0, 0, -distance, sub({0}, c_rot));
+        cl_float4 t = rot_about({0, 0, distance}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -664,7 +665,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::S))
     {
-        cl_float4 t=rot(0, 0, -distance, sub({0}, c_rot));
+        //cl_float4 t=rot(0, 0, distance, sub({0}, c_rot));
+        cl_float4 t = rot_about({0, 0, -distance}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -672,7 +674,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::A))
     {
-        cl_float4 t=rot(-distance, 0, 0, sub({0}, c_rot));
+        //cl_float4 t=rot(distance, 0, 0, sub({0}, c_rot));
+        cl_float4 t = rot_about({-distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -680,7 +683,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::D))
     {
-        cl_float4 t=rot(distance, 0, 0, sub({0}, c_rot));
+        //cl_float4 t=rot(-distance, 0, 0, sub({0}, c_rot));
+        cl_float4 t = rot_about({distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -698,22 +702,22 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::Left))
     {
-        c_rot.y+=0.001*30;
+        c_rot.y-=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Right))
     {
-        c_rot.y-=0.001*30;
+        c_rot.y+=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Up))
     {
-        c_rot.x+=0.001*30;
+        c_rot.x-=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Down))
     {
-        c_rot.x-=0.001*30;
+        c_rot.x+=0.001*30;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
@@ -1219,7 +1223,8 @@ void engine::draw_bulk_objs_n()
 
 
     cl_float4 pos_offset = c_pos;
-    cl_float4 rot_offset = sub({0,0,0,0}, c_rot);
+    //cl_float4 rot_offset = sub({0,0,0,0}, c_rot);
+    cl_float4 rot_offset = c_rot;
 
 
     if(!rift::enabled)
@@ -1488,7 +1493,7 @@ void engine::draw_smoke(smoke& s)
     /*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)*/
 
-    arg_list smoke_args;
+    /*arg_list smoke_args;
     smoke_args.push_back(&s.g_voxel[s.n]);
     smoke_args.push_back(&s.width);
     smoke_args.push_back(&s.height);
@@ -1504,7 +1509,63 @@ void engine::draw_smoke(smoke& s)
     cl_uint global_ws[3] = {s.width, s.height, s.depth};
     cl_uint local_ws[3] = {16, 16, 1};
 
+    run_kernel_with_list(cl::render_voxels, global_ws, local_ws, 3, smoke_args);*/
+
+    /*__kernel void post_upscale(int width, int height, int depth, int uw, int uh, int ud,
+                           __global float* xvel, __global float* yvel, __global float* zvel,
+                           __global float* w1, __global float* w2, __global float* w3,
+                           __global float* mag_out, __write_only image2d_t screen)*/
+    int nx, ny, nz;
+
+    int n = s.n;
+
+
+    arg_list post_args;
+    post_args.push_back(&s.width);
+    post_args.push_back(&s.height);
+    post_args.push_back(&s.depth);
+    post_args.push_back(&s.uwidth);
+    post_args.push_back(&s.uheight);
+    post_args.push_back(&s.udepth);
+    post_args.push_back(&s.g_velocity_x[n]);
+    post_args.push_back(&s.g_velocity_y[n]);
+    post_args.push_back(&s.g_velocity_z[n]);
+    post_args.push_back(&s.g_w1);
+    post_args.push_back(&s.g_w2);
+    post_args.push_back(&s.g_w3);
+    post_args.push_back(&s.g_postprocess_storage);
+    post_args.push_back(&g_screen);
+
+
+    ///make linear
+    cl_uint global_ws[3] = {s.uwidth, s.uheight, s.udepth};
+    cl_uint local_ws[3] = {16, 16, 1};
+
+
+    run_kernel_with_list(cl::post_upscale, global_ws, local_ws, 3, post_args);
+
+
+    arg_list smoke_args;
+    //smoke_args.push_back(&s.g_voxel[s.n]);
+    smoke_args.push_back(&s.g_postprocess_storage);
+    smoke_args.push_back(&s.uwidth);
+    smoke_args.push_back(&s.uheight);
+    smoke_args.push_back(&s.udepth);
+    smoke_args.push_back(&c_pos);
+    smoke_args.push_back(&c_rot);
+    smoke_args.push_back(&s.pos);
+    smoke_args.push_back(&s.rot);
+    smoke_args.push_back(&g_screen);
+    smoke_args.push_back(&depth_buffer[nbuf]);
+
+    ///we may need to go into screenspace later
+    //cl_uint global_ws[3] = {s.width, s.height, s.depth};
+    //cl_uint local_ws[3] = {16, 16, 1};
+
     run_kernel_with_list(cl::render_voxels, global_ws, local_ws, 3, smoke_args);
+
+
+    ///temp while debugging
 }
 
 void engine::render_buffers()

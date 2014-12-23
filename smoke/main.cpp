@@ -12,6 +12,13 @@
 ///todo
 ///fix memory management to not be atrocious
 
+///plan
+///raytrace into smoke cloud
+///find intersection points
+///wont work entirely, but close enough
+///do high res smoke thing at those points in 3d space
+///???
+///might work
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!

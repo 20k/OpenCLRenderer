@@ -18,10 +18,17 @@ struct smoke
     compute::buffer g_velocity_x[2];
     compute::buffer g_velocity_y[2];
     compute::buffer g_velocity_z[2];
+
+    compute::buffer g_w1;
+    compute::buffer g_w2;
+    compute::buffer g_w3;
+
+    compute::buffer g_postprocess_storage;
     //compute::buffer g_pos;
     //compute::buffer g_rot; ///implement this later
     cl_float4 pos, rot;
     int width, height, depth;
+    int uwidth, uheight, udepth;
     ///will eventually need constants for stuff
 
     ///later define spatial and real resolution differently

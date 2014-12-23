@@ -2357,6 +2357,7 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
+///change to 1d
 __kernel
 //__attribute__((reqd_work_group_size(8, 8, 1)))
 //__attribute__((vec_type_hint(float3)))
@@ -4979,6 +4980,154 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
     d_out[IX(x, y, z)] = val;
 
     //d_out[IX(x,y,z)] = d_in[IX(x,y,z)];
+}
+
+#define IX(x, y, z) ((z)*width*height + (y)*width + (x))
+
+///fix this stupidity
+///need to do b-spline trilinear? What?
+float3 get_wavelet(int3 pos, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3)
+{
+    int x = pos.x;
+    int y = pos.y;
+    int z = pos.z;
+
+    x = x % width;
+    y = y % height;
+    z = z % depth;
+
+    float d1y = w1[IX(x, y, z)] - w1[IX(x, y-1, z)];
+    float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z-1)];
+
+    float d3z = w3[IX(x, y, z)] - w3[IX(x, y, z-1)];
+    float d1x = w1[IX(x, y, z)] - w1[IX(x-1, y, z)];
+
+    float d2x = w2[IX(x, y, z)] - w2[IX(x-1, y, z)];
+    float d3y = w3[IX(x, y, z)] - w3[IX(x, y-1, z)];
+
+    return (float3)(d1y - d2z, d3z - d1x, d2x - d3y);
+}
+
+float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
+            int imin, int imax)
+{
+    float3 accum = 0;
+
+    for(int i=imin; i<imax; i++)
+    {
+        int3 new_pos = (int3)(x, y, z);
+
+        new_pos *= pow(2.0f, (float)i);
+
+        float3 w_val = get_wavelet(new_pos, width, height, depth, w1, w2, w3);
+        w_val *= pow(2.0f, (-5.0f/6.0f)*(i - imin));
+
+        accum += w_val;
+    }
+
+    return accum;
+}
+
+float do_trilinear(__global float* buf, float vx, float vy, float vz, int width, int height, int depth)
+{
+    float v1, v2, v3, v4, v5, v6, v7, v8;
+
+    int x = vx, y = vy, z = vz;
+
+    v1 = buf[IX(x, y, z)];
+    v2 = buf[IX(x+1, y, z)];
+    v3 = buf[IX(x, y+1, z)];
+    v4 = buf[IX(x+1, y+1, z)];
+    v5 = buf[IX(x, y, z+1)];
+    v6 = buf[IX(x+1, y, z+1)];
+    v7 = buf[IX(x, y+1, z+1)];
+    v8 = buf[IX(x+1, y+1, z+1)];
+
+    float x1, x2, x3, x4;
+
+    float xfrac = vx - floor(vx);
+
+    x1 = v1 * (1.0f - xfrac) + v2 * xfrac;
+    x2 = v3 * (1.0f - xfrac) + v4 * xfrac;
+    x3 = v5 * (1.0f - xfrac) + v6 * xfrac;
+    x4 = v7 * (1.0f - xfrac) + v8 * xfrac;
+
+    float yfrac = vy - floor(vy);
+
+    float y1, y2;
+
+    y1 = x1 * (1.0f - yfrac) + x2 * yfrac;
+    y2 = x3 * (1.0f - yfrac) + x4 * yfrac;
+
+    float zfrac = vz - floor(vz);
+
+    return y1 * (1.0f - zfrac) + y2 * zfrac;
+}
+
+///do one advect of diffuse with post_upscale higher res?
+__kernel void post_upscale(int width, int height, int depth,
+                           int uw, int uh, int ud,
+                           __global float* xvel, __global float* yvel, __global float* zvel,
+                           __global float* w1, __global float* w2, __global float* w3,
+                           __global float* mag_out, __write_only image2d_t screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///this is not correct but i cant be arsed to find out why
+    //bool oob = !(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1);
+
+    //if(oob)
+    //    return;
+
+    //if(z != 1)
+    //    return;
+
+    ///uw, uh, hd?
+    //float3 val = get_wavelet((int3)(x, y, z), width, height, depth, w1, w2, w3);
+
+    int imin = 0;
+    int imax = 3;
+
+    //float3 val = y_of(x, y, z, width, height, depth, w1, w2, w3, imin, imax);
+
+    float rx, ry, rz;
+
+    float scale = 2.0f;
+
+    rx = x / scale;
+    ry = y / scale;
+    rz = z / scale;
+
+    float3 val;
+
+    val.x = w1[IX((int)rx, (int)ry, (int)rz)];
+    val.y = w2[IX((int)rx, (int)ry, (int)rz)];
+    val.z = w3[IX((int)rx, (int)ry, (int)rz)];
+
+    //float mag = length(val);
+
+    float et = 1;
+
+    float vx, vy, vz;
+
+    vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
+    vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
+    vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
+
+    float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
+
+    float mag = length(mval)/1000.0f;
+
+    mag_out[IX((int)rx, (int)ry, (int)rz)] = mag;
+
+    //if(z != 1)
+    //    return;
+
+    //mag /= 4;
+
+    //write_imagef(screen, (int2){x, y}, mag);
 }
 
 

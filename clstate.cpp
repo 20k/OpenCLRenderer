@@ -35,4 +35,5 @@ kernel cl::raytrace;
 kernel cl::render_voxels;
 kernel cl::diffuse_unstable;
 kernel cl::advect;
+kernel cl::post_upscale;
 

@@ -2,6 +2,59 @@
 #include "clstate.h"
 
 #include "engine.hpp"
+#include "vec.hpp"
+
+
+#define IX(x, y, z) ((z)*width*height + (y)*width + (x))
+
+///fix this stupidity
+///need to do b-spline trilinear? What?
+cl_float3 get_wavelet(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3)
+{
+    x = x % width;
+    y = y % height;
+    z = z % depth;
+
+    if(x == 0 || y == 0 || z == 0)
+        return {0,0,0};
+
+    float d1y = w1[IX(x, y, z)] - w1[IX(x, y-1, z)];
+    float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z-1)];
+
+    float d3z = w3[IX(x, y, z)] - w3[IX(x, y, z-1)];
+    float d1x = w1[IX(x, y, z)] - w1[IX(x-1, y, z)];
+
+    float d2x = w2[IX(x, y, z)] - w2[IX(x-1, y, z)];
+    float d3y = w3[IX(x, y, z)] - w3[IX(x, y-1, z)];
+
+    return (cl_float3){d1y - d2z, d3z - d1x, d2x - d3y};
+}
+
+cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3,
+            int imin, int imax)
+{
+    cl_float3 accum = {0,0,0};
+
+    for(int i=imin; i<imax; i++)
+    {
+        cl_float3 new_pos = (cl_float3){x, y, z};
+
+        //new_pos *= pow(2.0f, (float)i);
+
+        new_pos = mult(new_pos, powf(2.0f, (float)i));
+
+        cl_float3 w_val = get_wavelet(x, y, z, width, height, depth, w1, w2, w3);
+        //w_val *= pow(2.0f, (-5.0f/6.0f)*(i - imin));
+
+        w_val = mult(w_val, pow(2.0f, (-5.0f/6.0f)*(i - imin)));
+
+        accum = add(accum, w_val);
+    }
+
+    return accum;
+}
+
+
 
 void smoke::init(int _width, int _height, int _depth)
 {
@@ -19,6 +72,12 @@ void smoke::init(int _width, int _height, int _depth)
     rot = zero;
 
     pos = {0, 100, -100, 0};
+
+    int scale = 2;
+
+    uwidth = width*scale;
+    uheight = height*scale;
+    udepth = depth*scale;
 
 
     for(int i=0; i<2; i++)
@@ -45,14 +104,24 @@ void smoke::init(int _width, int _height, int _depth)
         ///init some stuff in the centre of the array
         for(int i=-5; i<=5; i++)
         {
-            buf[width/2 + i + width*height/2 + (depth/2)*width*height] = 1000000.0f;
+            int pos = width/2 + i + width*height/2 + (depth/2)*width*height;
+
+            if(pos >= width*height*depth)
+                continue;
+
+            buf[pos] = 1000000.0f;
         }
 
         for(int k=-50; k<=50; k++)
         {
             for(int j=-20; j<=20; j++)
             {
-                buf1[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100.0f;
+                int pos = width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height;
+
+                if(pos >= width*height*depth)
+                    continue;
+
+                buf1[pos] = 100.0f;
                 //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
             }
         }
@@ -62,6 +131,56 @@ void smoke::init(int _width, int _height, int _depth)
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_y[i].get(), buf2, 0, NULL, NULL);
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_z[i].get(), buf3, 0, NULL, NULL);
     }
+
+    float* tw1, *tw2, *tw3;
+
+    ///needs to be nw, nh, nd
+    tw1 = new float[uwidth*uheight*udepth];
+    tw2 = new float[uwidth*uheight*udepth];
+    tw3 = new float[uwidth*uheight*udepth];
+
+    g_w1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w3 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+
+
+    for(unsigned int i = 0; i<uwidth*uheight*udepth; i++)
+    {
+        tw1[i] = (float)rand() / RAND_MAX;
+        tw2[i] = (float)rand() / RAND_MAX;
+        tw3[i] = (float)rand() / RAND_MAX;
+    }
+
+    cl_float* bw1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w1.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+    cl_float* bw2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w2.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+    cl_float* bw3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w3.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+
+    //for(unsigned int i = 0; i<width*height*depth; i++)
+    for(int z=0; z<udepth; z++)
+        for(int y=0; y<uheight; y++)
+            for(int x=0; x<uwidth; x++)
+    {
+        int imin = 10;
+        int imax = 13;
+
+        cl_float3 val = y_of(x, y, z, uwidth, uheight, udepth, tw1, tw2, tw3, imin, imax);
+
+        bw1[IX(x, y, z)] = val.x;
+        bw2[IX(x, y, z)] = val.y;
+        bw3[IX(x, y, z)] = val.z;
+    }
+
+
+    clEnqueueUnmapMemObject(cl::cqueue.get(), g_w1.get(), bw1, 0, NULL, NULL);
+    clEnqueueUnmapMemObject(cl::cqueue.get(), g_w2.get(), bw2, 0, NULL, NULL);
+    clEnqueueUnmapMemObject(cl::cqueue.get(), g_w3.get(), bw3, 0, NULL, NULL);
+
+    g_postprocess_storage = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    delete [] tw1;
+    delete [] tw2;
+    delete [] tw3;
 }
 
 ///do async
@@ -149,7 +268,6 @@ void smoke::tick(float dt)
     dens_advect.args[5] = &g_velocity_z[next];
 
     run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);
-
 
     //n = next;
 }
