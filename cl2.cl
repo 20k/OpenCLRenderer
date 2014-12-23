@@ -5116,11 +5116,12 @@ __kernel void post_upscale(int width, int height, int depth,
     vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
     vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
 
-    float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
+    //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
+    float3 mval = (float3){vx, vy, vz} + val;
 
-    float mag = length(mval)/1000.0f;
+    float mag = length(vx + val.x/100.0f);
 
-    mag_out[IX((int)rx, (int)ry, (int)rz)] = mag;
+    mag_out[(int)rz*uw*uh + (int)ry*uw + (int)rx] = mag;
 
     //if(z != 1)
     //    return;

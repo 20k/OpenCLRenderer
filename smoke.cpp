@@ -169,6 +169,9 @@ void smoke::init(int _width, int _height, int _depth)
         bw1[IX(x, y, z)] = val.x;
         bw2[IX(x, y, z)] = val.y;
         bw3[IX(x, y, z)] = val.z;
+
+        //if(val.x != 0)
+        //printf("%f\n", val.x);
     }
 
 
