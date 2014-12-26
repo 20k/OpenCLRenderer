@@ -656,8 +656,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {
-        //cl_float4 t=rot(0, 0, -distance, sub({0}, c_rot));
-        cl_float4 t = rot_about({0, 0, distance}, {0,0,0}, sub({0,0,0}, c_rot));
+        cl_float4 t=rot(0, 0, distance, c_rot);
+        //cl_float4 t = rot_about({0, 0, distance}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -665,8 +665,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::S))
     {
-        //cl_float4 t=rot(0, 0, distance, sub({0}, c_rot));
-        cl_float4 t = rot_about({0, 0, -distance}, {0,0,0}, sub({0,0,0}, c_rot));
+        cl_float4 t=rot(0, 0, -distance, c_rot);
+        //cl_float4 t = rot_about({0, 0, -distance}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -674,8 +674,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::A))
     {
-        //cl_float4 t=rot(distance, 0, 0, sub({0}, c_rot));
-        cl_float4 t = rot_about({-distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
+        cl_float4 t=rot(-distance, 0, 0, c_rot);
+        //cl_float4 t = rot_about({-distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -683,8 +683,8 @@ void engine::input()
 
     if(keyboard.isKeyPressed(sf::Keyboard::D))
     {
-        //cl_float4 t=rot(-distance, 0, 0, sub({0}, c_rot));
-        cl_float4 t = rot_about({distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
+        cl_float4 t=rot(distance, 0, 0, c_rot);
+        //cl_float4 t = rot_about({distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
         c_pos.x+=t.x;
         c_pos.y+=t.y;
         c_pos.z+=t.z;
@@ -1519,7 +1519,6 @@ void engine::draw_smoke(smoke& s)
 
     int n = s.n;
 
-
     arg_list post_args;
     post_args.push_back(&s.width);
     post_args.push_back(&s.height);
@@ -1533,7 +1532,11 @@ void engine::draw_smoke(smoke& s)
     post_args.push_back(&s.g_w1);
     post_args.push_back(&s.g_w2);
     post_args.push_back(&s.g_w3);
-    post_args.push_back(&s.g_postprocess_storage);
+    post_args.push_back(&s.g_postprocess_storage_x);
+    post_args.push_back(&s.g_postprocess_storage_y);
+    post_args.push_back(&s.g_postprocess_storage_z);
+    post_args.push_back(&s.g_voxel[n]);
+    post_args.push_back(&s.g_voxel_upscale[0]);
     post_args.push_back(&g_screen);
 
 
@@ -1541,13 +1544,33 @@ void engine::draw_smoke(smoke& s)
     cl_uint global_ws[3] = {s.uwidth, s.uheight, s.udepth};
     cl_uint local_ws[3] = {16, 16, 1};
 
-
+    ///this also upscales the diffusion buffer
     run_kernel_with_list(cl::post_upscale, global_ws, local_ws, 3, post_args);
+
+    ///need to advect the diffuse buffer. Upscale it first, then advect
+
+    cl_float dt_const = 0.33f;
+
+    cl_int zero = 0;
+
+    /*arg_list dens_advect;
+    dens_advect.push_back(&s.uwidth);
+    dens_advect.push_back(&s.uheight);
+    dens_advect.push_back(&s.udepth);
+    dens_advect.push_back(&zero); ///unused
+    dens_advect.push_back(&s.g_voxel_upscale[1]); ///out
+    dens_advect.push_back(&s.g_voxel_upscale[0]); ///in
+    dens_advect.push_back(&s.g_postprocess_storage_x); ///make float3
+    dens_advect.push_back(&s.g_postprocess_storage_y);
+    dens_advect.push_back(&s.g_postprocess_storage_z);
+    dens_advect.push_back(&dt_const); ///temp
+
+    run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);*/
 
 
     arg_list smoke_args;
     //smoke_args.push_back(&s.g_voxel[s.n]);
-    smoke_args.push_back(&s.g_postprocess_storage);
+    smoke_args.push_back(&s.g_postprocess_storage_x);
     smoke_args.push_back(&s.uwidth);
     smoke_args.push_back(&s.uheight);
     smoke_args.push_back(&s.udepth);

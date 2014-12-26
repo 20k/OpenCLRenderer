@@ -4779,6 +4779,7 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     int y = get_global_id(1);
     int z = get_global_id(2);
 
+    ///need to change this to be more intelligent
     if(x >= width-1 || y >= height-1 || z >= depth-1 || x < 0 || y < 0 || z < 0)
     {
         return;
@@ -4797,6 +4798,12 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
 
     float myval = voxel[IX(x, y, z)];
 
+    if(myval < 0.1f)
+        return;
+
+    if(projected.z < 0.001f)
+        return;
+
     ///only render outer hull for the moment
     int c = 0;
     c = voxel[IX(x-1, y, z)] >= 0.1f ? c+1 : c;
@@ -4809,12 +4816,6 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     int cond = c == 0 || c == 6;
 
     if(cond)
-        return;
-
-    if(myval < 0.1f)
-        return;
-
-    if(projected.z < 0.001f)
         return;
 
     if(myval > 1)
@@ -4931,18 +4932,6 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
         return;
     }
 
-    //__local float local_d_in[16][16][3];
-
-    //int mx, my, mz;
-
-    //mx = get_local_id(0);
-    //my = get_local_id(1);
-    //mz = get_local_id(2);
-
-    ///change ordering?
-    //local_d_in[mx][my][mz-1] = d_in[IX(x,y,z-1)];
-    //local_d_in[mx][my][mz]   = d_in[IX(x,y,z)];
-    //local_d_in[mx][my][mz+1] = d_in[IX(x,y,z+1)];
 
     float dt0x = dt*width;
     float dt0y = dt*height;
@@ -4982,7 +4971,7 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
     //d_out[IX(x,y,z)] = d_in[IX(x,y,z)];
 }
 
-#define IX(x, y, z) ((z)*width*height + (y)*width + (x))
+//#define IX(x, y, z) ((z)*width*height + (y)*width + (x))
 
 ///fix this stupidity
 ///need to do b-spline trilinear? What?
@@ -5069,7 +5058,9 @@ __kernel void post_upscale(int width, int height, int depth,
                            int uw, int uh, int ud,
                            __global float* xvel, __global float* yvel, __global float* zvel,
                            __global float* w1, __global float* w2, __global float* w3,
-                           __global float* mag_out, __write_only image2d_t screen)
+                           __global float* x_out, __global float* y_out, __global float* z_out,
+                           __global float* d_in, __global float* d_out,
+                           __write_only image2d_t screen)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -5087,24 +5078,38 @@ __kernel void post_upscale(int width, int height, int depth,
     ///uw, uh, hd?
     //float3 val = get_wavelet((int3)(x, y, z), width, height, depth, w1, w2, w3);
 
-    int imin = 0;
-    int imax = 3;
+    //int imin = 0;
+    //int imax = 3;
 
     //float3 val = y_of(x, y, z, width, height, depth, w1, w2, w3, imin, imax);
 
     float rx, ry, rz;
 
-    float scale = 2.0f;
+    int scale = 2.0f;
 
+    ///imprecise, we need something else
     rx = x / scale;
     ry = y / scale;
     rz = z / scale;
 
+    ///int pos = z*uw*uh + y*uw + rx;
+
     float3 val;
 
-    val.x = w1[IX((int)rx, (int)ry, (int)rz)];
-    val.y = w2[IX((int)rx, (int)ry, (int)rz)];
-    val.z = w3[IX((int)rx, (int)ry, (int)rz)];
+
+    int pos = z*uw*uh + y*uw + x;
+
+    ///the generation of this is a bit incorrect
+    ///we're accessing low res noise
+    ///this causes it to be broke
+    ///interpolate? or use high res?
+    //val.x = w1[IX((int)rx, (int)ry, (int)rz)];
+    //val.y = w2[IX((int)rx, (int)ry, (int)rz)];
+    //val.z = w3[IX((int)rx, (int)ry, (int)rz)];
+
+    val.x = w1[pos];
+    val.y = w2[pos];
+    val.z = w3[pos];
 
     //float mag = length(val);
 
@@ -5112,16 +5117,35 @@ __kernel void post_upscale(int width, int height, int depth,
 
     float vx, vy, vz;
 
+    ///do trilinear beforehand
+    ///or do averaging like a sensible human being
+    ///or use a 3d texture and get this for FREELOY JENKINS
     vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
     vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
     vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
 
     //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
-    float3 mval = (float3){vx, vy, vz} + val;
 
-    float mag = length(vx + val.x/100.0f);
+    ///arbitrary constant?
+    ///need to do interpolation of this
+    float3 mval = (float3){vx, vy, vz} + val/100.0f;
 
-    mag_out[(int)rz*uw*uh + (int)ry*uw + (int)rx] = mag;
+    //float mag = length(vx + val.x/100.0f);
+
+    //float3 fval =
+
+
+    ///need to advect diffuse buffer
+    ///this isnt correct indexing
+
+    x_out[pos] = mval.x;
+    y_out[pos] = mval.y;
+    z_out[pos] = mval.z;
+
+    ///do interpolation? This is just nearest neighbour ;_;
+    d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+
+    //mag_out[(int)rz*uw*uh + (int)ry*uw + (int)rx] = mag;
 
     //if(z != 1)
     //    return;

@@ -4,7 +4,7 @@
 #include "engine.hpp"
 #include "vec.hpp"
 
-
+///scrap this macro, its causing issues
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
 
 ///fix this stupidity
@@ -15,17 +15,23 @@ cl_float3 get_wavelet(int x, int y, int z, int width, int height, int depth, flo
     y = y % height;
     z = z % depth;
 
-    if(x == 0 || y == 0 || z == 0)
-        return {0,0,0};
+    //if(x == 0 || y == 0 || z == 0)
+    //    return {0,0,0};
 
-    float d1y = w1[IX(x, y, z)] - w1[IX(x, y-1, z)];
-    float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z-1)];
+    int x1, y1, z1;
 
-    float d3z = w3[IX(x, y, z)] - w3[IX(x, y, z-1)];
-    float d1x = w1[IX(x, y, z)] - w1[IX(x-1, y, z)];
+    x1 = (x + width - 1) % width;
+    y1 = (y + height - 1) % height;
+    z1 = (z + depth - 1) % depth;
 
-    float d2x = w2[IX(x, y, z)] - w2[IX(x-1, y, z)];
-    float d3y = w3[IX(x, y, z)] - w3[IX(x, y-1, z)];
+    float d1y = w1[IX(x, y, z)] - w1[IX(x, y1, z)];
+    float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z1)];
+
+    float d3z = w3[IX(x, y, z)] - w3[IX(x, y, z1)];
+    float d1x = w1[IX(x, y, z)] - w1[IX(x1, y, z)];
+
+    float d2x = w2[IX(x, y, z)] - w2[IX(x1, y, z)];
+    float d3y = w3[IX(x, y, z)] - w3[IX(x, y1, z)];
 
     return (cl_float3){d1y - d2z, d3z - d1x, d2x - d3y};
 }
@@ -152,23 +158,27 @@ void smoke::init(int _width, int _height, int _depth)
         tw3[i] = (float)rand() / RAND_MAX;
     }
 
-    cl_float* bw1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w1.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-    cl_float* bw2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w2.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-    cl_float* bw3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w3.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+    cl_float* bw1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w1.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*uwidth*uheight*udepth, 0, NULL, NULL, NULL);
+    cl_float* bw2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w2.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*uwidth*uheight*udepth, 0, NULL, NULL, NULL);
+    cl_float* bw3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w3.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*uwidth*uheight*udepth, 0, NULL, NULL, NULL);
 
     //for(unsigned int i = 0; i<width*height*depth; i++)
     for(int z=0; z<udepth; z++)
         for(int y=0; y<uheight; y++)
             for(int x=0; x<uwidth; x++)
     {
+        int upscaled_pos = z*uwidth*uheight + y*uwidth + x;
+
         int imin = 10;
         int imax = 13;
 
         cl_float3 val = y_of(x, y, z, uwidth, uheight, udepth, tw1, tw2, tw3, imin, imax);
 
-        bw1[IX(x, y, z)] = val.x;
-        bw2[IX(x, y, z)] = val.y;
-        bw3[IX(x, y, z)] = val.z;
+        bw1[upscaled_pos] = val.x;
+        bw2[upscaled_pos] = val.y;
+        bw3[upscaled_pos] = val.z;
+
+        //printf("%f ", val.x);
 
         //if(val.x != 0)
         //printf("%f\n", val.x);
@@ -179,7 +189,12 @@ void smoke::init(int _width, int _height, int _depth)
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w2.get(), bw2, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w3.get(), bw3, 0, NULL, NULL);
 
-    g_postprocess_storage = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_postprocess_storage_x = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_postprocess_storage_y = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_postprocess_storage_z = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    g_voxel_upscale[0] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_voxel_upscale[1] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
     delete [] tw1;
     delete [] tw2;

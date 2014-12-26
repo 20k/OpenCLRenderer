@@ -15,6 +15,7 @@ struct smoke
     int n;
 
     compute::buffer g_voxel[2];
+    compute::buffer g_voxel_upscale[2];
     compute::buffer g_velocity_x[2];
     compute::buffer g_velocity_y[2];
     compute::buffer g_velocity_z[2];
@@ -23,7 +24,9 @@ struct smoke
     compute::buffer g_w2;
     compute::buffer g_w3;
 
-    compute::buffer g_postprocess_storage;
+    compute::buffer g_postprocess_storage_x;
+    compute::buffer g_postprocess_storage_y;
+    compute::buffer g_postprocess_storage_z;
     //compute::buffer g_pos;
     //compute::buffer g_rot; ///implement this later
     cl_float4 pos, rot;
