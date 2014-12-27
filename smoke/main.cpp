@@ -50,8 +50,10 @@ int main(int argc, char *argv[])
     obj_mem_manager::g_changeover();
 
 
+    ///200*200*200 -> 400*400*400 is simply too large, the latter is 225 mb big
+    ///Do i need full floats? half floats would work
     smoke s;
-    s.init(200, 200, 200);
+    s.init(100, 100, 100);
 
     sf::Event Event;
 

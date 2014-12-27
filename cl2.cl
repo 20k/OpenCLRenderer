@@ -4772,6 +4772,8 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 ///do separate rendering onto real sized buffer, then back project from screen into that
 ///this really needs doing next
 ///expand size? Make variable?
+///need to work on actually rendering the voxels now. Raytrace from the camera into the voxel field?
+///would involve irregularly stepping through memory a lot
 __kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)
 {
@@ -4914,22 +4916,65 @@ __kernel void diffuse_unstable(int width, int height, int depth, int b, __global
     x_out[IX(x,y,z)] = max(val, 0.0f);
 }
 
-///combine all 3 uvw velocities into 1 kernel?
-///nope, slower
-///textures for free interpolation, would be extremely, extremely much fasterer
-///might be worth combining them then
-__kernel
-//__attribute__((reqd_work_group_size(16, 16, 1)))
-void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
+float advect_func_vel(int x, int y, int z,
+                  int width, int height, int depth,
+                  __global float* d_in,
+                  //__global float* xvel, __global float* yvel, __global float* zvel,
+                  float pvx, float pvy, float pvz,
+                  float dt)
 {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    ///lazy for < 1
     if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
     {
-        return;
+        return 0;
+    }
+
+
+    float dt0x = dt*width;
+    float dt0y = dt*height;
+    float dt0z = dt*depth;
+
+    float vx = x - dt0x * pvx;//xvel[IX(x,y,z)];
+    float vy = y - dt0y * pvy;//yvel[IX(x,y,z)];
+    float vz = z - dt0z * pvz;//zvel[IX(x,y,z)];
+
+    vx = clamp(vx, 0.5f, width - 1.5f);
+    vy = clamp(vy, 0.5f, height - 1.5f);
+    vz = clamp(vz, 0.5f, depth - 1.5f);
+
+    float3 v0s = floor((float3){vx, vy, vz});
+
+    int3 iv0s = convert_int3(v0s);
+
+    float3 v1s = v0s + 1;
+
+    float3 fracs = (float3){vx, vy, vz} - v0s;
+
+    float3 ifracs = 1.0f - fracs;
+
+    float xy0 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z)];
+    float xy1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z)];
+
+    float xy0z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z+1)];
+    float xy1z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z+1)];
+
+    float yz0 = ifracs.y * xy0 + fracs.y * xy1;
+    float yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
+
+    float val = ifracs.z * yz0 + fracs.z * yz1;
+
+    return val;
+}
+
+
+float advect_func(int x, int y, int z,
+                  int width, int height, int depth,
+                  __global float* d_in,
+                  __global float* xvel, __global float* yvel, __global float* zvel,
+                  float dt)
+{
+    /*if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
+    {
+        return 0;
     }
 
 
@@ -4966,7 +5011,68 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
 
     float val = ifracs.z * yz0 + fracs.z * yz1;
 
-    d_out[IX(x, y, z)] = val;
+    return val;*/
+
+    return advect_func_vel(x, y, z, width, height, depth, d_in, xvel[IX(x,y,z)], yvel[IX(x,y,z)], zvel[IX(x,y,z)], dt);
+
+}
+
+
+///combine all 3 uvw velocities into 1 kernel?
+///nope, slower
+///textures for free interpolation, would be extremely, extremely much fasterer
+///might be worth combining them then
+__kernel
+//__attribute__((reqd_work_group_size(16, 16, 1)))
+void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
+    {
+        return;
+    }
+
+
+    /*float dt0x = dt*width;
+    float dt0y = dt*height;
+    float dt0z = dt*depth;
+
+    float vx = x - dt0x * xvel[IX(x,y,z)];
+    float vy = y - dt0y * yvel[IX(x,y,z)];
+    float vz = z - dt0z * zvel[IX(x,y,z)];
+
+    vx = clamp(vx, 0.5f, width - 1.5f);
+    vy = clamp(vy, 0.5f, height - 1.5f);
+    vz = clamp(vz, 0.5f, depth - 1.5f);
+
+    float3 v0s = floor((float3){vx, vy, vz});
+
+    int3 iv0s = convert_int3(v0s);
+
+    float3 v1s = v0s + 1;
+
+    float3 fracs = (float3){vx, vy, vz} - v0s;
+
+    float3 ifracs = 1.0f - fracs;
+
+    float xy0 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z)];
+    float xy1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z)];
+
+    float xy0z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z+1)];
+    float xy1z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z+1)];
+
+    float yz0 = ifracs.y * xy0 + fracs.y * xy1;
+    float yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
+
+    float val = ifracs.z * yz0 + fracs.z * yz1;
+
+    d_out[IX(x, y, z)] = val;*/
+
+    d_out[IX(x, y, z)] = advect_func(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
 
     //d_out[IX(x,y,z)] = d_in[IX(x,y,z)];
 }
@@ -5054,34 +5160,20 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
 }
 
 ///do one advect of diffuse with post_upscale higher res?
+///dedicated upscaling kernel?
+///very interestingly, excluding the x_out, y_out and z_out arguments incrases performances by ~1ms
+///????
 __kernel void post_upscale(int width, int height, int depth,
                            int uw, int uh, int ud,
                            __global float* xvel, __global float* yvel, __global float* zvel,
                            __global float* w1, __global float* w2, __global float* w3,
-                           __global float* x_out, __global float* y_out, __global float* z_out,
+                           //__global float* x_out, __global float* y_out, __global float* z_out,
                            __global float* d_in, __global float* d_out,
                            __write_only image2d_t screen)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
     int z = get_global_id(2);
-
-    ///this is not correct but i cant be arsed to find out why
-    //bool oob = !(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1);
-
-    //if(oob)
-    //    return;
-
-    //if(z != 1)
-    //    return;
-
-    ///uw, uh, hd?
-    //float3 val = get_wavelet((int3)(x, y, z), width, height, depth, w1, w2, w3);
-
-    //int imin = 0;
-    //int imax = 3;
-
-    //float3 val = y_of(x, y, z, width, height, depth, w1, w2, w3, imin, imax);
 
     float rx, ry, rz;
 
@@ -5092,10 +5184,8 @@ __kernel void post_upscale(int width, int height, int depth,
     ry = y / scale;
     rz = z / scale;
 
-    ///int pos = z*uw*uh + y*uw + rx;
 
-    float3 val;
-
+    float3 val = 0;
 
     int pos = z*uw*uh + y*uw + x;
 
@@ -5107,9 +5197,26 @@ __kernel void post_upscale(int width, int height, int depth,
     //val.y = w2[IX((int)rx, (int)ry, (int)rz)];
     //val.z = w3[IX((int)rx, (int)ry, (int)rz)];
 
+    ///would be beneficial to be able to use lower res smoke
     val.x = w1[pos];
     val.y = w2[pos];
     val.z = w3[pos];
+
+    ///if i do interpolation, it means i dont need to use more memory
+    ///IE MUCH FASTER
+    //val.x = do_trilinear(w1, rx, ry, rz, width, height, depth);
+    //val.y = do_trilinear(w2, rx, ry, rz, width, height, depth);
+    //val.z = do_trilinear(w3, rx, ry, rz, width, height, depth);
+
+    /*val.x += w1[IX((int)rx, (int)ry, (int)rz)];
+    val.x += w1[IX((int)rx-1, (int)ry, (int)rz)];
+    val.x += w1[IX((int)rx+1, (int)ry, (int)rz)];
+    val.x += w1[IX((int)rx, (int)ry-1, (int)rz)];
+    val.x += w1[IX((int)rx, (int)ry+1, (int)rz)];
+    val.x += w1[IX((int)rx, (int)ry, (int)rz+1)];
+    val.x += w1[IX((int)rx, (int)ry, (int)rz-1)];
+
+    val.x /= 7;*/
 
     //float mag = length(val);
 
@@ -5120,30 +5227,45 @@ __kernel void post_upscale(int width, int height, int depth,
     ///do trilinear beforehand
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
-    vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
-    vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
-    vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
+    ///do i need smooth vx....????
+    //vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
+    //vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
+    //vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
+
+    vx = xvel[IX((int)rx, (int)ry, (int)rz)];
+    vy = yvel[IX((int)rx, (int)ry, (int)rz)];
+    vz = zvel[IX((int)rx, (int)ry, (int)rz)];
 
     //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
 
     ///arbitrary constant?
     ///need to do interpolation of this
-    float3 mval = (float3){vx, vy, vz} + val/100.0f;
+    ///? twiddle the constant
+    ///this is the new velocity
+    float3 vval = (float3){vx, vy, vz} + val/100.0f;
 
     //float mag = length(vx + val.x/100.0f);
-
-    //float3 fval =
-
 
     ///need to advect diffuse buffer
     ///this isnt correct indexing
 
-    x_out[pos] = mval.x;
-    y_out[pos] = mval.y;
-    z_out[pos] = mval.z;
+
+    ///if i perform advection within this kernel, then i dont have to write this data out
+    ///instead, i can just only write out upscaled density!"
+    ///yay, performance!
+    ///then i can also use the higher resolution noise?
+    //x_out[pos] = vval.x;
+    //y_out[pos] = vval.y;
+    //z_out[pos] = vval.z;
+
+    ///do advect in this kernel here?
 
     ///do interpolation? This is just nearest neighbour ;_;
-    d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+    //d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+
+    ///need to pass in real dt
+    ///draw from here somehow?
+    d_out[pos] = advect_func_vel(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
     //mag_out[(int)rz*uw*uh + (int)ry*uw + (int)rx] = mag;
 

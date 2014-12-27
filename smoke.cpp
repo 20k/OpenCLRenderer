@@ -174,14 +174,9 @@ void smoke::init(int _width, int _height, int _depth)
 
         cl_float3 val = y_of(x, y, z, uwidth, uheight, udepth, tw1, tw2, tw3, imin, imax);
 
-        bw1[upscaled_pos] = val.x;
-        bw2[upscaled_pos] = val.y;
-        bw3[upscaled_pos] = val.z;
-
-        //printf("%f ", val.x);
-
-        //if(val.x != 0)
-        //printf("%f\n", val.x);
+        bw1[upscaled_pos] = (val.x);
+        bw2[upscaled_pos] = (val.y);
+        bw3[upscaled_pos] = (val.z);
     }
 
 
@@ -189,12 +184,12 @@ void smoke::init(int _width, int _height, int _depth)
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w2.get(), bw2, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w3.get(), bw3, 0, NULL, NULL);
 
-    g_postprocess_storage_x = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    g_postprocess_storage_y = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    g_postprocess_storage_z = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    //g_postprocess_storage_x = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    //g_postprocess_storage_y = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    //g_postprocess_storage_z = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
     g_voxel_upscale[0] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    g_voxel_upscale[1] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    //g_voxel_upscale[1] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
     delete [] tw1;
     delete [] tw2;

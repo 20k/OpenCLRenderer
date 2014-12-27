@@ -1532,9 +1532,9 @@ void engine::draw_smoke(smoke& s)
     post_args.push_back(&s.g_w1);
     post_args.push_back(&s.g_w2);
     post_args.push_back(&s.g_w3);
-    post_args.push_back(&s.g_postprocess_storage_x);
-    post_args.push_back(&s.g_postprocess_storage_y);
-    post_args.push_back(&s.g_postprocess_storage_z);
+    //post_args.push_back(&s.g_postprocess_storage_x);
+    //post_args.push_back(&s.g_postprocess_storage_y);
+    //post_args.push_back(&s.g_postprocess_storage_z);
     post_args.push_back(&s.g_voxel[n]);
     post_args.push_back(&s.g_voxel_upscale[0]);
     post_args.push_back(&g_screen);
@@ -1570,7 +1570,7 @@ void engine::draw_smoke(smoke& s)
 
     arg_list smoke_args;
     //smoke_args.push_back(&s.g_voxel[s.n]);
-    smoke_args.push_back(&s.g_postprocess_storage_x);
+    smoke_args.push_back(&s.g_voxel_upscale[0]);
     smoke_args.push_back(&s.uwidth);
     smoke_args.push_back(&s.uheight);
     smoke_args.push_back(&s.udepth);
