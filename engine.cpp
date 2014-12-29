@@ -1633,11 +1633,11 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&offset);
     smoke_args.push_back(corners, sizeof(corners)); ///?
 
-    printf("%f %f\n", offset.x, offset.y);
+    //printf("%f %f\n", offset.x, offset.y);
 
     int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
 
-    printf("%i %i\n", c_width, c_height);
+    //printf("%i %i\n", c_width, c_height);
 
     offset.x = std::max(offset.x, 0.0f);
     offset.y = std::max(offset.y, 0.0f);
@@ -1653,7 +1653,7 @@ void engine::draw_smoke(smoke& s)
     run_kernel_with_list(cl::render_voxels, render_ws, render_lws, 2, smoke_args);
 
 
-    ///temp while debugging
+    ///temp while debuggingf
 }
 
 void engine::render_buffers()

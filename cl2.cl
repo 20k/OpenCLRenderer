@@ -4833,6 +4833,7 @@ struct cube
     float4 corners[8];
 };
 
+///textures
 __kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer, float2 offset, struct cube rotcube)
 {
@@ -4925,7 +4926,51 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
         }
     }
 
-    write_imagef(screen, (int2){x, y}, min_t);
+    if(min_t == FLT_MAX && max_t == -1)
+        return;
+
+    ///tiredness code  following
+
+    float voxel_accumulate = 0;
+
+    const float mod = 2.0f;
+
+
+    const float divisions = depth*4; ///bad approximation
+
+    float step = fabs(max_t - min_t) / divisions;
+
+    step = max(step, 0.001f);
+
+    float cur_t = min_t;
+
+    while(cur_t < max_t)
+    {
+        ///i believe this is the correct ray equation
+        float3 pos = ray_origin + cur_t * ray_dir;
+
+        pos = clamp(pos, (float3){0,0,0}, (float3){width-1, height-1, depth-1});
+
+        int3 ipos = convert_int3(pos);
+
+        float val = voxel[IX(ipos.x, ipos.y, ipos.z)];
+
+        voxel_accumulate += val / mod;
+
+        if(val >= 0.1)
+        {
+            voxel_accumulate = 1;
+            break;
+        }
+
+        cur_t += step;
+    }
+
+    ///end code written while tired
+
+    ///take min_t, max_t, divide and step through. Literally hitler my way along the mesh.
+
+    write_imagef(screen, (int2){x, y}, voxel_accumulate);
 
     ///just make it shit
 
