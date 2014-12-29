@@ -62,13 +62,14 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 
 
 
-void smoke::init(int _width, int _height, int _depth)
+void smoke::init(int _width, int _height, int _depth, int _scale)
 {
     n = 0;
 
     width = _width;
     height = _height;
     depth = _depth;
+    scale = _scale;
 
     cl_float4 zero = {0};
     //g_pos = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
@@ -79,7 +80,7 @@ void smoke::init(int _width, int _height, int _depth)
 
     pos = {0, 100, -100, 0};
 
-    int scale = 2;
+
 
     uwidth = width*scale;
     uheight = height*scale;

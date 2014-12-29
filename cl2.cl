@@ -4774,7 +4774,7 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 ///expand size? Make variable?
 ///need to work on actually rendering the voxels now. Raytrace from the camera into the voxel field?
 ///would involve irregularly stepping through memory a lot
-__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+/*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)
 {
     int x = get_global_id(0);
@@ -4782,7 +4782,7 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     int z = get_global_id(2);
 
     ///need to change this to be more intelligent
-    if(x >= width-1 || y >= height-1 || z >= depth-1 || x < 0 || y < 0 || z < 0)
+    if(x >= width-1 || y >= height-1 || z >= depth-1)// || x < 0 || y < 0 || z < 0)
     {
         return;
     }
@@ -4826,6 +4826,173 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     myval = 1;
 
     write_imagef(screen, (int2){projected.x, projected.y}, myval);
+}*/
+
+struct cube
+{
+    float4 corners[8];
+};
+
+__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+                            __write_only image2d_t screen, __global uint* depth_buffer, float2 offset, struct cube rotcube)
+{
+    float x = get_global_id(0);
+    float y = get_global_id(1);
+
+    int swidth = get_global_size(0);
+    int sheight = get_global_size(1);
+
+    x += offset.x;
+    y += offset.y;
+    //int z = get_global_id(2);
+
+    ///need to change this to be more intelligent
+    if(x >= SCREENWIDTH-1 || y >= SCREENHEIGHT-1)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
+    {
+        return;
+    }
+
+    /*
+    void triangle_intersection(const float3   V1,  // Triangle vertices
+                               const float3   V2,
+                               const float3   V3,
+                               const float3    O,  //Ray origin
+                               const float3    D,  //Ray direction
+                                     float* out,
+                                     float* uout,
+                                     float* vout)*/
+
+
+
+    float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
+
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(spos, 0, c_rot.xyz);
+
+    float3 ray_dir = global_position;
+
+    float3 ray_origin = c_pos.xyz;
+
+
+    //float4 corners[8] = rotcube.corners;
+
+
+    float4 tris[12][3] =
+    {
+        {rotcube.corners[0], rotcube.corners[1], rotcube.corners[2]},
+        {rotcube.corners[3], rotcube.corners[1], rotcube.corners[2]},
+        {rotcube.corners[4], rotcube.corners[5], rotcube.corners[6]},
+        {rotcube.corners[7], rotcube.corners[5], rotcube.corners[6]},
+
+        ///sides
+        {rotcube.corners[0], rotcube.corners[2], rotcube.corners[4]},
+        {rotcube.corners[6], rotcube.corners[2], rotcube.corners[4]},
+        {rotcube.corners[1], rotcube.corners[3], rotcube.corners[5]},
+        {rotcube.corners[7], rotcube.corners[3], rotcube.corners[5]},
+
+        ///good old tops
+        {rotcube.corners[0], rotcube.corners[1], rotcube.corners[4]},
+        {rotcube.corners[5], rotcube.corners[1], rotcube.corners[4]},
+        {rotcube.corners[2], rotcube.corners[3], rotcube.corners[6]},
+        {rotcube.corners[7], rotcube.corners[3], rotcube.corners[6]},
+    };
+
+    int min_val = -1;
+    float min_t = FLT_MAX;
+
+    int max_val = -1;
+    float max_t = -1;
+
+    for(int i=0; i<12; i++)
+    {
+        float t = 0, u, v;
+
+        triangle_intersection(tris[i][0].xyz, tris[i][1].xyz, tris[i][2].xyz, ray_origin, ray_dir, &t, &u, &v);
+
+        if(t!=0)
+        {
+            if(t < min_t)
+            {
+                min_val = i;
+                min_t = t;
+            }
+            if(t > max_t)
+            {
+                max_val = i;
+                max_t = t;
+            }
+        }
+    }
+
+    write_imagef(screen, (int2){x, y}, min_t);
+
+    ///just make it shit
+
+
+
+    //printf("%f\n", rotcube->corners[0].x);
+
+
+    ///just do brute force approach initially
+    ///sigh
+
+
+
+
+
+    /*float3 camera_pos = c_pos.xyz - v_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 point = {x, y, z};
+
+    float3 rotated = rot(point, camera_pos, camera_rot);
+
+    float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+
+    ///need to somehow find depth of front of cube
+
+    ///unprojected pixel coordinate
+    //float3 local_position = {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
+
+    ///backrotate pixel coordinate into globalspace
+    //float3 global_position = back_rot(local_position, 0, camera_rot);
+
+    //global_position += camera_pos;
+
+
+
+    ///now in screenspace
+
+    float myval = voxel[IX(x, y, z)];
+
+    if(myval < 0.1f)
+        return;
+
+    if(projected.z < 0.001f)
+        return;
+
+    ///only render outer hull for the moment
+    int c = 0;
+    c = voxel[IX(x-1, y, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x+1, y, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y-1, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y+1, z)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y, z-1)] >= 0.1f ? c+1 : c;
+    c = voxel[IX(x, y, z+1)] >= 0.1f ? c+1 : c;
+
+    int cond = c == 0 || c == 6;
+
+    if(cond)
+        return;
+
+    if(myval > 1)
+        myval = 1;
+
+    myval = 1;
+
+    write_imagef(screen, (int2){projected.x, projected.y}, myval);*/
 }
 
 ///?__kernel void add_source(int width, int height, int depth, )
@@ -5163,12 +5330,13 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
 ///dedicated upscaling kernel?
 ///very interestingly, excluding the x_out, y_out and z_out arguments incrases performances by ~1ms
 ///????
+///need to use linear interpolation on velocities
 __kernel void post_upscale(int width, int height, int depth,
                            int uw, int uh, int ud,
                            __global float* xvel, __global float* yvel, __global float* zvel,
                            __global float* w1, __global float* w2, __global float* w3,
                            //__global float* x_out, __global float* y_out, __global float* z_out,
-                           __global float* d_in, __global float* d_out,
+                           __global float* d_in, __global float* d_out, int scale,
                            __write_only image2d_t screen)
 {
     int x = get_global_id(0);
@@ -5176,9 +5344,6 @@ __kernel void post_upscale(int width, int height, int depth,
     int z = get_global_id(2);
 
     float rx, ry, rz;
-
-    int scale = 2.0f;
-
     ///imprecise, we need something else
     rx = x / scale;
     ry = y / scale;
@@ -5220,6 +5385,7 @@ __kernel void post_upscale(int width, int height, int depth,
 
     //float mag = length(val);
 
+    ///et is length(vx, vy, vz?)
     float et = 1;
 
     float vx, vy, vz;
@@ -5236,13 +5402,24 @@ __kernel void post_upscale(int width, int height, int depth,
     vy = yvel[IX((int)rx, (int)ry, (int)rz)];
     vz = zvel[IX((int)rx, (int)ry, (int)rz)];
 
+    ///only a very minor speed increase :(
+    if(fabs(vx) < 0.01 && fabs(vy) < 0.01 && fabs(vz) < 0.01)
+    {
+        //d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+        //return;
+    }
+
+
     //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
 
     ///arbitrary constant?
     ///need to do interpolation of this
     ///? twiddle the constant
     ///this is the new velocity
-    float3 vval = (float3){vx, vy, vz} + val/100.0f;
+    float3 vval = (float3){vx, vy, vz} + val/50.0f;
+
+
+
 
     //float mag = length(vx + val.x/100.0f);
 

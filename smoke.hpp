@@ -30,11 +30,12 @@ struct smoke
     //compute::buffer g_pos;
     //compute::buffer g_rot; ///implement this later
     cl_float4 pos, rot;
-    int width, height, depth;
-    int uwidth, uheight, udepth;
+    cl_int width, height, depth;
+    cl_int uwidth, uheight, udepth;
+    cl_int scale;
     ///will eventually need constants for stuff
 
     ///later define spatial and real resolution differently
-    void init(int _width, int _height, int _depth);
+    void init(int _width, int _height, int _depth, int _scale);
     void tick(float timestep);
 };

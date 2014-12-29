@@ -158,7 +158,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             }
             else if(HMD->ProductName[0] == '\0')
             {
-                printf("Oculus display not enabled (???)\n");
+                printf("Oculus display not enabled ( ?? )\n");
 
                 state = false;
             }
@@ -606,7 +606,8 @@ cl_float4 depth_project_singular(cl_float4 rotated, int width, int height, float
 
 cl_float4 engine::project(cl_float4 val)
 {
-    cl_float4 rotated = rot_about(val, c_pos, sub({0,0,0,0}, c_rot));
+    ///?
+    cl_float4 rotated = rot_about(val, c_pos, c_rot);//sub({0,0,0,0}, c_rot));
 
     cl_float4 projected = depth_project_singular(rotated, width, height, FOV_CONST);
 
@@ -1537,6 +1538,7 @@ void engine::draw_smoke(smoke& s)
     //post_args.push_back(&s.g_postprocess_storage_z);
     post_args.push_back(&s.g_voxel[n]);
     post_args.push_back(&s.g_voxel_upscale[0]);
+    post_args.push_back(&s.scale);
     post_args.push_back(&g_screen);
 
 
@@ -1568,6 +1570,54 @@ void engine::draw_smoke(smoke& s)
     run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);*/
 
 
+    ///need to find corners of cube in screenspace
+    ///just rotate around camera
+
+
+    cl_float4 corners[8] = {{s.pos.x, s.pos.y, s.pos.z},
+                            {s.pos.x + s.uwidth, s.pos.y, s.pos.z},
+                            {s.pos.x, s.pos.y + s.uheight, s.pos.z},
+                            {s.pos.x + s.uwidth, s.pos.y + s.uheight, s.pos.z},
+                            {s.pos.x, s.pos.y, s.pos.z + s.udepth},
+                            {s.pos.x + s.uwidth, s.pos.y, s.pos.z + s.udepth},
+                            {s.pos.x, s.pos.y + s.uheight, s.pos.z + s.udepth},
+                            {s.pos.x + s.uwidth, s.pos.y + s.uheight, s.pos.z + s.udepth}}
+                            ;
+
+    ///value in screenspace
+    cl_float4 sspace[8];
+
+    ///screenspace corners, ie bounding square
+    cl_float2 scorners[4] = {{FLT_MAX,FLT_MAX}, {0, FLT_MAX}, {FLT_MAX, 0}, {0, 0}};
+
+    for(int i=0; i<8; i++)
+    {
+        sspace[i] = engine::project(corners[i]);
+
+        scorners[0].x = std::min(sspace[i].x, scorners[0].x);
+        scorners[0].y = std::min(sspace[i].y, scorners[0].y);
+
+        scorners[1].x = std::max(sspace[i].x, scorners[1].x);
+        scorners[1].y = std::min(sspace[i].y, scorners[1].y);
+
+        scorners[2].x = std::min(sspace[i].x, scorners[2].x);
+        scorners[2].y = std::max(sspace[i].y, scorners[2].y);
+
+        scorners[3].x = std::max(sspace[i].x, scorners[3].x);
+        scorners[3].y = std::max(sspace[i].y, scorners[3].y);
+    }
+
+    for(int i=0; i<4; i++)
+    {
+        //printf("%f %f\n", scorners[i].x, scorners[i].y);
+    }
+
+    //printf("\n");
+
+
+    cl_float2 offset = scorners[0];
+
+
     arg_list smoke_args;
     //smoke_args.push_back(&s.g_voxel[s.n]);
     smoke_args.push_back(&s.g_voxel_upscale[0]);
@@ -1580,12 +1630,27 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&s.rot);
     smoke_args.push_back(&g_screen);
     smoke_args.push_back(&depth_buffer[nbuf]);
+    smoke_args.push_back(&offset);
+    smoke_args.push_back(corners, sizeof(corners)); ///?
+
+    printf("%f %f\n", offset.x, offset.y);
+
+    int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
+
+    printf("%i %i\n", c_width, c_height);
+
+    offset.x = std::max(offset.x, 0.0f);
+    offset.y = std::max(offset.y, 0.0f);
+
+    c_width = std::min(c_width, (int)width);
+    c_height = std::min(c_height, (int)height);
 
     ///we may need to go into screenspace later
-    //cl_uint global_ws[3] = {s.width, s.height, s.depth};
-    //cl_uint local_ws[3] = {16, 16, 1};
+    //cl_uint render_ws[3] = {s.uwidth, s.uheight, s.udepth};
+    cl_uint render_ws[2] = {c_width, c_height};
+    cl_uint render_lws[2] = {16, 16};
 
-    run_kernel_with_list(cl::render_voxels, global_ws, local_ws, 3, smoke_args);
+    run_kernel_with_list(cl::render_voxels, render_ws, render_lws, 2, smoke_args);
 
 
     ///temp while debugging

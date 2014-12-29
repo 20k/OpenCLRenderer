@@ -176,6 +176,13 @@ struct arg_list
         sizes.push_back(sizeof(T));
     }
 
+    template<typename T>
+    void push_back(T* buf, int size)
+    {
+        args.push_back(buf);
+        sizes.push_back(size);
+    }
+
     /*template<typename T>
     void push_back(const T& buf)
     {
