@@ -1574,6 +1574,9 @@ void engine::draw_smoke(smoke& s)
     ///just rotate around camera
 
 
+    ///this takes into account shift
+    ///could have just done relative coordinates and then added later
+    ///oh well
     cl_float4 corners[8] = {{s.pos.x, s.pos.y, s.pos.z},
                             {s.pos.x + s.uwidth, s.pos.y, s.pos.z},
                             {s.pos.x, s.pos.y + s.uheight, s.pos.z},
@@ -1583,6 +1586,12 @@ void engine::draw_smoke(smoke& s)
                             {s.pos.x, s.pos.y + s.uheight, s.pos.z + s.udepth},
                             {s.pos.x + s.uwidth, s.pos.y + s.uheight, s.pos.z + s.udepth}}
                             ;
+
+    for(int i=0; i<8; i++)
+    {
+        ///do rotation too
+        //corners[i] = sub(corners[i], s.pos);
+    }
 
     ///value in screenspace
     cl_float4 sspace[8];
@@ -1633,11 +1642,7 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&offset);
     smoke_args.push_back(corners, sizeof(corners)); ///?
 
-    //printf("%f %f\n", offset.x, offset.y);
-
     int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
-
-    //printf("%i %i\n", c_width, c_height);
 
     offset.x = std::max(offset.x, 0.0f);
     offset.y = std::max(offset.y, 0.0f);
@@ -1650,8 +1655,31 @@ void engine::draw_smoke(smoke& s)
     cl_uint render_ws[2] = {c_width, c_height};
     cl_uint render_lws[2] = {16, 16};
 
-    run_kernel_with_list(cl::render_voxels, render_ws, render_lws, 2, smoke_args);
+    run_kernel_with_list(cl::render_voxel_cube, render_ws, render_lws, 2, smoke_args);
 
+    //printf("%f %f %i %i\n", offset.x, offset.y, c_width, c_height);
+
+
+    #ifdef SMOKE_DEBUG
+
+    arg_list naive_args;
+    naive_args.push_back(&s.g_voxel_upscale[0]);
+    naive_args.push_back(&s.uwidth);
+    naive_args.push_back(&s.uheight);
+    naive_args.push_back(&s.udepth);
+    naive_args.push_back(&c_pos);
+    naive_args.push_back(&c_rot);
+    naive_args.push_back(&s.pos);
+    naive_args.push_back(&s.rot);
+    naive_args.push_back(&g_screen);
+    naive_args.push_back(&depth_buffer[nbuf]);
+
+    cl_uint naive_ws[3] = {s.uwidth, s.uheight, s.udepth};
+    cl_uint naive_lws[3] = {16, 16, 1};
+
+    run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
+
+    #endif
 
     ///temp while debuggingf
 }

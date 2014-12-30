@@ -111,24 +111,24 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
         ///init some stuff in the centre of the array
         for(int i=-5; i<=5; i++)
         {
-            int pos = width/2 + i + width*height/2 + (depth/2)*width*height;
+            int lpos = width/2 + i + width*height/2 + (depth/2)*width*height;
 
-            if(pos >= width*height*depth)
+            if(lpos >= width*height*depth)
                 continue;
 
-            buf[pos] = 1000000.0f;
+            buf[lpos] = 1000000.0f;
         }
 
         for(int k=-50; k<=50; k++)
         {
             for(int j=-20; j<=20; j++)
             {
-                int pos = width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height;
+                int lpos = width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height;
 
-                if(pos >= width*height*depth)
+                if(lpos >= width*height*depth)
                     continue;
 
-                buf1[pos] = 100.0f;
+                buf1[lpos] = 100.0f;
                 //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
             }
         }

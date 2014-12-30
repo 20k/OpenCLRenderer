@@ -2358,6 +2358,7 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
 ///change to 1d
+///write an outline shader?
 __kernel
 //__attribute__((reqd_work_group_size(8, 8, 1)))
 //__attribute__((vec_type_hint(float3)))
@@ -4774,7 +4775,7 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 ///expand size? Make variable?
 ///need to work on actually rendering the voxels now. Raytrace from the camera into the voxel field?
 ///would involve irregularly stepping through memory a lot
-/*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)
 {
     int x = get_global_id(0);
@@ -4825,8 +4826,8 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
     myval = 1;
 
-    write_imagef(screen, (int2){projected.x, projected.y}, myval);
-}*/
+    write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval, 0, 0, 0});
+}
 
 struct cube
 {
@@ -4834,7 +4835,7 @@ struct cube
 };
 
 ///textures
-__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+__kernel void render_voxel_cube(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer, float2 offset, struct cube rotcube)
 {
     float x = get_global_id(0);
@@ -4845,7 +4846,6 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
 
     x += offset.x;
     y += offset.y;
-    //int z = get_global_id(2);
 
     ///need to change this to be more intelligent
     if(x >= SCREENWIDTH-1 || y >= SCREENHEIGHT-1)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
@@ -4874,9 +4874,6 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     float3 ray_dir = global_position;
 
     float3 ray_origin = c_pos.xyz;
-
-
-    //float4 corners[8] = rotcube.corners;
 
 
     float4 tris[12][3] =
@@ -4909,9 +4906,11 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     {
         float t = 0, u, v;
 
+        ///do early left/right front/back top/bottom check to eliminate oob rays faster
+        ///pre rotate and shift the corners by the global rotation?
         triangle_intersection(tris[i][0].xyz, tris[i][1].xyz, tris[i][2].xyz, ray_origin, ray_dir, &t, &u, &v);
 
-        if(t!=0)
+        if(t != 0)
         {
             if(t < min_t)
             {
@@ -4929,18 +4928,37 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     if(min_t == FLT_MAX && max_t == -1)
         return;
 
-    ///tiredness code  following
+    /*if(max_t == -1)
+    {
+        max_t = min_t;
+
+        min_t = 0;
+    }*/
+
+    //if(max_t == -1)
+    //    return;
+
+    if(min_t == max_t)
+    {
+        min_t = 0;
+    }
+
+    ///tiredness code following
 
     float voxel_accumulate = 0;
 
     const float mod = 2.0f;
 
 
-    const float divisions = depth*4; ///bad approximation
+    const float divisions = depth; ///bad approximation
+
 
     float step = fabs(max_t - min_t) / divisions;
 
+    ///make sure that the current cell and last cell arent the same.
+    ///cant do that with this simple method
     step = max(step, 0.001f);
+
 
     float cur_t = min_t;
 
@@ -4949,95 +4967,37 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
         ///i believe this is the correct ray equation
         float3 pos = ray_origin + cur_t * ray_dir;
 
-        pos = clamp(pos, (float3){0,0,0}, (float3){width-1, height-1, depth-1});
+        ///transform space back from global!
+        int3 ipos = convert_int3(pos - v_pos.xyz);
 
-        int3 ipos = convert_int3(pos);
+        ipos = clamp(ipos, (int3){0,0,0}, (int3){width-1, height-1, depth-1});
 
         float val = voxel[IX(ipos.x, ipos.y, ipos.z)];
 
-        voxel_accumulate += val / mod;
+        voxel_accumulate += fabs(val) / mod;
 
+        ///correctly replicates above rendering/ish
+        ///make smooth later once bugs ironed out
         if(val >= 0.1)
         {
             voxel_accumulate = 1;
             break;
         }
+        else
+        {
+            voxel_accumulate = 0;
+        }
+
+       // if(voxel_accumulate >= 1)
+       //     break;
 
         cur_t += step;
     }
 
-    ///end code written while tired
-
-    ///take min_t, max_t, divide and step through. Literally hitler my way along the mesh.
+    //if(voxel_accumulate < 0.1)
+    //    return;
 
     write_imagef(screen, (int2){x, y}, voxel_accumulate);
-
-    ///just make it shit
-
-
-
-    //printf("%f\n", rotcube->corners[0].x);
-
-
-    ///just do brute force approach initially
-    ///sigh
-
-
-
-
-
-    /*float3 camera_pos = c_pos.xyz - v_pos.xyz;
-    float3 camera_rot = c_rot.xyz;
-
-    float3 point = {x, y, z};
-
-    float3 rotated = rot(point, camera_pos, camera_rot);
-
-    float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
-
-
-    ///need to somehow find depth of front of cube
-
-    ///unprojected pixel coordinate
-    //float3 local_position = {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
-
-    ///backrotate pixel coordinate into globalspace
-    //float3 global_position = back_rot(local_position, 0, camera_rot);
-
-    //global_position += camera_pos;
-
-
-
-    ///now in screenspace
-
-    float myval = voxel[IX(x, y, z)];
-
-    if(myval < 0.1f)
-        return;
-
-    if(projected.z < 0.001f)
-        return;
-
-    ///only render outer hull for the moment
-    int c = 0;
-    c = voxel[IX(x-1, y, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x+1, y, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y-1, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y+1, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y, z-1)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y, z+1)] >= 0.1f ? c+1 : c;
-
-    int cond = c == 0 || c == 6;
-
-    if(cond)
-        return;
-
-    if(myval > 1)
-        myval = 1;
-
-    myval = 1;
-
-    write_imagef(screen, (int2){projected.x, projected.y}, myval);*/
 }
 
 ///?__kernel void add_source(int width, int height, int depth, )
@@ -5395,7 +5355,7 @@ __kernel void post_upscale(int width, int height, int depth,
     rz = z / scale;
 
 
-    float3 val = 0;
+    float3 wval = 0;
 
     int pos = z*uw*uh + y*uw + x;
 
@@ -5408,9 +5368,10 @@ __kernel void post_upscale(int width, int height, int depth,
     //val.z = w3[IX((int)rx, (int)ry, (int)rz)];
 
     ///would be beneficial to be able to use lower res smoke
-    val.x = w1[pos];
-    val.y = w2[pos];
-    val.z = w3[pos];
+    ///ALMOST CERTAINLY NEED TO INTERPOLATE
+    wval.x = w1[pos];
+    wval.y = w2[pos];
+    wval.z = w3[pos];
 
     ///if i do interpolation, it means i dont need to use more memory
     ///IE MUCH FASTER
@@ -5461,7 +5422,13 @@ __kernel void post_upscale(int width, int height, int depth,
     ///need to do interpolation of this
     ///? twiddle the constant
     ///this is the new velocity
-    float3 vval = (float3){vx, vy, vz} + val/50.0f;
+
+    float3 vel = (float3){vx, vy, vz};
+
+    float len = fast_length(vel);
+
+    ///squared maybe not best
+    float3 vval = vel + 0.5f*len*len*wval/10.0f;
 
 
 
