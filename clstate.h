@@ -54,7 +54,9 @@ namespace cl
     extern kernel render_voxels;
     extern kernel render_voxel_cube;
     extern kernel diffuse_unstable;
+    extern kernel diffuse_unstable_tex;
     extern kernel advect;
+    extern kernel advect_tex;
     extern kernel post_upscale;
 }
 

@@ -14,8 +14,8 @@ struct smoke
 {
     int n;
 
-    compute::buffer g_voxel[2];
-    compute::buffer g_voxel_upscale[2];
+    compute::image3d g_voxel[2];
+    compute::image3d g_voxel_upscale;
     compute::buffer g_velocity_x[2];
     compute::buffer g_velocity_y[2];
     compute::buffer g_velocity_z[2];

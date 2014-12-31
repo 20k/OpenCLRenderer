@@ -244,7 +244,9 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::render_voxels = load_kernel(program, "render_voxels");
     cl::render_voxel_cube = load_kernel(program, "render_voxel_cube");
     cl::diffuse_unstable = load_kernel(program, "diffuse_unstable");
+    cl::diffuse_unstable_tex = load_kernel(program, "diffuse_unstable_tex");
     cl::advect = load_kernel(program, "advect");
+    cl::advect_tex = load_kernel(program, "advect_tex");
     cl::post_upscale = load_kernel(program, "post_upscale");
 }
 

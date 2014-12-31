@@ -1537,9 +1537,9 @@ void engine::draw_smoke(smoke& s)
     //post_args.push_back(&s.g_postprocess_storage_y);
     //post_args.push_back(&s.g_postprocess_storage_z);
     post_args.push_back(&s.g_voxel[n]);
-    post_args.push_back(&s.g_voxel_upscale[0]);
+    post_args.push_back(&s.g_voxel_upscale);
     post_args.push_back(&s.scale);
-    post_args.push_back(&g_screen);
+    //post_args.push_back(&g_screen);
 
 
     ///make linear
@@ -1629,7 +1629,7 @@ void engine::draw_smoke(smoke& s)
 
     arg_list smoke_args;
     //smoke_args.push_back(&s.g_voxel[s.n]);
-    smoke_args.push_back(&s.g_voxel_upscale[0]);
+    smoke_args.push_back(&s.g_voxel_upscale);
     smoke_args.push_back(&s.uwidth);
     smoke_args.push_back(&s.uheight);
     smoke_args.push_back(&s.udepth);
@@ -1663,6 +1663,7 @@ void engine::draw_smoke(smoke& s)
     #ifdef SMOKE_DEBUG
 
     arg_list naive_args;
+    ///broke
     naive_args.push_back(&s.g_voxel_upscale[0]);
     naive_args.push_back(&s.uwidth);
     naive_args.push_back(&s.uheight);

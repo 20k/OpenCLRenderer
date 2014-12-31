@@ -86,15 +86,26 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
     uheight = height*scale;
     udepth = depth*scale;
 
+    compute::image_format format(CL_R, CL_FLOAT);
 
     for(int i=0; i<2; i++)
     {
-        g_voxel[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
+        //g_voxel[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
+
+
+        g_voxel[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
         g_velocity_x[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
         g_velocity_y[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
         g_velocity_z[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
 
-        cl_float* buf = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+        //cl_float* buf = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+
+        size_t origin[3] = {0,0,0};
+        size_t region[3] = {width, height, depth};
+
+        //cl_float* buf = (cl_float*) clEnqueueMapImage(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MEM_WRITE, origin, region, &image_row_pitch, &image_slice, 0, NULL, NULL, NULL);
+        cl_float* buf = new cl_float[width*height*depth];
+
         cl_float* buf1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_x[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
         cl_float* buf2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_y[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
         cl_float* buf3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
@@ -133,7 +144,11 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
             }
         }
 
-        clEnqueueUnmapMemObject(cl::cqueue.get(), g_voxel[i].get(), buf, 0, NULL, NULL);
+        clEnqueueWriteImage(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, origin, region, 0, 0, buf, 0, NULL, NULL);
+
+        delete [] buf;
+
+        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_voxel[i].get(), buf, 0, NULL, NULL);
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_x[i].get(), buf1, 0, NULL, NULL);
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_y[i].get(), buf2, 0, NULL, NULL);
         clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_z[i].get(), buf3, 0, NULL, NULL);
@@ -189,8 +204,10 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
     //g_postprocess_storage_y = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
     //g_postprocess_storage_z = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
-    g_voxel_upscale[0] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    //g_voxel_upscale[0] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
     //g_voxel_upscale[1] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, NULL, NULL);
 
     delete [] tw1;
     delete [] tw2;
@@ -233,7 +250,7 @@ void smoke::tick(float dt)
     dens_diffuse.push_back(&diffuse_const); ///temp
     dens_diffuse.push_back(&dt_const); ///temp
 
-    run_kernel_with_list(cl::diffuse_unstable, global_ws, local_ws, 3, dens_diffuse);
+    run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
 
     arg_list dens_advect;
     dens_advect.push_back(&width);
@@ -247,7 +264,7 @@ void smoke::tick(float dt)
     dens_advect.push_back(&g_velocity_z[n]);
     dens_advect.push_back(&dt_const); ///temp
 
-    run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);
+    run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_x[next];
@@ -282,6 +299,8 @@ void smoke::tick(float dt)
     dens_advect.args[5] = &g_velocity_z[next];
 
     run_kernel_with_list(cl::advect, global_ws, local_ws, 3, dens_advect);
+
+
 
     //n = next;
 }
