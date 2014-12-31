@@ -4960,12 +4960,15 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float step = fabs(max_t - min_t) / divisions;
 
+    const float skip_amount = step*4;
+
     ///make sure that the current cell and last cell arent the same.
     ///cant do that with this simple method
     step = max(step, 0.001f);
 
-
     float cur_t = min_t;
+
+    bool skipped_last = false;
 
     while(cur_t < max_t)
     {
@@ -4981,11 +4984,40 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         ///could do nn
         float val = read_imagef(voxel, sam, ipos.xyzz).x;//voxel[IX(ipos.x, ipos.y, ipos.z)];
 
+        /*if(val < 0.0000000001)
+        {
+            cur_t += step*8;
+        }
+        else
+        {
+            voxel_accumulate += fabs(val) / mod;
+        }*/
+
+        /*if(val < 0.001)
+        {
+            cur_t += skip_amount;
+            skipped_last = true;
+            continue;
+        }
+        else
+        {
+            if(skipped_last)
+            {
+                cur_t -= skip_amount - step;
+                skipped_last = false;
+                continue;
+            }
+
+            voxel_accumulate += fabs(val) / mod;
+
+            skipped_last = false;
+        }*/
+
         voxel_accumulate += fabs(val) / mod;
 
         ///correctly replicates above rendering/ish
         ///make smooth later once bugs ironed out
-        if(val >= 0.1)
+        /*if(val >= 0.1)
         {
             voxel_accumulate = 1;
             break;
@@ -4993,10 +5025,10 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         else
         {
             voxel_accumulate = 0;
-        }
+        }*/
 
-       // if(voxel_accumulate >= 1)
-       //     break;
+        if(voxel_accumulate >= 1)
+            break;
 
         cur_t += step;
     }
@@ -5077,18 +5109,23 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
 
 
-    int4 pos = (int4){x, y, z, 0};
+    float4 pos = (float4){x, y, z, 0};
+    float4 ipos = (float4){x, y, z, 0};
+
+    //pos += 0.5f;
 
     float val = 0;
 
     //if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
 
-    val = read_imagef(x_in, sam, pos + (int4){-1,0,0,0}).x
-        + read_imagef(x_in, sam, pos + (int4){1,0,0,0}).x
-        + read_imagef(x_in, sam, pos + (int4){0,1,0,0}).x
-        + read_imagef(x_in, sam, pos + (int4){0,-1,0,0}).x
-        + read_imagef(x_in, sam, pos + (int4){0,0,1,0}).x
-        + read_imagef(x_in, sam, pos + (int4){0,0,-1,0}).x;
+    val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,1,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,-1,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
+
+    //val = read_imagef(x_in, sam, pos).x;
 
     val /= 6;
 
@@ -5096,7 +5133,7 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     //x_out[IX(x,y,z)] = max(val, 0.0f);
 
-    write_imagef(x_out, pos, max(val, 0.0f));
+    write_imagef(x_out, convert_int4(ipos), max(val, 0.0f));
 }
 
 float advect_func_vel(int x, int y, int z,
@@ -5163,7 +5200,7 @@ float advect_func_vel_tex(int x, int y, int z,
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_NEAREST;
+                    CLK_FILTER_LINEAR;
 
 
     float dt0x = dt*width;
@@ -5174,11 +5211,11 @@ float advect_func_vel_tex(int x, int y, int z,
     float vy = y - dt0y * pvy;//yvel[IX(x,y,z)];
     float vz = z - dt0z * pvz;//zvel[IX(x,y,z)];
 
-    vx = clamp(vx, 0.5f, width - 1.5f);
-    vy = clamp(vy, 0.5f, height - 1.5f);
-    vz = clamp(vz, 0.5f, depth - 1.5f);
+    //vx = clamp(vx, 0.5f, width - 1.5f);
+    //vy = clamp(vy, 0.5f, height - 1.5f);
+    //vz = clamp(vz, 0.5f, depth - 1.5f);
 
-    float3 v0s = floor((float3){vx, vy, vz});
+    /*float3 v0s = floor((float3){vx, vy, vz});
 
     int3 iv0s = convert_int3(v0s);
 
@@ -5199,15 +5236,13 @@ float advect_func_vel_tex(int x, int y, int z,
 
     float val = ifracs.z * yz0 + fracs.z * yz1;
 
-    return val;
+    return val;*/
 
     ///on 3d?
 
-    //float val = read_imagef(d_in, sam, (float4){vx, vy, vz, 0}).x;
+    float val = read_imagef(d_in, sam, (float4){vx, vy, vz, 0} + 0.5f).x;
 
-    //float val = read_imagef(d_in, sam, (float4){x, y, z, 0}).x;
-
-    //return val;
+    return val;
 }
 
 
