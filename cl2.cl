@@ -4836,7 +4836,9 @@ struct cube
 
 ///textures
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
-                            __write_only image2d_t screen, __global uint* depth_buffer, float2 offset, struct cube rotcube)
+                            __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
+                            int render_size
+                            )
 {
     float x = get_global_id(0);
     float y = get_global_id(1);
@@ -4857,17 +4859,6 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     {
         return;
     }
-
-    /*
-    void triangle_intersection(const float3   V1,  // Triangle vertices
-                               const float3   V2,
-                               const float3   V3,
-                               const float3    O,  //Ray origin
-                               const float3    D,  //Ray direction
-                                     float* out,
-                                     float* uout,
-                                     float* vout)*/
-
 
 
     float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
@@ -4900,6 +4891,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         {rotcube.corners[2], rotcube.corners[3], rotcube.corners[6]},
         {rotcube.corners[7], rotcube.corners[3], rotcube.corners[6]},
     };
+
+    float3 sizes = (float3){width, height, depth};
 
     int min_val = -1;
     float min_t = FLT_MAX;
@@ -4970,19 +4963,29 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     bool skipped_last = false;
 
+    const float3 rel = (float3){width, height, depth} / render_size;
+
     while(cur_t < max_t)
     {
         ///i believe this is the correct ray equation
         float3 pos = ray_origin + cur_t * ray_dir;
 
         ///transform space back from global!
-        int3 ipos = convert_int3(pos - v_pos.xyz);
+        //int3 ipos = convert_int3(pos - v_pos.xyz);
 
-        ipos = clamp(ipos, (int3){0,0,0}, (int3){width-1, height-1, depth-1});
+        //ipos = clamp(ipos, (int3){0,0,0}, (int3){width-1, height-1, depth-1});
 
+        pos -= v_pos.xyz;
 
+        //pos -= render_size/2;
+
+        pos *= rel;
+
+        pos += (float3){width,height,depth}/2;
+
+        ///interpolation makes no difference
         ///could do nn
-        float val = read_imagef(voxel, sam, ipos.xyzz).x;//voxel[IX(ipos.x, ipos.y, ipos.z)];
+        float val = read_imagef(voxel, sam, pos.xyzz).x;
 
         /*if(val < 0.0000000001)
         {
@@ -5013,7 +5016,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
             skipped_last = false;
         }*/
 
-        voxel_accumulate += fabs(val) / mod;
+        ///assume val cant be < 0, ill formed but possible with poor parameters
+
+        voxel_accumulate += val / mod;
 
         ///correctly replicates above rendering/ish
         ///make smooth later once bugs ironed out
@@ -5036,7 +5041,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     //if(voxel_accumulate < 0.1)
     //    return;
 
-    write_imagef(screen, (int2){x, y}, voxel_accumulate);
+    float3 original_value = read_imagef(original_screen, sam, (int2){x, y}).xyz;
+
+    write_imagef(screen, (int2){x, y}, voxel_accumulate*voxel_accumulate + (1.0f - voxel_accumulate)*original_value.xyzz);
 }
 
 ///?__kernel void add_source(int width, int height, int depth, )
@@ -5110,7 +5117,6 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
 
     float4 pos = (float4){x, y, z, 0};
-    float4 ipos = (float4){x, y, z, 0};
 
     //pos += 0.5f;
 
@@ -5133,7 +5139,7 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     //x_out[IX(x,y,z)] = max(val, 0.0f);
 
-    write_imagef(x_out, convert_int4(ipos), max(val, 0.0f));
+    write_imagef(x_out, convert_int4(pos), max(val, 0.0f));
 }
 
 float advect_func_vel(int x, int y, int z,
@@ -5309,10 +5315,7 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
                 CLK_FILTER_NEAREST;
 
 
-
     float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
-
-    //rval = read_imagef(d_in, sam, (int4){x, y, z, 0}).x;
 
     write_imagef(d_out, (int4){x, y, z, 0}, rval);
 }
@@ -5409,8 +5412,7 @@ __kernel void post_upscale(int width, int height, int depth,
                            __global float* xvel, __global float* yvel, __global float* zvel,
                            __global float* w1, __global float* w2, __global float* w3,
                            //__global float* x_out, __global float* y_out, __global float* z_out,
-                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale)//,
-                           //__write_only image2d_t screen)
+                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -5468,13 +5470,13 @@ __kernel void post_upscale(int width, int height, int depth,
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
     ///do i need smooth vx....????
-    //vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
-    //vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
-    //vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
+    vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
+    vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
+    vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
 
-    vx = xvel[IX((int)rx, (int)ry, (int)rz)];
-    vy = yvel[IX((int)rx, (int)ry, (int)rz)];
-    vz = zvel[IX((int)rx, (int)ry, (int)rz)];
+    //vx = xvel[IX((int)rx, (int)ry, (int)rz)];
+    //vy = yvel[IX((int)rx, (int)ry, (int)rz)];
+    //vz = zvel[IX((int)rx, (int)ry, (int)rz)];
 
     ///only a very minor speed increase :(
     if(fabs(vx) < 0.01 && fabs(vy) < 0.01 && fabs(vz) < 0.01)
@@ -5496,7 +5498,7 @@ __kernel void post_upscale(int width, int height, int depth,
     float len = fast_length(vel);
 
     ///squared maybe not best
-    float3 vval = vel + 0.5f*len*len*wval/10.0f;
+    float3 vval = vel + 0.5f*len*len*wval/5.0f;
 
 
 
@@ -5526,9 +5528,9 @@ __kernel void post_upscale(int width, int height, int depth,
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
     //d_out[pos] =
 
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+    /*sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                 CLK_ADDRESS_CLAMP_TO_EDGE |
-                CLK_FILTER_LINEAR;
+                CLK_FILTER_LINEAR;*/
 
 
     //val = read_imagef(d_in, sam, (int4){rx, ry, rz, 0}).x;

@@ -62,7 +62,7 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 
 
 
-void smoke::init(int _width, int _height, int _depth, int _scale)
+void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size)
 {
     n = 0;
 
@@ -70,6 +70,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
     height = _height;
     depth = _depth;
     scale = _scale;
+    render_size = _render_size;
 
     cl_float4 zero = {0};
     //g_pos = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
@@ -80,13 +81,15 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
 
     pos = {0, 100, -100, 0};
 
-
-
     uwidth = width*scale;
     uheight = height*scale;
     udepth = depth*scale;
 
     compute::image_format format(CL_R, CL_FLOAT);
+
+    //output = engine::gen_cl_gl_framebuffer_renderbuffer(&id, engine::width, engine::height);
+
+
 
     for(int i=0; i<2; i++)
     {
@@ -130,7 +133,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale)
             buf[lpos] = 1000000.0f;
         }
 
-        for(int k=-50; k<=50; k++)
+        for(int k=-25; k<=25; k++)
         {
             for(int j=-20; j<=20; j++)
             {

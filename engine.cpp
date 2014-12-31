@@ -95,7 +95,7 @@ void Timer::stop()
     stopped = true;
 }
 
-compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h)
+compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h)
 {
     ///OpenGL is literally the worst API
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
@@ -1516,6 +1516,10 @@ void engine::draw_smoke(smoke& s)
                            __global float* xvel, __global float* yvel, __global float* zvel,
                            __global float* w1, __global float* w2, __global float* w3,
                            __global float* mag_out, __write_only image2d_t screen)*/
+
+
+    //compute::opengl_enqueue_acquire_gl_objects(1, &s.output.get(), cl::cqueue);
+
     int nx, ny, nz;
 
     int n = s.n;
@@ -1577,20 +1581,40 @@ void engine::draw_smoke(smoke& s)
     ///this takes into account shift
     ///could have just done relative coordinates and then added later
     ///oh well
-    cl_float4 corners[8] = {{s.pos.x, s.pos.y, s.pos.z},
-                            {s.pos.x + s.uwidth, s.pos.y, s.pos.z},
-                            {s.pos.x, s.pos.y + s.uheight, s.pos.z},
-                            {s.pos.x + s.uwidth, s.pos.y + s.uheight, s.pos.z},
-                            {s.pos.x, s.pos.y, s.pos.z + s.udepth},
-                            {s.pos.x + s.uwidth, s.pos.y, s.pos.z + s.udepth},
-                            {s.pos.x, s.pos.y + s.uheight, s.pos.z + s.udepth},
-                            {s.pos.x + s.uwidth, s.pos.y + s.uheight, s.pos.z + s.udepth}}
+    cl_float4 corners[8] = {{0,0,0},
+                            {s.uwidth, 0, 0},
+                            {0, s.uheight, 0},
+                            {s.uwidth, s.uheight, 0},
+                            {0, 0, s.udepth},
+                            {s.uwidth, 0, s.udepth},
+                            {0, s.uheight, s.udepth},
+                            {s.uwidth, s.uheight, s.udepth}}
                             ;
+
+
+
+    cl_float4 wcorners[8];
 
     for(int i=0; i<8; i++)
     {
         ///do rotation too
-        //corners[i] = sub(corners[i], s.pos);
+
+        ///centre, -d/2, d/2
+        cl_float4 modded = sub(corners[i], div((cl_float4){s.uwidth, s.uheight, s.udepth, 0}, 2));
+
+        ///normalize between -0.5, 0.5
+        cl_float4 normd = div(modded, (cl_float4){s.uwidth, s.uheight, s.udepth, 0});
+
+        ///up to render_size/2
+        cl_float4 render = mult(normd, s.render_size);
+
+
+        ///up to render_size
+        render = mult(render, 2);
+
+        wcorners[i] = add(render, s.pos);
+
+        //printf("%f %f\n", wcorners[i].x, wcorners[i].y);
     }
 
     ///value in screenspace
@@ -1601,8 +1625,32 @@ void engine::draw_smoke(smoke& s)
 
     for(int i=0; i<8; i++)
     {
-        sspace[i] = engine::project(corners[i]);
+        sspace[i] = engine::project(wcorners[i]);
+    }
 
+
+    bool all_behind = true;
+
+    for(int i=0; i<8; i++)
+    {
+        if(sspace[i].z > 0)
+            all_behind = false;
+    }
+
+    if(all_behind)
+        return;
+
+    bool any_behind = false;
+
+    for(int i=0; i<8; i++)
+    {
+        if(sspace[i].z <= 0)
+            any_behind = true;
+    }
+
+
+    for(int i=0; i<8; i++)
+    {
         scorners[0].x = std::min(sspace[i].x, scorners[0].x);
         scorners[0].y = std::min(sspace[i].y, scorners[0].y);
 
@@ -1616,16 +1664,9 @@ void engine::draw_smoke(smoke& s)
         scorners[3].y = std::max(sspace[i].y, scorners[3].y);
     }
 
-    for(int i=0; i<4; i++)
-    {
-        //printf("%f %f\n", scorners[i].x, scorners[i].y);
-    }
-
-    //printf("\n");
-
+    //printf("%f %f\n", scorners[0].x, scorners[0].y);
 
     cl_float2 offset = scorners[0];
-
 
     arg_list smoke_args;
     //smoke_args.push_back(&s.g_voxel[s.n]);
@@ -1637,10 +1678,12 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&c_rot);
     smoke_args.push_back(&s.pos);
     smoke_args.push_back(&s.rot);
+    smoke_args.push_back(&g_screen); ///trolol undefined behaviour
     smoke_args.push_back(&g_screen);
     smoke_args.push_back(&depth_buffer[nbuf]);
     smoke_args.push_back(&offset);
-    smoke_args.push_back(corners, sizeof(corners)); ///?
+    smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
+    smoke_args.push_back(&s.render_size);
 
     int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
 
@@ -1650,12 +1693,30 @@ void engine::draw_smoke(smoke& s)
     c_width = std::min(c_width, (int)width);
     c_height = std::min(c_height, (int)height);
 
+    if(any_behind)
+    {
+        offset = {0,0};
+        c_width = width;
+        c_height = height;
+    }
+
+
+    //printf("%f %f %i %i\n", offset.x, offset.y, c_width, c_height);
+
     ///we may need to go into screenspace later
     //cl_uint render_ws[3] = {s.uwidth, s.uheight, s.udepth};
     cl_uint render_ws[2] = {c_width, c_height};
     cl_uint render_lws[2] = {16, 16};
 
     run_kernel_with_list(cl::render_voxel_cube, render_ws, render_lws, 2, smoke_args);
+
+    //compute::opengl_enqueue_release_gl_objects(1, &s.output.get(), cl::cqueue);
+
+    //auto tmp = g_screen;
+
+    //g_screen = s.output;
+
+    //s.output = tmp;
 
     //printf("%f %f %i %i\n", offset.x, offset.y, c_width, c_height);
 

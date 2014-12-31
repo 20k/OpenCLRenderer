@@ -27,15 +27,19 @@ struct smoke
     compute::buffer g_postprocess_storage_x;
     compute::buffer g_postprocess_storage_y;
     compute::buffer g_postprocess_storage_z;
+
+    //compute::opengl_renderbuffer output;
+    //GLuint id;
     //compute::buffer g_pos;
     //compute::buffer g_rot; ///implement this later
     cl_float4 pos, rot;
     cl_int width, height, depth;
     cl_int uwidth, uheight, udepth;
     cl_int scale;
+    cl_int render_size;
     ///will eventually need constants for stuff
 
     ///later define spatial and real resolution differently
-    void init(int _width, int _height, int _depth, int _scale);
+    void init(int _width, int _height, int _depth, int _scale, int _render_size);
     void tick(float timestep);
 };

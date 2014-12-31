@@ -161,6 +161,9 @@ struct engine
 
     void check_obj_visibility(); ///unused, likely ot be removed
 
+    ///?
+    static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);
+
     static int nbuf;
 };
 

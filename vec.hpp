@@ -111,6 +111,17 @@ inline cl_float4 div(cl_float4 v1, float v)
     return nv;
 }
 
+inline cl_float4 div(cl_float4 v1, cl_float4 v2)
+{
+    cl_float4 nv;
+    nv.x = v1.x / v2.x;
+    nv.y = v1.y / v2.y;
+    nv.z = v1.z / v2.z;
+    ///ignore w, will probably divide by 0
+
+    return nv;
+}
+
 inline cl_float4 normalise(cl_float4 v1)
 {
     float length = sqrtf(v1.x*v1.x + v1.y*v1.y + v1.z*v1.z); ///w? What am i doing?
