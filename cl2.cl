@@ -4783,7 +4783,7 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     int z = get_global_id(2);
 
     ///need to change this to be more intelligent
-    if(x >= width-1 || y >= height-1 || z >= depth-1)// || x < 0 || y < 0 || z < 0)
+    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
     {
         return;
     }
@@ -4851,11 +4851,11 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_ADDRESS_CLAMP |
                     CLK_FILTER_NEAREST;
 
     ///need to change this to be more intelligent
-    if(x >= SCREENWIDTH-1 || y >= SCREENHEIGHT-1)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
     {
         return;
     }
@@ -4943,12 +4943,17 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     ///tiredness code following
 
+    const float3 rel = (float3){width, height, depth} / render_size;
+
+    const float3 half_size = (float3){width,height,depth}/2;
+
+
     float voxel_accumulate = 0;
 
     const float mod = 2.0f;
 
 
-    const float divisions = depth; ///bad approximation
+    const float divisions = depth*1; ///bad approximation
 
 
     float step = fabs(max_t - min_t) / divisions;
@@ -4957,14 +4962,15 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     ///make sure that the current cell and last cell arent the same.
     ///cant do that with this simple method
-    step = max(step, 0.001f);
+    step = max(step, 0.0001f);
 
     float cur_t = min_t;
 
     bool skipped_last = false;
 
-    const float3 rel = (float3){width, height, depth} / render_size;
 
+    ///need to do proper line drawing
+    ///check the voxel upscaling
     while(cur_t < max_t)
     {
         ///i believe this is the correct ray equation
@@ -4981,7 +4987,15 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         pos *= rel;
 
-        pos += (float3){width,height,depth}/2;
+        pos += half_size;
+
+        /*if(pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= width || pos.y >= height || pos.z >= depth)
+        {
+            cur_t += step;
+            continue;
+        }*/
+
+        //pos += 0.5f;
 
         ///interpolation makes no difference
         ///could do nn
@@ -5018,11 +5032,11 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         ///assume val cant be < 0, ill formed but possible with poor parameters
 
-        voxel_accumulate += val / mod;
+        voxel_accumulate += pow(val, 1) / mod;//val*val*val*val / mod;
 
         ///correctly replicates above rendering/ish
         ///make smooth later once bugs ironed out
-        /*if(val >= 0.1)
+        if(voxel_accumulate >= 0.01)
         {
             voxel_accumulate = 1;
             break;
@@ -5030,10 +5044,10 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         else
         {
             voxel_accumulate = 0;
-        }*/
+        }
 
-        if(voxel_accumulate >= 1)
-            break;
+        /*if(voxel_accumulate >= 1)
+            break;*/
 
         cur_t += step;
     }
@@ -5084,8 +5098,10 @@ __kernel void diffuse_unstable(int width, int height, int depth, int b, __global
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
+    ///make these width-1, 1, for gas escape
+    if(x >= width-1 || y >= height-1 || z >= depth-1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0 || z < 0)
     {
+        x_out[IX(x, y, z)] = x_in[IX(x, y, z)];
         return;
     }
 
@@ -5131,9 +5147,20 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
         + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
         + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
 
+    int div = 6;
+
+    /*if(x == 0 || x == width-1)
+        div--;
+
+    if(y == 0 || y == height-1)
+        div--;
+
+    if(z == 0 || z == depth-1)
+        div--;*/
+
     //val = read_imagef(x_in, sam, pos).x;
 
-    val /= 6;
+    val /= div;
 
         //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
 
@@ -5199,11 +5226,6 @@ float advect_func_vel_tex(int x, int y, int z,
                   float pvx, float pvy, float pvz,
                   float dt)
 {
-    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
-    {
-        return 0;
-    }
-
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_LINEAR;
@@ -5286,7 +5308,7 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
+    if(x >= width || y >= height || z >= depth) // || x < 1 || y < 1 || z < 1)
     {
         return;
     }
@@ -5294,6 +5316,8 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
     d_out[IX(x, y, z)] = advect_func(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
 }
 
+///my next step is to convert everything to textures
+///the step after that is to stop fluid escaping
 __kernel
 //__attribute__((reqd_work_group_size(16, 16, 1)))
 void advect_tex(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
@@ -5302,17 +5326,21 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
     int y = get_global_id(1);
     int z = get_global_id(2);
 
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
     ///lazy for < 1
-    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
+    ///figuring out how to do this correctly is important
+    if(x >= width || y >= height || z >= depth) // || x < 1 || y < 1 || z < 1)
     {
+        ///breaks
+        //if(x == 0 || y == 0 || z == 0 || x == width-1 || y == height-1 || z == depth-1)
+        //    write_imagef(d_out, (int4){x, y, z, 0}, read_imagef(d_in, sam, (int4){x, y, z, 0}));
+
         return;
     }
-
-    //d_out[IX(x, y, z)] = advect_func(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
-
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                CLK_ADDRESS_CLAMP_TO_EDGE |
-                CLK_FILTER_NEAREST;
 
 
     float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);

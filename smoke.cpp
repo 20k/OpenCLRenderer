@@ -61,7 +61,7 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 }
 
 
-
+///collapse memory
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size)
 {
     n = 0;
