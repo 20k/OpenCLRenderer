@@ -1250,7 +1250,7 @@ void engine::draw_bulk_objs_n()
             pos_offset = add(c_pos, mult(eye_position[i], fudge));
             rot_offset = sub({0,0,0,0}, eye_rotation[i]);
 
-
+            ///this is the worst possible way of doing this and it shows severely in performance
             render_tris(*this, pos_offset, rot_offset, g_rift_screen[i]);
 
             ///have to manually swap depth_buffers between eye renderings
