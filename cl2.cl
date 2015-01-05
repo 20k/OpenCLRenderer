@@ -2157,27 +2157,11 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
                     uint4 d = {ctri, tri_id, 0, 0};
                     write_imageui(id_buffer, coord, d);
                 }*/
-
-
-                //if(mydepth < sdepth) ///triangle has had at least one pixel make it to the screen
-                //{
-                //    valid = true;
-               // }
             }
 
         }
 
     }
-
-    ///only write triangels that have any valid pixels to buffer
-    /*if(valid)
-    {
-        uint v_id = atomic_inc(valid_tri_num);
-
-        valid_tri_mem[v_id*3 + 0] = id;
-        valid_tri_mem[v_id*3 + 1] = distance;
-        valid_tri_mem[v_id*3 + 2] = ctri;
-    }*/
 }
 
 #define BUF_ERROR 20
@@ -2443,77 +2427,9 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     global_position += G->world_pos.xyz;
 
 
+    float l1,l2,l3;
 
-
-    float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
-
-    //float3 ray_dir = (float3){spos.x, spos.y, 1};
-
-
-
-
-    float3 ray_dir = back_rot(spos, 0, camera_rot);
-
-    //ray_dir = back_rot(ray_dir, 0, G->world_rot.xyz);
-
-    float3 ray_origin = camera_pos;// - G->world_pos.xyz;
-
-
-    float3 rotated[3] = {T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz};
-
-    rotated[0] = rot(rotated[0], 0, G->world_rot.xyz);
-    rotated[1] = rot(rotated[1], 0, G->world_rot.xyz);
-    rotated[2] = rot(rotated[2], 0, G->world_rot.xyz);
-
-    rotated[0] += G->world_pos.xyz;
-    rotated[1] += G->world_pos.xyz;
-    rotated[2] += G->world_pos.xyz;
-
-
-    ///split the different steps to have different full_rotate functions. Prearrange only needs areas not full triangles, part 1-2 do not need texture or normal information
-
-
-
-
-    float uout = 0, vout = 0;
-
-    triangle_intersection_always(rotated[0], rotated[1], rotated[2], ray_origin, ray_dir, &uout, &vout);
-
-    float y1, y2, y3;
-    float x1, x2, x3;
-
-    y1 = 0, y2 = 0, y3 = 1;
-    x1 = 0, x2 = 1, x3 = 0;
-
-    float l1, l2, l3;
-
-    float lx = uout;
-    float ly = vout;
-
-    l1 = native_divide((y2 - y3)*(lx - x3) + (x3 - x2)*(ly - y3), ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3)));
-    l2 = native_divide((y3 - y1)*(lx - x3) + (x1 - x3)*(ly - y3), ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3)));
-
-    l3 = 1.0f - l1 - l2;
-
-
-    /*float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
-    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
-
-    xpv = round(xpv);
-    ypv = round(ypv);
-
-    float rconst = calc_rconstant_v(xpv, ypv);*/
-
-
-    //float vxA, vxB, vxC;
-
-    //interpolate_get_const((float3){T->vertices[0].vt.x, T->vertices[1].vt.x, T->vertices[2].vt.x}, xpv, ypv, rconst, &vxA, &vxB, &vxC);
-
-
-    //float l1,l2,l3;
-
-    //get_barycentric(global_position, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
-
+    get_barycentric(global_position, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
 
     float2 vt;
     vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
