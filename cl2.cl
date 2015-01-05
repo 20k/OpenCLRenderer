@@ -1985,13 +1985,13 @@ __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
 {
-    uint l_id = get_global_id(0);
+    uint id = get_global_id(0);
 
     uint l_size = get_global_size(0);
 
     int len = *f_len;
 
-    for(int id = l_id; id < len; id += l_size)
+    //for(int id = l_id; id < len; id += l_size)
     {
 
         if(id >= len)
@@ -2189,13 +2189,13 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             __global float2* distort_buffer)
 {
 
-    uint l_id = get_global_id(0);
+    uint id = get_global_id(0);
 
     uint l_size = get_global_size(0);
 
     int len = *f_len;
 
-    for(int id = l_id; id < len; id += l_size)
+    //for(int id = l_id; id < len; id += l_size)
     {
 
         //uint id = get_global_id(0);
@@ -4969,6 +4969,16 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     bool skipped_last = false;
 
 
+
+    ray_origin -= v_pos.xyz;
+
+    ray_dir *= rel;
+
+    ray_origin *= rel;
+
+    ray_origin += half_size;
+
+
     ///need to do proper line drawing
     ///check the voxel upscaling
     while(cur_t < max_t)
@@ -4981,13 +4991,13 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         //ipos = clamp(ipos, (int3){0,0,0}, (int3){width-1, height-1, depth-1});
 
-        pos -= v_pos.xyz;
+        //pos -= v_pos.xyz;
 
         //pos -= render_size/2;
 
-        pos *= rel;
+        //pos *= rel;
 
-        pos += half_size;
+        //pos += half_size;
 
         /*if(pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= width || pos.y >= height || pos.z >= depth)
         {
@@ -5036,7 +5046,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         ///correctly replicates above rendering/ish
         ///make smooth later once bugs ironed out
-        if(voxel_accumulate >= 0.01)
+        /*if(voxel_accumulate >= 0.01)
         {
             voxel_accumulate = 1;
             break;
@@ -5044,10 +5054,10 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         else
         {
             voxel_accumulate = 0;
-        }
+        }*/
 
-        /*if(voxel_accumulate >= 1)
-            break;*/
+        if(voxel_accumulate >= 1)
+            break;
 
         cur_t += step;
     }
@@ -5287,10 +5297,22 @@ float advect_func(int x, int y, int z,
 float advect_func_tex(int x, int y, int z,
                   int width, int height, int depth,
                   __read_only image3d_t d_in,
-                  __global float* xvel, __global float* yvel, __global float* zvel,
+                  //__global float* xvel, __global float* yvel, __global float* zvel,
+                  __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
                   float dt)
 {
-    return advect_func_vel_tex(x, y, z, width, height, depth, d_in, xvel[IX(x,y,z)], yvel[IX(x,y,z)], zvel[IX(x,y,z)], dt);
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
+    float v1, v2, v3;
+
+    v1 = read_imagef(xvel, sam, (float4){x, y, z, 0.0f}).x;
+    v2 = read_imagef(yvel, sam, (float4){x, y, z, 0.0f}).x;
+    v3 = read_imagef(zvel, sam, (float4){x, y, z, 0.0f}).x;
+
+    return advect_func_vel_tex(x, y, z, width, height, depth, d_in, v1, v2, v3, dt);
 
 }
 
@@ -5318,9 +5340,10 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
 
 ///my next step is to convert everything to textures
 ///the step after that is to stop fluid escaping
+///need to do boundary condition at edge so that fluid velocity hitting the walls is reflected
 __kernel
 //__attribute__((reqd_work_group_size(16, 16, 1)))
-void advect_tex(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
+void advect_tex(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -5437,7 +5460,8 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
 ///need to use linear interpolation on velocities
 __kernel void post_upscale(int width, int height, int depth,
                            int uw, int uh, int ud,
-                           __global float* xvel, __global float* yvel, __global float* zvel,
+                           //__global float* xvel, __global float* yvel, __global float* zvel,
+                           __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
                            __global float* w1, __global float* w2, __global float* w3,
                            //__global float* x_out, __global float* y_out, __global float* z_out,
                            __read_only image3d_t d_in, __write_only image3d_t d_out, int scale)
@@ -5448,10 +5472,9 @@ __kernel void post_upscale(int width, int height, int depth,
 
     float rx, ry, rz;
     ///imprecise, we need something else
-    rx = x / scale;
-    ry = y / scale;
-    rz = z / scale;
-
+    rx = (float)x / (float)scale;
+    ry = (float)y / (float)scale;
+    rz = (float)z / (float)scale;
 
     float3 wval = 0;
 
@@ -5470,6 +5493,12 @@ __kernel void post_upscale(int width, int height, int depth,
     wval.x = w1[pos];
     wval.y = w2[pos];
     wval.z = w3[pos];
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_LINEAR;
+
+
 
     ///if i do interpolation, it means i dont need to use more memory
     ///IE MUCH FASTER
@@ -5498,13 +5527,17 @@ __kernel void post_upscale(int width, int height, int depth,
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
     ///do i need smooth vx....????
-    vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
-    vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
-    vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
+    //vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
+    //vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
+    //vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
 
     //vx = xvel[IX((int)rx, (int)ry, (int)rz)];
     //vy = yvel[IX((int)rx, (int)ry, (int)rz)];
     //vz = zvel[IX((int)rx, (int)ry, (int)rz)];
+
+    vx = read_imagef(xvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
+    vy = read_imagef(yvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
+    vz = read_imagef(zvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
 
     ///only a very minor speed increase :(
     if(fabs(vx) < 0.01 && fabs(vy) < 0.01 && fabs(vz) < 0.01)

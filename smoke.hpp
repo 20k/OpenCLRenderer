@@ -16,17 +16,17 @@ struct smoke
 
     compute::image3d g_voxel[2];
     compute::image3d g_voxel_upscale;
-    compute::buffer g_velocity_x[2];
-    compute::buffer g_velocity_y[2];
-    compute::buffer g_velocity_z[2];
+    compute::image3d g_velocity_x[2];
+    compute::image3d g_velocity_y[2];
+    compute::image3d g_velocity_z[2];
 
     compute::buffer g_w1;
     compute::buffer g_w2;
     compute::buffer g_w3;
 
-    compute::buffer g_postprocess_storage_x;
-    compute::buffer g_postprocess_storage_y;
-    compute::buffer g_postprocess_storage_z;
+    //compute::buffer g_postprocess_storage_x;
+    //compute::buffer g_postprocess_storage_y;
+    //compute::buffer g_postprocess_storage_z;
 
     //compute::opengl_renderbuffer output;
     //GLuint id;
