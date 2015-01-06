@@ -36,6 +36,42 @@ cl_float3 get_wavelet(int x, int y, int z, int width, int height, int depth, flo
     return (cl_float3){d1y - d2z, d3z - d1x, d2x - d3y};
 }
 
+cl_float3 get_wavelet_interpolated(float lx, float ly, float lz, int width, int height, int depth, float* w1, float* w2, float* w3)
+{
+    cl_float3 v1, v2, v3, v4, v5, v6, v7, v8;
+
+    int x = lx, y = ly, z = lz;
+
+    v1 = get_wavelet(x, y, z, width, height, depth, w1, w2, w3);
+    v2 = get_wavelet(x+1, y, z, width, height, depth, w1, w2, w3);
+    v3 = get_wavelet(x, y+1, z, width, height, depth, w1, w2, w3);
+    v4 = get_wavelet(x+1, y+1, z, width, height, depth, w1, w2, w3);
+    v5 = get_wavelet(x, y, z+1, width, height, depth, w1, w2, w3);
+    v6 = get_wavelet(x+1, y, z+1, width, height, depth, w1, w2, w3);
+    v7 = get_wavelet(x, y+1, z+1, width, height, depth, w1, w2, w3);
+    v8 = get_wavelet(x+1, y+1, z+1, width, height, depth, w1, w2, w3);
+
+    cl_float3 x1, x2, x3, x4;
+
+    float xfrac = lx - floor(lx);
+
+    x1 = add(mult(v1, (1.0f - xfrac)), mult(v2, xfrac));
+    x2 = add(mult(v3, (1.0f - xfrac)), mult(v4, xfrac));
+    x3 = add(mult(v5, (1.0f - xfrac)), mult(v6, xfrac));
+    x4 = add(mult(v7, (1.0f - xfrac)), mult(v8, xfrac));
+
+    float yfrac = ly - floor(ly);
+
+    cl_float3 y1, y2;
+
+    y1 = add(mult(x1, (1.0f - yfrac)), mult(x2, yfrac));
+    y2 = add(mult(x3, (1.0f - yfrac)), mult(x4, yfrac));
+
+    float zfrac = lz - floor(lz);
+
+    return add(mult(y1, (1.0f - zfrac)), mult(y2, zfrac));
+}
+
 cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3,
             int imin, int imax)
 {
@@ -49,7 +85,7 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 
         new_pos = mult(new_pos, powf(2.0f, (float)i));
 
-        cl_float3 w_val = get_wavelet(x, y, z, width, height, depth, w1, w2, w3);
+        cl_float3 w_val = get_wavelet_interpolated(new_pos.x, new_pos.y, new_pos.z, width, height, depth, w1, w2, w3);
         //w_val *= pow(2.0f, (-5.0f/6.0f)*(i - imin));
 
         w_val = mult(w_val, pow(2.0f, (-5.0f/6.0f)*(i - imin)));
@@ -62,6 +98,9 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 
 
 ///collapse memory
+///figured it out
+///the noise is fractal at different frequencies
+///ie it has coherence at all scales
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size)
 {
     n = 0;
@@ -200,9 +239,15 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     {
         int upscaled_pos = z*uwidth*uheight + y*uwidth + x;
 
-        int imin = 10;
-        int imax = 13;
+        ///figured it out finally
+        ///energy bands correspond to frequencies
+        ///which correspond to spacial coherence
+        ///negative frequencies? Sure bro, why not
+        int imin = -2;
+        int imax = 2;
 
+        ///need to interpolate, desperately
+        ///nobody cares about being band limited
         cl_float3 val = y_of(x, y, z, uwidth, uheight, udepth, tw1, tw2, tw3, imin, imax);
 
         bw1[upscaled_pos] = (val.x);

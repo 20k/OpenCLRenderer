@@ -54,7 +54,6 @@ struct texture
 
     texture();
 
-//private:
     cl_uint get_largest_dimension() const;
 
     void set_load_func(std::function<void (texture*)>);

@@ -5464,7 +5464,7 @@ __kernel void post_upscale(int width, int height, int depth,
     float len = fast_length(vel);
 
     ///squared maybe not best
-    float3 vval = vel + 0.5f*len*len*wval/5.0f;
+    float3 vval = vel + 0.5f*100*len*wval/5.0f;
 
 
 
