@@ -4757,7 +4757,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP |
-                    CLK_FILTER_NEAREST;
+                    CLK_FILTER_LINEAR;
 
     ///need to change this to be more intelligent
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
@@ -4852,6 +4852,16 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     const float3 half_size = (float3){width,height,depth}/2;
 
+    ray_origin -= v_pos.xyz;
+
+    ray_dir *= rel;
+
+    ray_origin *= rel;
+
+    ray_origin += half_size;
+
+
+
 
     float voxel_accumulate = 0;
 
@@ -4874,14 +4884,6 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     bool skipped_last = false;
 
 
-
-    ray_origin -= v_pos.xyz;
-
-    ray_dir *= rel;
-
-    ray_origin *= rel;
-
-    ray_origin += half_size;
 
 
     ///need to do proper line drawing
