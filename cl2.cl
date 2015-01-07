@@ -2337,7 +2337,7 @@ __kernel
 //__attribute__((vec_type_hint(float3)))
 void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
-           __constant uint *lnum, __constant struct light *lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
+           __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer
            )
 
@@ -4508,19 +4508,7 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
 
 
-    ///backrotate pixel coordinate into globalspace
-    float3 global_position = rot(spos,  0, (float3)
-    {
-        -c_rot.x, 0.0f, 0.0f
-    });
-    global_position        = rot(global_position, 0, (float3)
-    {
-        0.0f, -c_rot.y, 0.0f
-    });
-    global_position        = rot(global_position, 0, (float3)
-    {
-        0.0f, 0.0f, -c_rot.z
-    });
+    float3 global_position = back_rot(spos, 0, c_rot.xyz);
 
     float3 ray_dir = global_position;
 
@@ -4739,11 +4727,32 @@ struct cube
     float4 corners[8];
 };
 
+float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                CLK_ADDRESS_CLAMP_TO_EDGE |
+                CLK_FILTER_LINEAR;
+
+
+    float dx, dy, dz;
+
+    ///probably doesnt work, gooelgle
+    dx = read_imagef(voxel, sam, final_pos.xyzz + (float4){1, 0, 0, 0}).x - read_imagef(voxel, sam, final_pos.xyzz - (float4){1, 0, 0, 0}).x;
+    dy = read_imagef(voxel, sam, final_pos.xyzz + (float4){0, 1, 0, 0}).x - read_imagef(voxel, sam, final_pos.xyzz - (float4){0, 1, 0, 0}).x;
+    dz = read_imagef(voxel, sam, final_pos.xyzz + (float4){0, 0, 1, 0}).x - read_imagef(voxel, sam, final_pos.xyzz - (float4){0, 0, 1, 0}).x;
+
+    ///need to flip normal depending on which side of cube ray direction intersects...?????
+    float3 normal = -fast_normalize((float3){dx, dy, dz});
+
+    return normal;
+}
+
 ///textures
 ///investigate weird oob behaviour
+///seems to be rendering only one side of cubes
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
-                            int render_size
+                            int render_size, __global uint* lnum, __global struct light* lights
                             )
 {
     float x = get_global_id(0);
@@ -4906,22 +4915,27 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     //if(start.x > width && step.x > 0 || start.y > height && step.y > 0 || start.z > depth && step.z > 0)
     //    return;
 
+    float3 final_pos = 0;
+
+    //step /= 8;
+
     for(int i=0; i<num; i++)
     {
         if(any(current_pos < 0) || any(current_pos >= (float3){width, height, depth}))
         {
-            current_pos += step;
-            continue;
+            //current_pos += step;
+            //continue;
         }
 
-        float val = read_imagef(voxel, sam, current_pos.xyzz).x;
+        float val = read_imagef(voxel, sam, current_pos.xyzz + 0.5f).x;
 
         voxel_accumulate += pow(val, 1) / voxel_mod;
 
 
-        if(voxel_accumulate >= 0.1f)
+        if(val >= 0.01f)
         {
             voxel_accumulate = 1;
+            final_pos = current_pos;
             break;
         }
         else
@@ -4929,8 +4943,11 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
             voxel_accumulate = 0;
         }
 
-        if(voxel_accumulate >= 1)
+        /*if(voxel_accumulate >= 1)
+        {
+            final_pos = current_pos;
             break;
+        }*/
 
         ///?
         ///need to figure out how im doing smooth rendering. Could do current and blur the crap out of it
@@ -4938,124 +4955,44 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         ///can undersample like a priick
         if(voxel_accumulate < 0.01f && val < 0.01f)
         {
-            current_pos += step*3;
-            i += 3;
+            //current_pos += step*3;
+            //i += 3;
         }
 
         current_pos += step;
     }
 
+    float3 normal = get_normal(voxel, final_pos);
+    /*normal += get_normal(voxel, final_pos + (float3){1,0,0});
+    normal += get_normal(voxel, final_pos + (float3){-1,0,0});
+    normal += get_normal(voxel, final_pos + (float3){0,1,0});
+    normal += get_normal(voxel, final_pos + (float3){0,-1,0});
+    normal += get_normal(voxel, final_pos + (float3){0,0,1});
+    normal += get_normal(voxel, final_pos + (float3){0,0,-1});
 
-#if 0
+    normal /= 7;*/
 
-    const float mod = 2.0f;
+    /*'undo' transformation to get back to global space
 
-    const float divisions = depth*1; ///bad approximation
+    ray_origin -= v_pos.xyz;
 
+    ray_dir *= rel;
 
-    float step = fabs(max_t - min_t) / divisions;
+    ray_origin *= rel;
 
-    const float skip_amount = step*4;
+    ray_origin += half_size;*/
 
-    ///make sure that the current cell and last cell arent the same.
-    ///cant do that with this simple method
-    step = max(step, 0.0001f);
+    ///undo transforms to global space
+    final_pos -= half_size;
 
-    float cur_t = min_t;
+    final_pos /= rel;
 
-    bool skipped_last = false;
+    final_pos += v_pos.xyz;
 
-
-
-
-    ///need to do proper line drawing
-    ///check the voxel upscaling
-    while(cur_t < max_t)
-    {
-        ///i believe this is the correct ray equation
-        float3 pos = ray_origin + cur_t * ray_dir;
-
-        ///transform space back from global!
-        //int3 ipos = convert_int3(pos - v_pos.xyz);
-
-        //ipos = clamp(ipos, (int3){0,0,0}, (int3){width-1, height-1, depth-1});
-
-        //pos -= v_pos.xyz;
-
-        //pos -= render_size/2;
-
-        //pos *= rel;
-
-        //pos += half_size;
-
-        /*if(pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= width || pos.y >= height || pos.z >= depth)
-        {
-            cur_t += step;
-            continue;
-        }*/
-
-        //pos += 0.5f;
-
-        ///interpolation makes no difference
-        ///could do nn
-        float val = read_imagef(voxel, sam, pos.xyzz).x;
-
-        /*if(val < 0.0000000001)
-        {
-            cur_t += step*8;
-        }
-        else
-        {
-            voxel_accumulate += fabs(val) / mod;
-        }*/
-
-        /*if(val < 0.001)
-        {
-            cur_t += skip_amount;
-            skipped_last = true;
-            continue;
-        }
-        else
-        {
-            if(skipped_last)
-            {
-                cur_t -= skip_amount - step;
-                skipped_last = false;
-                continue;
-            }
-
-            voxel_accumulate += fabs(val) / mod;
-
-            skipped_last = false;
-        }*/
-
-        ///assume val cant be < 0, ill formed but possible with poor parameters
-
-        voxel_accumulate += pow(val, 1) / mod;//val*val*val*val / mod;
-
-        ///correctly replicates above rendering/ish
-        ///make smooth later once bugs ironed out
-        /*if(voxel_accumulate >= 0.01)
-        {
-            voxel_accumulate = 1;
-            break;
-        }
-        else
-        {
-            voxel_accumulate = 0;
-        }*/
-
-        if(voxel_accumulate >= 1)
-            break;
-
-        cur_t += step;
-    }
-#endif
-
-    //if(voxel_accumulate < 0.1)
-    //    return;
+    float light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
 
 
+    light = clamp(light, 0.0f, 1.0f);
 
     sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE |
@@ -5064,7 +5001,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
 
-    write_imagef(screen, (int2){x, y}, voxel_accumulate*voxel_accumulate + (1.0f - voxel_accumulate)*original_value.xyzz);
+    write_imagef(screen, (int2){x, y}, voxel_accumulate*voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
+
+    //write_imagef(screen, (int2){x, y}, 0);
 }
 
 ///?__kernel void add_source(int width, int height, int depth, )
@@ -5556,7 +5495,7 @@ __kernel void post_upscale(int width, int height, int depth,
     float len = fast_length(vel);
 
     ///squared maybe not best
-    float3 vval = vel + 0.5f*100*len*wval/5.0f;
+    float3 vval = vel + 0.5f*10*len*wval/5.0f;
 
 
 

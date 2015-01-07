@@ -1614,7 +1614,7 @@ void engine::draw_smoke(smoke& s)
 
 
         ///up to render_size
-        render = mult(render, 2);
+        //render = mult(render, 2);
 
         wcorners[i] = add(render, s.pos);
 
@@ -1705,6 +1705,8 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&offset);
     smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
     smoke_args.push_back(&s.render_size);
+    smoke_args.push_back(&obj_mem_manager::g_light_num);
+    smoke_args.push_back(&obj_mem_manager::g_light_mem);
 
     int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
 
