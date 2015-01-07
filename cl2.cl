@@ -4740,6 +4740,7 @@ struct cube
 };
 
 ///textures
+///investigate weird oob behaviour
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
                             int render_size
@@ -4756,7 +4757,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_LINEAR;
 
     ///need to change this to be more intelligent
@@ -4776,7 +4777,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 ray_origin = c_pos.xyz;
 
-
+    #if 1
+    ///pass in as nearest-4, furthest-4 and then do ray -> plane intersection
     float4 tris[12][3] =
     {
         {rotcube.corners[0], rotcube.corners[1], rotcube.corners[2]},
@@ -4799,10 +4801,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 sizes = (float3){width, height, depth};
 
-    int min_val = -1;
     float min_t = FLT_MAX;
-
-    int max_val = -1;
     float max_t = -1;
 
     for(int i=0; i<12; i++)
@@ -4817,12 +4816,10 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         {
             if(t < min_t)
             {
-                min_val = i;
                 min_t = t;
             }
             if(t > max_t)
             {
-                max_val = i;
                 max_t = t;
             }
         }
@@ -4846,7 +4843,27 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         min_t = 0;
     }
 
-    ///tiredness code following
+    #endif // 0
+
+    #if 0
+
+    float min_t, max_t;
+
+    float3 near_n, far_n;
+
+    near_n = cross(rotcube.corners[1].xyz - rotcube.corners[0].xyz, rotcube.corners[2].xyz - rotcube.corners[0].xyz);
+    far_n = cross(rotcube.corners[6].xyz - rotcube.corners[5].xyz, rotcube.corners[7].xyz - rotcube.corners[5].xyz);
+
+    min_t = dot((rotcube.corners[0].xyz - ray_origin), near_n) / dot(ray_dir, near_n);
+    max_t = dot((rotcube.corners[5].xyz - ray_origin), far_n) / dot(ray_dir, far_n); ///both normals same?
+
+    #endif
+
+    //float min_t = 0;
+    //float max_t = 1;
+
+    //printf("%f %f\n", min_t, max_t);
+
 
     const float3 rel = (float3){width, height, depth} / render_size;
 
@@ -4861,12 +4878,77 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     ray_origin += half_size;
 
 
-
-
     float voxel_accumulate = 0;
 
-    const float mod = 2.0f;
 
+    const float voxel_mod = 1.0f;
+
+
+    float3 start = ray_origin + min_t * ray_dir;
+    float3 finish = ray_origin + max_t * ray_dir;
+
+    float3 current_pos = start;
+
+    float3 diff = finish - start;
+
+    float3 absdiff = fabs(diff);
+
+    float num = max3(absdiff.x, absdiff.y, absdiff.z);
+
+    float3 step = diff / num;
+
+    //if(any((start < 0) == (step < 0)) || any((start > (float3){width, height, depth}) == (step > 0)))
+    //  return;
+
+    //if(start.x < 0 && step.x < 0 || start.y < 0 && step.y < 0 || start.z < 0 && step.z < 0)
+    //    return;
+
+    //if(start.x > width && step.x > 0 || start.y > height && step.y > 0 || start.z > depth && step.z > 0)
+    //    return;
+
+    for(int i=0; i<num; i++)
+    {
+        if(any(current_pos < 0) || any(current_pos >= (float3){width, height, depth}))
+        {
+            current_pos += step;
+            continue;
+        }
+
+        float val = read_imagef(voxel, sam, current_pos.xyzz).x;
+
+        voxel_accumulate += pow(val, 1) / voxel_mod;
+
+
+        if(voxel_accumulate >= 0.1f)
+        {
+            voxel_accumulate = 1;
+            break;
+        }
+        else
+        {
+            voxel_accumulate = 0;
+        }
+
+        if(voxel_accumulate >= 1)
+            break;
+
+        ///?
+        ///need to figure out how im doing smooth rendering. Could do current and blur the crap out of it
+        ///leaves a lot of opportunity for lossy rendering here if i don't need the result to be accurate
+        ///can undersample like a priick
+        if(voxel_accumulate < 0.01f && val < 0.01f)
+        {
+            current_pos += step*3;
+            i += 3;
+        }
+
+        current_pos += step;
+    }
+
+
+#if 0
+
+    const float mod = 2.0f;
 
     const float divisions = depth*1; ///bad approximation
 
@@ -4968,11 +5050,19 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         cur_t += step;
     }
+#endif
 
     //if(voxel_accumulate < 0.1)
     //    return;
 
-    float3 original_value = read_imagef(original_screen, sam, (int2){x, y}).xyz;
+
+
+    sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE |
+                    CLK_FILTER_NEAREST;
+
+
+    float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
 
     write_imagef(screen, (int2){x, y}, voxel_accumulate*voxel_accumulate + (1.0f - voxel_accumulate)*original_value.xyzz);
 }

@@ -21,7 +21,7 @@
 ///might work
 int main(int argc, char *argv[])
 {
-    ///remember to make g_arrange_mem run faster!
+    ///remember to make g_arrange_mem run faster!f
 
     sf::Clock load_time;
 

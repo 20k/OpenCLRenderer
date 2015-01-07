@@ -1652,7 +1652,6 @@ void engine::draw_smoke(smoke& s)
             any_behind = true;
     }
 
-
     for(int i=0; i<8; i++)
     {
         scorners[0].x = std::min(sspace[i].x, scorners[0].x);
@@ -1666,6 +1665,24 @@ void engine::draw_smoke(smoke& s)
 
         scorners[3].x = std::max(sspace[i].x, scorners[3].x);
         scorners[3].y = std::max(sspace[i].y, scorners[3].y);
+    }
+
+    std::vector<cl_float4> vec_corners;
+
+    for(int i=0; i<8; i++)
+    {
+        vec_corners.push_back({sspace[i].x, sspace[i].y, sspace[i].z, i});
+    }
+
+    ///sorting in screenspace
+    std::sort(vec_corners.begin(), vec_corners.end(), [](const cl_float4& p1, const cl_float4& p2){return p1.z < p2.z;});
+
+    std::vector<cl_float4> sorted_closest;
+
+    ///apply sorting in screenspace to global space variables
+    for(int i=0; i<8; i++)
+    {
+        sorted_closest.push_back(wcorners[(int)vec_corners[i].w]);
     }
 
     //printf("%f %f\n", scorners[0].x, scorners[0].y);
