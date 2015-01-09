@@ -2409,11 +2409,11 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     global_position += camera_pos;
 
-
+    global_position -= G->world_pos.xyz;
 
     global_position = back_rot(global_position, 0, G->world_rot.xyz);
 
-    global_position += G->world_pos.xyz;
+
 
 
     float l1,l2,l3;
@@ -4766,7 +4766,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_ADDRESS_CLAMP |
                     CLK_FILTER_LINEAR;
 
     ///need to change this to be more intelligent
@@ -4868,9 +4868,6 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     #endif
 
-    //float min_t = 0;
-    //float max_t = 1;
-
     //printf("%f %f\n", min_t, max_t);
 
 
@@ -4919,17 +4916,28 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     //step /= 8;
 
+    float3 normal = 0;
+
+    int found_normal = 0;
+
+    ///investigate broken full ray accumulate
     for(int i=0; i<num; i++)
     {
-        if(any(current_pos < 0) || any(current_pos >= (float3){width, height, depth}))
+        /*if(any(current_pos < 0) || any(current_pos >= (float3){width, height, depth}))
         {
             //current_pos += step;
             //continue;
-        }
+        }*/
 
         float val = read_imagef(voxel, sam, current_pos.xyzz + 0.5f).x;
 
-        voxel_accumulate += pow(val, 1) / voxel_mod;
+        //voxel_accumulate += pow(val, 1) / voxel_mod;
+
+        /*if(val > 0.01f && found_normal < 3)
+        {
+            normal = get_normal(voxel, current_pos);
+            found_normal ++;
+        }*/
 
 
         if(val >= 0.01f)
@@ -4943,8 +4951,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
             voxel_accumulate = 0;
         }
 
-        /*if(voxel_accumulate >= 1)
+        /*if(voxel_accumulate >= 0.1)
         {
+            voxel_accumulate = 1;
             final_pos = current_pos;
             break;
         }*/
@@ -4962,15 +4971,28 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         current_pos += step;
     }
 
-    float3 normal = get_normal(voxel, final_pos);
-    /*normal += get_normal(voxel, final_pos + (float3){1,0,0});
-    normal += get_normal(voxel, final_pos + (float3){-1,0,0});
-    normal += get_normal(voxel, final_pos + (float3){0,1,0});
-    normal += get_normal(voxel, final_pos + (float3){0,-1,0});
-    normal += get_normal(voxel, final_pos + (float3){0,0,1});
-    normal += get_normal(voxel, final_pos + (float3){0,0,-1});
+    //float3 normal = get_normal(voxel, final_pos);
 
-    normal /= 7;*/
+    //for(int i=0; i<1; i++)
+    {
+        normal += get_normal(voxel, final_pos);
+
+        //current_pos += step;
+    }
+
+    normal = fast_normalize(normal);
+
+
+    /*normal += get_normal(voxel, final_pos + (float3){2,0,0});
+    normal += get_normal(voxel, final_pos + (float3){-2,0,0});
+    normal += get_normal(voxel, final_pos + (float3){0,2,0});
+    normal += get_normal(voxel, final_pos + (float3){0,-2,0});
+    normal += get_normal(voxel, final_pos + (float3){0,0,2});
+    normal += get_normal(voxel, final_pos + (float3){0,0,-2});
+
+    normal /= 7;
+
+    normal = normalize(normal);*/
 
     /*'undo' transformation to get back to global space
 
@@ -4993,6 +5015,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     light = clamp(light, 0.0f, 1.0f);
+
+    //light = 1;
 
     sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE |

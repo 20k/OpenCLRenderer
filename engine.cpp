@@ -1632,7 +1632,7 @@ void engine::draw_smoke(smoke& s)
         sspace[i] = engine::project(wcorners[i]);
     }
 
-
+    ///do this check at beginning of loop
     bool all_behind = true;
 
     for(int i=0; i<8; i++)

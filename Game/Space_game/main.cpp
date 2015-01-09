@@ -550,7 +550,7 @@ int main(int argc, char *argv[])
             if(last_selected!=-1)
                 interact::unset_selected(last_selected);
 
-            interact::set_selected(rect_id);0.
+            interact::set_selected(rect_id);
 
 
             last_selected = rect_id;
