@@ -33,6 +33,7 @@ kernel cl::shadowmap_smoothing_x;
 kernel cl::shadowmap_smoothing_y;
 kernel cl::raytrace;
 kernel cl::render_voxels;
+kernel cl::render_voxels_tex;
 kernel cl::render_voxel_cube;
 kernel cl::diffuse_unstable;
 kernel cl::diffuse_unstable_tex;

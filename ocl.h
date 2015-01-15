@@ -242,6 +242,7 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::shadowmap_smoothing_y = load_kernel(program, "shadowmap_smoothing_y");
     cl::raytrace = load_kernel(program, "raytrace");
     cl::render_voxels = load_kernel(program, "render_voxels");
+    cl::render_voxels_tex = load_kernel(program, "render_voxels_tex");
     cl::render_voxel_cube = load_kernel(program, "render_voxel_cube");
     cl::diffuse_unstable = load_kernel(program, "diffuse_unstable");
     cl::diffuse_unstable_tex = load_kernel(program, "diffuse_unstable_tex");

@@ -2409,10 +2409,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     global_position += camera_pos;
 
+
     global_position -= G->world_pos.xyz;
 
     global_position = back_rot(global_position, 0, G->world_rot.xyz);
-
 
 
 
@@ -2536,6 +2536,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         int skip = light <= 0.0f;
 
+        ///swap for 0? or likely that one warp will be same and can all skip?
         if(skip)
         {
             //if(l.shadow == 1)
@@ -4722,6 +4723,67 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
     write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval, 0, 0, 0});
 }
 
+__kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+                            __write_only image2d_t screen, __global uint* depth_buffer)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///need to change this to be more intelligent
+    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
+    {
+        return;
+    }
+
+
+    float3 camera_pos = c_pos.xyz - v_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 point = (float3){x, y, z} - (float3)(width, height, depth)/2;
+
+    float3 rotated = rot(point, camera_pos, camera_rot);
+
+    float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+    ///now in screenspace
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                CLK_ADDRESS_CLAMP_TO_EDGE |
+                CLK_FILTER_NEAREST;
+
+
+    //float myval = voxel[IX(x, y, z)];
+
+    float myval = read_imagef(voxel, sam, (int4){x, y, z, 0}).x;
+
+    if(myval < 0.01f)
+        return;
+
+    if(projected.z < 0.001f)
+        return;
+
+    ///only render outer hull for the moment
+    int c = 0;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(1,0,0,0)).x >= 0.01f ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(-1,0,0,0)).x >= 0.01f ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,1,0,0)).x >= 0.01f ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,-1,0,0)).x >= 0.01f ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,0,1,0)).x >= 0.01f ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,0,-1,0)).x >= 0.01f ? c+1 : c;
+
+    int cond = c == 0 || c == 6;
+
+    if(cond)
+        return;
+
+    /*if(myval > 1)
+        myval = 1;*/
+
+    myval = 1;
+
+    write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval, 0, 0, 0});
+}
+
 struct cube
 {
     float4 corners[8];
@@ -4742,7 +4804,7 @@ float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
     dz = read_imagef(voxel, sam, final_pos.xyzz + (float4){0, 0, 1, 0}).x - read_imagef(voxel, sam, final_pos.xyzz - (float4){0, 0, 1, 0}).x;
 
     ///need to flip normal depending on which side of cube ray direction intersects...?????
-    float3 normal = -fast_normalize((float3){dx, dy, dz});
+    float3 normal = -normalize((float3){dx, dy, dz});
 
     return normal;
 }
@@ -4750,6 +4812,8 @@ float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
 ///textures
 ///investigate weird oob behaviour
 ///seems to be rendering only one side of cubes
+///need to make simulation incompressible to get vortices
+///use half float
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
                             int render_size, __global uint* lnum, __global struct light* lights
@@ -4758,16 +4822,12 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     float x = get_global_id(0);
     float y = get_global_id(1);
 
-    int swidth = get_global_size(0);
-    int sheight = get_global_size(1);
+    //int swidth = get_global_size(0);
+    //int sheight = get_global_size(1);
 
     x += offset.x;
     y += offset.y;
 
-
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP |
-                    CLK_FILTER_LINEAR;
 
     ///need to change this to be more intelligent
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
@@ -4813,6 +4873,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     float min_t = FLT_MAX;
     float max_t = -1;
 
+    ///0.5ms
     for(int i=0; i<12; i++)
     {
         float t = 0, u, v;
@@ -4870,7 +4931,6 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     //printf("%f %f\n", min_t, max_t);
 
-
     const float3 rel = (float3){width, height, depth} / render_size;
 
     const float3 half_size = (float3){width,height,depth}/2;
@@ -4889,11 +4949,11 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     const float voxel_mod = 1.0f;
 
-
     float3 start = ray_origin + min_t * ray_dir;
     float3 finish = ray_origin + max_t * ray_dir;
 
-    float3 current_pos = start;
+
+    float3 current_pos = start + 0.5f;
 
     float3 diff = finish - start;
 
@@ -4903,33 +4963,28 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 step = diff / num;
 
-    //if(any((start < 0) == (step < 0)) || any((start > (float3){width, height, depth}) == (step > 0)))
-    //  return;
-
-    //if(start.x < 0 && step.x < 0 || start.y < 0 && step.y < 0 || start.z < 0 && step.z < 0)
-    //    return;
-
-    //if(start.x > width && step.x > 0 || start.y > height && step.y > 0 || start.z > depth && step.z > 0)
-    //    return;
-
     float3 final_pos = 0;
-
-    //step /= 8;
 
     float3 normal = 0;
 
     int found_normal = 0;
 
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_LINEAR;
+
+    ///maybe im like, stepping through the cube from the wrong direction or something?
+
     ///investigate broken full ray accumulate
+
+    bool found = false;
+
     for(int i=0; i<num; i++)
     {
-        /*if(any(current_pos < 0) || any(current_pos >= (float3){width, height, depth}))
-        {
-            //current_pos += step;
-            //continue;
-        }*/
+        float val = read_imagef(voxel, sam, (float4)(current_pos.xyz, 0)).x;
 
-        float val = read_imagef(voxel, sam, current_pos.xyzz + 0.5f).x;
+        //voxel_accumulate += val;
 
         //voxel_accumulate += pow(val, 1) / voxel_mod;
 
@@ -4939,29 +4994,50 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
             found_normal ++;
         }*/
 
-
-        if(val >= 0.01f)
+        if(val >= 0.01f && found)
         {
             voxel_accumulate = 1;
-            final_pos = current_pos;
             break;
         }
         else
+            voxel_accumulate = 0;
+
+        ///need to find the point at which val EQUALS 0.01f, then change current_pos to there
+        ///include OOB?
+        if(val >= 0.01f)
+        {
+            //voxel_accumulate = 1;
+            found = true;
+            current_pos -= step;
+            step /= 8;
+
+            num += 8;
+
+            continue;
+        }
+        /*else
         {
             voxel_accumulate = 0;
-        }
+        }*/
+
+
 
         /*if(voxel_accumulate >= 0.1)
         {
             voxel_accumulate = 1;
             final_pos = current_pos;
             break;
+
         }*/
+
+        //if(count == 9)
+        //    break;
 
         ///?
         ///need to figure out how im doing smooth rendering. Could do current and blur the crap out of it
         ///leaves a lot of opportunity for lossy rendering here if i don't need the result to be accurate
         ///can undersample like a priick
+        ///jumping into the mesh inappropriately seems to cause the issue
         if(voxel_accumulate < 0.01f && val < 0.01f)
         {
             //current_pos += step*3;
@@ -4971,16 +5047,19 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         current_pos += step;
     }
 
+    final_pos = current_pos;
+
     //float3 normal = get_normal(voxel, final_pos);
 
     //for(int i=0; i<1; i++)
     {
-        normal += get_normal(voxel, final_pos);
+        ///turns out that the problem IS just hideously unsmoothed normals
+        normal = get_normal(voxel, final_pos);
 
         //current_pos += step;
     }
 
-    normal = fast_normalize(normal);
+    //normal = normalize(normal);
 
 
     /*normal += get_normal(voxel, final_pos + (float3){2,0,0});
@@ -5019,8 +5098,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     //light = 1;
 
     sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_NONE |
-                    CLK_FILTER_NEAREST;
+                        CLK_ADDRESS_NONE |
+                        CLK_FILTER_NEAREST;
 
 
     float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
@@ -5386,6 +5465,7 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
     v1 = buf[IX(x, y, z)];
     v2 = buf[IX(x+1, y, z)];
     v3 = buf[IX(x, y+1, z)];
+
     v4 = buf[IX(x+1, y+1, z)];
     v5 = buf[IX(x, y, z+1)];
     v6 = buf[IX(x+1, y, z+1)];
@@ -5413,22 +5493,25 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
     return y1 * (1.0f - zfrac) + y2 * zfrac;
 }
 
-///do one advect of diffuse with post_upscale higher res?
-///dedicated upscaling kernel?
-///very interestingly, excluding the x_out, y_out and z_out arguments incrases performances by ~1ms
-///????
-///need to use linear interpolation on velocities
-__kernel void post_upscale(int width, int height, int depth,
-                           int uw, int uh, int ud,
-                           //__global float* xvel, __global float* yvel, __global float* zvel,
-                           __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
-                           __global float* w1, __global float* w2, __global float* w3,
-                           //__global float* x_out, __global float* y_out, __global float* z_out,
-                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale)
+float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global float* w1, __global float* w2, __global float* w3, __read_only image3d_t d_in)
 {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
+    int width, height, depth;
+
+    width = size.x;
+    height = size.y;
+    depth = size.z;
+
+    int uw, uh, ud;
+
+    uw = upscaled_size.x;
+    uh = upscaled_size.y;
+    ud = upscaled_size.z;
+
+    int x, y, z;
+
+    x = loc.x;
+    y = loc.y;
+    z = loc.z;
 
     float rx, ry, rz;
     ///imprecise, we need something else
@@ -5450,9 +5533,15 @@ __kernel void post_upscale(int width, int height, int depth,
 
     ///would be beneficial to be able to use lower res smoke
     ///ALMOST CERTAINLY NEED TO INTERPOLATE
+
+    uint total_pos = uw*uh*ud;
+
+    ///offsets into the same tile dont seem to improve anything
+    ///would reduce noise generation time, need to check more exhaustively
     wval.x = w1[pos];
     wval.y = w2[pos];
     wval.z = w3[pos];
+    //wval.z = wval.y;
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
@@ -5506,13 +5595,12 @@ __kernel void post_upscale(int width, int height, int depth,
         //return;
     }
 
-
     //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
 
     ///arbitrary constant?
     ///need to do interpolation of this
     ///? twiddle the constant
-    ///this is the new velocity
+    ///this is the new velocity-
 
     float3 vel = (float3){vx, vy, vz};
 
@@ -5547,6 +5635,28 @@ __kernel void post_upscale(int width, int height, int depth,
     ///draw from here somehow?
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
+
+    return val;
+}
+
+///do one advect of diffuse with post_upscale higher res?
+///dedicated upscaling kernel?
+///very interestingly, excluding the x_out, y_out and z_out arguments incrases performances by ~1ms
+///????
+///need to use linear interpolation on velocities
+__kernel void post_upscale(int width, int height, int depth,
+                           int uw, int uh, int ud,
+                           //__global float* xvel, __global float* yvel, __global float* zvel,
+                           __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
+                           __global float* w1, __global float* w2, __global float* w3,
+                           //__global float* x_out, __global float* y_out, __global float* z_out,
+                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+
     //d_out[pos] =
 
     /*sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
@@ -5555,6 +5665,8 @@ __kernel void post_upscale(int width, int height, int depth,
 
 
     //val = read_imagef(d_in, sam, (int4){rx, ry, rz, 0}).x;
+
+    float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in);
 
     write_imagef(d_out, (int4){x, y, z, 0}, val);
 

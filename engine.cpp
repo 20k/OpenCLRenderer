@@ -1744,11 +1744,12 @@ void engine::draw_smoke(smoke& s)
     //printf("%f %f %i %i\n", offset.x, offset.y, c_width, c_height);
 
 
+    //#define SMOKE_DEBUG
     #ifdef SMOKE_DEBUG
 
     arg_list naive_args;
     ///broke
-    naive_args.push_back(&s.g_voxel_upscale[0]);
+    naive_args.push_back(&s.g_voxel_upscale);
     naive_args.push_back(&s.uwidth);
     naive_args.push_back(&s.uheight);
     naive_args.push_back(&s.udepth);
@@ -1762,7 +1763,7 @@ void engine::draw_smoke(smoke& s)
     cl_uint naive_ws[3] = {s.uwidth, s.uheight, s.udepth};
     cl_uint naive_lws[3] = {16, 16, 1};
 
-    run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
+    run_kernel_with_list(cl::render_voxels_tex, naive_ws, naive_lws, 3, naive_args);
 
     #endif
 
