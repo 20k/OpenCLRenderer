@@ -311,9 +311,9 @@ void obj_load(objects_container* pobj)
             vt = vtl[index.vt[j]];
             vn = vnl[index.vn[j]];
 
-            vert[j].pos = v;
-            vert[j].vt = {vt.x, vt.y};
-            vert[j].normal = vn;
+            vert[j].set_pos(v);
+            vert[j].set_vt({vt.x, vt.y});
+            vert[j].set_normal(vn);
         }
 
         triangle t;

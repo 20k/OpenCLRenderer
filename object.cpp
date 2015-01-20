@@ -5,6 +5,7 @@
 #include "objects_container.hpp"
 #include <iostream>
 #include "texture_manager.hpp"
+#include "vec.hpp"
 
 int obj_null_vis(object* obj, cl_float4 c_pos)
 {
@@ -92,9 +93,15 @@ void object::translate_centre(cl_float4 _centre)
     {
         for(int j=0; j<3; j++)
         {
-            tri_list[i].vertices[j].pos.x += centre.x;
+            cl_float4 pos = tri_list[i].vertices[j].get_pos();
+
+            pos = add(pos, centre);
+
+            tri_list[i].vertices[j].set_pos(pos);
+
+            /*tri_list[i].vertices[j].pos.x += centre.x;
             tri_list[i].vertices[j].pos.y += centre.y;
-            tri_list[i].vertices[j].pos.z += centre.z;
+            tri_list[i].vertices[j].pos.z += centre.z;*/
         }
     }
 }
@@ -106,13 +113,35 @@ void object::swap_90()
     {
         for(int j=0; j<3; j++)
         {
-            float temp = tri_list[i].vertices[j].pos.x;
+            cl_float4 pos = tri_list[i].vertices[j].get_pos();
+
+            float temp = pos.x;
+
+            cl_float4 new_pos = pos;
+
+            new_pos.x = -pos.z;
+            new_pos.z = temp;
+
+            tri_list[i].vertices[j].set_pos(new_pos);
+
+            cl_float4 normal = tri_list[i].vertices[j].get_normal();
+
+            temp = normal.x;
+
+            cl_float4 new_normal = normal;
+
+            new_normal.x = -normal.z;
+            new_normal.z = temp;
+
+            tri_list[i].vertices[j].set_normal(new_normal);
+
+            /*float temp = tri_list[i].vertices[j].pos.x;
             tri_list[i].vertices[j].pos.x = -tri_list[i].vertices[j].pos.z;
             tri_list[i].vertices[j].pos.z = temp;
 
             temp = tri_list[i].vertices[j].normal.x;
             tri_list[i].vertices[j].normal.x = -tri_list[i].vertices[j].normal.z;
-            tri_list[i].vertices[j].normal.z = temp;
+            tri_list[i].vertices[j].normal.z = temp;*/
         }
     }
 }
@@ -123,9 +152,15 @@ void object::scale(float f)
     {
         for(int j=0; j<3; j++)
         {
-            tri_list[i].vertices[j].pos.x *= f;
+            /*tri_list[i].vertices[j].pos.x *= f;
             tri_list[i].vertices[j].pos.y *= f;
-            tri_list[i].vertices[j].pos.z *= f;
+            tri_list[i].vertices[j].pos.z *= f;*/
+
+            cl_float4 pos = tri_list[i].vertices[j].get_pos();
+
+            pos = mult(pos, f);
+
+            tri_list[i].vertices[j].set_pos(pos);
         }
     }
 }

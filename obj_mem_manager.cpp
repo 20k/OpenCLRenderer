@@ -212,7 +212,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
         {
             for(int i=0; i<(*it).tri_num; i++)
             {
-                (*it).tri_list[i].vertices[0].pad = obj_id;
+                (*it).tri_list[i].vertices[0].set_pad(obj_id);
             }
 
             ///boost::compute fails an assertion if tri_num == 0
