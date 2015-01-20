@@ -219,29 +219,12 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
             if((*it).tri_num>0)
                 cl::cqueue.enqueue_write_buffer(t.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_num, (*it).tri_list.data());
 
-            running+=(*it).tri_num;
+            running += (*it).tri_num;
             obj_id++;
         }
     }
 
-    t.tri_num=trianglecount;
-
-    cl_uint gl_ws = 256;
-
-    compute::buffer one(cl::context, sizeof(cl_uint)*1);
-
-    compute::buffer wrap(t.g_texture_array.get());
-
-    //compute::buffer* args[] = {&t.g_tri_mem, &wrap, &one};
-
-    //run_kernel_with_args(cl::trivial, &gl_ws, &gl_ws, 1, args, 3, true);
-
-    arg_list trivial_arg_list;
-    trivial_arg_list.push_back(&t.g_tri_mem);
-    trivial_arg_list.push_back(&wrap);
-    trivial_arg_list.push_back(&one);
-
-    run_kernel_with_list(cl::trivial, &gl_ws, &gl_ws, 1, trivial_arg_list);
+    t.tri_num = trianglecount;
 }
 
 

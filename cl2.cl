@@ -1539,18 +1539,6 @@ __kernel void atomic_64_test(__global ulong* test)
 }*/
 
 
-__kernel void trivial_kernel(__global struct triangle* triangles, __read_only image3d_t texture, __global uint* someout)
-{
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE   |
-                    CLK_FILTER_NEAREST;
-
-    float4 coord = {0,0,0,0};
-    uint4 col = read_imageui(texture, sam, coord);
-    uint useless = triangles->vertices[0].pos.x + col.x;
-    someout[0] = useless;
-}
-
 
 __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4* const projectile_pos, int projectile_num, float4 c_pos, float4 c_rot, __read_only image2d_t effects_image, __write_only image2d_t screen)
 {

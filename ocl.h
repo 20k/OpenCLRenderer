@@ -220,7 +220,6 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::kernel2 = load_kernel(program, "part2");
     cl::kernel3 = load_kernel(program, "part3");
     cl::prearrange = load_kernel(program, "prearrange");
-    cl::trivial = load_kernel(program, "trivial_kernel");
     cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
     cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");
     cl::space_dust = load_kernel(program, "space_dust");

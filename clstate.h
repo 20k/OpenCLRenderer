@@ -30,7 +30,6 @@ namespace cl
     extern kernel kernel2;
     extern kernel kernel3;
     extern kernel prearrange;
-    extern kernel trivial;
     extern kernel point_cloud_depth;
     extern kernel point_cloud_recover;
     extern kernel space_dust;

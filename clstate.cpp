@@ -11,7 +11,6 @@ kernel cl::kernel1;
 kernel cl::kernel2;
 kernel cl::kernel3;
 kernel cl::prearrange;
-kernel cl::trivial;
 kernel cl::point_cloud_depth;
 kernel cl::point_cloud_recover;
 kernel cl::space_dust;
