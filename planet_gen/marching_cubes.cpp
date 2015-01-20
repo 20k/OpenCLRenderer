@@ -411,7 +411,21 @@ int march_cube(float cubebounds[8], triangle tri[5], float ***nf, int xb, int yb
             generate_vertex_from_edge(edge_connect[i][j], cubebounds, tris[i][j]);
         }
 
-        tri[i].vertices[0].pos.x = (tris[i][0][0]);
+        cl_float4 v1, v2, v3;
+
+        v1.x = tris[i][0][0];
+        v1.y = tris[i][0][1];
+        v1.z = tris[i][0][2];
+
+        v2.x = tris[i][1][0];
+        v2.y = tris[i][1][1];
+        v2.z = tris[i][1][2];
+
+        v3.x = tris[i][2][0];
+        v3.y = tris[i][2][1];
+        v3.z = tris[i][2][2];
+
+        /*tri[i].vertices[0].pos.x = (tris[i][0][0]);
         tri[i].vertices[0].pos.y = (tris[i][0][1]);
         tri[i].vertices[0].pos.z = (tris[i][0][2]);
 
@@ -421,7 +435,11 @@ int march_cube(float cubebounds[8], triangle tri[5], float ***nf, int xb, int yb
 
         tri[i].vertices[1].pos.x = (tris[i][2][0]);
         tri[i].vertices[1].pos.y = (tris[i][2][1]);
-        tri[i].vertices[1].pos.z = (tris[i][2][2]);
+        tri[i].vertices[1].pos.z = (tris[i][2][2]);*/
+
+        tri[i].vertices[0].set_pos(v1);
+        tri[i].vertices[1].set_pos(v2);
+        tri[i].vertices[2].set_pos(v3);
 
         cl_float4 p0 = conv_arr_cl(tris[i][0]);
         cl_float4 p1 = conv_arr_cl(tris[i][2]);
@@ -444,7 +462,9 @@ int march_cube(float cubebounds[8], triangle tri[5], float ***nf, int xb, int yb
         {
             float offset = 1.0f;
 
-            float base[3] = {xb + tri[i].vertices[j].pos.x + 1, yb + tri[i].vertices[j].pos.y + 1, zb + tri[i].vertices[j].pos.z + 1};
+            cl_float4 pos = tri[i].vertices[j].get_pos();
+
+            float base[3] = {xb + pos.x + 1, yb + pos.y + 1, zb + pos.z + 1};
             //float base[3] = {xb, yb, zb};
             float d0 = sample_noisefield_arr(base, nf);
 
@@ -484,9 +504,13 @@ int march_cube(float cubebounds[8], triangle tri[5], float ***nf, int xb, int yb
             normal[1] = diff[1] / len;
             normal[2] = diff[2] / len;
 
-            tri[i].vertices[j].normal.x = -normal[0] + noisemod(base[0], base[1], base[2], 23, 0.7, 0.1);
-            tri[i].vertices[j].normal.y = -normal[1] + noisemod(base[0], base[1], base[2], 24, 0.7, 0.1);
-            tri[i].vertices[j].normal.z = -normal[2] + noisemod(base[0], base[1], base[2], 25, 0.7, 0.1);
+            cl_float4 vnormal;
+
+            vnormal.x = -normal[0] + noisemod(base[0], base[1], base[2], 23, 0.7, 0.1);
+            vnormal.y = -normal[1] + noisemod(base[0], base[1], base[2], 24, 0.7, 0.1);
+            vnormal.z = -normal[2] + noisemod(base[0], base[1], base[2], 25, 0.7, 0.1);
+
+            tri[i].vertices[j].set_normal(vnormal);
         }
 
 
@@ -503,14 +527,9 @@ int march_cube(float cubebounds[8], triangle tri[5], float ***nf, int xb, int yb
         tri[i].vertices[2].normal[2] = cr.z;*/
 
 
-        tri[i].vertices[0].vt.x = 0.1;
-        tri[i].vertices[0].vt.y = 0.1;
-
-        tri[i].vertices[1].vt.x = 0.2;
-        tri[i].vertices[1].vt.y = 0.5;
-
-        tri[i].vertices[2].vt.x = 0.5;
-        tri[i].vertices[2].vt.y = 0.7;
+        tri[i].vertices[0].set_vt({0.1, 0.1});
+        tri[i].vertices[1].set_vt({0.2, 0.5});
+        tri[i].vertices[2].set_vt({0.5, 0.7});
     }
 
     return tri_num;
@@ -521,13 +540,21 @@ void offset_base(float base[3], triangle &t, float scale)
 {
     for(int i=0; i<3; i++)
     {
-        t.vertices[i].pos.x+=base[0];
+        cl_float4 pos = t.vertices[i].get_pos();
+
+        pos = add(pos, (cl_float4){base[0], base[1], base[2], 0});
+
+        pos = mult(pos, scale);
+
+        t.vertices[i].set_pos(pos);
+
+        /*t.vertices[i].pos.x+=base[0];
         t.vertices[i].pos.y+=base[1];
         t.vertices[i].pos.z+=base[2];
 
         t.vertices[i].pos.x*=scale;
         t.vertices[i].pos.y*=scale;
-        t.vertices[i].pos.z*=scale;
+        t.vertices[i].pos.z*=scale;*/
     }
 }
 

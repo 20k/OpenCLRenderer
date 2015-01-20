@@ -128,42 +128,33 @@ void create_terrain(objects_container* obj, int width, int height)
             cl_float4 nbr = normal_accumulate[(j+1)*width + i + 1];
 
             triangle tri;
-            tri.vertices[0].pos = tl;
-            tri.vertices[1].pos = bl;
-            tri.vertices[2].pos = tr;
+            tri.vertices[0].set_pos(tl);
+            tri.vertices[1].set_pos(bl);
+            tri.vertices[2].set_pos(tr);
 
-            tri.vertices[0].normal = ntl;
-            tri.vertices[1].normal = nbl;
-            tri.vertices[2].normal = ntr;
+            tri.vertices[0].set_normal(ntl);
+            tri.vertices[1].set_normal(nbl);
+            tri.vertices[2].set_normal(ntr);
 
-            tri.vertices[0].vt.x = 0.1;
-            tri.vertices[0].vt.y = 0.1;
-
-            tri.vertices[1].vt.x = 0.2;
-            tri.vertices[1].vt.y = 0.5;
-
-            tri.vertices[2].vt.x = 0.5;
-            tri.vertices[2].vt.y = 0.7;
+            tri.vertices[0].set_vt({0.1, 0.1});
+            tri.vertices[1].set_vt({0.2, 0.5});
+            tri.vertices[2].set_vt({0.5, 0.7});
 
 
             triangle tri2;
-            tri2.vertices[0].pos = tr;
-            tri2.vertices[1].pos = bl;
-            tri2.vertices[2].pos = br;
+            tri2.vertices[0].set_pos(tr);
+            tri2.vertices[1].set_pos(bl);
+            tri2.vertices[2].set_pos(br);
 
-            tri2.vertices[0].normal = ntr;
-            tri2.vertices[1].normal = nbl;
-            tri2.vertices[2].normal = nbr;
+            tri2.vertices[0].set_normal(ntr);
+            tri2.vertices[1].set_normal(nbl);
+            tri2.vertices[2].set_normal(nbr);
 
 
-            tri2.vertices[0].vt.x = 0.1;
-            tri2.vertices[0].vt.y = 0.1;
+            tri2.vertices[0].set_vt({0.1, 0.1});
+            tri2.vertices[1].set_vt({0.2, 0.5});
+            tri2.vertices[2].set_vt({0.5, 0.7});
 
-            tri2.vertices[1].vt.x = 0.2;
-            tri2.vertices[1].vt.y = 0.5;
-
-            tri2.vertices[2].vt.x = 0.5;
-            tri2.vertices[2].vt.y = 0.7;
 
             tris.push_back(tri);
             tris.push_back(tri2);

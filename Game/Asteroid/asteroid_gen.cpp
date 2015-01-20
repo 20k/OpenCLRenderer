@@ -204,19 +204,19 @@ void generate_asteroid(objects_container* pobj, int seed)
         for(int n=0; n<N; n++)
         {
             vertex v1;
-            v1.normal = normal_list[m][(n+1)%N];
-            v1.vt = {0.1,0.1};
-            v1.pos = mem[m][(n + 1) % N];
+            v1.set_normal(normal_list[m][(n+1)%N]);
+            v1.set_vt({0.1,0.1});
+            v1.set_pos(mem[m][(n + 1) % N]);
 
             vertex v2;
-            v2.normal = normal_list[m][n];
-            v2.vt = {0.1,0.1};
-            v2.pos = mem[m][n];
+            v2.set_normal(normal_list[m][n]);
+            v2.set_vt({0.1,0.1});
+            v2.set_pos(mem[m][n]);
 
             vertex v3;
-            v3.normal = normal_list[(m + 1) % M][n];
-            v3.vt = {0.1,0.1};
-            v3.pos = mem[(m + 1) % M][n];
+            v3.set_normal(normal_list[(m + 1) % M][n]);
+            v3.set_vt({0.1,0.1});
+            v3.set_pos(mem[(m + 1) % M][n]);
 
             triangle t;
             t.vertices[0] = v1;
@@ -226,17 +226,17 @@ void generate_asteroid(objects_container* pobj, int seed)
             tris.push_back(t);
 
 
-            v1.normal = normal_list[(m + 1) % M][(n+1)%N];
-            v1.vt = {0.1,0.1};
-            v1.pos = mem[(m + 1) % M][(n + 1) % N];
+            v1.set_normal(normal_list[(m + 1) % M][(n+1)%N]);
+            v1.set_vt({0.1,0.1});
+            v1.set_pos(mem[(m + 1) % M][(n + 1) % N]);
 
-            v2.normal = normal_list[m][(n+1)%N];
-            v2.vt = {0.1,0.1};
-            v2.pos = mem[m][(n+1)%N];
+            v2.set_normal(normal_list[m][(n+1)%N]);
+            v2.set_vt({0.1,0.1});
+            v2.set_pos(mem[m][(n+1)%N]);
 
-            v3.normal = normal_list[(m + 1) % M][n];
-            v3.vt = {0.1,0.1};
-            v3.pos = mem[(m + 1) % M][n];
+            v3.set_normal(normal_list[(m + 1) % M][n]);
+            v3.set_vt({0.1,0.1});
+            v3.set_pos(mem[(m + 1) % M][n]);
 
             t.vertices[0] = v1;
             t.vertices[1] = v2;
