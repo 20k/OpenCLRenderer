@@ -419,7 +419,8 @@ int main(int argc, char *argv[])
 
     window.load(1280,768,1000, "turtles", "../../cl2.cl");
 
-    window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
+   // window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
+    window.set_camera_pos((cl_float4){5000, 1000, -7000});
     //window.c_rot.x = -M_PI/2;
 
 
@@ -453,11 +454,8 @@ int main(int argc, char *argv[])
     l.set_shadow_casting(0);
     l.set_brightness(1);
     l.set_pos((cl_float4){-200, 100, 0});
-    //l.set_pos((cl_float4){-150, 150, 300});
     l.radius = 1000000;
-    /*l.set_pos((cl_float4){-200, 2000, -100, 0});
-    l.set_pos((cl_float4){-200, 200, -100, 0});
-    l.set_pos((cl_float4){-400, 150, -555, 0});*/
+
     //window.add_light(&l);
 
     l.set_col((cl_float4){1.0f, 1.0f, 1.0f, 0});
@@ -470,18 +468,6 @@ int main(int argc, char *argv[])
 
     //window.set_camera_pos({0, 100, 200});
     //window.set_camera_rot({0.1, M_PI, 0});
-
-    /*l.set_col({1.0, 0.5, 0.0});
-    l.set_pos((cl_float4){-0, 2000,-0, 0});
-    l.set_shadow_casting(1);
-
-    window.add_light(&l);
-
-    l.set_col({0, 0.5, 0.99});
-    l.set_pos((cl_float4){-1200, 250,0, 0});
-    l.set_shadow_casting(1);
-
-    window.add_light(&l);*/
 
 
     window.construct_shadowmaps();
@@ -508,17 +494,8 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        /*for(int i=0; i<zebra_count; i++)
-        {
-            zebra::update(&zebras[i]);
-        }*/
-
         zebra::repulse();
         zebra::update();
-
-        //window.c_pos.y += 10.0f;
-
-        //zebra::repulse();
 
         window.input();
 

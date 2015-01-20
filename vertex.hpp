@@ -1,6 +1,7 @@
 #ifndef INCLUDED_HPP_VERTEX
 #define INCLUDED_HPP_VERTEX
 #include <cl/cl.h>
+///so like, pos, normal, and vt can all be half floats
 struct vertex
 {
     cl_float4 pos;

@@ -4980,6 +4980,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     bool found = false;
 
+    float final_val = 0;
+
     for(int i=0; i<num; i++)
     {
         float val = read_imagef(voxel, sam, (float4)(current_pos.xyz, 0)).x;
@@ -5004,16 +5006,37 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         ///need to find the point at which val EQUALS 0.01f, then change current_pos to there
         ///include OOB?
+        ///take one sample along step to find dx/dy/dz/whatever, then advance back to find the 0.01 point
         if(val >= 0.01f)
         {
             //voxel_accumulate = 1;
             found = true;
+            ///hack to find 0.01f point
             current_pos -= step;
             step /= 8;
 
             num += 8;
 
             continue;
+
+            /*voxel_accumulate = 1;
+
+            final_val = val;*/
+
+            ///its a piecewise linear function so this is not correct at all
+            ///rip
+            ///we have two linear functions
+            /*float nv = read_imagef(voxel, sam, (float4)(current_pos.xyz - step/32, 0)).x;
+
+            float dv = nv - val;
+
+            float dr = val - 0.01f;
+
+            float frac = dr / dv;
+
+            current_pos += frac*step/32;*/
+
+            //break;
         }
         /*else
         {
@@ -5050,6 +5073,14 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     final_pos = current_pos;
 
     //float3 normal = get_normal(voxel, final_pos);
+
+    ///do for all? check for quitting outside of bounds and do for that as well?
+    /*if(found)
+    {
+        float diff = val - 0.01f;
+
+
+    }*/
 
     //for(int i=0; i<1; i++)
     {

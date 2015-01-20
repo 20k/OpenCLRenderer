@@ -118,7 +118,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     pos = zero;
     rot = zero;
 
-    //pos = {0, 100, -100, 0};
+    pos = {0, 100, -100, 0};
 
     uwidth = width*scale;
     uheight = height*scale;
