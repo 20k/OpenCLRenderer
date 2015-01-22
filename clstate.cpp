@@ -43,4 +43,5 @@ kernel cl::diffuse_unstable_tex;
 kernel cl::advect;
 kernel cl::advect_tex;
 kernel cl::post_upscale;
+kernel cl::warp_oculus;
 

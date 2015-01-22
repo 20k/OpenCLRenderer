@@ -44,6 +44,9 @@ namespace rift
 
     extern cl_float4 eye_position[2];
     extern cl_float4 eye_rotation[2];
+
+    extern cl_float4 distortion_constants;
+    extern cl_float distortion_scale;
 };
 
 struct engine

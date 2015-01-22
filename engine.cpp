@@ -26,6 +26,7 @@
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"
 #include "Rift/Src/OVR_CAPI.h"
+#include "Rift/Src/OVR_Stereo.h"
 
 
 #define FOV_CONST 500.0f
@@ -41,8 +42,10 @@ ovrPosef rift::eyeRenderPose[2];
 ovrTrackingState rift::HmdState;
 
 cl_float4 rift::eye_position[2] = {0};
-
 cl_float4 rift::eye_rotation[2] = {0};
+
+cl_float4 rift::distortion_constants = {1.0f, 0.22f, 0.24f, 0.0f};
+cl_float rift::distortion_scale = {0};
 
 
 ///this needs changing
@@ -195,6 +198,16 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             height = recommendedTex0Size.h;
 
             width *= 2;//?
+
+            //struct LensConfig lens;
+
+            //rift::distortion_scale = lens.DistortionFNScaleRadius
+
+            //vrHmd_GetRenderScaleAndOffset( ovrFovPort fov,
+            //                                ovrSizei textureSize, ovrRecti renderViewport,
+            //                                ovrVector2f uvScaleOffsetOut[2] );
+
+            //OVR::Util::Render::StereoConfig config;
         }
     }
 
@@ -1210,7 +1223,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     #endif
 }
 
-void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer& g_screen_out)
+void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer g_screen_out[2])
 {
     cl_uint zero = 0;
 
@@ -1301,12 +1314,12 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     ///use an initialiser list for arg_lists?
     arg_list p3arg_list;
     p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
-    p3arg_list.push_back(position, sizeof(cl_float4));
-    p3arg_list.push_back(rotation, sizeof(cl_float4));
+    p3arg_list.push_back(position, sizeof(cl_float4)*2);
+    p3arg_list.push_back(rotation, sizeof(cl_float4)*2);
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
     p3arg_list.push_back(&texture_manager::g_texture_array);
-    p3arg_list.push_back(&g_screen_out);
+    p3arg_list.push_back(&g_screen_out[1]);
     p3arg_list.push_back(&texture_manager::g_texture_numbers);
     p3arg_list.push_back(&texture_manager::g_texture_sizes);
     p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
@@ -1317,6 +1330,15 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
 
     run_kernel_with_list(cl::kernel3_oculus, p3global_ws, p3local_ws, 2, p3arg_list, true);
+
+
+
+    arg_list distort_arg_list;
+    distort_arg_list.push_back(&g_screen_out[1]);
+    distort_arg_list.push_back(&g_screen_out[0]);
+    distort_arg_list.push_back(&rift::distortion_constants);
+
+    run_kernel_with_list(cl::warp_oculus, p3global_ws, p3local_ws, 2, distort_arg_list);
 }
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
@@ -1379,7 +1401,7 @@ void engine::draw_bulk_objs_n()
         rotations[0] = sub({0,0,0,0}, eye_rotation[0]);
         rotations[1] = sub({0,0,0,0}, eye_rotation[1]);
 
-        render_tris_oculus(*this, cameras, rotations, g_rift_screen[0]);
+        render_tris_oculus(*this, cameras, rotations, g_rift_screen);
     }
 
 }

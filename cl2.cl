@@ -2933,7 +2933,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
 __kernel
 ///remember to change c_pos and c_rot
-void part3_oculus(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+void part3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global float4* cutdown_tris
            )
@@ -2969,8 +2969,8 @@ void part3_oculus(__global struct triangle *triangles, float4 c_pos, float4 c_ro
     float3 camera_pos;
     float3 camera_rot;
 
-    camera_pos = c_pos.xyz;
-    camera_rot = c_rot.xyz;
+    camera_pos = camera == 0 ? c_pos.s1.xyz : c_pos.s2.xyz;
+    camera_rot = camera == 0 ? c_rot.s1.xyz : c_rot.s2.xyz;
 
     if(*ft == UINT_MAX)
     {
@@ -3117,6 +3117,117 @@ void part3_oculus(__global struct triangle *triangles, float4 c_pos, float4 c_ro
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
     write_imagef(screen, scoord, (float4)(colclamp*diffuse_sum, 0.0f));
+}
+
+///according to internets
+//const float2 lens_centre = {0.15f, 0.0f};
+
+float distortion_scale(float2 val, float4 d)
+{
+    float2 valsq = val*val;
+
+    float radsq = valsq.x + valsq.y;
+
+    float scale = d.x +
+                  d.y * radsq +
+                  d.z * radsq * radsq +
+                  d.w * radsq * radsq * radsq;
+
+    return scale;
+}
+
+float2 to_distortion_coordinates(float2 val, float width, float height, float2 lens_centre)
+{
+    ///normalize
+    float2 nv = {val.x / width, val.y / height};
+
+    ///-1 -> 1
+    nv -= 0.5f;
+    nv *= 2;
+
+    nv -= lens_centre;
+
+    ///axis are not same scale, need to make them same
+    nv.x *= (float)width/height;
+
+    return nv;
+}
+
+float2 to_screen_coords(float2 val, float width, float height, float2 lens_centre)
+{
+    ///???
+    float fillscale = 1.2f;
+
+    float2 unaspected = val / fillscale;
+    unaspected.x /= (float)width/height;
+
+    float2 unlensed = unaspected + lens_centre;
+
+    float2 screen_coords = unlensed / 2.0f;
+    screen_coords += 0.5f;
+
+    screen_coords *= (float2)(width, height);
+
+    return screen_coords;
+}
+
+///d1 -> 4 are distortion coefficiants
+__kernel
+void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, float4 d)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    float width = SCREENWIDTH/2;
+    float height = SCREENHEIGHT;
+
+    //float2 lens_centre = {0.15f, 0.0f};
+    float2 lens_centre = {0.15f, 0.0f};
+    int eye = 0;
+
+    if(x >= SCREENWIDTH/2)
+    {
+        //lens_centre.x = -lens_centre.x;
+        eye = 1;
+        x -= width;
+    }
+
+
+    float2 offset = to_distortion_coordinates((float2){x, y}, width, height, lens_centre);
+
+    float scale = distortion_scale(offset, d);
+
+    float2 distorted_offset = offset * scale;
+
+    float2 coords = to_screen_coords(distorted_offset, width, height, lens_centre);
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP           |
+                    CLK_FILTER_LINEAR;
+
+    if(eye == 1)
+    {
+        x += width;
+        coords.x += width;
+    }
+
+    float4 val = read_imagef(input, sam, coords + 0.5f);
+
+    if(eye == 0)
+    {
+        if(coords.x >= width)
+            val = 0;
+    }
+    if(eye == 1)
+    {
+        if(coords.x >= SCREENWIDTH || coords.x < width)
+            val = 0;
+    }
+
+    write_imagef(output, (int2){x, y}, val);
 }
 
 //detect step edges, then blur gaussian and mask with object ids?

@@ -62,6 +62,7 @@ namespace cl
     extern kernel advect;
     extern kernel advect_tex;
     extern kernel post_upscale;
+    extern kernel warp_oculus;
 }
 
 
