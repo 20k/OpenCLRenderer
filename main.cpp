@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
-    //window.window.setVerticalSyncEnabled(false);
+    //window.window.setVerticalSyncEnabled(true);
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
         window.render_buffers();
         window.display();
 
-        times[time_count] = c.getElapsedTime().asMicroseconds();
+        /*times[time_count] = c.getElapsedTime().asMicroseconds();
 
         time_count = (time_count + 1) % 10;
 
@@ -125,7 +125,9 @@ int main(int argc, char *argv[])
             load_first = 1;
         }
 
-        std::cout << time/10 << std::endl;
+        std::cout << time/10 << std::endl;*/
+
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
         ///raw time
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

@@ -3148,18 +3148,18 @@ float2 to_distortion_coordinates(float2 val, float width, float height, float2 l
     nv -= lens_centre;
 
     ///axis are not same scale, need to make them same
-    nv.x *= (float)width/height;
+    nv.y /= (float)width/height;
 
     return nv;
 }
 
 float2 to_screen_coords(float2 val, float width, float height, float2 lens_centre)
 {
-    ///???
-    float fillscale = 1.2f;
+    ///??? absolutely definitely not the correct way to do this
+    float fillscale = 1.7f;
 
     float2 unaspected = val / fillscale;
-    unaspected.x /= (float)width/height;
+    unaspected.y *= (float)width/height;
 
     float2 unlensed = unaspected + lens_centre;
 
@@ -3185,12 +3185,14 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
     float height = SCREENHEIGHT;
 
     //float2 lens_centre = {0.15f, 0.0f};
-    float2 lens_centre = {0.15f, 0.0f};
+    //float2 lens_centre = {-0.15f, 0.0f};
+    float2 lens_centre = {0.0f, 0.0f}; ///????
     int eye = 0;
 
     if(x >= SCREENWIDTH/2)
     {
         //lens_centre.x = -lens_centre.x;
+        ///this is correct but c
         eye = 1;
         x -= width;
     }
