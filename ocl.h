@@ -222,7 +222,7 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::prearrange = load_kernel(program, "prearrange");
     cl::kernel1_oculus = load_kernel(program, "part1_oculus");
     cl::kernel2_oculus= load_kernel(program, "part2_oculus");
-    //cl::kernel3_oculus = load_kernel(program, "part3_oculus");
+    cl::kernel3_oculus = load_kernel(program, "part3_oculus");
     cl::prearrange_oculus = load_kernel(program, "prearrange_oculus");
     cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
     cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");

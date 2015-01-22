@@ -2252,13 +2252,6 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
 
         x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
 
-        /*// if( x >= min_max[0] + width)
-        {
-            x = ((pixel_along + pcount) % width) + min_max[0];
-            //y += 1;
-            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-        }*/
-
         if(y >= min_max[3])
         {
             break;
@@ -2546,13 +2539,6 @@ void part2_oculus(__global struct triangle* triangles, __global uint* fragment_i
         y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
 
         x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
-
-        /*// if( x >= min_max[0] + width)
-        {
-            x = ((pixel_along + pcount) % width) + min_max[0];
-            //y += 1;
-            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-        }*/
 
         if(y >= min_max[3])
         {
@@ -2943,6 +2929,194 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0f-hbao) + mandatory_light);
     //write_imagef(screen, scoord, col*(lightaccum)*(1.0-hbao)*0.001 + (float4){cz[0]*10/depth_far, cz[1]*10/depth_far, cz[2]*10/depth_far, 0}); ///debug
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
+}
+
+__kernel
+///remember to change c_pos and c_rot
+void part3_oculus(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+           __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
+           __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global float4* cutdown_tris
+           )
+
+///__global uint sacrifice_children_to_argument_god
+{
+    ///widthxheight kernel
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+
+    const uint x = get_global_id(0);
+    const uint y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    int camera = x >= SCREENWIDTH/2 ? 1 : 0;
+
+    __global uint *ft = &depth_buffer[y*SCREENWIDTH + x];
+
+    //?
+    prefetch(ft, 1);
+
+    to_clear[y*SCREENWIDTH + x] = UINT_MAX;
+
+    uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
+
+    uint ctri = id_val4.x;
+    uint tri_global = id_val4.y;
+
+    float3 camera_pos;
+    float3 camera_rot;
+
+    camera_pos = c_pos.xyz;
+    camera_rot = c_rot.xyz;
+
+    if(*ft == UINT_MAX)
+    {
+        write_imagef(screen, (int2){x, y}, 0.0f);
+        return;
+    }
+
+    __global struct triangle* T = &triangles[tri_global];
+
+
+
+    int o_id = T->vertices[0].object_id;
+
+    __global struct obj_g_descriptor *G = &gobj[o_id];
+
+
+
+    float ldepth = idcalc((float)*ft/mulint);
+
+    float actual_depth = ldepth;
+
+    float2 smod = camera == 0 ? (float2){SCREENWIDTH/4, SCREENHEIGHT/2} : (float2){3*SCREENWIDTH/4, SCREENHEIGHT/2};
+
+    ///unprojected pixel coordinate
+    float3 local_position= {((x - smod.x)*actual_depth/FOV_CONST), ((y - smod.y)*actual_depth/FOV_CONST), actual_depth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, camera_rot);
+
+    global_position += camera_pos;
+
+
+    global_position -= G->world_pos.xyz;
+
+    global_position = back_rot(global_position, 0, G->world_rot.xyz);
+
+
+
+    float l1,l2,l3;
+
+    get_barycentric(global_position, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
+
+    float2 vt;
+    vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
+
+    ///interpolated normal
+    float3 normal;
+    normal = T->vertices[0].normal.xyz * l1 + T->vertices[1].normal.xyz * l2 + T->vertices[2].normal.xyz * l3;
+
+    normal = fast_normalize(normal);
+
+
+    float3 ambient_sum = 0;
+
+    int shnum = 0;
+
+    int num_lights = *lnum;
+
+    float occlusion = 0;
+
+    float3 diffuse_sum = 0;
+
+    float3 l2p = camera_pos - global_position;
+    l2p = fast_normalize(l2p);
+
+    for(int i=0; i<num_lights; i++)
+    {
+        const float ambient = 0.2f;
+
+        const struct light l = lights[i];
+
+        const float3 lpos = l.pos.xyz;
+
+        ambient_sum += ambient * l.col.xyz;
+
+
+        bool occluded = 0;
+
+        int which_cubeface;
+
+        //int shadow_cond = ;
+
+        if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
+        {
+            ///gets pixel occlusion. Is not smooth
+            occluded = generate_hard_occlusion((float2){x, y}, lpos, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory?
+
+            shnum++;
+
+            if(occluded)
+                continue;
+        }
+
+        ///begin lambert
+
+        float3 l2c = lpos - global_position; ///light to pixel positio
+
+        float distance = fast_length(l2c);
+
+        l2c = fast_normalize(l2c);
+
+
+        float light = dot(l2c, normal); ///diffuse
+
+        float distance_modifier = 1.0f - native_divide(distance, l.radius);
+
+        distance_modifier *= distance_modifier;
+
+        light *= distance_modifier;
+
+        int skip = light <= 0.0f;
+
+        ///swap for 0? or likely that one warp will be same and can all skip?
+        if(skip)
+        {
+            continue;
+        }
+
+        float diffuse = (1.0f-ambient)*light*l.brightness;
+
+        diffuse_sum += diffuse*l.col.xyz * (1.0f - occluded);
+    }
+
+    float3 tris_proj[3];
+
+    tris_proj[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+    int2 scoord = {x, y};
+
+    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+
+    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+
+    diffuse_sum += ambient_sum;
+
+    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+
+    float hbao = 0;
+
+    float3 colclamp = col;
+
+    colclamp = clamp(colclamp, 0.0f, 1.0f);
+
+    write_imagef(screen, scoord, (float4)(colclamp*diffuse_sum, 0.0f));
 }
 
 //detect step edges, then blur gaussian and mask with object ids?

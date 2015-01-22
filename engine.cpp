@@ -1298,12 +1298,10 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     int nnbuf = (eng.nbuf + 1) % 2;
     /// many arguments later
 
+    ///use an initialiser list for arg_lists?
     arg_list p3arg_list;
     p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
-    p3arg_list.push_back(&obj_mem_manager::g_tri_num);
-    //p3arg_list.push_back(position, sizeof(cl_float4)*2);
-    //p3arg_list.push_back(rotation, sizeof(cl_float4)*2);
-    p3arg_list.push_back(position, sizeof(cl_float4)); ///////????
+    p3arg_list.push_back(position, sizeof(cl_float4));
     p3arg_list.push_back(rotation, sizeof(cl_float4));
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
@@ -1312,22 +1310,13 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     p3arg_list.push_back(&texture_manager::g_texture_numbers);
     p3arg_list.push_back(&texture_manager::g_texture_sizes);
     p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
-    p3arg_list.push_back(&obj_mem_manager::g_obj_num);
     p3arg_list.push_back(&obj_mem_manager::g_light_num);
     p3arg_list.push_back(&obj_mem_manager::g_light_mem);
-    p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
+    p3arg_list.push_back(&engine::g_shadow_light_buffer);
     p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
-    p3arg_list.push_back(&eng.g_tid_buf);
     p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    p3arg_list.push_back(&eng.g_distortion_buffer);
-    p3arg_list.push_back(&eng.g_object_id_tex);
-    p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
-    p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
 
-    ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
-
-
+    run_kernel_with_list(cl::kernel3_oculus, p3global_ws, p3local_ws, 2, p3arg_list, true);
 }
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
