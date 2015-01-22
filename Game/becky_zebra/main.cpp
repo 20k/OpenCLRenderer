@@ -13,8 +13,14 @@
     float x, y;
 };*/
 
+/*The targets bounce according to "angle of incidence = angle of reflection".
+The box size for your experiment was (I think) 268x268 pixels,
+with each item being a 32x32 pixel square
+*/
+
 struct zebra_info
 {
+    ///giving this a default initialiser breaks push_back({})
     float vx, vz;
     objects_container* obj;
 
@@ -39,7 +45,8 @@ struct zebra
     static void add_object(objects_container* obj)
     {
         objects.push_back(obj);
-        zebra_objects.push_back({fmod(rand() - RAND_MAX/2, 5), 0.0f, obj, rand() % 2});
+        //zebra_objects.push_back({fmod(rand() - RAND_MAX/2, 5), 0.0f, obj, rand() % 2});
+        zebra_objects.push_back({0.0f, 0.0f, obj, rand() % 2});
 
         cl_float4 pos = obj->pos;
 
@@ -50,6 +57,74 @@ struct zebra
     }
 
     static void repulse()
+    {
+        float minimum_distance = 500;
+
+        for(int i=0; i<objects.size(); i++)
+        {
+            cl_float4 p1 = objects[i]->pos;
+            cl_float2 v1 = {zebra_objects[i].vx, zebra_objects[i].vz};
+
+            for(int j=0; j<objects.size(); j++)
+            {
+                if(j == i)
+                    continue;
+
+                cl_float4 p2 = objects[j]->pos;
+                cl_float2 v2 = {zebra_objects[j].vx, zebra_objects[j].vz};
+
+                float distance = dist(p1, p2);
+
+                if(distance > minimum_distance)
+                    continue;
+
+                float dx = p2.x - p1.x;
+                float dz = p2.z - p1.z;
+
+                float angle = atan2(dz, dx);
+
+                float p1mag = sqrtf(v1.x*v1.x + v1.y*v1.y);
+
+                float nvx = p1mag * sin(angle);
+                float nvy = p1mag * cos(angle);
+
+                ///reflect nvx
+                nvy = -nvy;
+
+
+                float velocity_angle = atan2(v1.y, v1.x);
+
+                float remaining_angle = angle - velocity_angle;
+
+                float vxe1 = nvy*cos(remaining_angle);
+                float vye1 = nvy*sin(remaining_angle);
+
+                float other_angle = M_PI/2.0f - remaining_angle;
+
+                float vxe2 = nvx*cos(other_angle);
+                float vye2 = nvx*sin(other_angle);
+
+                float tx = vxe1 + vxe2;
+                float ty = vye1 + vye2;
+
+
+                zebra_objects[i].vx = tx;
+                zebra_objects[i].vz = ty;
+
+                //cl_float4 final_vel = (cl_float2){tx, ty};
+
+
+
+                /*cl_float2 new_velocity;
+
+                new_velocity.x = p1mag * cos(velocity_angle);*/
+
+                //float rel_angle =
+            }
+        }
+    }
+
+    /*static void repulse()
     {
         float max_dist = 1500;
         float min_dist = 700;
@@ -135,7 +210,7 @@ struct zebra
 
             zebra_objects[i].vx = vx;
             zebra_objects[i].vz = vz;
-        }
+        }*/
 
 
         /*for(int i=0; i<objects.size(); i++)
@@ -225,7 +300,7 @@ struct zebra
 
         }*/
 
-    }
+    //}
 
     static void separate()
     {
@@ -274,7 +349,7 @@ struct zebra
         for(int i=0; i<objects.size(); i++)
         {
             ///not great, use real random
-            float val = (float)rand() / RAND_MAX;
+            /*float val = (float)rand() / RAND_MAX;
 
             if(val < zig_probability)
             {
@@ -344,6 +419,24 @@ struct zebra
 
             zeb->set_pos(pos);
             zeb->set_rot({zeb->rot.x, new_angle, zeb->rot.z});
+
+            zeb->g_flush_objects();*/
+
+            static int zilch = 0;
+
+            if(i == 0 && !zilch)
+            {
+                zilch = 1;
+                zebra_objects[i].vz = -2;
+                zebra_objects[i].vx = 5;
+            }
+
+            objects_container* zeb = objects[i];
+
+            //if(i==0)
+            //std::cout << zebra_objects[i].vx << std::endl;
+
+            zeb->set_pos(add(zeb->pos, {zebra_objects[i].vx, 0, zebra_objects[i].vz}));
 
             zeb->g_flush_objects();
         }
@@ -528,14 +621,5 @@ int main(int argc, char *argv[])
         //std::cout << time/10 << std::endl;
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
-
-        ///rift
-
-        ///endrift
-
-
-
-        ///raw time
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

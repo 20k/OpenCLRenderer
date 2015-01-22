@@ -172,7 +172,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
 
     t.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*trianglecount, CL_MEM_READ_ONLY);
-    t.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*trianglecount*3);
+    t.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*trianglecount*3*2);
 
     ///must fit in 2d texture, 4096 because nvidia r bad
     //int height = ceilf(trianglecount*3/4096.0f);

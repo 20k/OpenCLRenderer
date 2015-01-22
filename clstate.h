@@ -30,6 +30,10 @@ namespace cl
     extern kernel kernel2;
     extern kernel kernel3;
     extern kernel prearrange;
+    extern kernel kernel1_oculus;
+    extern kernel kernel2_oculus;
+    extern kernel kernel3_oculus;
+    extern kernel prearrange_oculus;
     extern kernel point_cloud_depth;
     extern kernel point_cloud_recover;
     extern kernel space_dust;

@@ -193,16 +193,18 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             ///do this properly?
             width = recommendedTex0Size.w;
             height = recommendedTex0Size.h;
+
+            width *= 2;//?
         }
     }
 
-    //width = 1920;
-    //height = 1080;
+    width = 1920;
+    height = 1080;
 
     //width = 1920/2;
     //height = 1080;
 
-    int videowidth = rift::enabled ? width*2 : width;
+    int videowidth = rift::enabled ? width : width;
 
     printf("Initialised with width %i and height %i\n", videowidth, height);
 
@@ -277,7 +279,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     ///this is a completely arbitrary size to store triangle uids in
-    cl_uint size_of_uid_buffer = 40*1024*1024;
+    cl_uint size_of_uid_buffer = 40*1024*1024*2;
     cl_uint zero=0;
 
     cl_float2* distortion_clear = new cl_float2[width*height];
@@ -1208,6 +1210,126 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     #endif
 }
 
+void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer& g_screen_out)
+{
+    cl_uint zero = 0;
+
+    ///1 thread per triangle
+    cl_uint p1global_ws = obj_mem_manager::tri_num;
+    cl_uint local = 128;
+
+    cl_uint id_num = 0;
+
+    clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
+
+    ///clear the number of triangles that are generated after first kernel run
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+    cl::cqueue.enqueue_write_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+
+    cl_uint p3global_ws[] = {eng.width, eng.height};
+    cl_uint p3local_ws[] = {8, 8};
+
+    ///convert between oculus format and curr. Rotation may not be correct
+
+    //void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_num, struct p2 c_pos, struct p2 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
+    //            __global uint* id_cutdown_tris, __global float4* cutdown_tris,  __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
+
+    arg_list prearg_list;
+
+    prearg_list.push_back(&obj_mem_manager::g_tri_mem);
+    prearg_list.push_back(&obj_mem_manager::g_tri_num);
+    prearg_list.push_back(position, sizeof(cl_float4)*2);
+    prearg_list.push_back(rotation, sizeof(cl_float4)*2);
+    prearg_list.push_back(&eng.g_tid_buf);
+    prearg_list.push_back(&eng.g_tid_buf_max_len);
+    prearg_list.push_back(&eng.g_tid_buf_atomic_count);
+    prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+    prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+    prearg_list.push_back(&eng.g_distortion_buffer);
+
+    run_kernel_with_list(cl::prearrange_oculus, &p1global_ws, &local, 1, prearg_list, true);
+
+    local = 256;
+
+    ///infernal satanic magic
+    cl_uint p1global_ws_new = id_num * 1.1;
+
+    ///write depth of triangles to buffer, ie z buffering
+
+    //part1_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+    //       __global float4* cutdown_tris, __global float2* distort_buffer)
+
+    arg_list p1arg_list;
+    p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p1arg_list.push_back(&eng.g_tid_buf);
+    p1arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p1arg_list.push_back(&eng.g_tid_buf_atomic_count);
+    p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+    p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p1arg_list.push_back(&eng.g_distortion_buffer);
+
+    run_kernel_with_list(cl::kernel1_oculus, &p1global_ws_new, &local, 1, p1arg_list, true);
+
+    sf::Clock p2;
+
+    ///makes literally no sense, just roll with it
+    cl_uint p2global_ws = id_num * 1.1;
+
+    cl_uint local2 = 256;
+
+    ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
+
+    arg_list p2arg_list;
+    p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p2arg_list.push_back(&eng.g_tid_buf);
+    p2arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p2arg_list.push_back(&eng.g_id_screen_tex);
+    p2arg_list.push_back(&eng.g_tid_buf_atomic_count);
+    p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
+    p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p2arg_list.push_back(&eng.g_distortion_buffer);
+
+    run_kernel_with_list(cl::kernel2_oculus, &p2global_ws, &local, 1, p2arg_list, true);
+
+
+    int nnbuf = (eng.nbuf + 1) % 2;
+    /// many arguments later
+
+    arg_list p3arg_list;
+    p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p3arg_list.push_back(&obj_mem_manager::g_tri_num);
+    //p3arg_list.push_back(position, sizeof(cl_float4)*2);
+    //p3arg_list.push_back(rotation, sizeof(cl_float4)*2);
+    p3arg_list.push_back(position, sizeof(cl_float4)); ///////????
+    p3arg_list.push_back(rotation, sizeof(cl_float4));
+    p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p3arg_list.push_back(&eng.g_id_screen_tex);
+    p3arg_list.push_back(&texture_manager::g_texture_array);
+    p3arg_list.push_back(&g_screen_out);
+    p3arg_list.push_back(&texture_manager::g_texture_numbers);
+    p3arg_list.push_back(&texture_manager::g_texture_sizes);
+    p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
+    p3arg_list.push_back(&obj_mem_manager::g_obj_num);
+    p3arg_list.push_back(&obj_mem_manager::g_light_num);
+    p3arg_list.push_back(&obj_mem_manager::g_light_mem);
+    p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
+    p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
+    p3arg_list.push_back(&eng.g_tid_buf);
+    p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p3arg_list.push_back(&eng.g_distortion_buffer);
+    p3arg_list.push_back(&eng.g_object_id_tex);
+    p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
+    p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
+
+    ///this is the deferred screenspace pass
+    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+
+
+}
+
 ///this function is horrible and needs to be reworked into multiple smaller functions
 void engine::draw_bulk_objs_n()
 {
@@ -1245,7 +1367,7 @@ void engine::draw_bulk_objs_n()
         float fudge = 40;
 
         ///merge kernels to produce two eyes at once, or reproject
-        for(int i=0; i<2; i++)
+        /*for(int i=0; i<2; i++)
         {
             pos_offset = add(c_pos, mult(eye_position[i], fudge));
             rot_offset = sub({0,0,0,0}, eye_rotation[i]);
@@ -1256,7 +1378,19 @@ void engine::draw_bulk_objs_n()
             ///have to manually swap depth_buffers between eye renderings
             if(i == 0)
                 swap_depth_buffers();
-        }
+        }*/
+
+        cl_float4 cameras[2];
+
+        cameras[0] = add(c_pos, mult(eye_position[0], fudge));
+        cameras[1] = add(c_pos, mult(eye_position[1], fudge));
+
+        cl_float4 rotations[2];
+
+        rotations[0] = sub({0,0,0,0}, eye_rotation[0]);
+        rotations[1] = sub({0,0,0,0}, eye_rotation[1]);
+
+        render_tris_oculus(*this, cameras, rotations, g_rift_screen[0]);
     }
 
 }
@@ -1820,17 +1954,21 @@ void engine::render_buffers()
     }
     else
     {
-        for(int i=0; i<2; i++)
+        //for(int i=0; i<2; i++)
         {
-            glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_rift_screen_id[i]);
+            glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_rift_screen_id[0]);
 
             glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
             int x, y, dx, dy;
 
-            x = width*i;
+            /*x = width*i;
             y = 0;
             dx = width + width*i;
+            dy = height;*/
+
+            x = 0, y = 0;
+            dx = width;
             dy = height;
 
 

@@ -234,8 +234,11 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         }
     }
 
+    //std::cout << "trying kernel " << kernel.name << std::endl;
+
     for(int i=0; i<argv.args.size() && args; i++)
     {
+        //std::cout << i << std::endl;
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
 

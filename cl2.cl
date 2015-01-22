@@ -299,6 +299,29 @@ void calc_min_max(float3 points[3], float width, float height, float ret[4])
     ret[3] = clamp(ret[3], 0.0f, height-1);
 }
 
+void calc_min_max_oc(float3 points[3], float mx, float my, float width, float height, float ret[4])
+{
+    float x[3];
+    float y[3];
+
+    for(int i=0; i<3; i++)
+    {
+        x[i] = round(points[i].x);
+        y[i] = round(points[i].y);
+    }
+
+
+    ret[0] = min3(x[0], x[1], x[2]) - 1;
+    ret[1] = max3(x[0], x[1], x[2]);
+    ret[2] = min3(y[0], y[1], y[2]) - 1;
+    ret[3] = max3(y[0], y[1], y[2]);
+
+    ret[0] = clamp(ret[0], mx, width-1);
+    ret[1] = clamp(ret[1], mx, width-1);
+    ret[2] = clamp(ret[2], my, height-1);
+    ret[3] = clamp(ret[3], my, height-1);
+}
+
 
 void construct_interpolation(struct triangle* tri, struct interp_container* C, float width, float height)
 {
@@ -603,30 +626,12 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
 {
     __global struct triangle *T=triangle;
 
-    //float3 normalrot[3];
-
-    //normalrot[0] = T->vertices[0].normal.xyz;
-    //normalrot[1] = T->vertices[1].normal.xyz;
-    //normalrot[2] = T->vertices[2].normal.xyz;
-
-    //rot_3_raw(normalrot, c_rot, normalrot);
-
-    //if(rotation_offset.x != 0.0f || rotation_offset.y != 0.0f || rotation_offset.z != 0.0f)
-    //rot_3_raw(normalrot, rotation_offset, normalrot);
-
-
     ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
     ///YAY
 
 
     float3 rotpoints[3];
     rot_3(T, c_pos, c_rot, offset, rotation_offset, rotpoints);
-
-    ///this will cause errors, need to fix lighting to use rotated normals rather than globals
-    ///did i fix this?
-    //
-    //rot_3_normal(T, c_rot, normalrot);
-
 
     float3 projected[3];
     depth_project(rotpoints, width, height, fovc, projected);
@@ -636,18 +641,6 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
         passback[0][0] = projected[0];
         passback[0][1] = projected[1];
         passback[0][2] = projected[2];
-
-        //passback->vertices[0].normal = (float4)(normalrot[0], 0);
-        //passback->vertices[1].normal = (float4)(normalrot[1], 0);
-        //passback->vertices[2].normal = (float4)(normalrot[2], 0);
-
-        //passback->vertices[0].vt = T->vertices[0].vt;
-        //passback->vertices[1].vt = T->vertices[1].vt;
-        //passback->vertices[2].vt = T->vertices[2].vt;
-
-        //passback->vertices[0].object_id = T->vertices[0].object_id;
-        //passback->vertices[1].object_id = T->vertices[1].object_id;
-        //passback->vertices[2].object_id = T->vertices[2].object_id;
 
         *num = 1;
 
@@ -676,24 +669,11 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
     float2 p1v, p2v, c1v, c2v;
     float3 p1l, p2l, c1l, c2l;
 
-    //passback[0].vertices[0].object_id = T->vertices[0].object_id;
-    //passback[0].vertices[1].object_id = T->vertices[1].object_id;
-    //passback[0].vertices[2].object_id = T->vertices[2].object_id;
-
-
     if(n_behind == 0)
     {
         passback[0][0] = projected[0];
         passback[0][1] = projected[1];
         passback[0][2] = projected[2];
-
-        //passback[0].vertices[0].normal = (float4)(normalrot[0], 0);
-        //passback[0].vertices[1].normal = (float4)(normalrot[1], 0);
-        //passback[0].vertices[2].normal = (float4)(normalrot[2], 0);
-
-        //passback[0].vertices[0].vt = T->vertices[0].vt;
-        //passback[0].vertices[1].vt = T->vertices[1].vt;
-        //passback[0].vertices[2].vt = T->vertices[2].vt;
 
         *num = 1;
         return true;
@@ -733,45 +713,14 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
     p2 = rotpoints[g3] + l2*(rotpoints[g1] - rotpoints[g3]);
 
 
-
-    /*float r1 = native_divide(fast_length(p1 - rotpoints[g1]), fast_length(rotpoints[g2] - rotpoints[g1]));
-    float r2 = native_divide(fast_length(p2 - rotpoints[g1]), fast_length(rotpoints[g3] - rotpoints[g1]));
-
-    float2 vv1 = T->vertices[g2].vt - T->vertices[g1].vt;
-    float2 vv2 = T->vertices[g3].vt - T->vertices[g1].vt;
-
-    float2 nv1 = r1 * vv1 + T->vertices[g1].vt;
-    float2 nv2 = r2 * vv2 + T->vertices[g1].vt;
-
-    p1v = nv1;
-    p2v = nv2;*/
-
-
-
-    /*float3 vl1 = normalrot[g2] - normalrot[g1];
-    float3 vl2 = normalrot[g3] - normalrot[g1];
-
-    float3 nl1 = r1 * vl1 + normalrot[g1];
-    float3 nl2 = r2 * vl2 + normalrot[g1];
-
-    p1l = nl1;
-    p2l = nl2;*/
-
-
     if(n_behind == 1)
     {
         c1 = rotpoints[g2];
         c2 = rotpoints[g3];
-        //c1v = T->vertices[g2].vt;
-        //c2v = T->vertices[g3].vt;
-        //c1l = normalrot[g2];
-        //c2l = normalrot[g3];
     }
     else
     {
         c1 = rotpoints[g1];
-        //c1v = T->vertices[g1].vt;
-        //c1l = normalrot[g1];
     }
 
 
@@ -792,38 +741,15 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
     c2.y = (native_divide(c2.y * fovc, c2.z)) + height/2;
 
 
-
-
     if(n_behind==1)
     {
         passback[0][0] = p1;
         passback[0][1] = c1;
         passback[0][2] = c2;
 
-        //passback[0][0].vt = p1v;
-        //passback[0][1].vt = c1v;
-        //passback[0][2].vt = c2v;
-
-        //passback[0].vertices[0].normal = (float4)(p1l, 0);
-        //passback[0].vertices[1].normal = (float4)(c1l, 0);
-        //passback[0].vertices[2].normal = (float4)(c2l, 0);
-
         passback[1][0] = p1;
         passback[1][1] = c2;
         passback[1][2] = p2;
-
-        //passback[1].vertices[0].vt = p1v;
-        //passback[1].vertices[1].vt = c2v;
-        //passback[1].vertices[2].vt = p2v;
-
-        //passback[1].vertices[0].normal = (float4)(p1l, 0);
-        //passback[1].vertices[1].normal = (float4)(c2l, 0);
-        //passback[1].vertices[2].normal = (float4)(p2l, 0);
-
-        /*for(int i=0; i<3; i++)
-        {
-            passback[1].vertices[i].object_id = T->vertices[i].object_id;
-        }*/
 
         *num = 2;
 
@@ -835,14 +761,6 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
         passback[0][ids_behind[0]] = p1;
         passback[0][ids_behind[1]] = p2;
         passback[0][id_valid] = c1;
-
-        //passback[0].vertices[ids_behind[0]].vt = p1v;
-        //passback[0].vertices[ids_behind[1]].vt = p2v;
-        //passback[0].vertices[id_valid].vt = c1v;
-
-        //passback[0].vertices[ids_behind[0]].normal = (float4)(p1l, 0);
-        //passback[0].vertices[ids_behind[1]].normal = (float4)(p2l, 0);
-        //passback[0].vertices[id_valid].normal = (float4)(c1l, 0);
 
         *num = 1;
 
@@ -1902,59 +1820,167 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 }
 
-/*struct local_check
+struct p2
 {
-    //x, y, set, pad
-    uint4 val;
-};*/
+    float4 s1, s2
+};
 
-///assume hit
-void triangle_intersection_always(const float3   V1,  // Triangle vertices
-                           const float3   V2,
-                           const float3   V3,
-                           const float3    O,  //Ray origin
-                           const float3    D,  //Ray direction
-                                 float* uout,
-                                 float* vout)
+__kernel
+void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_num, struct p2 c_pos, struct p2 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris,  __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
 {
-    float3 e1, e2;  //Edge1, Edge2
-    float3 P, Q, T;
+    uint id = get_global_id(0);
 
-    float det, inv_det, u, v;
-    float t;
+    if(id >= *tri_num)
+    {
+        return;
+    }
 
-    //Find vectors for two edges sharing V1
-    e1 = V2 - V1;
-    e2 = V3 - V1;
+    __global struct triangle *T = &triangles[id];
 
-    //Begin calculating determinant - also used to calculate u parameter
-    P = cross(D, e2);
-    //if determinant is near zero, ray lies in plane of triangle
-    det = dot(e1, P);
+    int o_id = T->vertices[0].object_id;
 
-    inv_det = native_recip(det);
+    ///this is the 3d projection 'pipeline'
 
-    //calculate distance from V1 to ray origin
-    T = O - V1;
+    ///void rot_3(__global struct triangle *triangle, float3 c_pos, float3 c_rot, float3 ret[3])
+    ///void generate_new_triangles(float3 points[3], int ids[3], float lconst[2], int *num, float3 ret[2][3])
+    ///void depth_project(float3 rotated[3], int width, int height, float fovc, float3 ret[3])
 
-    //Calculate u parameter and test bound
-    u = dot(T, P) * inv_det;
-    //The intersection lies outside of the triangle
+    float efov = FOV_CONST;
+    float ewidth = SCREENWIDTH;
+    float eheight = SCREENHEIGHT;
 
-    //Prepare to test v parameter
-    Q = cross(T, e1);
+    float3 tris_proj[4][3]; ///projected triangles
 
-    //Calculate V parameter and test bound
-    v = dot(D, Q) * inv_det;
+    int num = 0;
+    int num2 = 0;
 
-    //t = dot(e2, Q) * inv_det;
+    ///needs to be changed for lights
 
-    //ray intersection
+    __global struct obj_g_descriptor *G =  &gobj[o_id];
 
-    *uout = u;
-    *vout = v;
+    ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
+    full_rotate_n_extra(T, tris_proj, &num, c_pos.s1.xyz, c_rot.s1.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth/2, eheight);
+    full_rotate_n_extra(T, &tris_proj[2], &num2, c_pos.s2.xyz, c_rot.s2.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, 3*ewidth/2, eheight);
 
-    // No hit, no win
+    ///going to need to offset these, but that breaks everything (???)
+    //full_rotate_n_extra(T, &tris_proj[2], &num2, c_pos.s2.xyz, c_rot.s2.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
+    ///can replace rotation with a swizzle for shadowing
+
+    if(num == 0 && num2 == 0)
+    {
+        return;
+    }
+
+
+    int ooany[4] = {1,1,1,1};
+    int valid = 0;
+
+    if(num == 1)
+    {
+        ooany[1] = 0;
+    }
+
+    if(num2 != 0)
+    {
+        num = 2 + num2;
+    }
+
+    for(int i=0; i<num; i++)
+    {
+        ooany[i] &= (int)backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+    }
+
+    float4 bounds[4] = {{0, ewidth/2, 0, eheight}, {0, ewidth/2, 0, eheight}, {ewidth/2, ewidth, 0, eheight}, {ewidth/2, ewidth, 0, eheight}};
+
+    ///out of bounds checking for triangles
+    for(int i=0; i<num; i++)
+    {
+        int cond = (tris_proj[i][0].x < bounds[i].x && tris_proj[i][1].x < bounds[i].x && tris_proj[i][2].x < bounds[i].x)  ||
+            (tris_proj[i][0].x >= bounds[i].y && tris_proj[i][1].x >= bounds[i].y && tris_proj[i][2].x >= bounds[i].y) ||
+            (tris_proj[i][0].y < bounds[i].z && tris_proj[i][1].y < bounds[i].z && tris_proj[i][2].y < bounds[i].z) ||
+            (tris_proj[i][0].y >= bounds[i].w && tris_proj[i][1].y >= bounds[i].w && tris_proj[i][2].y >= bounds[i].w);
+
+        ooany[i] = !cond && ooany[i];
+    }
+
+    //num = num2;
+
+    //uint b_id = atomic_add(id_cutdown_tris, num);
+
+    for(int i=0; i<num; i++)
+    {
+        if(!ooany[i]) ///skip bad tris
+        {
+            continue;
+        }
+
+        ///a light would read outside this quite severely
+        for(int j=0; j<3; j++)
+        {
+            int xc = round(tris_proj[i][j].x);
+            int yc = round(tris_proj[i][j].y);
+
+            if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
+                continue;
+
+            tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
+        }
+
+        float3 xpv, ypv;
+
+        xpv = round((float3){tris_proj[i][0].x, tris_proj[i][1].x, tris_proj[i][2].x});
+        ypv = round((float3){tris_proj[i][0].y, tris_proj[i][1].y, tris_proj[i][2].y});
+
+        float true_area = calc_area(xpv, ypv);
+        float rconst = calc_rconstant_v(xpv, ypv);
+
+
+        float min_max[4];
+        calc_min_max(tris_proj[i], ewidth, eheight, min_max);
+
+        float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
+
+        float thread_num = ceil(native_divide(area, op_size));
+        ///threads to renderone triangle based on its bounding-box area
+
+        ///makes no apparently difference moving atomic out, presumably its a pretty rare case
+        //uint c_id = b_id + i;
+        uint c_id = atomic_inc(id_cutdown_tris);
+
+        //shouldnt do this here?
+        cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
+        cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
+        cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
+
+
+        //uint base = atomic_add(id_buffer_atomc, thread_num);
+        uint base = atomic_add(id_buffer_atomc, thread_num);
+
+        int camera = i >= 2 ? 1 : 0;
+
+        uint f = base*6;
+
+        //if(b*3 + thread_num*3 < *id_buffer_maxlength)
+        {
+            for(uint a = 0; a < thread_num; a++)
+            {
+                ///work out if is valid, if not do c++ then continue;
+
+                ///make texture?
+                fragment_id_buffer[f++] = id;
+                fragment_id_buffer[f++] = a;
+                fragment_id_buffer[f++] = c_id;
+
+                fragment_id_buffer[f++] = as_int(true_area);
+                fragment_id_buffer[f++] = as_int(rconst);
+                fragment_id_buffer[f++] = camera;
+
+            }
+
+        }
+
+    }
 }
 
 bool side(float2 p1, float2 p2, float2 p3)
@@ -1975,8 +2001,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 {
     uint id = get_global_id(0);
 
-    uint l_size = get_global_size(0);
-
     int len = *f_len;
 
     if(id >= len)
@@ -1984,7 +2008,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         return;
     }
 
-    //uint lid = get_local_id(0);
 
     float ewidth = SCREENWIDTH;
     float eheight = SCREENHEIGHT;
@@ -1994,12 +2017,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         ewidth = LIGHTBUFFERDIM;
         eheight = LIGHTBUFFERDIM;
     }
-
-    //__local int isset[128];
-
-    //isset[lid] = {0,0,0,0};
-    //set x, y, etc, then just iterate (hnnng)
-    //all agree on a minimum depth
 
     uint tri_id = fragment_id_buffer[id*5 + 0];
 
@@ -2038,13 +2055,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     ///calculate area by triangle 3rd area method
 
-    //float area = calc_area(xpv, ypv);
-
-
     int pcount = -1;
-
-    ///interpolation constant
-    //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
 
     bool valid = false;
 
@@ -2067,10 +2078,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     float A, B, C;
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
-
-    /*tris_proj_n[0] = round(tris_proj_n[0]);
-    tris_proj_n[1] = round(tris_proj_n[1]);
-    tris_proj_n[2] = round(tris_proj_n[2]);*/
 
     ///while more pixels to write
     while(pcount < op_size)
@@ -2113,15 +2120,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
         {
-            //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
-
             float fmydepth = A * x + B * y + C;
-
-            ///cant be < 0 due to triangle clipping
-            //fmydepth = native_recip(fmydepth);
-
-            ///retrieve original depth
-            //uint mydepth = fmydepth*mulint;
 
             uint mydepth = native_divide((float)mulint, fmydepth);
 
@@ -2133,17 +2132,165 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
             __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
 
             uint sdepth = atomic_min(ft, mydepth);
+        }
+    }
+}
 
-            /*barrier(CLK_GLOBAL_MEM_FENCE);
+///fragment number is worng
+__kernel
+void part1_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+           __global float4* cutdown_tris, __global float2* distort_buffer)
+{
+    uint id = get_global_id(0);
 
-            if(mydepth == *ft)
-            {
-                int2 coord = {x, y};
-                uint4 d = {ctri, tri_id, 0, 0};
-                write_imageui(id_buffer, coord, d);
-            }*/
+    int len = *f_len;
+
+    if(id >= len)
+    {
+        return;
+    }
+
+    const float ewidth = SCREENWIDTH;
+    const float eheight = SCREENHEIGHT;
+
+    uint tri_id = fragment_id_buffer[id*6 + 0];
+
+    uint distance = fragment_id_buffer[id*6 + 1];
+
+    uint ctri = fragment_id_buffer[id*6 + 2];
+
+    float area = as_float(fragment_id_buffer[id*6 + 3]);
+    float rconst = as_float(fragment_id_buffer[id*6 + 4]);
+
+    int camera = fragment_id_buffer[id*6 + 5];
+
+    ///triangle retrieved from depth buffer
+    float3 tris_proj_n[3];
+
+    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+    float max_width = SCREENWIDTH/2;
+
+    if(camera == 0)
+        max_width = SCREENWIDTH/2;
+    if(camera == 1)
+        max_width = SCREENWIDTH;
+
+    float mx = 0, my = 0;
+
+    if(camera == 0)
+    {
+        mx = 0, my = 0;
+    }
+    if(camera == 1)
+    {
+        mx = SCREENWIDTH/2;
+        my = 0;
+    }
+
+    float min_max[4];
+    calc_min_max_oc(tris_proj_n, mx, my, max_width, eheight, min_max);
+
+    ///might break with oculus
+    int width = min_max[1] - min_max[0];
+
+    ///pixel to start at in triangle, ie distance is which fragment it is
+    int pixel_along = op_size*distance;
+
+    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    ///have to interpolate inverse to be perspective correct
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+
+    ///calculate area by triangle 3rd area method
+
+    int pcount = -1;
+
+    bool valid = false;
+
+    float mod = 2;
+
+    if(area < 50)
+    {
+        mod = 1;
+    }
+
+    if(area > 60000)
+    {
+        mod = 2500;
+    }
+
+    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+
+    //int width_offset = camera == 0 ? 0 : SCREENWIDTH/2;
+
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+    ///while more pixels to write
+    while(pcount < op_size)
+    {
+        pcount++;
+
+        x+=1;
+
+        //investigate not doing any of this at all
+
+        float ty = y;
+
+        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+
+        /*// if( x >= min_max[0] + width)
+        {
+            x = ((pixel_along + pcount) % width) + min_max[0];
+            //y += 1;
+            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+        }*/
+
+        if(y >= min_max[3])
+        {
+            break;
         }
 
+        bool oob = x >= min_max[1] || x < min_max[0];
+
+        if(oob)
+        {
+            continue;
+        }
+
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+        bool cond = s1 >= area - mod && s1 <= area + mod;
+
+        ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+        if(cond)
+        {
+            float fmydepth = A * x + B * y + C;
+
+            uint mydepth = native_divide((float)mulint, fmydepth);
+
+            if(mydepth == 0)
+            {
+                continue;
+            }
+
+            __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
+
+            uint sdepth = atomic_min(ft, mydepth);
+        }
     }
 }
 
@@ -2157,8 +2304,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 {
 
     uint id = get_global_id(0);
-
-    uint l_size = get_global_size(0);
 
     int len = *f_len;
 
@@ -2229,10 +2374,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
-    /*tris_proj_n[0] = round(tris_proj_n[0]);
-    tris_proj_n[1] = round(tris_proj_n[1]);
-    tris_proj_n[2] = round(tris_proj_n[2]);*/
-
     ///while more pixels to write
     ///write to local memory, then flush to texture?
     while(pcount < op_size)
@@ -2271,10 +2412,6 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
             float fmydepth = A * x + B * y + C;
 
-            //fmydepth = native_recip(fmydepth);
-
-            //uint mydepth = mulint / fmydepth;//fmydepth*mulint;
-
             uint mydepth = native_divide((float)mulint, fmydepth);
 
             if(mydepth==0)
@@ -2292,12 +2429,174 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
                 int2 coord = {x, y};
                 uint4 d = {ctri, tri_id, 0, 0};
                 write_imageui(id_buffer, coord, d);
-
-                //object_id_map[(int)y*SCREENWIDTH + (int)x] = o_id;
             }
         }
     }
 }
+
+
+__kernel
+void part2_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
+            __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
+            __global float2* distort_buffer)
+{
+    uint id = get_global_id(0);
+
+    int len = *f_len;
+
+    if(id >= len)
+    {
+        return;
+    }
+
+    const float ewidth = SCREENWIDTH;
+    const float eheight = SCREENHEIGHT;
+
+    uint tri_id = fragment_id_buffer[id*6 + 0];
+
+    uint distance = fragment_id_buffer[id*6 + 1];
+
+    uint ctri = fragment_id_buffer[id*6 + 2];
+
+    float area = as_float(fragment_id_buffer[id*6 + 3]);
+    float rconst = as_float(fragment_id_buffer[id*6 + 4]);
+
+    int camera = fragment_id_buffer[id*6 + 5];
+
+    ///triangle retrieved from depth buffer
+    float3 tris_proj_n[3];
+
+    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+    float max_width = SCREENWIDTH/2;
+
+    if(camera == 0)
+        max_width = SCREENWIDTH/2;
+    if(camera == 1)
+        max_width = SCREENWIDTH;
+
+    float mx = 0, my = 0;
+
+    if(camera == 0)
+    {
+        mx = 0, my = 0;
+    }
+    if(camera == 1)
+    {
+        mx = SCREENWIDTH/2;
+        my = 0;
+    }
+
+    float min_max[4];
+    calc_min_max_oc(tris_proj_n, mx, my, max_width, eheight, min_max);
+
+    ///might break with oculus
+    int width = min_max[1] - min_max[0];
+
+    ///pixel to start at in triangle, ie distance is which fragment it is
+    int pixel_along = op_size*distance;
+
+    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    ///have to interpolate inverse to be perspective correct
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+
+    ///calculate area by triangle 3rd area method
+
+    int pcount = -1;
+
+    bool valid = false;
+
+    float mod = 2;
+
+    if(area < 50)
+    {
+        mod = 1;
+    }
+
+    if(area > 60000)
+    {
+        mod = 2500;
+    }
+
+    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+    ///while more pixels to write
+    while(pcount < op_size)
+    {
+        pcount++;
+
+        x+=1;
+
+        //investigate not doing any of this at all
+
+        float ty = y;
+
+        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+
+        /*// if( x >= min_max[0] + width)
+        {
+            x = ((pixel_along + pcount) % width) + min_max[0];
+            //y += 1;
+            y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+        }*/
+
+        if(y >= min_max[3])
+        {
+            break;
+        }
+
+        bool oob = x >= min_max[1] || x < min_max[0];
+
+        if(oob)
+        {
+            continue;
+        }
+
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+        bool cond = s1 >= area - mod && s1 <= area + mod;
+
+        ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+        if(cond)
+        {
+            float fmydepth = A * x + B * y + C;
+
+            uint mydepth = native_divide((float)mulint, fmydepth);
+
+            if(mydepth == 0)
+            {
+                continue;
+            }
+
+            uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
+
+            int cond = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
+
+            ///found depth buffer value, write the triangle id
+            if(cond)
+            {
+                int2 coord = {x, y};
+                uint4 d = {ctri, tri_id, 0, 0};
+                write_imageui(id_buffer, coord, d);
+            }
+        }
+    }
+}
+
 
 void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v, float* w)
 {
@@ -4481,6 +4780,55 @@ void triangle_intersection(const float3   V1,  // Triangle vertices
     // No hit, no win
 }
 
+
+///assume hit
+void triangle_intersection_always(const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* uout,
+                                 float* vout)
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+
+    //t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+
+    *uout = u;
+    *vout = v;
+
+    // No hit, no win
+}
 
 ///use reverse reprojection as heuristic
 __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
