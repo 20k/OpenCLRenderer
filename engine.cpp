@@ -55,6 +55,8 @@ cl_float4 rift::distortion_constants = {1.0f, 0.22f, 0.24f, 0.0f};
 //cl_float4 rift::distortion_constants = {1.003f, 1.02f, 1.0422f, 1.066f};
 cl_float  rift::distortion_scale = {0};
 
+cl_float4 rift::abberation_constants = {1};
+
 
 ///this needs changing
 
@@ -212,13 +214,19 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             HmdRenderInfo rinfo = GenerateHmdRenderInfoFromHmdInfo(info, NULL, Distortion_RecipPoly4, EyeCup_LAST);
 
 
-            float eye_relief_in_meters = 0.01f;
+            float eye_relief_in_meters = rinfo.EyeLeft.ReliefInMeters;
 
             LensConfig lens = GenerateLensConfigFromEyeRelief(eye_relief_in_meters, rinfo, Distortion_RecipPoly4);
+
+            float max_radius = lens.MaxR;
+
+            printf("MR: %f\n", max_radius);
 
             for(int i=0; i<4; i++)
             {
                 rift::distortion_constants.s[i] = lens.K[i];
+
+                abberation_constants.s[i] = lens.ChromaticAberration[i];
 
                 printf("%f\n", lens.K[i]);
             }
@@ -1378,6 +1386,7 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     distort_arg_list.push_back(&g_screen_out[1]);
     distort_arg_list.push_back(&g_screen_out[0]);
     distort_arg_list.push_back(&rift::distortion_constants);
+    distort_arg_list.push_back(&rift::abberation_constants);
 
     run_kernel_with_list(cl::warp_oculus, p3global_ws, p3local_ws, 2, distort_arg_list);
 }

@@ -47,6 +47,7 @@ namespace rift
 
     extern cl_float4 distortion_constants;
     extern cl_float distortion_scale;
+    extern cl_float4 abberation_constants;
 };
 
 struct engine

@@ -1874,7 +1874,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
 
 
     int ooany[4] = {1,1,1,1};
-    int valid = 0;
+    //int valid = 0;
 
     if(num == 1)
     {
@@ -1888,7 +1888,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
 
     for(int i=0; i<num; i++)
     {
-        ooany[i] &= (int)backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+        ooany[i] = ooany[i] && (int)backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
     }
 
     float4 bounds[4] = {{0, ewidth/2, 0, eheight}, {0, ewidth/2, 0, eheight}, {ewidth/2, ewidth, 0, eheight}, {ewidth/2, ewidth, 0, eheight}};
@@ -1908,6 +1908,8 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
 
     //uint b_id = atomic_add(id_cutdown_tris, num);
 
+    //num = 1;
+
     for(int i=0; i<num; i++)
     {
         if(!ooany[i]) ///skip bad tris
@@ -1915,8 +1917,10 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
             continue;
         }
 
+        int camera = i >= 2 ? 1 : 0;
+
         ///a light would read outside this quite severely
-        for(int j=0; j<3; j++)
+        /*for(int j=0; j<3; j++)
         {
             int xc = round(tris_proj[i][j].x);
             int yc = round(tris_proj[i][j].y);
@@ -1925,7 +1929,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
                 continue;
 
             tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
-        }
+        }*/
 
         float3 xpv, ypv;
 
@@ -1936,8 +1940,22 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
         float rconst = calc_rconstant_v(xpv, ypv);
 
 
+        //float min_max[4];
+        //calc_min_max(tris_proj[i], ewidth, eheight, min_max);
+
+        float minx, miny, maxx, maxy;
+
+        if(camera == 0)
+        {
+            minx = 0, miny = 0, maxx = ewidth/2, maxy = eheight;
+        }
+        if(camera == 1)
+        {
+            minx = ewidth/2, miny = 0, maxx = ewidth, maxy = eheight;
+        }
+
         float min_max[4];
-        calc_min_max(tris_proj[i], ewidth, eheight, min_max);
+        calc_min_max_oc(tris_proj[i], minx, miny, maxx, maxy, min_max);
 
         float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
@@ -1957,7 +1975,6 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
         //uint base = atomic_add(id_buffer_atomc, thread_num);
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
-        int camera = i >= 2 ? 1 : 0;
 
         uint f = base*6;
 
@@ -3122,12 +3139,17 @@ void part3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p
 ///according to internets
 //const float2 lens_centre = {0.15f, 0.0f};
 
-float distortion_scale(float2 val, float4 d)
+float get_radsq(float2 val)
 {
     float2 valsq = val*val;
 
     float radsq = valsq.x + valsq.y;
 
+    return radsq;
+}
+
+float distortion_scale(float radsq, float4 d)
+{
     float scale = d.x +
                   d.y * radsq +
                   d.z * radsq * radsq +
@@ -3158,9 +3180,10 @@ float2 to_distortion_coordinates(float2 val, float width, float height, float2 l
 float2 to_screen_coords(float2 val, float width, float height, float2 lens_centre)
 {
     ///??? absolutely definitely not the correct way to do this
-    float fillscale = 1.7f;
+    float fillscale = 1.341641;
+    //float fillscale = 1;
 
-    float2 unaspected = val / fillscale;
+    float2 unaspected = val * fillscale;
     unaspected.y *= (float)width/height;
 
     float2 unlensed = unaspected + lens_centre;
@@ -3175,7 +3198,7 @@ float2 to_screen_coords(float2 val, float width, float height, float2 lens_centr
 
 ///d1 -> 4 are distortion coefficiants
 __kernel
-void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, float4 d)
+void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, float4 d, float4 abberation)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -3193,43 +3216,110 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
 
     if(x >= SCREENWIDTH/2)
     {
-        //lens_centre.x = -lens_centre.x;
+        lens_centre.x = -lens_centre.x;
         ///this is correct but c
         eye = 1;
         x -= width;
     }
 
 
+    ///scale xy, and add an offset at the end to make up
     float2 offset = to_distortion_coordinates((float2){x, y}, width, height, lens_centre);
 
-    float scale = distortion_scale(offset, d);
+    float radsq = get_radsq(offset);
+
+    float scale = distortion_scale(radsq, d);
+
+    /*scaleRGB.x = scale * ( 1.0f + ChromaticAberration[0] + rsq * ChromaticAberration[1] );     // Red
+    scaleRGB.y = scale;                                                                        // Green
+    scaleRGB.z = scale * ( 1.0f + ChromaticAberration[2] + rsq * ChromaticAberration[3] );     // Blue*/
+
 
     float2 distorted_offset = offset * scale;
 
-    float2 coords = to_screen_coords(distorted_offset, width, height, lens_centre);
+    //float2 screen_coords = to_screen_coords(distorted_offset, width, height, lens_centre);
+
+    float2 rcoords, gcoords, bcoords;
+
+    rcoords = distorted_offset * (1.0f + abberation.x + radsq * abberation.y);
+    gcoords = distorted_offset;//distorted_offset * (1.0f + abberation.x + radsq * abberation.y);
+    bcoords = distorted_offset * (1.0f + abberation.z + radsq * abberation.w);
+
+    rcoords = to_screen_coords(rcoords, width, height, lens_centre);
+    gcoords = to_screen_coords(gcoords, width, height, lens_centre);
+    bcoords = to_screen_coords(bcoords, width, height, lens_centre);
+
+
+    //float2 rcentre = rcoords - (float2){width/2, SCREENHEIGHT/2};
+    //float2 gcentre = gcoords - (float2){width/2, SCREENHEIGHT/2};
+    //float2 bcentre = bcoords - (float2){width/2, SCREENHEIGHT/2};
+
+    //rcentre /= (float2){SCREENWIDTH, SCREENHEIGHT};
+    //gcentre /= (float2){SCREENWIDTH, SCREENHEIGHT};
+    //bcentre /= (float2){SCREENWIDTH, SCREENHEIGHT};
+
+    //rcentre /= 3;
+    //gcentre /= 3;
+    //bcentre /= 3;
+
+    //rcentre *= (float2){SCREENWIDTH, SCREENHEIGHT};
+    //gcentre *= (float2){SCREENWIDTH, SCREENHEIGHT};
+    //bcentre *= (float2){SCREENWIDTH, SCREENHEIGHT};
+
+    /*rcoords.x = ((rcoords.x / (SCREENWIDTH/2)) + lens_centre.x) * SCREENWIDTH/2;
+    gcoords.x = ((gcoords.x / (SCREENWIDTH/2)) + lens_centre.x) * SCREENWIDTH/2;
+    bcoords.x = ((bcoords.x / (SCREENWIDTH/2)) + lens_centre.x) * SCREENWIDTH/2;*/
+
+    //rcoords = rcentre + (float2){width/2, SCREENHEIGHT/2};
+    //gcoords = gcentre + (float2){width/2, SCREENHEIGHT/2};
+    //bcoords = bcentre + (float2){width/2, SCREENHEIGHT/2};
+
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP           |
                     CLK_FILTER_LINEAR;
 
+    bool valid = true;
+
+    if(rcoords.x < 0 || rcoords.y < 0 || gcoords.x < 0 || gcoords.y < 0 || bcoords.x < 0 || bcoords.y < 0
+       ||rcoords.x >= width || rcoords.y >= height || gcoords.x >= width || gcoords.y >= height || bcoords.x >= width || bcoords.y >= height)
+    {
+        valid = false;
+    }
+
     if(eye == 1)
     {
         x += width;
-        coords.x += width;
+        rcoords.x += width;
+        gcoords.x += width;
+        bcoords.x += width;
     }
 
-    float4 val = read_imagef(input, sam, coords + 0.5f);
+    ///scale initial x/y inputs?
+    float rval = read_imagef(input, sam, rcoords + 0.5f).x;
+    float gval = read_imagef(input, sam, gcoords + 0.5f).y;
+    float bval = read_imagef(input, sam, bcoords + 0.5f).z;
 
-    if(eye == 0)
+    float4 val = {rval, gval, bval, 0.0f};
+
+    if(!valid)
+        val = 0;
+
+    /*if(eye == 0)
     {
-        if(coords.x >= width)
+        if(rcoords.x >= width || gcoords.x >= width || bcoords.x >= width)
             val = 0;
     }
     if(eye == 1)
     {
-        if(coords.x >= SCREENWIDTH || coords.x < width)
+        if(rcoords.x >= SCREENWIDTH || rcoords.x < width || gcoords.x >= SCREENWIDTH || gcoords.x < width || bcoords.x >= SCREENWIDTH || bcoords.x < width)
             val = 0;
-    }
+    }*/
+
+    /*if(rcoords.y < 0 || rcoords.y >= SCREENHEIGHT || gcoords.y < 0 || gcoords.y >= SCREENHEIGHT || bcoords.y < 0 || bcoords.y >= SCREENHEIGHT)
+    {
+        val = 0;
+    }*/
 
     write_imagef(output, (int2){x, y}, val);
 }
