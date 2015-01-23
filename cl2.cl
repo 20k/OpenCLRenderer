@@ -3133,7 +3133,9 @@ float distortion_scale(float2 val, float4 d)
                   d.z * radsq * radsq +
                   d.w * radsq * radsq * radsq;
 
-    return scale;
+    float inv = 1.0f / scale;
+
+    return inv;
 }
 
 float2 to_distortion_coordinates(float2 val, float width, float height, float2 lens_centre)

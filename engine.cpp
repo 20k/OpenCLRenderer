@@ -44,8 +44,16 @@ ovrTrackingState rift::HmdState;
 cl_float4 rift::eye_position[2] = {0};
 cl_float4 rift::eye_rotation[2] = {0};
 
+///need to fetch these from util, will change per lense
 cl_float4 rift::distortion_constants = {1.0f, 0.22f, 0.24f, 0.0f};
-cl_float rift::distortion_scale = {0};
+/*distortions[numDistortions].Config.Eqn = Distortion_CatmullRom10;
+        distortions[numDistortions].Config.K[0]                          = 1.003f;
+        distortions[numDistortions].Config.K[1]                          = 1.02f;
+        distortions[numDistortions].Config.K[2]                          = 1.042f;
+        distortions[numDistortions].Config.K[3]                          = 1.066f;*/
+
+//cl_float4 rift::distortion_constants = {1.003f, 1.02f, 1.0422f, 1.066f};
+cl_float  rift::distortion_scale = {0};
 
 
 ///this needs changing
@@ -199,6 +207,24 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
             width *= 2;//?
 
+            HMDInfo info = CreateDebugHMDInfo(HmdType_DK2);
+
+            HmdRenderInfo rinfo = GenerateHmdRenderInfoFromHmdInfo(info, NULL, Distortion_RecipPoly4, EyeCup_LAST);
+
+
+            float eye_relief_in_meters = 0.01f;
+
+            LensConfig lens = GenerateLensConfigFromEyeRelief(eye_relief_in_meters, rinfo, Distortion_RecipPoly4);
+
+            for(int i=0; i<4; i++)
+            {
+                rift::distortion_constants.s[i] = lens.K[i];
+
+                printf("%f\n", lens.K[i]);
+            }
+
+
+
             //struct LensConfig lens;
 
             //rift::distortion_scale = lens.DistortionFNScaleRadius
@@ -208,6 +234,23 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             //                                ovrVector2f uvScaleOffsetOut[2] );
 
             //OVR::Util::Render::StereoConfig config;
+
+            /*HMDInfo info;
+
+            HMD->GetDeviceInfo(&info);
+
+            HmdRenderInfo hmdi = GenerateHmdRenderInfoFromHmdInfo(info);
+
+            DistortionRenderDesc distcfg = CalculateDistortionRenderDesc(StereoEye_Left, hmdi);
+
+            OVR::LensConfig cfg = distcfg.Lens;
+
+            for(int i=0; i<4; i++)
+            {
+                distortion_constants.s[i] = cfg.K[i];
+
+                printf("%f\n", cfg.K[i]);
+            }*/
         }
     }
 
@@ -298,8 +341,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     cl_float2* distortion_clear = new cl_float2[width*height];
 
     memset(distortion_clear, 0, sizeof(cl_float2)*width*height);
-
-    ///change depth to be image2d_t ///not possible
 
     ///creates the two depth buffers and 2d triangle id buffer with size width*height
     depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);

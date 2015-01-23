@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
     //window.c_rot.x = -M_PI/2;
 
 
-    //window.window.setVerticalSyncEnabled(false);
+    window.window.setVerticalSyncEnabled(true);
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
