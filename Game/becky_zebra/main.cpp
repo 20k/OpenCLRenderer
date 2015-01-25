@@ -35,12 +35,22 @@ struct zebra
     static int boundx;
     static int boundz;
 
+    static int minx, miny, maxx, maxy;
+
     static std::map<objects_container*, float> angles;
 
     static std::vector<objects_container*> objects;
     static std::vector<zebra_info> zebra_objects;
 
     //static int counter;
+
+    static void set_bnd(int _minx, int _miny, int _maxx, int _maxy)
+    {
+        minx = _minx;
+        miny = _miny;
+        maxx = _maxx;
+        maxy = _maxy;
+    }
 
     static void add_object(objects_container* obj)
     {
@@ -83,13 +93,13 @@ struct zebra
 
                 float angle = atan2(dz, dx);
 
-                float p1mag = sqrtf(v1.x*v1.x + v1.y*v1.y);
+                float velocity = sqrtf(v1.x*v1.x + v1.y*v1.y);
 
-                float nvx = p1mag * sin(angle);
+                /*float nvx = p1mag * sin(angle);
                 float nvy = p1mag * cos(angle);
 
                 ///reflect nvx
-                nvy = -nvy;
+                //nvy = -nvy;
 
 
                 float velocity_angle = atan2(v1.y, v1.x);
@@ -109,11 +119,138 @@ struct zebra
 
 
                 zebra_objects[i].vx = tx;
-                zebra_objects[i].vz = ty;
+                zebra_objects[i].vz = ty;*/
+
+
+                /*float vtheta = atan2(v1.y, v1.x);
+
+                float rtheta = vtheta - angle;
+
+                float v_towards = velocity * cos(rtheta);
+                float v_perp = velocity * sin(rtheta);
+
+                ///modify v_perp
+
+                float new_angle = atan2(v_perp, v_towards);
+
+                float opposite_angle = rtheta - angle;
+
+                float nvx = velocity * cos(opposite_angle);
+                float nvy = velocity * sin(opposite_angle);
 
                 //cl_float4 final_vel = (cl_float2){tx, ty};
 
+                zebra_objects[i].vx = nvx;
+                zebra_objects[i].vz = nvy;*/
 
+                /*angle = fabs(angle);
+
+                float v1xs, v2xs;
+                float v1ys, v2ys;
+
+                v1xs = copysign(1.0, v1.x);
+                v2xs = copysign(1.0, v2.x);
+
+                v1ys = copysign(1.0, v1.y);
+                v2ys = copysign(1.0, v2.y);
+
+                int xtowards = !(v1xs < 0 && v2xs > 0);
+
+                float modx = 1;
+
+                if(p2.x < p1.x)
+                {
+                    modx = -1;
+                }
+
+                xtowards *= modx;
+
+                int ytowards = !(v1ys < 0 && v2ys > 0);
+
+                float mody = 1;
+
+                if(p2.z < p1.z)
+                {
+                    mody = -1;
+                }*/
+
+                //ytowards *= mody;
+
+                //if(angle > 0 && angle < M_PI/4 || angle < 0 && angle > -M_PI/4)
+                /*if(angle < M_PI/4 && !(v1xs < 0 && v2xs > 0))// || angle >= M_PI/2 + M_PI/4)
+                {
+                    zebra_objects[i].vx = -v1.x;
+                }
+                else
+                //if(angle >= M_PI/4 && angle < M_PI/2 + M_PI/4)
+                {
+                    zebra_objects[i].vz = -v1.y;
+                }*/
+
+                /*if(xtowards == 1 && (angle < M_PI/4 || angle >= M_PI/2 + M_PI/4))
+                {
+                    zebra_objects[i].vx = -v1.x;
+                }
+                if(ytowards == 1 && angle >= M_PI/4 && angle < M_PI/2 + M_PI/4)
+                {
+                    zebra_objects[i].vz = -v1.y;
+                }*/
+
+                /*cl_float2 v1xo = v1;
+                cl_float2 v2xo = v2;
+
+                if(p1.x > p2.x)
+                {
+                    cl_float2 tmp = v2xo;
+                    v2xo = v1xo;
+                    v1xo = tmp;
+                }
+
+                cl_float2 v1yo = v1;
+                cl_float2 v2yo = v2;
+
+                if(p1.z > p2.z)
+                {
+                    cl_float2 tmp = v2yo;
+                    v2yo = v1yo;
+                    v1yo = tmp;
+                }
+
+                float v1xs, v2xs, v1ys, v2ys;
+
+                v1xs = copysign(1.0, v1xo.x);
+                v2xs = copysign(1.0, v2xo.x);
+
+                v1ys = copysign(1.0, v1yo.y);
+                v2ys = copysign(1.0, v2yo.y);
+
+                int xtowards = !(v1xs < 0 && v2xs > 0);
+                int ytowards = !(v1ys < 0 && v2ys > 0);
+
+                if(angle )*/
+
+                float rangle = angle;
+
+                angle = fabs(angle);
+
+                if(angle < M_PI/4 && v1.x > 0)
+                {
+                    zebra_objects[i].vx = -v1.x;
+                }
+                if(angle >= M_PI/4 + M_PI/2 && v1.x < 0)
+                {
+                    zebra_objects[i].vx = -v1.x;
+                }
+
+                if(rangle >= M_PI/4 && rangle < M_PI/4 + M_PI/2 && v1.y > 0)
+                {
+                    zebra_objects[i].vz = -v1.y;
+                }
+
+                if(rangle <= -M_PI/4 && rangle >= -M_PI/4 - M_PI/2 && v1.y < 0)
+                {
+                    zebra_objects[i].vz = -v1.y;
+                }
 
                 /*cl_float2 new_velocity;
 
@@ -121,6 +258,31 @@ struct zebra
 
                 //float rel_angle =
             }
+
+            v1 = {zebra_objects[i].vx, zebra_objects[i].vz};
+
+
+            if(p1.x < minx)
+            {
+                v1.x = fabs(v1.x);
+            }
+            if(p1.x >= maxx)
+            {
+                v1.x = -fabs(v1.x);
+            }
+
+            if(p1.z < miny)
+            {
+                v1.y = fabs(v1.y);
+            }
+            if(p1.z >= maxy)
+            {
+                v1.y = -fabs(v1.y);
+            }
+
+            zebra_objects[i].vx = v1.x;
+            zebra_objects[i].vz = v1.y;
+
         }
     }
 
@@ -346,6 +508,9 @@ struct zebra
         constexpr float zig_probability = 0.005;
         constexpr float ideal_speed = 2.f;
 
+        static int zilch = 0;
+
+
         for(int i=0; i<objects.size(); i++)
         {
             ///not great, use real random
@@ -422,13 +587,11 @@ struct zebra
 
             zeb->g_flush_objects();*/
 
-            static int zilch = 0;
 
-            if(i == 0 && !zilch)
+            if(!zilch)
             {
-                zilch = 1;
-                zebra_objects[i].vz = -2;
-                zebra_objects[i].vx = 5;
+                zebra_objects[i].vz = -2 * ((i % 2) - 0.5f) * 2;// * ((i % 2) - 0.5f) * 2;
+                zebra_objects[i].vx = 5 * ((i % 2) - 0.5f) * 2;
             }
 
             objects_container* zeb = objects[i];
@@ -440,6 +603,8 @@ struct zebra
 
             zeb->g_flush_objects();
         }
+
+        zilch = 1;
     }
 
     static void highlight_zebra(int zid, sf::RenderWindow& win, float time_after)
@@ -484,11 +649,18 @@ std::vector<zebra_info> zebra::zebra_objects;
 int zebra::boundx = 9000;
 int zebra::boundz = 1000;
 
+int zebra::minx = 0;
+int zebra::miny = 0;
+int zebra::maxx = 0;
+int zebra::maxy = 0;
+
 std::vector<objects_container*> zebra::objects;
 
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
+
+    zebra::set_bnd(0, 0, 9000, 3000);
 
     constexpr int zebra_count = 36;
 

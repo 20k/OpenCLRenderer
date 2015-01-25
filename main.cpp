@@ -10,7 +10,7 @@
 
 ///move to two eye rendering and optimise for that instead, do duel view render at once
 
-
+///rift head movement is wrong
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -30,7 +30,9 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
-    //window.window.setVerticalSyncEnabled(true);
+    #ifdef OCULUS
+    window.window.setVerticalSyncEnabled(true);
+    #endif
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?

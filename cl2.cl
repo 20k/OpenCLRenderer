@@ -2190,6 +2190,7 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
 
     float max_width = SCREENWIDTH/2;
 
+    ///make this simply a function of tris_proj_n[n].x?
     if(camera == 0)
         max_width = SCREENWIDTH/2;
     if(camera == 1)
@@ -2274,7 +2275,7 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
             break;
         }
 
-        bool oob = x >= min_max[1] || x < min_max[0];
+        bool oob = x >= min_max[1] || x < min_max[0] || y < min_max[2];
 
         if(oob)
         {
@@ -2405,7 +2406,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
             break;
         }
 
-        bool oob = x >= min_max[1];
+        bool oob = x >= min_max[1] || x < min_max[0] || y < min_max[2];
 
         if(oob)
         {
@@ -3180,20 +3181,20 @@ float2 to_distortion_coordinates(float2 val, float width, float height, float2 l
 float2 to_screen_coords(float2 val, float width, float height, float2 lens_centre)
 {
     ///??? absolutely definitely not the correct way to do this
-    float fillscale = 1.341641;
+    //float fillscale = 1.341641;
     //float fillscale = 1;
 
-    float2 unaspected = val * fillscale;
-    unaspected.y *= (float)width/height;
+    float2 nv = val;// * fillscale;
+    nv.y *= (float)width/height;
 
-    float2 unlensed = unaspected + lens_centre;
+    nv += lens_centre;
 
-    float2 screen_coords = unlensed / 2.0f;
-    screen_coords += 0.5f;
+    nv /= 2;
+    nv += 0.5f;
 
-    screen_coords *= (float2)(width, height);
+    nv *= (float2){width, height};
 
-    return screen_coords;
+    return nv;
 }
 
 ///d1 -> 4 are distortion coefficiants
@@ -3209,9 +3210,9 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
     float width = SCREENWIDTH/2;
     float height = SCREENHEIGHT;
 
-    //float2 lens_centre = {0.15f, 0.0f};
-    //float2 lens_centre = {-0.15f, 0.0f};
+    //float2 lens_centre = (float2){0.15f, 0.0f};
     float2 lens_centre = {0.0f, 0.0f}; ///????
+
     int eye = 0;
 
     if(x >= SCREENWIDTH/2)
@@ -3222,9 +3223,18 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
         x -= width;
     }
 
+    float2 in_coord = (float2){x, y};
+
+    ///do lens_centre before scaling? lens*2? /2?
+    in_coord -= (float2){width/2, height/2};
+
+    in_coord /= 1.31;
+    //in_coord /= 1.31;
+
+    in_coord += (float2){width/2, height/2};
 
     ///scale xy, and add an offset at the end to make up
-    float2 offset = to_distortion_coordinates((float2){x, y}, width, height, lens_centre);
+    float2 offset = to_distortion_coordinates(in_coord, width, height, lens_centre);
 
     float radsq = get_radsq(offset);
 

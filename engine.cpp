@@ -262,18 +262,24 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         }
     }
 
-    width = 1920;
-    height = 1080;
+    //width = 640;
+    //height = 480;
 
     //width = 1920/2;
     //height = 1080;
 
-    int videowidth = rift::enabled ? width : width;
+    //int videowidth = rift::enabled ? width : width;
+
+    int videowidth = width;
 
     printf("Initialised with width %i and height %i\n", videowidth, height);
 
 
+    #ifdef OCULUS
+    window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
+    #else
     window.create(sf::VideoMode(videowidth, height), name);
+    #endif
 
     ///passed in as compilation parameter to opencl
     l_size = 2048;
