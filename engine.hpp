@@ -40,8 +40,6 @@ namespace rift
 
     extern ovrTrackingState HmdState;
 
-    //extern cl_float4 head_position, head_rotation;
-
     extern cl_float4 eye_position[2];
     extern cl_float4 eye_rotation[2];
 
@@ -69,10 +67,6 @@ struct engine
     compute::opengl_renderbuffer g_screen_reprojected;
     compute::opengl_renderbuffer g_screen_edge_smoothed;
 
-    ///gpu side camera position and rotation
-    //compute::buffer g_c_pos;
-    //compute::buffer g_c_rot;
-
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
     compute::buffer reprojected_depth_buffer[2];
@@ -95,7 +89,7 @@ struct engine
     compute::buffer g_valid_fragment_mem; ///memory storage for valid fragments
     compute::buffer g_valid_fragment_num; ///number of valid fragments
 
-    compute::buffer g_distortion_buffer;
+    compute::buffer g_distortion_buffer; ///for doing vertex warping in screenspace
 
     ///debugging declarations
     cl_uint* d_depth_buf;
@@ -238,15 +232,10 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         }
     }
 
-    //std::cout << "trying kernel " << kernel.name << std::endl;
-
     for(int i=0; i<argv.args.size() && args; i++)
     {
-        //std::cout << i << std::endl;
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
-
-
 
     compute::event event = cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, l_ws);
 
@@ -267,39 +256,6 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
     std::cout << "T  " << kernel.name << " " << duration << std::endl;
     #endif
 }
-
-/*static void run_kernel_with_args(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], int dimensions, compute::buffer **argv, int argc)
-{
-    cl_uint g_ws[dimensions];
-
-    for(int i=0; i<dimensions; i++)
-    {
-        g_ws[i] = global_ws[i];
-
-        if(g_ws[i] % local_ws[i]!=0)
-        {
-            int rem=g_ws[i] % local_ws[i];
-            g_ws[i]-=(rem);
-            g_ws[i]+=local_ws[i];
-        }
-
-        if(g_ws[i] == 0)
-        {
-            g_ws[i] += local_ws[i];
-        }
-    }
-
-    for(int i=0; i<argc; i++)
-    {
-        kernel.kernel.set_arg(i, *(argv[i]));
-    }
-
-    cl::cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, local_ws);
-
-
-    //if(blocking)
-    //    cl::cqueue.finish();
-}*/
 
 
 #endif

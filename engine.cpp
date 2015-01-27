@@ -2,9 +2,8 @@
 #include <gl/gl.h>
 #include "engine.hpp"
 #include <math.h>
-//
+
 #include <gl/glext.h>
-//#include <gl/gl3.h>
 
 
 #include "clstate.h"
@@ -14,7 +13,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include "texture_manager.hpp"
-#include "interact_manager.hpp" ///Separatation of church and state hlp
+#include "interact_manager.hpp"
 #include "text_handler.hpp"
 #include "point_cloud.hpp"
 #include "hologram.hpp"
@@ -27,7 +26,6 @@
 #include "Rift/Include/OVR_Kernel.h"
 #include "Rift/Src/OVR_CAPI.h"
 #include "Rift/Src/OVR_Stereo.h"
-
 
 #define FOV_CONST 500.0f
 
@@ -194,8 +192,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             eyeFov[0] = HMD->DefaultEyeFov[0];
             eyeFov[1] = HMD->DefaultEyeFov[1];
 
-            //printf("%f\n", eyeFov[0]);
-
             EyeRenderDesc[0] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 0,  eyeFov[0]);
             EyeRenderDesc[1] = ovrHmd_GetRenderDesc(HMD, (ovrEyeType) 1,  eyeFov[1]);
 
@@ -230,46 +226,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
                 printf("%f\n", lens.K[i]);
             }
-
-
-
-            //struct LensConfig lens;
-
-            //rift::distortion_scale = lens.DistortionFNScaleRadius
-
-            //vrHmd_GetRenderScaleAndOffset( ovrFovPort fov,
-            //                                ovrSizei textureSize, ovrRecti renderViewport,
-            //                                ovrVector2f uvScaleOffsetOut[2] );
-
-            //OVR::Util::Render::StereoConfig config;
-
-            /*HMDInfo info;
-
-            HMD->GetDeviceInfo(&info);
-
-            HmdRenderInfo hmdi = GenerateHmdRenderInfoFromHmdInfo(info);
-
-            DistortionRenderDesc distcfg = CalculateDistortionRenderDesc(StereoEye_Left, hmdi);
-
-            OVR::LensConfig cfg = distcfg.Lens;
-
-            for(int i=0; i<4; i++)
-            {
-                distortion_constants.s[i] = cfg.K[i];
-
-                printf("%f\n", cfg.K[i]);
-            }*/
         }
     }
 
-    width = 640;
-    height = 480;
-
-    //width = 1920/2;
-    //height = 1080;
-
-    //int videowidth = rift::enabled ? width : width;
-
+    ///in case I need to do scaling for oculus
     int videowidth = width;
 
     printf("Initialised with width %i and height %i\n", videowidth, height);
@@ -935,8 +895,6 @@ void engine::construct_shadowmaps()
 
                 cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
 
-                //cl::cqueue.enqueue_write_buffer(g_valid_fragment_num, 0, sizeof(cl_uint), &zero);
-
 
                 cl_uint p1global_ws_new = id_c;
 
@@ -1401,23 +1359,7 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
 void engine::draw_bulk_objs_n()
 {
     ///this is not a shadowmapping kernel. is_light needs to be passed in as a compile time parameter
-
-
-
-
-    //old_pos = add(old_pos, sub(c_pos, (cl_float4){-800,150,-570}));
-    //old_rot = add(old_rot, c_rot);
-
-    //c_pos = (cl_float4){-800,150,-570};
-    //c_rot = {0,0,0,0};
-
-    ///need a better way to clear light buffer
-
-    //head_rotation.z = 0;
-
-
     cl_float4 pos_offset = c_pos;
-    //cl_float4 rot_offset = sub({0,0,0,0}, c_rot);
     cl_float4 rot_offset = c_rot;
 
 
@@ -1433,7 +1375,7 @@ void engine::draw_bulk_objs_n()
 
         float fudge = 40;
 
-        ///merge kernels to produce two eyes at once, or reproject
+        ///old twice run method
         /*for(int i=0; i<2; i++)
         {
             pos_offset = add(c_pos, mult(eye_position[i], fudge));
