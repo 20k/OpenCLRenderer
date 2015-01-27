@@ -112,28 +112,6 @@ float calc_third_areas(struct interp_container *C, float x, float y)
 ///rotates point about camera
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
-    //float3 ret;
-    //ret.x =      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
-    //ret.y =      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
-    //ret.z =      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
-
-    //float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
-    //float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
-    //float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};
-
-
-    //float3 r1 = {cr.x*cr.y, cr.x*sr.y*sr.z - cr.z*sr.x, sr.x*sr.z + cr.x*cr.z*sr.y};
-    //float3 r2 = {cr.y*sr.x, cr.x*cr.z + sr.x*sr.y*sr.z, cr.z*sr.x*sr.y - cr.x*sr.z};
-    //float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};
-
-    //float3 r1 = {cr.x*cr.z - sr.x*sr.y*sr.z, -cr.y*sr.x, cr.x*sr.z + cr.z*sr.x*sr.y};
-    //float3 r2 = {cr.z*sr.x + cr.x*sr.y*sr.z, cr.x*cr.y, sr.x*sr.z - cr.x*cr.z*sr.y};
-    //float3 r3 = {-cr.y*sr.z, sr.y, cr.y*cr.z};
-
-
-    /*float3 r1 = {cr.x*cr.z - cr.y*sr.x*sr.z, sr.x*sr.y, cr.x*sr.z + cr.y*cr.z*sr.x};
-    float3 r2 = {sr.y*sr.z, cr.y, -cr.z*sr.y};
-    float3 r3 = {-cr.z*sr.x - cr.x*cr.y*sr.z, cr.x*sr.y, cr.x*cr.y*cr.z - sr.x*sr.z};*/
 
     float3 c = native_cos(c_rot);
     float3 s = native_sin(c_rot);
@@ -148,40 +126,12 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
     ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
     ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);
 
-    //float3 ret;
-
-    //ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
-    //ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
-    //ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;
-
     return ret;
 }
 
 ///a rot then a back rot 'cancel' out
 float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
-    //c_rot.z = -c_rot.z;
-
-   /* float3 cr = native_cos(c_rot);
-    float3 sr = native_sin(c_rot);
-
-    float3 r1 = {cr.x*cr.y, cr.x*sr.y*sr.z - cr.z*sr.x, sr.x*sr.z + cr.x*cr.z*sr.y};
-    float3 r2 = {cr.y*sr.x, cr.x*cr.z + sr.x*sr.y*sr.z, cr.z*sr.x*sr.y - cr.x*sr.z};
-    float3 r3 = {-sr.y, cr.y*sr.z, cr.y*cr.z};*/
-
-    /*float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
-    float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
-    float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};*/
-
-
-    /*float3 rel = point - c_pos;
-
-    float3 ret;
-
-    ret.x = r1.x * rel.x + r1.y * rel.y + r1.z * rel.z;
-    ret.y = r2.x * rel.x + r2.y * rel.y + r2.z * rel.z;
-    ret.z = r3.x * rel.x + r3.y * rel.y + r3.z * rel.z;*/
-
     float3 pos = rot(point, c_pos, (float3){-c_rot.x, 0, 0});
     pos = rot(pos, c_pos, (float3){0, -c_rot.y, 0});
     pos = rot(pos, c_pos, (float3){0, 0, -c_rot.z});
@@ -485,14 +435,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
         }
     }
 
-    /*id_valid = points[0].z > depth_icutoff ? 0 : id_valid;
-    id_valid = points[1].z > depth_icutoff ? 1 : id_valid;
-    id_valid = points[2].z > depth_icutoff ? 2 : id_valid;
-
-    ids_behind[n_behind] = points[0].z <= depth_icutoff ? n_behind++, 0 : ids_behind[n_behind];
-    ids_behind[n_behind] = points[1].z <= depth_icutoff ? n_behind++, 1 : ids_behind[n_behind];
-    ids_behind[n_behind] = points[2].z <= depth_icutoff ? n_behind++, 2 : ids_behind[n_behind];*/
-
     if(n_behind > 2)
     {
         *num = 0;
@@ -534,6 +476,7 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     ids[2] = g3;
 
 
+    ///this is substituted in rather than calculated then used, may help with numerical accuracy
     //float l1 = native_divide((depth_icutoff - points[g2].z), (points[g1].z - points[g2].z));
     //float l2 = native_divide((depth_icutoff - points[g3].z), (points[g1].z - points[g3].z));
 
@@ -855,9 +798,9 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     }
 
 
-    float2 uvratio= {mcoord.x-pos.x, mcoord.y-pos.y};
+    float2 uvratio = {mcoord.x-pos.x, mcoord.y-pos.y};
 
-    float2 buvr= {1.0f-uvratio.x, 1.0f-uvratio.y};
+    float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
 
     float3 result;
     result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
@@ -1746,6 +1689,8 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     uint b_id = atomic_add(id_cutdown_tris, num);
 
+    ///If the triangle intersects with the near clipping plane, there are two
+    ///otherwise 1
     for(int i=0; i<num; i++)
     {
         if(!ooany[i]) ///skip bad tris
@@ -1876,11 +1821,16 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
     int ooany[4] = {1,1,1,1};
     //int valid = 0;
 
+    if(num == 0)
+    {
+        ooany[0] = 0;
+    }
     if(num == 1)
     {
         ooany[1] = 0;
     }
 
+    ///if the second eye has any valid fragments, set the number to process appropriately
     if(num2 != 0)
     {
         num = 2 + num2;
@@ -1904,12 +1854,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
         ooany[i] = !cond && ooany[i];
     }
 
-    //num = num2;
-
-    //uint b_id = atomic_add(id_cutdown_tris, num);
-
-    //num = 1;
-
+    ///for 1 -> 4 possible fragments
     for(int i=0; i<num; i++)
     {
         if(!ooany[i]) ///skip bad tris
@@ -1920,6 +1865,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
         int camera = i >= 2 ? 1 : 0;
 
         ///a light would read outside this quite severely
+        ///disabled for oculus, as it doesn't currently make sense
         /*for(int j=0; j<3; j++)
         {
             int xc = round(tris_proj[i][j].x);
@@ -2008,10 +1954,10 @@ bool side(float2 p1, float2 p2, float2 p3)
 ///pad buffers so i don't have to do bounds checking? Probably slower
 ///do double skip so that I skip more things outside of a triangle?
 
-///rotates and projects triangles into screenspace, writes their depth atomically
 
 #define ERR_COMP -4.f
 
+///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
 void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
@@ -2246,10 +2192,6 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-
-    //int width_offset = camera == 0 ? 0 : SCREENWIDTH/2;
-
 
     float A, B, C;
 
@@ -2646,12 +2588,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
-    //int2 scoord1 = {x, y};
-
-    //float4 clear_col = (float4){0.0f, 0.0f, 0.0f, 1.0f};
-
-    //write_imagef(screen, scoord1, clear_col);
-
     __global uint *ft = &depth_buffer[y*SCREENWIDTH + x];
 
     //?
@@ -2754,8 +2690,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         int which_cubeface;
 
-        //int shadow_cond = ;
-
         if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
         {
             ///gets pixel occlusion. Is not smooth
@@ -2830,9 +2764,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         ///swap for 0? or likely that one warp will be same and can all skip?
         if(skip)
         {
-            //if(l.shadow == 1)
-            //    shnum++;
-
             continue;
         }
 
@@ -2902,9 +2833,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
-    //float3 col = 1.0f;
-
-
 
     diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
 
@@ -2934,7 +2862,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
     write_imagef(screen, scoord, (float4)(colclamp*diffuse_sum, 0.0f));
-    //write_imagef(screen, scoord, 1);
 
 
     ///debugging
@@ -2950,7 +2877,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 }
 
 __kernel
-///remember to change c_pos and c_rot
 void part3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global float4* cutdown_tris
@@ -4820,6 +4746,7 @@ struct vparent
 #define PIDI(STR) (printf("%i %i\n", cxy, STR))
 #define PIDF(STR) (printf("%i %f\n", cxy, STR))
 
+///this doesnt work
 __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct voxel* voxels, float4 c_pos, float4 c_rot)
 {
     //printf("%s\n", "test");
@@ -5474,9 +5401,6 @@ __kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int heig
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                 CLK_ADDRESS_CLAMP_TO_EDGE |
                 CLK_FILTER_NEAREST;
-
-
-    //float myval = voxel[IX(x, y, z)];
 
     float myval = read_imagef(voxel, sam, (int4){x, y, z, 0}).x;
 
