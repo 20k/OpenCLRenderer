@@ -262,8 +262,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         }
     }
 
-    //width = 640;
-    //height = 480;
+    width = 640;
+    height = 480;
 
     //width = 1920/2;
     //height = 1080;

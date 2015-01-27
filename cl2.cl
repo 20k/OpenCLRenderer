@@ -3184,10 +3184,10 @@ float2 to_screen_coords(float2 val, float width, float height, float2 lens_centr
     //float fillscale = 1.341641;
     //float fillscale = 1;
 
-    float2 nv = val;// * fillscale;
+    float2 nv = val;
     nv.y *= (float)width/height;
 
-    nv += lens_centre;
+    nv += lens_centre;// * 1.6;
 
     nv /= 2;
     nv += 0.5f;
@@ -3229,7 +3229,6 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
     in_coord -= (float2){width/2, height/2};
 
     in_coord /= 1.31;
-    //in_coord /= 1.31;
 
     in_coord += (float2){width/2, height/2};
 
