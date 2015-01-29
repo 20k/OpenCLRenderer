@@ -1645,7 +1645,7 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&s.g_voxel[s.n]);
     smoke_args.push_back(&s.width);
     smoke_args.push_back(&s.height);
-    smoke_args.push_back(&s.depth);
+    smoke_args.push_back(&s.depth);f
     smoke_args.push_back(&c_pos);
     smoke_args.push_back(&c_rot);
     smoke_args.push_back(&s.pos);

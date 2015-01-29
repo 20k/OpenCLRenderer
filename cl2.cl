@@ -5619,7 +5619,12 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_ADDRESS_CLAMP |
+                    CLK_FILTER_NEAREST;
+
+
+    sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP |
                     CLK_FILTER_LINEAR;
 
     ///maybe im like, stepping through the cube from the wrong direction or something?
@@ -5627,65 +5632,64 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     ///investigate broken full ray accumulate
 
     bool found = false;
+    bool skipped = false;
 
     float final_val = 0;
 
+    int skip_amount = 8;
+
+
     for(int i=0; i<num; i++)
     {
-        float val = read_imagef(voxel, sam, (float4)(current_pos.xyz, 0)).x;
+        float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
 
-        //voxel_accumulate += val;
+        /*voxel_accumulate += val;
+
+        if(voxel_accumulate >= 0.01f)
+        {
+            found = true;
+
+            break;
+        }*/
 
         //voxel_accumulate += pow(val, 1) / voxel_mod;
 
-        /*if(val > 0.01f && found_normal < 3)
+        /*if(vald > 0.01f && found_normal < 3)
         {
             normal = get_normal(voxel, current_pos);
             found_normal ++;
         }*/
 
-        if(val >= 0.01f && found)
+        /*if(val >= 0.01f && found)
         {
             voxel_accumulate = 1;
             break;
         }
         else
-            voxel_accumulate = 0;
+            voxel_accumulate = 0;*/
 
         ///need to find the point at which val EQUALS 0.01f, then change current_pos to there
         ///include OOB?
         ///take one sample along step to find dx/dy/dz/whatever, then advance back to find the 0.01 point
         if(val >= 0.01f)
         {
+            voxel_accumulate = 1;
+            found = true;
+
+            break;
+        }
+
+
+        ///maybe im already doing this,a nd holes are actually outside shape
+        ///whoooooaaa
+        /*if(any(current_pos.xyz < -1) || any(current_pos.xyz >= (float3){width, height, depth} + 1))
+        {
             //voxel_accumulate = 1;
             found = true;
-            ///hack to find 0.01f point
-            current_pos -= step;
-            step /= 8;
+            break;
+        }*/
 
-            num += 8;
 
-            continue;
-
-            /*voxel_accumulate = 1;
-
-            final_val = val;*/
-
-            ///its a piecewise linear function so this is not correct at all
-            ///rip
-            ///we have two linear functions
-            /*float nv = read_imagef(voxel, sam, (float4)(current_pos.xyz - step/32, 0)).x;
-
-            float dv = nv - val;
-
-            float dr = val - 0.01f;
-
-            float frac = dr / dv;
-
-            current_pos += frac*step/32;*/
-
-            //break;
-        }
         /*else
         {
             voxel_accumulate = 0;
@@ -5709,26 +5713,60 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         ///leaves a lot of opportunity for lossy rendering here if i don't need the result to be accurate
         ///can undersample like a priick
         ///jumping into the mesh inappropriately seems to cause the issue
-        if(voxel_accumulate < 0.01f && val < 0.01f)
+        /*skipped = false;
+
+        //if(voxel_accumulate < 0.01f && val < 0.01f)
+        if(val < 0.01f)
         {
-            //current_pos += step*3;
-            //i += 3;
-        }
+            current_pos += step*skip_amount;
+            i += skip_amount;
+            skipped = true;
+        }*/
 
         current_pos += step;
     }
 
-    final_pos = current_pos;
+    //voxel_accumulate *= 100;
+
+
 
     //float3 normal = get_normal(voxel, final_pos);
 
     ///do for all? check for quitting outside of bounds and do for that as well?
-    /*if(found)
+    ///this is the explicit surface solver step
+    if(found)
     {
-        float diff = val - 0.01f;
+        if(!skipped)
+            current_pos -= step;
+        else
+            current_pos -= step*(skip_amount + 1);
 
+        int step_const = 8;
 
-    }*/
+        step /= step_const;
+
+        int snum;
+
+        if(!skipped)
+            snum = step_const;
+        else
+            snum = step_const*(skip_amount + 1);
+
+        for(int i=0; i<snum; i++)
+        {
+             float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
+
+             if(val >= 0.01f)
+             {
+                voxel_accumulate = 1;
+                break;
+             }
+
+             current_pos += step;
+        }
+    }
+
+    final_pos = current_pos;
 
     //for(int i=0; i<1; i++)
     {
