@@ -5616,6 +5616,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     int skip_amount = 8;
 
+    const float threshold = 0.001f;
+
 
     for(int i=0; i<num; i++)
     {
@@ -5653,7 +5655,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         ///need to find the point at which val EQUALS 0.01f, then change current_pos to there
         ///include OOB?
         ///take one sample along step to find dx/dy/dz/whatever, then advance back to find the 0.01 point
-        if(val >= 0.01f)
+        if(fabs(val) >= threshold)
         {
             //voxel_accumulate = 1;
             found = true;
@@ -5740,7 +5742,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         {
              float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
 
-             if(val >= 0.01f)
+             if(fabs(val) >= threshold)
              {
                  voxel_accumulate = 1;
                  break;
@@ -6019,44 +6021,34 @@ float advect_func_vel_tex(int x, int y, int z,
                     CLK_FILTER_LINEAR;
 
 
-    float dt0x = dt*width;
+    /*float dt0x = dt*width;
     float dt0y = dt*height;
-    float dt0z = dt*depth;
+    float dt0z = dt*depth;*/
 
-    float vx = x - dt0x * pvx;//xvel[IX(x,y,z)];
-    float vy = y - dt0y * pvy;//yvel[IX(x,y,z)];
-    float vz = z - dt0z * pvz;//zvel[IX(x,y,z)];
+    float3 dtd = dt * (float3){width, height, depth};
+
+    float3 distance = dtd * (float3){pvx, pvy, pvz};
+
+    distance = clamp(distance, -1.f, 1.f);
+
+    float3 vvec = (float3){x, y, z} - distance;
+
+    /*float vx = x - dt0x * pvx;
+    float vy = y - dt0y * pvy;
+    float vz = z - dt0z * pvz;
+
+    float3 vvec = (float3)(vx, vy, vz);*/
+
+    if(any(vvec < 0) || any(vvec >= (float3)(width, height, depth)))
+    {
+        //return read_imagef(d_in, sam, (float4)(x, y, z, 0) + 0.5f).x;
+    }
 
     //vx = clamp(vx, 0.5f, width - 1.5f);
     //vy = clamp(vy, 0.5f, height - 1.5f);
     //vz = clamp(vz, 0.5f, depth - 1.5f);
 
-    /*float3 v0s = floor((float3){vx, vy, vz});
-
-    int3 iv0s = convert_int3(v0s);
-
-    float3 v1s = v0s + 1;
-
-    float3 fracs = (float3){vx, vy, vz} - v0s;
-
-    float3 ifracs = 1.0f - fracs;
-
-    float xy0 = ifracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){0, 0, 0, 0}).x + fracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){1, 0, 0, 0}).x;
-    float xy1 = ifracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){0, 1, 0, 0}).x + fracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){1, 1, 0, 0}).x;
-
-    float xy0z1 = ifracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){0, 0, 1, 0}).x + fracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){1, 0, 1, 0}).x;
-    float xy1z1 = ifracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){0, 1, 1, 0}).x + fracs.x * read_imagef(d_in, sam, iv0s.xyzz + (int4){1, 1, 1, 0}).x;
-
-    float yz0 = ifracs.y * xy0 + fracs.y * xy1;
-    float yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
-
-    float val = ifracs.z * yz0 + fracs.z * yz1;
-
-    return val;*/
-
-    ///on 3d?
-
-    float val = read_imagef(d_in, sam, (float4){vx, vy, vz, 0} + 0.5f).x;
+    float val = read_imagef(d_in, sam, vvec.xyzz + 0.5f).x;
 
     return val;
 }
@@ -6075,7 +6067,6 @@ float advect_func(int x, int y, int z,
 float advect_func_tex(int x, int y, int z,
                   int width, int height, int depth,
                   __read_only image3d_t d_in,
-                  //__global float* xvel, __global float* yvel, __global float* zvel,
                   __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
                   float dt)
 {
@@ -6086,9 +6077,9 @@ float advect_func_tex(int x, int y, int z,
 
     float v1, v2, v3;
 
-    v1 = read_imagef(xvel, sam, (float4){x, y, z, 0.0f}).x;
-    v2 = read_imagef(yvel, sam, (float4){x, y, z, 0.0f}).x;
-    v3 = read_imagef(zvel, sam, (float4){x, y, z, 0.0f}).x;
+    v1 = read_imagef(xvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
+    v2 = read_imagef(yvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
+    v3 = read_imagef(zvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
 
     return advect_func_vel_tex(x, y, z, width, height, depth, d_in, v1, v2, v3, dt);
 
@@ -6150,7 +6141,7 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
 }
 
 ///make xvel, yvel, zvel 1 3d texture? or keep as independent properties incase i want to generalise the advection of other properties like colour?
-__kernel void goo_advect(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt, float force_add)
+__kernel void goo_advect(int width, int height, int depth, int bound, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt, float force_add)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -6163,10 +6154,92 @@ __kernel void goo_advect(int width, int height, int depth, int b, __write_only i
         return;
     }
 
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
+    float force = force_add;
 
     float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
 
-    write_imagef(d_out, (int4){x, y, z, 0}, rval + force_add);
+    int3 offset = 0;
+
+    ///y boundary condition
+    if(bound == 0)
+    {
+        bool near_oob = false;
+
+        if(x == 0)
+        {
+            offset.x = 1;
+            near_oob = true;
+        }
+
+        if(x == width-1)
+        {
+            offset.x = -1;
+            near_oob = true;
+        }
+
+        if(near_oob)
+        {
+            rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz).x;
+
+            force = 0;
+        }
+    }
+
+    if(bound == 1)
+    {
+        bool near_oob = false;
+
+        if(y == 0)
+        {
+            offset.y = 1;
+            near_oob = true;
+        }
+
+        if(y == height-1)
+        {
+            offset.y = -1;
+            near_oob = true;
+        }
+
+        if(near_oob)
+        {
+            rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz).x;
+
+            force = 0;
+        }
+    }
+
+    if(bound == 2)
+    {
+        bool near_oob = false;
+
+        if(z == 0)
+        {
+            offset.z = 1;
+            near_oob = true;
+        }
+
+        if(z == depth-1)
+        {
+            offset.z = -1;
+            near_oob = true;
+        }
+
+        if(near_oob)
+        {
+            rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz).x;
+
+            force = 0;
+        }
+    }
+
+
+    write_imagef(d_out, (int4){x, y, z, 0}, rval + force);
 }
 
 __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt)
@@ -6176,7 +6249,7 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
+    if(x >= width || y >= height || z >= depth)// || x < 1 || y < 1 || z < 1)
     {
         return;
     }
@@ -6184,6 +6257,7 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
+
 
 
     float4 pos = (float4){x, y, z, 0};
@@ -6215,6 +6289,8 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
     //val = read_imagef(x_in, sam, pos).x;
 
     val /= div;
+
+    //val = read_imagef(x_in, sam, pos).x;
 
         //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
 
@@ -6448,6 +6524,8 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     ///draw from here somehow?
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
+
+    val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
 
     return val;
 }

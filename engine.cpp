@@ -1835,6 +1835,7 @@ void engine::draw_smoke(smoke& s)
     arg_list smoke_args;
     //smoke_args.push_back(&s.g_voxel[s.n]);
     smoke_args.push_back(&s.g_voxel_upscale);
+    //smoke_args.push_back(&s.g_velocity_y[0]);
     smoke_args.push_back(&s.uwidth);
     smoke_args.push_back(&s.uheight);
     smoke_args.push_back(&s.udepth);
