@@ -121,6 +121,8 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
+        window.display();
+
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

@@ -63,6 +63,8 @@ namespace cl
     extern kernel advect_tex;
     extern kernel post_upscale;
     extern kernel warp_oculus;
+    extern kernel goo_diffuse;
+    extern kernel goo_advect;
 }
 
 

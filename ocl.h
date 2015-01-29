@@ -253,6 +253,8 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::advect_tex = load_kernel(program, "advect_tex");
     cl::post_upscale = load_kernel(program, "post_upscale");
     cl::warp_oculus = load_kernel(program, "warp_oculus");
+    cl::goo_diffuse = load_kernel(program, "goo_diffuse");
+    cl::goo_advect = load_kernel(program, "goo_advect");
 }
 
 

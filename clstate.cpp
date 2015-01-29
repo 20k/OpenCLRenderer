@@ -44,4 +44,6 @@ kernel cl::advect;
 kernel cl::advect_tex;
 kernel cl::post_upscale;
 kernel cl::warp_oculus;
+kernel cl::goo_diffuse;
+kernel cl::goo_advect;
 

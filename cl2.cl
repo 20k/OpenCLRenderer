@@ -96,12 +96,12 @@ float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
 }
 
-float calc_third_areas_get(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* A, float* B, float* C)
+/*float calc_third_areas_get(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* A, float* B, float* C)
 {
     *A = fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) * 0.5f;
     *B = fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) * 0.5f;
     *C = fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1) * 0.5f;
-}
+}*/
 
 float calc_third_areas(struct interp_container *C, float x, float y)
 {
@@ -117,8 +117,6 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
     float3 s = native_sin(c_rot);
 
     float3 rel = point - c_pos;
-
-    float3 r1, r2, r3;
 
     float3 ret;
 
@@ -165,7 +163,7 @@ float calc_rconstant(float x[3], float y[3])
     return native_recip(x[1]*y[2]+x[0]*(y[1]-y[2])-x[2]*y[1]+(x[2]-x[1])*y[0]);
 }
 
-const float calc_rconstant_v(const float3 x, const float3 y)
+float calc_rconstant_v(const float3 x, const float3 y)
 {
     return native_recip(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
 }
@@ -181,7 +179,7 @@ float interpolate_p(float3 f, float xn, float yn, float3 x, float3 y, float rcon
     return (A*xn + B*yn + C);
 }
 
-float interpolate_get_const(float3 f, float3 x, float3 y, float rconstant, float* A, float* B, float* C)
+void interpolate_get_const(float3 f, float3 x, float3 y, float rconstant, float* A, float* B, float* C)
 {
     *A = ((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
     *B = (-(f.y*x.z+f.x*(x.y-x.z)-f.z*x.y+(f.z-f.y)*x.x) * rconstant);
@@ -609,8 +607,6 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
 
 
     float3 p1, p2, c1, c2;
-    float2 p1v, p2v, c1v, c2v;
-    float3 p1l, p2l, c1l, c2l;
 
     if(n_behind == 0)
     {
@@ -709,6 +705,8 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
 
         return true;
     }
+
+    return false;
 }
 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
@@ -1230,10 +1228,6 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 ///SWIZZLE ME BITCH
 bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_depth_buffer, int which_cubeface, float3 back_rotated, int shnum)
 {
-    float3 zero = {0,0,0};
-
-    float occamount=0;
-
     const float3 r_struct[6] =
     {
         {
@@ -1261,7 +1255,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
 
     int ldepth_map_id = which_cubeface;
 
-    float3 *rotation = &r_struct[ldepth_map_id];
+    const float3* rotation = &r_struct[ldepth_map_id];
 
     float3 local_pos = rot(global_position, lpos, *rotation); ///replace me with a n*90degree swizzle
 
@@ -1423,7 +1417,6 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
     int valid_num = -1;
     float3 which_projected = 0;
-    float valid_radius = 0;
 
     //for every vertex distorter
     for(int i=0; i<projectile_num; i++)
@@ -1481,7 +1474,7 @@ __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4
 
             valid_num = i;
 
-            valid_radius = adjusted_radius;
+            //valid_radius = adjusted_radius;
 
             // :( somehow combine multiple with offsets? accumulate texture reads?
             break;
@@ -1669,7 +1662,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
     int ooany[2];
-    int valid = 0;
 
     for(int i=0; i<num; i++)
     {
@@ -1767,7 +1759,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
 struct p2
 {
-    float4 s1, s2
+    float4 s1, s2;
 };
 
 __kernel
@@ -1808,7 +1800,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
     full_rotate_n_extra(T, tris_proj, &num, c_pos.s1.xyz, c_rot.s1.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth/2, eheight);
     full_rotate_n_extra(T, &tris_proj[2], &num2, c_pos.s2.xyz, c_rot.s2.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, 3*ewidth/2, eheight);
 
-    ///going to need to offset these, but that breaks everything (???)
+    ///going to need to offset these, but that breaks everything ( ?? )
     //full_rotate_n_extra(T, &tris_proj[2], &num2, c_pos.s2.xyz, c_rot.s2.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
@@ -1981,7 +1973,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
         eheight = LIGHTBUFFERDIM;
     }
 
-    uint tri_id = fragment_id_buffer[id*5 + 0];
+    //uint tri_id = fragment_id_buffer[id*5 + 0];
 
     uint distance = fragment_id_buffer[id*5 + 1];
 
@@ -2019,8 +2011,6 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
     ///calculate area by triangle 3rd area method
 
     int pcount = -1;
-
-    bool valid = false;
 
     float mod = 2;
 
@@ -2116,7 +2106,7 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
     const float ewidth = SCREENWIDTH;
     const float eheight = SCREENHEIGHT;
 
-    uint tri_id = fragment_id_buffer[id*6 + 0];
+    //uint tri_id = fragment_id_buffer[id*6 + 0];
 
     uint distance = fragment_id_buffer[id*6 + 1];
 
@@ -2176,7 +2166,7 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
 
     int pcount = -1;
 
-    bool valid = false;
+    //bool valid = false;
 
     float mod = 2;
 
@@ -2668,7 +2658,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     int num_lights = *lnum;
 
-    float occlusion = 0;
+    //float occlusion = 0;
 
     float3 diffuse_sum = 0;
 
@@ -2855,7 +2845,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
     //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
 
-    float hbao = 0;
+    //float hbao = 0;
 
     float3 colclamp = col + mandatory_light;
 
@@ -3708,19 +3698,16 @@ __kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_cl
 
     float3 local_position= {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
 
-
-    float3 zero = {0,0,0};
-
     ///backrotate pixel coordinate into globalspace
-    float3 global_position = rot(local_position,  zero, (float3)
+    float3 global_position = rot(local_position,  0, (float3)
     {
         -old_rot.x, 0.0f, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, -old_rot.y, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, 0.0f, -old_rot.z
     });
@@ -3755,19 +3742,16 @@ __kernel void reproject_screen(__global uint* depth, float4 old_pos, float4 old_
 
     float3 local_position= {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
 
-
-    float3 zero = {0,0,0};
-
     ///backrotate pixel coordinate into globalspace
-    float3 global_position = rot(local_position,  zero, (float3)
+    float3 global_position = rot(local_position,  0, (float3)
     {
         old_rot.x, 0.0f, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, old_rot.y, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, 0.0f, old_rot.z
     });
@@ -3999,9 +3983,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     float brightness_mult = fast_length(relative_pos)/max_distance;
 
 
-    float3 zero = {0,0,0};
-
-    float3 postrotate = rot(relative_pos, zero, c_rot.xyz);
+    float3 postrotate = rot(relative_pos, 0, c_rot.xyz);
 
     float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
@@ -4072,9 +4054,7 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
     float brightness_mult = fast_length(relative_pos)/max_distance;
 
 
-    float3 zero = {0,0,0};
-
-    float3 postrotate = rot(relative_pos, zero, (c_rot).xyz);
+    float3 postrotate = rot(relative_pos, 0, (c_rot).xyz);
 
     float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
@@ -4399,21 +4379,19 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     ///unprojected pixel coordinate
     float3 local_position = {((x - SCREENWIDTH/2.0f)*zval/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*zval/FOV_CONST), zval};
 
-    float3 zero = {0,0,0};
-
     float3 lc_rot = c_rot.xyz;
     float3 lc_pos = c_pos.xyz;
 
     ///backrotate pixel coordinate into globalspace
-    float3 global_position = rot(local_position,  zero, (float3)
+    float3 global_position = rot(local_position,  0, (float3)
     {
         -lc_rot.x, 0.0f, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, -lc_rot.y, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, 0.0f, -lc_rot.z
     });
@@ -4425,15 +4403,15 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     lc_rot = parent_rot;
 
     ///backrotate pixel coordinate into image space
-    global_position        = rot(global_position,  zero, (float3)
+    global_position        = rot(global_position,  0, (float3)
     {
         -lc_rot.x, 0.0f, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, -lc_rot.y, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, 0.0f, -lc_rot.z
     });
@@ -4443,15 +4421,15 @@ __kernel void draw_hologram(__read_only image2d_t tex, __global float4* posrot, 
     lc_rot = (*d_rot).xyz;
 
     ///backrotate pixel coordinate into image space
-    global_position        = rot(global_position,  zero, (float3)
+    global_position        = rot(global_position,  0, (float3)
     {
         -lc_rot.x, 0.0f, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, -lc_rot.y, 0.0f
     });
-    global_position        = rot(global_position, zero, (float3)
+    global_position        = rot(global_position, 0, (float3)
     {
         0.0f, 0.0f, -lc_rot.z
     });
@@ -5643,14 +5621,18 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     {
         float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
 
-        /*voxel_accumulate += val;
+        //voxel_accumulate += val;
 
-        if(voxel_accumulate >= 0.01f)
+
+
+        /*if(voxel_accumulate >= 0.01f)
         {
             found = true;
 
             break;
         }*/
+
+
 
         //voxel_accumulate += pow(val, 1) / voxel_mod;
 
@@ -5673,7 +5655,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         ///take one sample along step to find dx/dy/dz/whatever, then advance back to find the 0.01 point
         if(val >= 0.01f)
         {
-            voxel_accumulate = 1;
+            //voxel_accumulate = 1;
             found = true;
 
             break;
@@ -5730,6 +5712,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
 
+
+
     //float3 normal = get_normal(voxel, final_pos);
 
     ///do for all? check for quitting outside of bounds and do for that as well?
@@ -5752,19 +5736,57 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         else
             snum = step_const*(skip_amount + 1);
 
-        for(int i=0; i<snum; i++)
+        for(int i=0; i<snum+1; i++)
         {
              float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
 
              if(val >= 0.01f)
+             {
+                 voxel_accumulate = 1;
+                 break;
+             }
+
+             current_pos += step;
+        }
+
+        /*int step_const = 8;
+
+        step /= step_const;
+
+        step = -step;
+
+
+        int snum;
+
+        if(!skipped)
+            snum = step_const;
+        else
+            snum = step_const*(skip_amount + 1);
+
+        for(int i=0; i<snum; i++)
+        {
+             //float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
+
+             voxel_accumulate -= val;
+
+             if(voxel_accumulate < 1.f)
              {
                 voxel_accumulate = 1;
                 break;
              }
 
              current_pos += step;
-        }
+        }*/
     }
+
+    //voxel_accumulate /= num;
+
+    //voxel_accumulate *= 100.0f;
+    //voxel_accumulate *= 10.0f;
+
+    voxel_accumulate = clamp(voxel_accumulate, 0.f, 1.f);
+
+    //voxel_accumulate *= 100.0f;
 
     final_pos = current_pos;
 
@@ -6125,6 +6147,80 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
     float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
 
     write_imagef(d_out, (int4){x, y, z, 0}, rval);
+}
+
+///make xvel, yvel, zvel 1 3d texture? or keep as independent properties incase i want to generalise the advection of other properties like colour?
+__kernel void goo_advect(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt, float force_add)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    ///figuring out how to do this correctly is important
+    if(x >= width || y >= height || z >= depth) // || x < 1 || y < 1 || z < 1)
+    {
+        return;
+    }
+
+
+    float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
+
+    write_imagef(d_out, (int4){x, y, z, 0}, rval + force_add);
+}
+
+__kernel void goo_diffuse(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
+    {
+        return;
+    }
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
+    float4 pos = (float4){x, y, z, 0};
+
+    //pos += 0.5f;
+
+    float val = 0;
+
+    //if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
+
+    val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,1,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,-1,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
+
+    int div = 6;
+
+    /*if(x == 0 || x == width-1)
+        div--;
+
+    if(y == 0 || y == height-1)
+        div--;
+
+    if(z == 0 || z == depth-1)
+        div--;*/
+
+    //val = read_imagef(x_in, sam, pos).x;
+
+    val /= div;
+
+        //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
+
+    //x_out[IX(x,y,z)] = max(val, 0.0f);
+
+    write_imagef(x_out, convert_int4(pos), max(val, 0.0f));
 }
 
 //#define IX(x, y, z) ((z)*width*height + (y)*width + (x))

@@ -57,13 +57,7 @@ int main(int argc, char *argv[])
 
     window.add_light(&l);
 
-
     window.construct_shadowmaps();
-
-    int times[10] = {0};
-    int time_count = 0;
-
-    int load_first = 0;
 
     while(window.window.isOpen())
     {
