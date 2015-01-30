@@ -6,6 +6,7 @@
 //#include "Include/OVR_Math.h"
 #include "../../Rift/Src/OVR_CAPI.h"
 #include "../../vec.hpp"
+#include <random>
 
 /*struct zebra_info
 {
@@ -190,91 +191,44 @@ struct zebra
         constexpr float zig_probability = 0.005;
         constexpr float ideal_speed = 2.f;
 
+        static float standard_deviation = 1.0f;
+
         static int zilch = 0;
+
+        static std::default_random_engine generator;
+        static std::normal_distribution<double> distribution(0.0,standard_deviation);
 
 
         for(int i=0; i<objects.size(); i++)
         {
-            ///not great, use real random
-            /*float val = (float)rand() / RAND_MAX;
-
-            if(val < zig_probability)
-            {
-                zebra_objects[i].side = !zebra_objects[i].side;
-            }
-
-            objects_container* zeb = objects[i];
-
-            cl_float4 pos = zeb->pos;
-            cl_float rot = zeb->rot.y;//?
-
-            //float speed = 50.0f;
-
-            //float new_angle = (fmod(rand(), 3.14159) + rot*70) / 71;
-
-            if(angles[zeb] == 0)
-            {
-                angles[zeb] = fmod(rand(), 3.14159);
-            }
-
-            if(zebra_objects[i].vx > 8)
-                zebra_objects[i].vx = 8;
-
-            if(zebra_objects[i].vz > 8)
-                zebra_objects[i].vz = 8;
-
-            if(zebra_objects[i].vx < -8)
-                zebra_objects[i].vx = -8;
-
-            if(zebra_objects[i].vz < -8)
-                zebra_objects[i].vz = -8;
-
-            zebra_info zinfo = zebra_objects[i];
-
-            float new_angle = atan2(zinfo.vz, zinfo.vx);//angles[zeb];
-
-            float fside = zinfo.side - 0.5;
-            fside *= 2; /// -1 -> 1
-
-            ///move towards side
-            new_angle += fside / 100.0f;
-
-            float speed = sqrtf(zinfo.vz*zinfo.vz + zinfo.vx*zinfo.vx);
-
-            if(speed < ideal_speed)
-                speed += ideal_speed / 20.0f;
-
-            float nvx = speed*cosf(new_angle);
-            float nvz = speed*sinf(new_angle);
-
-
-            zebra_objects[i].vx = nvx;
-            zebra_objects[i].vz = nvz;
-
-
-            //float new_angle = rot;
-
-            float xdir = zinfo.vx, zdir = zinfo.vz;
-
-            //xdir = speed*cos(new_angle);
-            //zdir = speed*sin(new_angle);
-
-            //zdir = -speed;
-
-            pos.x += xdir;
-            pos.z += zdir;
-
-            zeb->set_pos(pos);
-            zeb->set_rot({zeb->rot.x, new_angle, zeb->rot.z});
-
-            zeb->g_flush_objects();*/
-
-
             if(!zilch)
             {
                 zebra_objects[i].vz = -2 * ((i % 2) - 0.5f) * 2;// * ((i % 2) - 0.5f) * 2;
                 zebra_objects[i].vx = 5 * ((i % 2) - 0.5f) * 2;
             }
+
+            cl_float2 vel = (cl_float2){zebra_objects[i].vx, zebra_objects[i].vz};
+
+            float angle = atan2(vel.y, vel.x);
+
+            float rad = sqrtf(vel.x*vel.x + vel.y*vel.y);
+
+            float rval = distribution(generator);
+
+            rval /= 16; ///
+
+            rval = clamp(rval, -1, 1);
+
+            rval *= M_PI/2.0f;
+
+            angle += rval;
+
+            vel.x = rad*cos(angle);
+            vel.y = rad*sin(angle);
+
+            zebra_objects[i].vx = vel.x;
+            zebra_objects[i].vz = vel.y;
+
 
             objects_container* zeb = objects[i];
 

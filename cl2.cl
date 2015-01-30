@@ -6150,6 +6150,9 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
     if(x >= width || y >= height || z >= depth)
         return;
 
+    if(x == width-1 || y == height-1 || z == depth-1 || x == 0 || y == 0 || z == 0)
+        return;
+
     //if(any((int3)(x, y, z) < 1) || any((int3)(x, y, z) >= (int3)(width, height, depth)))
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
@@ -6162,11 +6165,12 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
 
 
     int3 pos = (int3){x, y, z};
+    float3 fpos = (float3){x, y, z};
 
     float3 vel;
 
-    if(bound != -1)
-        pos = clamp(pos, 1, (int3)(width, height, depth)-2);
+    //if(bound != -1)
+    //    pos = clamp(pos, 1, (int3)(width, height, depth)-2);
 
     vel.x = read_imagef(xvel, sam, pos.xyzz).x;
     vel.y = read_imagef(yvel, sam, pos.xyzz).x;
@@ -6179,11 +6183,16 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
 
     vel = clamp(vel, -1.f, 1.f);
 
-    float3 read_pos = convert_float3(pos) + vel.xyz;
+    float3 read_pos = fpos + vel;
 
-    read_pos = clamp(read_pos, (float3)0.5f, (float3)(width, height, depth)-1.5f);
+    //read_pos = clamp(read_pos, (float3)0.5f, (float3)(width, height, depth)-1.5f);
 
     float val = read_imagef(d_in, sam_lin, read_pos.xyzz + 0.5f).x + force_add;
+
+    //if(bound == -1 && (any(fpos == 1) || any(fpos == (float3){width, height, depth}-2)))//(any(fpos - vel <= 0) || any(fpos - vel >= (float3){width, height, depth}-1)))
+    {
+        //val += read_imagef(d_in, sam_lin, fpos.xyzz + 0.5f).x;
+    }
 
     ///is velocity
 
@@ -6312,8 +6321,8 @@ __kernel void update_boundary(__read_only image3d_t in, __write_only image3d_t o
     if(x >= width || y >= height || z >= depth)
         return;
 
-    if(bound == -1)
-        return;
+    //if(bound == -1)
+    //    return;
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
@@ -6337,14 +6346,21 @@ __kernel void update_boundary(__read_only image3d_t in, __write_only image3d_t o
     if(z == depth-1 && bound == 2)
         desc.z = -1;
 
+    float scale = -1;
+
+    if(bound == -1)
+        scale = 1;
+    //else
+    //    scale = -1;
+
     float val;
 
-    val = -read_imagef(in, sam, (int4){x, y, z, 0} + desc.xyzz).x;
-
+    val = scale*read_imagef(in, sam, (int4){x, y, z, 0} + desc.xyzz + 0.5f).x;
 
     write_imagef(out, (int4){x, y, z, 0}, val);
 }
 
+///flameworks just doesn't do this???
 __kernel void goo_diffuse(int width, int height, int depth, int bound, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt)
 {
     int x = get_global_id(0);
@@ -6352,67 +6368,48 @@ __kernel void goo_diffuse(int width, int height, int depth, int bound, __write_o
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(bound == -1 && (x >= width || y >= height || z >= depth || x < 0 || y < 0 || z < 0))
+
+    //if((x >= width || y >= height || z >= depth))// || x <= 0 || y <= 0 || z <= 0))
+    if(x >= width-1 || y >= height-1 || z >= depth-1 || x <= 0 || y <= 0 || z <= 0)
+    //if((bound == -1) && (x >= width-1 || y >= height-1 || z >= depth-1 || x <= 0 || y <= 0 || z <= 0))
     {
         return;
     }
-    if(bound != -1 && (x >= width-1 || y >= height-1 || z >= depth-1 || x < 1 || y < 1 || z < 1))
+    //if((bound != -1) && (x >= width-2 || y >= height-2 || z >= depth-2 || x <= 1 || y <= 1 || z <= 1))
     {
-        return;
+        //return;
     }
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
 
+    const float alpha = 0.1;
+
+    const float beta = 1.0f / (6 + alpha);
+
 
     ///handle boundary condition explicitly?
 
     float4 pos = (float4){x, y, z, 0};
 
-    //pos += 0.5f;
-
     float val = 0;
 
-    //if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
 
-    /*float vals[6];
-    int n = 0;
+    float diffuse_constant = 0;
 
-    for(int i=-1; i<2; i++)
-    {
-        for(int j=-1; j<2; j++)
-        {
-            for(int k=-1; k<2; k++)
-            {
-                if(abs(i)^abs(j)^abs(k) && !(abs(i) == 1 && abs(j) == 1 && abs(k) == 1))
-                {
-                    float3 loc = pos.xyz + (float3){i,j,k};
+    val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0} + 0.5f).x
+        + read_imagef(x_in, sam, pos + (float4){1,0,0,0} + 0.5f).x
+        + read_imagef(x_in, sam, pos + (float4){0,1,0,0} + 0.5f).x
+        + read_imagef(x_in, sam, pos + (float4){0,-1,0,0} + 0.5f).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,1,0} + 0.5f).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,-1,0} + 0.5f).x;
 
-                    if(any(loc < 1) || any(loc >= (float3){width, height, depth}-1))
-                    {
-                        continue;
-                    }
+    val += read_imagef(x_in, sam, pos + 0.5f).x * alpha;
 
-                    vals[n++] = read_imagef(x_in, sam, loc.xyzz + 0.5f).x;
-                }
-            }
-        }
-    }*/
+    //val /= diffuse_constant + 6;
 
-    float diffuse_constant = 5;
-
-    val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,1,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,-1,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
-
-    val += read_imagef(x_in, sam, pos).x * diffuse_constant;
-
-    val /= diffuse_constant + 6;
-
+    val *= beta;
 
     //val = read_imagef(x_in, sam, pos).x;
 

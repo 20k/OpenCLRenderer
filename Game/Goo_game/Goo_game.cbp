@@ -2,15 +2,15 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="Mech_game" />
+		<Option title="Goo_game" />
 		<Option pch_mode="2" />
-		<Option compiler="gcc" />
+		<Option compiler="mingw64" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/Mech_game" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
-				<Option compiler="gcc" />
+				<Option compiler="mingw64" />
 				<Compiler>
 					<Add option="-pg" />
 					<Add option="-g" />
@@ -23,7 +23,7 @@
 				<Option output="bin/Release/Mech_game" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
-				<Option compiler="gcc" />
+				<Option compiler="mingw64" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -40,26 +40,34 @@
 			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 		</Compiler>
 		<Linker>
+			<Add option="-lport" />
 			<Add option="-lmingw32" />
-			<Add option="-lsfml-graphics-s" />
-			<Add option="-lsfml-audio-s" />
-			<Add option="-lsfml-network-s" />
-			<Add option="-lsfml-window-s" />
-			<Add option="-lsfml-system-s" />
+			<Add option="-lsfml-graphics" />
+			<Add option="-lsfml-audio" />
+			<Add option="-lsfml-network" />
+			<Add option="-lsfml-window" />
+			<Add option="-lsfml-system" />
 			<Add option="-luser32" />
-			<Add option="-lgdi32" />
-			<Add option="-lwinmm" />
-			<Add option="-ldxguid" />
 			<Add option="-lopengl32" />
 			<Add option="-lopencl" />
-			<Add option="-lglew32.dll" />
-			<Add option="-lssp" />
+			<Add option="-lglew64.dll" />
+			<Add option="-ldbghelp" />
+			<Add option="-lwinmm" />
+			<Add option="-lgdi32" />
+			<Add option="-ldxguid" />
+			<Add option="-lsetupapi" />
+			<Add option="-lws2_32" />
+			<Add option="-lole32" />
+			<Add option="-ladvapi32" />
+			<Add option="-lversion" />
 		</Linker>
 		<Unit filename="../../cl2.cl" />
 		<Unit filename="../../clstate.cpp" />
 		<Unit filename="../../clstate.h" />
 		<Unit filename="../../engine.cpp" />
 		<Unit filename="../../engine.hpp" />
+		<Unit filename="../../goo.cpp" />
+		<Unit filename="../../goo.hpp" />
 		<Unit filename="../../hologram.cpp" />
 		<Unit filename="../../hologram.hpp" />
 		<Unit filename="../../interact_manager.cpp" />
@@ -89,6 +97,8 @@
 		<Unit filename="../../point_cloud.hpp" />
 		<Unit filename="../../proj.hpp" />
 		<Unit filename="../../projectile_buffer_gen.cpp" />
+		<Unit filename="../../smoke.cpp" />
+		<Unit filename="../../smoke.hpp" />
 		<Unit filename="../../terrain_gen/terrain_gen.cpp" />
 		<Unit filename="../../terrain_gen/terrain_gen.hpp" />
 		<Unit filename="../../text_handler.cpp" />

@@ -1,6 +1,6 @@
 #include "goo.hpp"
 
-void update_boundary(compute::image3d& buf, int bound, cl_uint global_ws[3], cl_uint local_ws[3])
+void update_boundary(compute::image3d& buf, cl_int bound, cl_uint global_ws[3], cl_uint local_ws[3])
 {
     arg_list bound_args;
     bound_args.push_back(&buf);
@@ -49,6 +49,8 @@ void goo::tick(float dt)
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
+    update_boundary(g_voxel[next], -1, global_ws, local_ws);
+
     arg_list dens_advect;
     dens_advect.push_back(&width);
     dens_advect.push_back(&height);
@@ -63,6 +65,8 @@ void goo::tick(float dt)
     dens_advect.push_back(&zero); ///float, but i believe ieee guarantees that 0 and 0 in float have the same representation
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
+
+    update_boundary(g_voxel[n], -1, global_ws, local_ws);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_x[next];
