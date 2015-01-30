@@ -5616,7 +5616,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     int skip_amount = 8;
 
-    const float threshold = 0.001f;
+    const float threshold = 1.f;
 
 
     for(int i=0; i<num; i++)
@@ -5855,14 +5855,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
 ///no boundaries for the moment, gas just escapes
-/*__kernel void set_bnd(int width, int height, int depth, int b, __global float* val)
-{
-    for(int i=1; i<width; i++)
-    {
-        val[IX(0, 0, i)]       = b == 1 ? -x[IX(1, i)] : x[IX(1, i)];
-        val[IX(width-1, i)] = b == 1 ? -x[IX(width-2, i)] : x[IX(width-2, i)];
-    }
-}*/
+
 
 ///must be iterated ridiculously in current form
 /*__kernel void linear_solver(int width, int height, int depth, int b, __global float* x_in, __global float* x_out, __global float* x0, float a, float c)
@@ -5919,8 +5912,6 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
-
-
 
     float4 pos = (float4){x, y, z, 0};
 
@@ -6140,10 +6131,97 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
     write_imagef(d_out, (int4){x, y, z, 0}, rval);
 }
 
+/*__kernel void set_bnd(int width, int height, int depth, int b, __global float* val)
+{
+    for(int i=1; i<width; i++)
+    {
+        val[IX(0, 0, i)]       = b == 1 ? -x[IX(1, i)] : x[IX(1, i)];
+        val[IX(width-1, i)] = b == 1 ? -x[IX(width-2, i)] : x[IX(width-2, i)];
+    }
+}*/
+
 ///make xvel, yvel, zvel 1 3d texture? or keep as independent properties incase i want to generalise the advection of other properties like colour?
 __kernel void goo_advect(int width, int height, int depth, int bound, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt, float force_add)
 {
     int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= width || y >= height || z >= depth)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+    sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_LINEAR;
+
+
+    int3 pos = (int3){x, y, z};
+
+    float3 vel;
+
+    vel.x = read_imagef(xvel, sam, pos.xyzz).x;
+    vel.y = read_imagef(yvel, sam, pos.xyzz).x;
+    vel.z = read_imagef(zvel, sam, pos.xyzz).x;
+
+    vel *= dt;
+
+    ///backwards in time
+    vel = -vel;
+
+    vel = clamp(vel, -1.f, 1.f);
+
+    float val = read_imagef(d_in, sam_lin, convert_float4(pos.xyzz) + vel.xyzz + 0.5f).x + force_add;
+
+    ///is velocity
+
+    //int3 offset = 0;
+
+    bool near_oob = false;
+
+    int3 desc = 0;
+
+    if(x == 0 && bound == 0)
+        desc.x = 1;
+    if(x == width-1 && bound == 0)
+        desc.x = -1;
+
+    if(y == 0 && bound == 1)
+        desc.y = 1;
+    if(y == height-1 && bound == 1)
+        desc.y = -1;
+
+    if(z == 0 && bound == 2)
+        desc.z = 1;
+    if(z == depth-1 && bound == 2)
+        desc.z = -1;
+
+    ///y boundary condition
+    if(bound == 0 || bound == 1 || bound == 2)
+    {
+        if(any(desc == 1) || any(desc == -1))
+        {
+            near_oob = true;
+        }
+    }
+
+    if(near_oob)
+    {
+        val = -read_imagef(d_in, sam, (int4){x, y, z, 0} + desc.xyzz + 0.5f).x;
+    }
+
+    //if(bound != -1)
+    //    val = clamp(val, -1.f, 1.f);
+
+    //val = read_imagef(d_in, sam, pos.xyzz).x;
+
+    write_imagef(d_out, pos.xyzz, val);
+
+
+    /*int x = get_global_id(0);
     int y = get_global_id(1);
     int z = get_global_id(2);
 
@@ -6161,95 +6239,79 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
 
     float force = force_add;
 
-    float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
+    float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt) + force;
 
     int3 offset = 0;
 
+    bool near_oob = false;
+
+    int3 desc = 0;
+
+    if(x == 0 && bound == 0)
+        desc.x = 1;
+    if(x == width-1 && bound == 0)
+        desc.x = -1;
+
+    if(y == 0 && bound == 1)
+        desc.y = 1;
+    if(y == height-1 && bound == 1)
+        desc.y = -1;
+
+    if(z == 0 && bound == 2)
+        desc.z = 1;
+    if(z == depth-1 && bound == 2)
+        desc.z = -1;
+
     ///y boundary condition
-    if(bound == 0)
+    if(bound == 0 || bound == 1 || bound == 2)
     {
-        bool near_oob = false;
-
-        if(x == 0)
+        if(any(desc == 1) || any(desc == -1))
         {
-            offset.x = 1;
             near_oob = true;
         }
 
-        if(x == width-1)
-        {
-            offset.x = -1;
-            near_oob = true;
-        }
-
-        if(near_oob)
-        {
-            rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz).x;
-
-            force = 0;
-        }
-    }
-
-    if(bound == 1)
-    {
-        bool near_oob = false;
-
-        if(y == 0)
-        {
-            offset.y = 1;
-            near_oob = true;
-        }
-
-        if(y == height-1)
-        {
-            offset.y = -1;
-            near_oob = true;
-        }
-
-        if(near_oob)
-        {
-            rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz).x;
-
-            force = 0;
-        }
-    }
-
-    if(bound == 2)
-    {
-        bool near_oob = false;
-
-        if(z == 0)
-        {
-            offset.z = 1;
-            near_oob = true;
-        }
-
-        if(z == depth-1)
-        {
-            offset.z = -1;
-            near_oob = true;
-        }
-
-        if(near_oob)
-        {
-            rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz).x;
-
-            force = 0;
-        }
+        offset = desc;
     }
 
 
-    write_imagef(d_out, (int4){x, y, z, 0}, rval + force);
+    if(near_oob)
+    {
+        rval = -read_imagef(d_in, sam, (int4){x, y, z, 0} + offset.xyzz + 0.5f).x;
+
+        force = 0;
+    }
+
+    write_imagef(d_out, (int4){x, y, z, 0}, rval);*/
 }
 
-__kernel void goo_diffuse(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt)
+__kernel void update_boundary(__read_only image3d_t in, __write_only image3d_t out, int bound)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///laziest human
+    if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+}
+
+__kernel void goo_diffuse(int width, int height, int depth, int bound, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(x >= width || y >= height || z >= depth)// || x < 1 || y < 1 || z < 1)
+    if(bound == -1 && (x >= width || y >= height || z >= depth || x < 0 || y < 0 || z < 0))
+    {
+        return;
+    }
+    if(bound != -1 && (x >= width-1 || y >= height-1 || z >= depth-1 || x < 1 || y < 1 || z < 1))
     {
         return;
     }
@@ -6259,6 +6321,7 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
                     CLK_FILTER_NEAREST;
 
 
+    ///handle boundary condition explicitly?
 
     float4 pos = (float4){x, y, z, 0};
 
@@ -6268,6 +6331,32 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
 
     //if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
 
+    /*float vals[6];
+    int n = 0;
+
+    for(int i=-1; i<2; i++)
+    {
+        for(int j=-1; j<2; j++)
+        {
+            for(int k=-1; k<2; k++)
+            {
+                if(abs(i)^abs(j)^abs(k) && !(abs(i) == 1 && abs(j) == 1 && abs(k) == 1))
+                {
+                    float3 loc = pos.xyz + (float3){i,j,k};
+
+                    if(any(loc < 1) || any(loc >= (float3){width, height, depth}-1))
+                    {
+                        continue;
+                    }
+
+                    vals[n++] = read_imagef(x_in, sam, loc.xyzz + 0.5f).x;
+                }
+            }
+        }
+    }*/
+
+    float diffuse_constant = 5;
+
     val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
         + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
         + read_imagef(x_in, sam, pos + (float4){0,1,0,0}).x
@@ -6275,7 +6364,19 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
         + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
         + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
 
-    int div = 6;
+    val += read_imagef(x_in, sam, pos).x * diffuse_constant;
+
+    val /= diffuse_constant + 6;
+
+    //int div = 6;
+
+    /*for(int i=0; i<n; i++)
+    {
+        val += vals[i];
+    }
+
+    if(n != 0)
+        val /= n;*/
 
     /*if(x == 0 || x == width-1)
         div--;
@@ -6288,7 +6389,7 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
 
     //val = read_imagef(x_in, sam, pos).x;
 
-    val /= div;
+    //val /= div;
 
     //val = read_imagef(x_in, sam, pos).x;
 
@@ -6296,7 +6397,28 @@ __kernel void goo_diffuse(int width, int height, int depth, int b, __write_only 
 
     //x_out[IX(x,y,z)] = max(val, 0.0f);
 
+    //val /= 6;
+
     write_imagef(x_out, convert_int4(pos), max(val, 0.0f));
+}
+
+__kernel
+void fluid_amount(__read_only image3d_t quantity, __global uint* amount)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+
+    float val;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+            CLK_ADDRESS_CLAMP                   |
+            CLK_FILTER_NEAREST;
+
+    val = read_imagef(quantity, sam, (int4){x, y, z, 0}).x;
+
+    atomic_add(amount, (int)val*10);
 }
 
 //#define IX(x, y, z) ((z)*width*height + (y)*width + (x))

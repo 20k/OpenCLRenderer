@@ -65,6 +65,8 @@ namespace cl
     extern kernel warp_oculus;
     extern kernel goo_diffuse;
     extern kernel goo_advect;
+    extern kernel fluid_amount;
+    extern kernel update_boundary;
 }
 
 

@@ -14,10 +14,11 @@ void goo::tick(float dt)
     cl_uint global_ws[3] = {width, height, depth};
     cl_uint local_ws[3] = {64, 2, 2};
 
+    cl_int zero = 0;
 
-    int zero = 0;
+    compute::buffer amount = compute::buffer(cl::context, sizeof(cl_int), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-    cl_float gravity = 0.001f;//0.00000000001;
+    cl_float gravity = 0.1f;//0.00000000001;
 
     float diffuse_const = 1;
     float dt_const = 0.01f;
@@ -30,7 +31,7 @@ void goo::tick(float dt)
     dens_diffuse.push_back(&width);
     dens_diffuse.push_back(&height);
     dens_diffuse.push_back(&depth);
-    dens_diffuse.push_back(&zero); ///unused
+    dens_diffuse.push_back(&bound); ///unused
     dens_diffuse.push_back(&g_voxel[next]); ///out
     dens_diffuse.push_back(&g_voxel[n]); ///in
     dens_diffuse.push_back(&diffuse_const); ///temp
@@ -56,18 +57,21 @@ void goo::tick(float dt)
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_x[next];
     dens_diffuse.args[5] = &g_velocity_x[n];
+    bound = 0;
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_y[next];
     dens_diffuse.args[5] = &g_velocity_y[n];
+    bound = 1;
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_z[next];
     dens_diffuse.args[5] = &g_velocity_z[n];
+    bound = 2;
 
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
@@ -94,4 +98,15 @@ void goo::tick(float dt)
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
 
+    arg_list fluid_count;
+    fluid_count.push_back(&g_voxel[n]);
+    fluid_count.push_back(&amount);
+
+    run_kernel_with_list(cl::fluid_amount, global_ws, local_ws, 3, fluid_count);
+
+    cl_int readback;
+
+    clEnqueueReadBuffer(cl::cqueue, amount.get(), CL_TRUE, 0, sizeof(cl_int), &readback, 0, NULL, NULL);
+
+    printf("rback %d\n", readback);
 }

@@ -216,6 +216,7 @@ static void oclstuff(std::string file, int w, int h, int lres)
         exit(1232345);
     }
 
+    ///make this more automatic
     cl::kernel1 = load_kernel(program, "part1");
     cl::kernel2 = load_kernel(program, "part2");
     cl::kernel3 = load_kernel(program, "part3");
@@ -255,6 +256,8 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::warp_oculus = load_kernel(program, "warp_oculus");
     cl::goo_diffuse = load_kernel(program, "goo_diffuse");
     cl::goo_advect = load_kernel(program, "goo_advect");
+    cl::fluid_amount = load_kernel(program, "fluid_amount");
+    cl::update_boundary = load_kernel(program, "update_boundary");
 }
 
 

@@ -46,4 +46,6 @@ kernel cl::post_upscale;
 kernel cl::warp_oculus;
 kernel cl::goo_diffuse;
 kernel cl::goo_advect;
+kernel cl::fluid_amount;
+kernel cl::update_boundary;
 
