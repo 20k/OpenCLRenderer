@@ -1,5 +1,15 @@
 #include "goo.hpp"
 
+void update_boundary(compute::image3d& buf, int bound, cl_uint global_ws[3], cl_uint local_ws[3])
+{
+    arg_list bound_args;
+    bound_args.push_back(&buf);
+    bound_args.push_back(&buf); ///undefined behaviour
+    bound_args.push_back(&bound);
+
+    run_kernel_with_list(cl::update_boundary, global_ws, local_ws, 3, bound_args);
+}
+
 void goo::tick(float dt)
 {
     ///__kernel void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in,
@@ -73,8 +83,11 @@ void goo::tick(float dt)
     dens_diffuse.args[5] = &g_velocity_z[n];
     bound = 2;
 
-
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
+
+    update_boundary(g_velocity_x[next], 0, global_ws, local_ws);
+    update_boundary(g_velocity_y[next], 1, global_ws, local_ws);
+    update_boundary(g_velocity_z[next], 2, global_ws, local_ws);
 
     ///nexts now valid
     dens_advect.args[4] = &g_velocity_x[n];
@@ -97,6 +110,10 @@ void goo::tick(float dt)
     bound = 2;
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
+
+    update_boundary(g_velocity_x[n], 0, global_ws, local_ws);
+    update_boundary(g_velocity_y[n], 1, global_ws, local_ws);
+    update_boundary(g_velocity_z[n], 2, global_ws, local_ws);
 
     arg_list fluid_count;
     fluid_count.push_back(&g_voxel[n]);
