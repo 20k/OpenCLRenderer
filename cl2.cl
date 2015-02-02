@@ -6570,6 +6570,7 @@ typedef struct t_speed
 
 #define NSPEEDS 9
 
+///borrowed from coursework
 __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                              __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
                              __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8 )
@@ -6586,16 +6587,21 @@ __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* 
     int x = get_global_id(0);
     int y = get_global_id(1);
 
-    /*float cdist = 0;
+    float cdist = 0;
 
     float2 centre = (float2){SCREENWIDTH/2, SCREENHEIGHT/2};
 
     float2 dist = (float2){x, y} - centre;
     dist /= centre;
 
-    cdist = length(dist)/10000;*/
+    cdist = length(dist);
 
-    out_cells_0[IDX(x, y)] = w0*1;
+    out_cells_0[IDX(x, y)] = w0*1 + w0*cdist/1;
+
+    if(x > 100 && x < 800)
+    {
+        out_cells_0[IDX(x, y)] = 0.9*w0;
+    }
 
     out_cells_1[IDX(x, y)] = w1*1;
     out_cells_2[IDX(x, y)] = w1/2;
@@ -6613,11 +6619,9 @@ __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* 
 ///make obstacles compile time constant
 ///now, do entire thing with no cpu overhead?
 ///hybrid texture + buffer for dual bandwidth?
-///nvidia deals with atomics really badly
-///profile
 ///try out textures in new memory scheme
-///remember to require 128x
 ///make av_vels 16bit ints
+///partly borrowed from uni HPC coursework
 __kernel void fluid_timestep(__global uchar* obstacles,
                        __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                        __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
@@ -6773,7 +6777,8 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         {
             float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
 
-            this_cell.speeds[kk] = val;
+            ///what to do about negative fluid flows? Push to other side?
+            this_cell.speeds[kk] = max(val, 0.0001f);
         }
 
         //printf("%f\n", u_sq);
