@@ -258,6 +258,8 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::goo_advect = load_kernel(program, "goo_advect");
     cl::fluid_amount = load_kernel(program, "fluid_amount");
     cl::update_boundary = load_kernel(program, "update_boundary");
+    cl::fluid_initialise_mem = load_kernel(program, "fluid_initialise_mem");
+    cl::fluid_timestep = load_kernel(program, "fluid_timestep");
 }
 
 

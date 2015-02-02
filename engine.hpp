@@ -142,6 +142,7 @@ struct engine
     void draw_voxel_octree(g_voxel_info& info);
     void draw_raytrace();
     void draw_smoke(smoke& s);
+    void render_texture(compute::opengl_renderbuffer&, GLuint id);
     void render_buffers();
     void display();
 
@@ -153,6 +154,9 @@ struct engine
     int get_mouse_y();
     int get_mouse_delta_x();
     int get_mouse_delta_y();
+
+    int get_width();
+    int get_height();
 
     void set_camera_pos(cl_float4);
     void set_camera_rot(cl_float4);

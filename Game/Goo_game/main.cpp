@@ -66,11 +66,15 @@ int main(int argc, char *argv[])
     //c2.set_active(true);
 
     engine window;
-    window.load(1280,768,1000, "turtles", "../../cl2.cl");
+    window.load(1200,800,1000, "turtles", "../../cl2.cl");
 
-    goo gloop;
+    //goo gloop;
 
-    gloop.init(100, 100, 100, 1, 100);
+    //gloop.init(100, 100, 100, 1, 100);
+
+    lattice<9, cl_float> lat;
+
+    lat.init(window.get_width(), window.get_height());
 
     window.set_camera_pos((cl_float4){0,100,-300,0});
     //window.set_camera_pos((cl_float4){0,0,0,0});
@@ -117,6 +121,8 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
+    int fc = 0;
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -127,18 +133,26 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        gloop.tick(0.33f);
+        //gloop.tick(0.33f);
 
         window.input();
 
         window.draw_bulk_objs_n();
 
-        window.draw_smoke(gloop);
+        //window.draw_smoke(gloop);
 
-        window.render_buffers();
+        lat.tick();
+
+
+
+        //window.render_buffers();
+
+        window.render_texture(lat.screen, lat.screen_id);
 
         window.display();
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+
+        printf("framecount %i\n", fc++);
     }
 }

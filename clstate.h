@@ -67,6 +67,8 @@ namespace cl
     extern kernel goo_advect;
     extern kernel fluid_amount;
     extern kernel update_boundary;
+    extern kernel fluid_initialise_mem;
+    extern kernel fluid_timestep;
 }
 
 

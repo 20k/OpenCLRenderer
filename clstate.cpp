@@ -48,4 +48,6 @@ kernel cl::goo_diffuse;
 kernel cl::goo_advect;
 kernel cl::fluid_amount;
 kernel cl::update_boundary;
+kernel cl::fluid_initialise_mem;
+kernel cl::fluid_timestep;
 

@@ -6140,6 +6140,45 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
     }
 }*/
 
+
+/*float do_trilinear(__global float* buf, float vx, float vy, float vz, int width, int height, int depth)
+{
+    float v1, v2, v3, v4, v5, v6, v7, v8;
+
+    int x = vx, y = vy, z = vz;
+
+    v1 = buf[IX(x, y, z)];
+    v2 = buf[IX(x+1, y, z)];
+    v3 = buf[IX(x, y+1, z)];
+
+    v4 = buf[IX(x+1, y+1, z)];
+    v5 = buf[IX(x, y, z+1)];
+    v6 = buf[IX(x+1, y, z+1)];
+    v7 = buf[IX(x, y+1, z+1)];
+    v8 = buf[IX(x+1, y+1, z+1)];
+
+    float x1, x2, x3, x4;
+
+    float xfrac = vx - floor(vx);
+
+    x1 = v1 * (1.0f - xfrac) + v2 * xfrac;
+    x2 = v3 * (1.0f - xfrac) + v4 * xfrac;
+    x3 = v5 * (1.0f - xfrac) + v6 * xfrac;
+    x4 = v7 * (1.0f - xfrac) + v8 * xfrac;
+
+    float yfrac = vy - floor(vy);
+
+    float y1, y2;
+
+    y1 = x1 * (1.0f - yfrac) + x2 * yfrac;
+    y2 = x3 * (1.0f - yfrac) + x4 * yfrac;
+
+    float zfrac = vz - floor(vz);
+
+    return y1 * (1.0f - zfrac) + y2 * zfrac;
+}*/
+
+
 ///make xvel, yvel, zvel 1 3d texture? or keep as independent properties incase i want to generalise the advection of other properties like colour?
 __kernel void goo_advect(int width, int height, int depth, int bound, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt, float force_add)
 {
@@ -6150,8 +6189,8 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
     if(x >= width || y >= height || z >= depth)
         return;
 
-    if(x == width-1 || y == height-1 || z == depth-1 || x == 0 || y == 0 || z == 0)
-        return;
+    //if(x == width-1 || y == height-1 || z == depth-1 || x == 0 || y == 0 || z == 0)
+    //    return;
 
     //if(any((int3)(x, y, z) < 1) || any((int3)(x, y, z) >= (int3)(width, height, depth)))
 
@@ -6187,48 +6226,108 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
 
     //read_pos = clamp(read_pos, (float3)0.5f, (float3)(width, height, depth)-1.5f);
 
-    float val = read_imagef(d_in, sam_lin, read_pos.xyzz + 0.5f).x + force_add;
+    float val = read_imagef(d_in, sam_lin, read_pos.xyzz + 0.5f).x + 0;
 
     //if(bound == -1 && (any(fpos == 1) || any(fpos == (float3){width, height, depth}-2)))//(any(fpos - vel <= 0) || any(fpos - vel >= (float3){width, height, depth}-1)))
     {
         //val += read_imagef(d_in, sam_lin, fpos.xyzz + 0.5f).x;
     }
 
-    ///is velocity
+    float3 desc = 0;
 
-    //int3 offset = 0;
-
-    /*bool near_oob = false;
-
-    int3 desc = 0;
-
-    if(x == 0 && bound == 0)
-        desc.x = 1;
-    if(x == width-1 && bound == 0)
+    if(x == 0)
         desc.x = -1;
+    if(x == width-1)
+        desc.x = 1;
 
-    if(y == 0 && bound == 1)
-        desc.y = 1;
-    if(y == height-1 && bound == 1)
+    if(y == 0)
         desc.y = -1;
+    if(y == height-1)
+        desc.y = 1;
 
-    if(z == 0 && bound == 2)
-        desc.z = 1;
-    if(z == depth-1 && bound == 2)
+    if(z == 0)
         desc.z = -1;
+    if(z == depth-1)
+        desc.z = 1;
 
-    ///y boundary condition
-    if(bound == 0 || bound == 1 || bound == 2)
+    /*if(bound == -1 && (x == width-2 || y == height-2 || z == depth-2 || x == 1 || y == 1 || z == 1))
     {
-        if(any(desc == 1) || any(desc == -1))
-        {
-            near_oob = true;
-        }
+        val += read_imagef(d_in, sam, fpos.xyzz + desc.xyzz).x;
+    }*/
+
+    if(bound != -1 && (x >= width - 20 || y >= height - 20 || z >= depth - 20 || x < 20 || y < 20 || z < 20))
+    {
+        ///still escapes :(
+        ///escaping is worse :(
+        //val = (val - force_add) / 10;
+
+        //val = 0;
     }
 
-    if(near_oob)
+    if(bound == -1 && (x >= width - 20 || y >= height - 20 || z >= depth - 20 || x < 20 || y < 20 || z < 20))
     {
-        val = -read_imagef(d_in, sam, (int4){x, y, z, 0} + desc.xyzz + 0.5f).x;
+        //val = (val - force_add) / 100;
+        //val = 0;
+
+        //val = read_imagef(d_in, sam, fpos.xyzz).x;
+    }
+
+    /*if(bound == -1 && (x == width-1 || y == height-1 || z == depth-1 || x == 0 || y == 0 || z == 0))
+    {
+        ///we're at the position where, with vel clamped to -1, 1, this can lose by reading 'back' and then the current cell gone
+        ///could be simple as a combination of velocity?
+        ///its the opposite of how muhc of a cell we taek
+
+        float dist = length(vel);
+
+        val += read_imagef(d_in, sam_lin, fpos.xyzz + 0.5f).x * dist / sqrt(3.f);
+
+        //printf("%f ", val);
+
+        /*float3 base = floor(read_pos);
+        float3 upper = base + 1;
+
+
+        float3 fracs = read_pos - base;
+
+        ///val is the current cells density value
+
+        float v1, v2, v3, v4, v5, v6, v7, v8;
+
+        v1 = read_imagef(d_in, sam, base + {0, 0, 0});
+        v2 = read_imagef(d_in, sam, base + {1, 0, 0});
+        v3 = read_imagef(d_in, sam, base + {0, 1, 0});
+        v4 = read_imagef(d_in, sam, base + {1, 1, 0});
+        v5 = read_imagef(d_in, sam, base + {0, 0, 1});
+        v6 = read_imagef(d_in, sam, base + {1, 0, 1});
+        v7 = read_imagef(d_in, sam, base + {0, 1, 1});
+        v8 = read_imagef(d_in, sam, base + {1, 1, 1});
+
+
+        ///now we need to weight it so it takes the WHOLE of the nearest cube, as well as the trilinear part of the bit with velocity
+        float xfrac = vx - floor(vx);
+
+        x1 = v1 * (1.0f - xfrac) + v2 * xfrac;
+        x2 = v3 * (1.0f - xfrac) + v4 * xfrac;
+        x3 = v5 * (1.0f - xfrac) + v6 * xfrac;
+        x4 = v7 * (1.0f - xfrac) + v8 * xfrac;
+
+        float yfrac = vy - floor(vy);
+
+        float y1, y2;
+
+        y1 = x1 * (1.0f - yfrac) + x2 * yfrac;
+        y2 = x3 * (1.0f - yfrac) + x4 * yfrac;
+
+        float zfrac = vz - floor(vz);
+
+        return y1 * (1.0f - zfrac) + y2 * zfrac;*/
+    //}
+
+    /*if(bound == -1 && (x == width-1 || y == height-1 || z == depth-1 || x == 0 || y == 0 || z == 0))
+    {
+        //val += read_imagef(d_in, sam, fpos.xyzz + desc.xyzz).x;
+        val = -read_imagef(d_in, sam, fpos.xyzz).x;
     }*/
 
     //if(bound != -1)
@@ -6369,8 +6468,8 @@ __kernel void goo_diffuse(int width, int height, int depth, int bound, __write_o
 
     ///lazy for < 1
 
-    //if((x >= width || y >= height || z >= depth))// || x <= 0 || y <= 0 || z <= 0))
-    if(x >= width-1 || y >= height-1 || z >= depth-1 || x <= 0 || y <= 0 || z <= 0)
+    if((x >= width || y >= height || z >= depth))// || x <= 0 || y <= 0 || z <= 0))
+    //if(x >= width-1 || y >= height-1 || z >= depth-1 || x <= 0 || y <= 0 || z <= 0)
     //if((bound == -1) && (x >= width-1 || y >= height-1 || z >= depth-1 || x <= 0 || y <= 0 || z <= 0))
     {
         return;
@@ -6384,7 +6483,7 @@ __kernel void goo_diffuse(int width, int height, int depth, int bound, __write_o
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
 
-    const float alpha = 0.1;
+    const float alpha = 1.0;
 
     const float beta = 1.0f / (6 + alpha);
 
@@ -6460,6 +6559,273 @@ float3 get_wavelet(int3 pos, int width, int height, int depth, __global float* w
 
     return (float3)(d1y - d2z, d3z - d1x, d2x - d3y);
 }
+
+typedef struct t_speed
+{
+    float speeds[9];
+} t_speed;
+
+
+#define IDX(x, y) (y*WIDTH + x)
+
+#define NSPEEDS 9
+
+__kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
+                             __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
+                             __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8 )
+{
+    const float DENSITY = 0.1f;
+
+    const int WIDTH = SCREENWIDTH;
+    const int HEIGHT = SCREENHEIGHT;
+
+    const float w0 = DENSITY*4.0f/9.0f;    /* weighting factor */
+    const float w1 = DENSITY/9.0f;    /* weighting factor */
+    const float w2 = DENSITY/36.0f;   /* weighting factor */
+
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    /*float cdist = 0;
+
+    float2 centre = (float2){SCREENWIDTH/2, SCREENHEIGHT/2};
+
+    float2 dist = (float2){x, y} - centre;
+    dist /= centre;
+
+    cdist = length(dist)/10000;*/
+
+    out_cells_0[IDX(x, y)] = w0*1;
+
+    out_cells_1[IDX(x, y)] = w1*1;
+    out_cells_2[IDX(x, y)] = w1/2;
+    out_cells_3[IDX(x, y)] = w1;
+    out_cells_4[IDX(x, y)] = w1*0.03;
+
+    out_cells_5[IDX(x, y)] = w2/2;
+    out_cells_6[IDX(x, y)] = w2*1;
+    out_cells_7[IDX(x, y)] = w2;
+    out_cells_8[IDX(x, y)] = w2;
+
+    ///do accelerate once here?
+}
+
+///make obstacles compile time constant
+///now, do entire thing with no cpu overhead?
+///hybrid texture + buffer for dual bandwidth?
+///nvidia deals with atomics really badly
+///profile
+///try out textures in new memory scheme
+///remember to require 128x
+///make av_vels 16bit ints
+__kernel void fluid_timestep(__global uchar* obstacles,
+                       __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
+                       __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
+                       __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
+
+                       __global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
+                       __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
+                       __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+
+                       __write_only image2d_t screen
+                      )
+{
+    int id = get_global_id(0);
+
+    const int WIDTH = SCREENWIDTH;
+    const int HEIGHT = SCREENHEIGHT;
+
+    int x = id % WIDTH;
+    int y = id / WIDTH;
+
+    ///this is technically incorrect for the barrier, but ive never found a situation where this doesnt work in practice
+    if(id >= WIDTH*HEIGHT)
+    {
+        return;
+    }
+
+    const int y_n = (y + 1) % HEIGHT;
+    const int y_s = (y == 0) ? (HEIGHT - 1) : (y - 1);
+
+    const int x_e = (x + 1) % WIDTH;
+    const int x_w = (x == 0) ? (WIDTH - 1) : (x - 1);
+
+    t_speed local_cell;
+
+    local_cell.speeds[0] = in_cells_0[IDX(x, y)];
+    local_cell.speeds[1] = in_cells_1[IDX(x_w, y)];
+    local_cell.speeds[2] = in_cells_2[IDX(x, y_s)];
+    local_cell.speeds[3] = in_cells_3[IDX(x_e, y)];
+    local_cell.speeds[4] = in_cells_4[IDX(x, y_n)];
+    local_cell.speeds[5] = in_cells_5[IDX(x_w, y_s)];
+    local_cell.speeds[6] = in_cells_6[IDX(x_e, y_s)];
+    local_cell.speeds[7] = in_cells_7[IDX(x_e, y_n)];
+    local_cell.speeds[8] = in_cells_8[IDX(x_w, y_n)];
+
+
+    const float inv_c_sq = 3.0f;
+    const float w0 = 4.0f/9.0f;    /* weighting factor */
+    const float w1 = 1.0f/9.0f;    /* weighting factor */
+    const float w2 = 1.0f/36.0f;   /* weighting factor */
+    const float cst1 = inv_c_sq * inv_c_sq * 0.5f;
+
+    const float density = 0.1f;
+
+    const float w1g = density * 0.005f / 9.0f;
+    const float w2g = density * 0.005f / 36.0f;
+
+    t_speed cell_out;
+
+    bool is_obstacle = obstacles[IDX(x, y)];
+
+    //float my_av_vels = 0;
+
+    float local_density = 0.0f;
+
+    if(is_obstacle)
+    {
+        /* called after propagate, so taking values from scratch space
+        ** mirroring, and writing into main grid */
+        ///dont think i need to copy this because propagate does not touch the 0the value, and we are ALWAYS an obstacle
+        ///faster to copy whole cell alhuns (coherence?)
+
+        cell_out.speeds[0] = local_cell.speeds[0];
+        cell_out.speeds[1] = local_cell.speeds[3];
+        cell_out.speeds[2] = local_cell.speeds[4];
+        cell_out.speeds[3] = local_cell.speeds[1];
+        cell_out.speeds[4] = local_cell.speeds[2];
+        cell_out.speeds[5] = local_cell.speeds[7];
+        cell_out.speeds[6] = local_cell.speeds[8];
+        cell_out.speeds[7] = local_cell.speeds[5];
+        cell_out.speeds[8] = local_cell.speeds[6];
+
+        //return;
+    }
+    else //if(!obstacles[IX(x, y)])
+    {
+        int kk;
+
+        float u_x,u_y;               /* av. velocities in x and y directions */
+        float u[NSPEEDS-1];            /* directional velocities */
+        float d_equ[NSPEEDS];        /* equilibrium densities */
+        float u_sq;                  /* squared velocity */
+
+        t_speed this_tmp = local_cell;
+
+
+        for(kk=0; kk<NSPEEDS; kk++)
+        {
+            local_density += this_tmp.speeds[kk];
+        }
+
+        //if(x == 1 && y == 1)
+        //    printf("%f %i %i, ", local_density, x, y);
+
+        u_x = (this_tmp.speeds[1] +
+               this_tmp.speeds[5] +
+               this_tmp.speeds[8]
+               - (this_tmp.speeds[3] +
+                  this_tmp.speeds[6] +
+                  this_tmp.speeds[7]))
+              / local_density;
+
+
+        u_y = (this_tmp.speeds[2] +
+               this_tmp.speeds[5] +
+               this_tmp.speeds[6]
+               - (this_tmp.speeds[4] +
+                  this_tmp.speeds[7] +
+                  this_tmp.speeds[8]))
+              / local_density;
+
+        u_sq = u_x * u_x + u_y * u_y;
+
+        u[0] =   u_x;        /* east */
+        u[1] =         u_y;  /* north */
+        u[2] = - u_x;        /* west */
+        u[3] =       - u_y;  /* south */
+        u[4] =   u_x + u_y;  /* north-east */
+        u[5] = - u_x + u_y;  /* north-west */
+        u[6] = - u_x - u_y;  /* south-west */
+        u[7] =   u_x - u_y;  /* south-east */
+
+        const float cst2 = 1.0f - u_sq * inv_c_sq * 0.5f;
+
+        /* equilibrium densities */
+        /* zero velocity density: weight w0 */
+        d_equ[0] = w0 * local_density * cst2;
+        /* axis speeds: weight w1 */
+        d_equ[1] = w1 * local_density * (u[0] * inv_c_sq + u[0] * u[0] * cst1 + cst2);
+        d_equ[2] = w1 * local_density * (u[1] * inv_c_sq + u[1] * u[1] * cst1 + cst2);
+        d_equ[3] = w1 * local_density * (u[2] * inv_c_sq + u[2] * u[2] * cst1 + cst2);
+        d_equ[4] = w1 * local_density * (u[3] * inv_c_sq + u[3] * u[3] * cst1 + cst2);
+        /* diagonal speeds: weight w2 */
+        d_equ[5] = w2 * local_density * (u[4] * inv_c_sq + u[4] * u[4] * cst1 + cst2);
+        d_equ[6] = w2 * local_density * (u[5] * inv_c_sq + u[5] * u[5] * cst1 + cst2);
+        d_equ[7] = w2 * local_density * (u[6] * inv_c_sq + u[6] * u[6] * cst1 + cst2);
+        d_equ[8] = w2 * local_density * (u[7] * inv_c_sq + u[7] * u[7] * cst1 + cst2);
+
+        const float OMEGA = 1.85f;
+
+        t_speed this_cell;
+
+        for(kk=0; kk<NSPEEDS; kk++)
+        {
+            float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
+
+            this_cell.speeds[kk] = val;
+        }
+
+        //printf("%f\n", u_sq);
+
+        cell_out = this_cell;
+
+        /*if(local_density < 0.1f)
+        {
+            for(int i=0; i<NSPEEDS; i++)
+            {
+                cell_out.speeds[i] = local_cell.speeds[i];
+            }
+        }*/
+    }
+
+    /*if(y == HEIGHT - 3 || y == 4)
+    {
+        if( !is_obstacle &&
+                (cell_out.speeds[3] - w1g*1000) > 0.0f &&
+                (cell_out.speeds[6] - w2g*1000) > 0.0f &&
+                (cell_out.speeds[7] - w2g*1000) > 0.0f )
+        {
+            cell_out.speeds[3] -= w1g*1000;
+            cell_out.speeds[6] -= w2g*1000;
+            cell_out.speeds[7] -= w2g*1000;
+
+            cell_out.speeds[1] += w1g*1000;
+            cell_out.speeds[5] += w2g*1000;
+            cell_out.speeds[8] += w2g*1000;
+        }
+    }*/
+
+    out_cells_0[IDX(x, y)] = cell_out.speeds[0];
+    out_cells_1[IDX(x, y)] = cell_out.speeds[1];
+    out_cells_2[IDX(x, y)] = cell_out.speeds[2];
+    out_cells_3[IDX(x, y)] = cell_out.speeds[3];
+    out_cells_4[IDX(x, y)] = cell_out.speeds[4];
+    out_cells_5[IDX(x, y)] = cell_out.speeds[5];
+    out_cells_6[IDX(x, y)] = cell_out.speeds[6];
+    out_cells_7[IDX(x, y)] = cell_out.speeds[7];
+    out_cells_8[IDX(x, y)] = cell_out.speeds[8];
+
+    //float speed = cell_out.speeds[0];
+
+    float broke = isnan(local_density);
+
+    write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
+    //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
+
+    //printf("%f %i %i\n", speed, x, y);
+}
+
 
 float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
             int imin, int imax)

@@ -1914,6 +1914,46 @@ void engine::draw_smoke(smoke& s)
     ///temp while debuggingf
 }
 
+void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id)
+{
+    compute::opengl_enqueue_release_gl_objects(1, &buf.get(), cl::cqueue);
+
+    cl::cqueue.finish();
+
+    ///reinstate this without the sleep 0
+    /*cl_event event;
+
+    clEnqueueReleaseGLObjects(cl::cqueue.get(), 1, &scr, 0, NULL, &event);
+
+    // this keeps the host thread awake, useful if latency is a concern
+    clFlush(cl::cqueue.get());
+
+    cl_int eventStatus;
+
+    clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &eventStatus, NULL);
+    while (eventStatus > 0)
+    {
+        clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &eventStatus, NULL);
+        ///Sleep(0);
+    }*/
+
+
+    PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+
+    PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
+
+
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, id);
+
+    glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+    ///blit buffer to screen
+    glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+
+    compute::opengl_enqueue_acquire_gl_objects(1, &buf.get(), cl::cqueue);
+}
+
 void engine::render_buffers()
 {
     ///any way to avoid this?
@@ -2115,6 +2155,16 @@ int engine::get_mouse_x()
 int engine::get_mouse_y()
 {
     return mouse.getPosition(window).y;
+}
+
+int engine::get_width()
+{
+    return width;
+}
+
+int engine::get_height()
+{
+    return height;
 }
 
 void engine::set_camera_pos(cl_float4 p)

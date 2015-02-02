@@ -49,7 +49,7 @@ void goo::tick(float dt)
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
-    update_boundary(g_voxel[next], -1, global_ws, local_ws);
+    //update_boundary(g_voxel[next], -1, global_ws, local_ws);
 
     arg_list dens_advect;
     dens_advect.push_back(&width);
@@ -66,7 +66,7 @@ void goo::tick(float dt)
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
 
-    update_boundary(g_voxel[n], -1, global_ws, local_ws);
+    //update_boundary(g_voxel[n], -1, global_ws, local_ws);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_x[next];
@@ -89,9 +89,9 @@ void goo::tick(float dt)
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
-    update_boundary(g_velocity_x[next], 0, global_ws, local_ws);
-    update_boundary(g_velocity_y[next], 1, global_ws, local_ws);
-    update_boundary(g_velocity_z[next], 2, global_ws, local_ws);
+    //update_boundary(g_velocity_x[next], 0, global_ws, local_ws);
+    //update_boundary(g_velocity_y[next], 1, global_ws, local_ws);
+    //update_boundary(g_velocity_z[next], 2, global_ws, local_ws);
 
     ///nexts now valid
     dens_advect.args[4] = &g_velocity_x[n];
@@ -115,9 +115,9 @@ void goo::tick(float dt)
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
 
-    update_boundary(g_velocity_x[n], 0, global_ws, local_ws);
-    update_boundary(g_velocity_y[n], 1, global_ws, local_ws);
-    update_boundary(g_velocity_z[n], 2, global_ws, local_ws);
+    //update_boundary(g_velocity_x[n], 0, global_ws, local_ws);
+    //update_boundary(g_velocity_y[n], 1, global_ws, local_ws);
+    //update_boundary(g_velocity_z[n], 2, global_ws, local_ws);
 
     arg_list fluid_count;
     fluid_count.push_back(&g_voxel[n]);
@@ -131,3 +131,96 @@ void goo::tick(float dt)
 
     printf("rback %d\n", readback);
 }
+
+template<int n, typename datatype>
+void lattice<n, datatype>::init(int sw, int sh)
+{
+    which = 0;
+
+    for(int i=0; i<n; i++)
+    {
+        in[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh, CL_MEM_READ_WRITE, NULL);
+        out[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh, CL_MEM_READ_WRITE, NULL);
+    }
+
+    cl_uchar* buf = new cl_uchar[sw*sh];
+
+    for(int i=0; i<sh; i++)
+    {
+        for(int j=0; j<sw; j++)
+        {
+            ///not edge
+            if(i != 0 && j != 0 && i != sh-1 && j != sw-1)
+            {
+                buf[i*sw + j] = 0;
+            }
+            else
+            {
+                buf[i*sw + j] = 1;
+            }
+        }
+    }
+
+    for(int i=10; i<sw-20; i++)
+    {
+        buf[100*sw + i] = 1;
+    }
+
+    obstacles = compute::buffer(cl::context, sizeof(cl_uchar)*sw*sh, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
+
+    delete [] buf;
+
+    cl_uint global_ws[2] = {sw, sh};
+    cl_uint local_ws[2] = {128, 1};
+
+    arg_list init_arg_list;
+
+    for(int i=0; i<n; i++)
+        init_arg_list.push_back(&in[i]);
+
+
+    run_kernel_with_list(cl::fluid_initialise_mem, global_ws, local_ws, 2, init_arg_list);
+
+    screen = engine::gen_cl_gl_framebuffer_renderbuffer(&screen_id, sw, sh);
+
+    width = sw;
+    height = sh;
+}
+
+
+template<int n, typename datatype>
+void lattice<n, datatype>::tick()
+{
+    compute::opengl_enqueue_acquire_gl_objects(1, &screen.get(), cl::cqueue);
+
+    arg_list timestep;
+
+    timestep.push_back(&obstacles);
+
+    compute::buffer* cur_in = which == 0 ? in : out;
+    compute::buffer* cur_out = which != 0 ? in : out;
+
+    for(int i=0; i<n; i++)
+    {
+        timestep.push_back(&cur_out[i]);
+    }
+
+    for(int i=0; i<n; i++)
+    {
+        timestep.push_back(&cur_in[i]);
+    }
+
+    timestep.push_back(&screen);
+
+    cl_uint global_ws = width*height;
+    cl_uint local_ws = 128;
+
+    run_kernel_with_list(cl::fluid_timestep, &global_ws, &local_ws, 1, timestep);
+
+
+    which = !which;
+
+    compute::opengl_enqueue_release_gl_objects(1, &screen.get(), cl::cqueue);
+}
+
+template struct lattice<9, cl_float>;
