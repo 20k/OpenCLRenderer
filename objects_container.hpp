@@ -50,6 +50,10 @@ struct objects_container
     void    swap_90();
     void    scale(float);
 
+    ///currently uncached
+    ///local centre, not world
+    cl_float4 get_centre();
+
 
     void    g_flush_objects(); ///calls g_flush for all objects
 

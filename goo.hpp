@@ -15,20 +15,21 @@ struct lattice
     compute::buffer in[n];
     compute::buffer out[n];
 
+    compute::buffer* current_result;
+
     compute::buffer obstacles;
 
     compute::opengl_renderbuffer screen;
 
-    void init(int sw, int sh);
+    void init(int sw, int sh, int sd = 1);
     void tick();
 
     GLuint screen_id;
 
+    int width, height, depth;
+
     private:
     int which;
-
-    int width, height;
-
 };
 
 

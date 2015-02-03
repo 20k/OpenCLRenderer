@@ -133,58 +133,66 @@ void goo::tick(float dt)
 }
 
 template<int n, typename datatype>
-void lattice<n, datatype>::init(int sw, int sh)
+void lattice<n, datatype>::init(int sw, int sh, int sd)
 {
     which = 0;
 
     for(int i=0; i<n; i++)
     {
-        in[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh, CL_MEM_READ_WRITE, NULL);
-        out[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh, CL_MEM_READ_WRITE, NULL);
+        in[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh*sd, CL_MEM_READ_WRITE, NULL);
+        out[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh*sd, CL_MEM_READ_WRITE, NULL);
     }
 
-    cl_uchar* buf = new cl_uchar[sw*sh];
+    cl_uchar* buf = new cl_uchar[sw*sh*sd];
 
-    for(int i=0; i<sh; i++)
+    for(int k=0; k<sd; k++)
     {
-        for(int j=0; j<sw; j++)
+        for(int i=0; i<sh; i++)
         {
-            ///not edge
-            if(i != 0 && j != 0 && i != sh-1 && j != sw-1)
+            for(int j=0; j<sw; j++)
             {
-                buf[i*sw + j] = 0;
-            }
-            else
-            {
-                buf[i*sw + j] = 1;
+                ///not edge
+                if(i != 0 && j != 0 && i != sh-1 && j != sw-1 && k != 0 && k != sd-1)
+                {
+                    buf[k*sw*sh + i*sw + j] = 0;
+                }
+                else
+                {
+                    buf[k*sw*sh + i*sw + j] = 1;
+                }
             }
         }
     }
 
-    for(int i=10; i<sw-20; i++)
+    /*for(int i=10; i<sw-20; i++)
     {
-        buf[100*sw + i] = 1;
-    }
+        buf[50*sw*sh + 100*sw + i] = 1;
+    }*/
 
-    obstacles = compute::buffer(cl::context, sizeof(cl_uchar)*sw*sh, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
+    obstacles = compute::buffer(cl::context, sizeof(cl_uchar)*sw*sh*sd, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
 
     delete [] buf;
 
-    cl_uint global_ws[2] = {sw, sh};
-    cl_uint local_ws[2] = {128, 1};
+    cl_uint global_ws[] = {sw, sh, sd};
+    cl_uint local_ws[] = {128, 1, 1};
 
     arg_list init_arg_list;
 
     for(int i=0; i<n; i++)
         init_arg_list.push_back(&in[i]);
 
+    init_arg_list.push_back(&sw);
+    init_arg_list.push_back(&sh);
+    init_arg_list.push_back(&sd);
 
-    run_kernel_with_list(cl::fluid_initialise_mem, global_ws, local_ws, 2, init_arg_list);
+
+    run_kernel_with_list(cl::fluid_initialise_mem, global_ws, local_ws, 3, init_arg_list);
 
     screen = engine::gen_cl_gl_framebuffer_renderbuffer(&screen_id, sw, sh);
 
     width = sw;
     height = sh;
+    depth = sd;
 }
 
 
@@ -212,11 +220,16 @@ void lattice<n, datatype>::tick()
 
     timestep.push_back(&screen);
 
-    cl_uint global_ws = width*height;
+    timestep.push_back(&width);
+    timestep.push_back(&height);
+    timestep.push_back(&depth);
+
+    cl_uint global_ws = width*height*depth;
     cl_uint local_ws = 128;
 
     run_kernel_with_list(cl::fluid_timestep, &global_ws, &local_ws, 1, timestep);
 
+    current_result = &cur_in[0];
 
     which = !which;
 
@@ -224,3 +237,4 @@ void lattice<n, datatype>::tick()
 }
 
 template struct lattice<9, cl_float>;
+template struct lattice<15, cl_float>;

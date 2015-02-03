@@ -165,6 +165,26 @@ void object::scale(float f)
     }
 }
 
+cl_float4 object::get_centre()
+{
+    cl_float4 cent = {0};
+
+    for(auto& t : tri_list)
+    {
+        for(int j=0; j<3; j++)
+        {
+            cl_float4 pos = t.vertices[j].get_pos();
+
+            cent = add(pos, cent);
+        }
+    }
+
+    if(tri_list.size() > 0)
+        return div(cent, tri_list.size()*3);
+    else
+        return {0};
+}
+
 void object::set_vis_func(std::function<int (object*, cl_float4)> vis)
 {
     obj_vis = vis;

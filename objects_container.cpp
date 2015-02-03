@@ -1,6 +1,7 @@
 #include "objects_container.hpp"
 #include <iostream>
 #include "obj_load.hpp"
+#include "vec.hpp"
 
 cl_uint objects_container::gid = 0;
 std::vector<objects_container*> objects_container::obj_container_list;
@@ -208,6 +209,31 @@ void objects_container::scale(float f)
     for(int i=0; i<objs.size(); i++)
     {
         objs[i].scale(f);
+    }
+}
+
+cl_float4 objects_container::get_centre()
+{
+    cl_float4 centre = {0};
+
+    int tri_total = 0;
+
+    for(auto& o : objs)
+    {
+        centre = add(centre, o.get_centre());
+
+        centre = mult(centre, o.tri_num);
+
+        tri_total += o.tri_num;
+    }
+
+    if(tri_total > 0)
+    {
+        return div(centre, tri_total);
+    }
+    else
+    {
+        return {0};
     }
 }
 

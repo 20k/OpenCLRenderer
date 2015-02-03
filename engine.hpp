@@ -142,6 +142,7 @@ struct engine
     void draw_voxel_octree(g_voxel_info& info);
     void draw_raytrace();
     void draw_smoke(smoke& s);
+    void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
     void render_texture(compute::opengl_renderbuffer&, GLuint id);
     void render_buffers();
     void display();

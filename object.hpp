@@ -24,6 +24,7 @@ struct object
     std::function<int (object*, cl_float4)> obj_vis;
     std::function<void (object*)> obj_load_func;
 
+    ///remember to make this a generic vector of texture ids? Or can't due to opencl retardation?
     cl_uint tid; ///texture id ///on load
     cl_uint bid; ///bumpmap_id
 
@@ -38,6 +39,9 @@ struct object
     void set_rot(cl_float4);
     void swap_90();
     void scale(float);
+
+    ///this is uncached for the moment
+    cl_float4 get_centre();
 
     void translate_centre(cl_float4);
 

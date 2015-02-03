@@ -30,9 +30,6 @@ struct zebra_info
 
 struct zebra
 {
-    //cl_float4 pos = {0,0,0,0};
-    //cl_float angle = 0;
-
     static int boundx;
     static int boundz;
 
@@ -43,7 +40,7 @@ struct zebra
     static std::vector<objects_container*> objects;
     static std::vector<zebra_info> zebra_objects;
 
-    //static int counter;
+    static int tracked_zebra;
 
     static void set_bnd(int _minx, int _miny, int _maxx, int _maxy)
     {
@@ -69,7 +66,7 @@ struct zebra
 
     static void repulse()
     {
-        float minimum_distance = 500;
+        float minimum_distance = 400;
 
         for(int i=0; i<objects.size(); i++)
         {
@@ -86,11 +83,14 @@ struct zebra
 
                 float distance = dist(p1, p2);
 
-                if(distance > minimum_distance)
-                    continue;
+                //if(distance > minimum_distance)
+                //    continue;
 
                 float dx = p2.x - p1.x;
                 float dz = p2.z - p1.z;
+
+                if(fabs(dx) > minimum_distance || fabs(dz) > minimum_distance)
+                    continue;
 
                 float angle = atan2(dz, dx);
 
@@ -173,14 +173,6 @@ struct zebra
                 objects[j*xgrid + i]->set_pos(pos);
             }
         }
-
-        int max_id = (ygrid - 1)*xgrid + xgrid-1;
-
-        for(int i=max_id; i<objects.size(); i++)
-        {
-
-            //objects[i].set_pos({})
-        }
     }
 
     ///keep internal counter of bias and then move like then, randomness is how often bias updates + how much?
@@ -253,7 +245,6 @@ struct zebra
 
         fade = clamp(fade, 0.0f, 1.0f);
 
-        zebra_info* zinfo = &zebra_objects[zid];
         objects_container* zeb = objects[zid];
 
         cl_float4 centre = zeb->pos;
@@ -276,7 +267,43 @@ struct zebra
         win.draw(cs);
     }
 
+    static float distance_from_zebra(int zid, int mx, int my)
+    {
+        assert(zid >= 0 && zid < objects.size());
 
+        //cl_float4 p1 = objects[zid]->get_centre();
+
+        //p1 = add(p1, objects[zid]->pos);
+
+        objects_container* zeb = objects[zid];
+        cl_float4 centre = zeb->pos;
+
+        //printf("%f %f %f\n", p1.x, p1.y, p1.z);
+
+        cl_float4 local = engine::project(centre);
+
+        /*float radius = 2;
+
+        sf::CircleShape cs;
+
+        cs.setRadius(radius);
+
+        cs.setPosition(local.x - radius, win.getSize().y - local.y - radius);
+
+        cs.setOutlineColor(sf::Color(255, 0, 0, 255));
+        cs.setOutlineThickness(2.0f);
+        cs.setFillColor(sf::Color(0,0,0,0));
+        cs.setPointCount(300);
+
+        win.draw(cs);*/
+
+        float dx = mx - local.x;
+        float dy = my - local.y;
+
+        float distance = sqrtf(dx*dx + dy*dy);
+
+        return distance;
+    }
 };
 
 std::map<objects_container*, float> zebra::angles;
@@ -290,12 +317,12 @@ int zebra::miny = 0;
 int zebra::maxx = 0;
 int zebra::maxy = 0;
 
+int zebra::tracked_zebra = 0;
+
 std::vector<objects_container*> zebra::objects;
 
 int main(int argc, char *argv[])
 {
-    ///remember to make g_arrange_mem run faster!
-
     zebra::set_bnd(0, 0, 9000, 3000);
 
     constexpr int zebra_count = 36;
@@ -326,9 +353,6 @@ int main(int argc, char *argv[])
 
 
     window.window.setVerticalSyncEnabled(true);
-
-    ///write a opencl kernel to generate mipmaps because it is ungodly slow?
-    ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
     obj_mem_manager::load_active_objects();
 
@@ -370,23 +394,12 @@ int main(int argc, char *argv[])
     //window.set_camera_pos({0, 100, 200});
     //window.set_camera_rot({0.1, M_PI, 0});
 
-
     window.construct_shadowmaps();
-
-    int times[10] = {0};
-    int time_count = 0;
-
-    int load_first = 0;
 
     sf::Clock zebra_clock;
 
     while(window.window.isOpen())
     {
-        ///rift
-        //ovrHmd_BeginFrame(HMD, 0);
-        ///endrift
-
-
         sf::Clock c;
 
         if(window.window.pollEvent(Event))
@@ -409,24 +422,12 @@ int main(int argc, char *argv[])
 
         window.display();
 
-        times[time_count] = c.getElapsedTime().asMicroseconds();
+        int mx = window.get_mouse_x();
+        int my = window.height - window.get_mouse_y();
 
-        time_count = (time_count + 1) % 10;
+        float distance = zebra::distance_from_zebra(0, mx, my);
 
-        int time = 0;
-
-        for(int i=0; i<10; i++)
-        {
-            time += times[i];
-        }
-
-        if(!load_first)
-        {
-            std::cout << "time to load and execute 1 frame = " << load_time.getElapsedTime().asSeconds();
-            load_first = 1;
-        }
-
-        //std::cout << time/10 << std::endl;
+        printf("%f %i %i\n", distance, mx, my);
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

@@ -66,15 +66,15 @@ int main(int argc, char *argv[])
     //c2.set_active(true);
 
     engine window;
-    window.load(1200,800,1000, "turtles", "../../cl2.cl");
+    window.load(1280,720,1000, "turtles", "../../cl2.cl");
 
     //goo gloop;
 
     //gloop.init(100, 100, 100, 1, 100);
 
-    lattice<9, cl_float> lat;
+    lattice<15, cl_float> lat;
 
-    lat.init(window.get_width(), window.get_height());
+    lat.init(100, 100, 5);
 
     window.set_camera_pos((cl_float4){0,100,-300,0});
     //window.set_camera_pos((cl_float4){0,0,0,0});
@@ -139,13 +139,17 @@ int main(int argc, char *argv[])
 
         window.draw_bulk_objs_n();
 
-        //window.draw_smoke(gloop);
-
         lat.tick();
 
+        window.draw_voxel_grid(*lat.current_result, lat.width, lat.height, lat.depth);
+
+        //window.draw_smoke(gloop);
 
 
-        //window.render_buffers();
+
+
+
+        window.render_buffers();
 
         window.render_texture(lat.screen, lat.screen_id);
 

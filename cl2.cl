@@ -5324,32 +5324,32 @@ __kernel void render_voxels(__global float* voxel, int width, int height, int de
 
     float myval = voxel[IX(x, y, z)];
 
-    if(myval < 0.1f)
+    if(myval < 0.0001f)
         return;
 
     if(projected.z < 0.001f)
         return;
 
     ///only render outer hull for the moment
-    int c = 0;
-    c = voxel[IX(x-1, y, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x+1, y, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y-1, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y+1, z)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y, z-1)] >= 0.1f ? c+1 : c;
-    c = voxel[IX(x, y, z+1)] >= 0.1f ? c+1 : c;
+    /*int c = 0;
+    c = voxel[IX(x-1, y, z)] >= 0.0001f ? c+1 : c;
+    c = voxel[IX(x+1, y, z)] >= 0.0001f ? c+1 : c;
+    c = voxel[IX(x, y-1, z)] >= 0.0001f ? c+1 : c;
+    c = voxel[IX(x, y+1, z)] >= 0.0001f ? c+1 : c;
+    c = voxel[IX(x, y, z-1)] >= 0.0001f ? c+1 : c;
+    c = voxel[IX(x, y, z+1)] >= 0.0001f ? c+1 : c;
 
     int cond = c == 0 || c == 6;
 
     if(cond)
-        return;
+        return;*/
 
-    if(myval > 1)
-        myval = 1;
+    if(myval*10 > 1)
+        myval = 1/10;
 
-    myval = 1;
+    //myval = 1;
 
-    write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval, 0, 0, 0});
+    write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval*10, 0, 0, 0});
 }
 
 __kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
@@ -6560,58 +6560,82 @@ float3 get_wavelet(int3 pos, int width, int height, int depth, __global float* w
     return (float3)(d1y - d2z, d3z - d1x, d2x - d3y);
 }
 
+#define NSPEEDS 15
+
 typedef struct t_speed
 {
-    float speeds[9];
+    float speeds[NSPEEDS];
 } t_speed;
 
 
-#define IDX(x, y) (y*WIDTH + x)
-
-#define NSPEEDS 9
+#define IDX(x, y, z) (z*width*height + y*width + x)
 
 ///borrowed from coursework
 __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                              __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
-                             __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8 )
+                             __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
+                             __global float* out_cells_9, __global float* out_cells_10, __global float* out_cells_11,
+                             __global float* out_cells_12, __global float* out_cells_13, __global float* out_cells_14,
+
+                             int width, int height, int depth)
 {
     const float DENSITY = 0.1f;
 
-    const int WIDTH = SCREENWIDTH;
-    const int HEIGHT = SCREENHEIGHT;
+    //const float w0 = DENSITY*4.0f/9.0f;    /* weighting factor */
+    //const float w1 = DENSITY/9.0f;    /* weighting factor */
+    //const float w2 = DENSITY/36.0f;   /* weighting factor */
 
-    const float w0 = DENSITY*4.0f/9.0f;    /* weighting factor */
-    const float w1 = DENSITY/9.0f;    /* weighting factor */
-    const float w2 = DENSITY/36.0f;   /* weighting factor */
+
+
+    float w0 = DENSITY * 16.f/72.f;
+    float w1 = DENSITY * 8.f/72.f;
+    float w2 = DENSITY * 1.f/72.f;
+
 
     int x = get_global_id(0);
     int y = get_global_id(1);
+    int z = get_global_id(2);
 
     float cdist = 0;
 
-    float2 centre = (float2){SCREENWIDTH/2, SCREENHEIGHT/2};
+    float3 centre = (float3){width/2, height/2, depth/2};
 
-    float2 dist = (float2){x, y} - centre;
+    float3 dist = (float3){x, y, z} - centre;
     dist /= centre;
 
     cdist = length(dist);
 
-    out_cells_0[IDX(x, y)] = w0*1 + w0*cdist/1;
+    cdist = 1 - cdist;
 
-    if(x > 100 && x < 800)
+    w0 *= cdist;
+    w1 *= cdist;
+    w2 *= cdist;
+
+
+    out_cells_0[IDX(x, y, z)] = w0*5;// + w0*cdist/1;
+
+    /*if(x > 100 && x < 800)
     {
-        out_cells_0[IDX(x, y)] = 0.9*w0;
-    }
+        out_cells_0[IDX(x, y, z)] = 0.99*w0;
+    }*/
 
-    out_cells_1[IDX(x, y)] = w1*1;
-    out_cells_2[IDX(x, y)] = w1/2;
-    out_cells_3[IDX(x, y)] = w1;
-    out_cells_4[IDX(x, y)] = w1*0.03;
+    out_cells_1[IDX(x, y, z)] = w1;
+    out_cells_2[IDX(x, y, z)] = w1/20;///2;
+    out_cells_3[IDX(x, y, z)] = w1;
+    out_cells_4[IDX(x, y, z)] = w1;//*0.03;
 
-    out_cells_5[IDX(x, y)] = w2/2;
-    out_cells_6[IDX(x, y)] = w2*1;
-    out_cells_7[IDX(x, y)] = w2;
-    out_cells_8[IDX(x, y)] = w2;
+    out_cells_5[IDX(x, y, z)] = w2;///2;
+    out_cells_6[IDX(x, y, z)] = w2;//*1;
+    out_cells_7[IDX(x, y, z)] = w2;
+    out_cells_8[IDX(x, y, z)] = w2;
+
+    out_cells_9[IDX(x, y, z)] = w2;///2;
+    out_cells_10[IDX(x, y, z)] = w2;//*1;
+    out_cells_11[IDX(x, y, z)] = w2;
+    out_cells_12[IDX(x, y, z)] = w2;
+
+    out_cells_13[IDX(x, y, z)] = w1;///3;
+    out_cells_14[IDX(x, y, z)] = w1/2;
 
     ///do accelerate once here?
 }
@@ -6622,69 +6646,102 @@ __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* 
 ///try out textures in new memory scheme
 ///make av_vels 16bit ints
 ///partly borrowed from uni HPC coursework
+///http://www.mdpi.com/fibers/fibers-02-00128/article_deploy/html/images/fibers-02-00128-g003-1024.png
 __kernel void fluid_timestep(__global uchar* obstacles,
                        __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                        __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
                        __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
+                       __global float* out_cells_9, __global float* out_cells_10, __global float* out_cells_11,
+                       __global float* out_cells_12, __global float* out_cells_13, __global float* out_cells_14,
 
                        __global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
                        __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
                        __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+                       __global float* in_cells_9, __global float* in_cells_10, __global float* in_cells_11,
+                       __global float* in_cells_12, __global float* in_cells_13, __global float* in_cells_14,
 
-                       __write_only image2d_t screen
+                       __write_only image2d_t screen,
+                       int width, int height, int depth
                       )
 {
     int id = get_global_id(0);
 
-    const int WIDTH = SCREENWIDTH;
-    const int HEIGHT = SCREENHEIGHT;
+    int slice_offset = id % (width*height);
 
-    int x = id % WIDTH;
-    int y = id / WIDTH;
+    int x = slice_offset % width;
+    int y = slice_offset / width;
+    int z = id / (width*height);
 
     ///this is technically incorrect for the barrier, but ive never found a situation where this doesnt work in practice
-    if(id >= WIDTH*HEIGHT)
+    if(id >= width*height*depth)
     {
         return;
     }
 
-    const int y_n = (y + 1) % HEIGHT;
-    const int y_s = (y == 0) ? (HEIGHT - 1) : (y - 1);
+    const int y_n = (y + 1) % height;
+    const int y_s = (y == 0) ? (height - 1) : (y - 1);
 
-    const int x_e = (x + 1) % WIDTH;
-    const int x_w = (x == 0) ? (WIDTH - 1) : (x - 1);
+    const int x_e = (x + 1) % width;
+    const int x_w = (x == 0) ? (width - 1) : (x - 1);
+
+    const int z_f = (z + 1) % depth;
+    const int z_b = (z == 0) ? depth-1 : z-1;
 
     t_speed local_cell;
 
-    local_cell.speeds[0] = in_cells_0[IDX(x, y)];
-    local_cell.speeds[1] = in_cells_1[IDX(x_w, y)];
-    local_cell.speeds[2] = in_cells_2[IDX(x, y_s)];
-    local_cell.speeds[3] = in_cells_3[IDX(x_e, y)];
-    local_cell.speeds[4] = in_cells_4[IDX(x, y_n)];
-    local_cell.speeds[5] = in_cells_5[IDX(x_w, y_s)];
-    local_cell.speeds[6] = in_cells_6[IDX(x_e, y_s)];
-    local_cell.speeds[7] = in_cells_7[IDX(x_e, y_n)];
-    local_cell.speeds[8] = in_cells_8[IDX(x_w, y_n)];
+    ///still valid
+    local_cell.speeds[0] = in_cells_0[IDX(x, y, z)];
+    local_cell.speeds[1] = in_cells_1[IDX(x_w, y, z)];
+    local_cell.speeds[2] = in_cells_2[IDX(x, y_s, z)];
+    local_cell.speeds[3] = in_cells_3[IDX(x_e, y, z)];
+    local_cell.speeds[4] = in_cells_4[IDX(x, y_n, z)];
+
+    ///front diagonals
+    local_cell.speeds[5] = in_cells_5[IDX(x_w, y_s, z_b)];
+    local_cell.speeds[6] = in_cells_6[IDX(x_e, y_s, z_b)];
+    local_cell.speeds[7] = in_cells_7[IDX(x_e, y_n, z_b)];
+    local_cell.speeds[8] = in_cells_8[IDX(x_w, y_n, z_b)];
+
+    ///rear diagonals
+    local_cell.speeds[9] = in_cells_9[IDX(x_w, y_s, z_f)];
+    local_cell.speeds[10] = in_cells_10[IDX(x_e, y_s, z_f)];
+    local_cell.speeds[11] = in_cells_11[IDX(x_e, y_n, z_f)];
+    local_cell.speeds[12] = in_cells_12[IDX(x_w, y_n, z_f)];
+
+    ///z regulars
+    local_cell.speeds[13] = in_cells_13[IDX(x, y, z_f)];
+    local_cell.speeds[14] = in_cells_14[IDX(x, y, z_b)];
 
 
-    const float inv_c_sq = 3.0f;
-    const float w0 = 4.0f/9.0f;    /* weighting factor */
-    const float w1 = 1.0f/9.0f;    /* weighting factor */
-    const float w2 = 1.0f/36.0f;   /* weighting factor */
+    ///change this to affect fluid... gloopiness
+    const float inv_c_sq = 3.f;
+
+    //const float w0 = 4.0f/9.0f;    /* weighting factor */
+    //const float w1 = 1.0f/9.0f;    /* weighting factor */
+    //const float w2 = 1.0f/36.0f;   /* weighting factor */
+
+    /*const float w0 = 4.0f/9.0f;
+    const float w1 = (3.0f / 4.0f) * (1.0f - w0) / 6;
+    const float w2 = (1.0f / 4.0f) * (1.0f - w0) / 8;*/
+
+    const float w0 = 16.f/72.f;
+    const float w1 = 8.f/72.f;
+    const float w2 = 1.f/72.f;
+
     const float cst1 = inv_c_sq * inv_c_sq * 0.5f;
 
-    const float density = 0.1f;
+    /*const float density = 0.1f;
 
     const float w1g = density * 0.005f / 9.0f;
-    const float w2g = density * 0.005f / 36.0f;
+    const float w2g = density * 0.005f / 36.0f;*/
 
     t_speed cell_out;
 
-    bool is_obstacle = obstacles[IDX(x, y)];
+    bool is_obstacle = obstacles[IDX(x, y, z)];
 
     //float my_av_vels = 0;
 
-    float local_density = 0.0f;
+    float local_density = 0.f;
 
     if(is_obstacle)
     {
@@ -6698,10 +6755,20 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         cell_out.speeds[2] = local_cell.speeds[4];
         cell_out.speeds[3] = local_cell.speeds[1];
         cell_out.speeds[4] = local_cell.speeds[2];
-        cell_out.speeds[5] = local_cell.speeds[7];
-        cell_out.speeds[6] = local_cell.speeds[8];
-        cell_out.speeds[7] = local_cell.speeds[5];
-        cell_out.speeds[8] = local_cell.speeds[6];
+
+
+        cell_out.speeds[5] = local_cell.speeds[11];
+        cell_out.speeds[6] = local_cell.speeds[12];
+        cell_out.speeds[7] = local_cell.speeds[9];
+        cell_out.speeds[8] = local_cell.speeds[10];
+
+        cell_out.speeds[9] = local_cell.speeds[7];
+        cell_out.speeds[10] = local_cell.speeds[8];
+        cell_out.speeds[11] = local_cell.speeds[5];
+        cell_out.speeds[12] = local_cell.speeds[6];
+
+        cell_out.speeds[13] = local_cell.speeds[14];
+        cell_out.speeds[14] = local_cell.speeds[13];
 
         //return;
     }
@@ -6709,7 +6776,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     {
         int kk;
 
-        float u_x,u_y;               /* av. velocities in x and y directions */
+        float u_x,u_y,u_z;               /* av. velocities in x and y directions */
         float u[NSPEEDS-1];            /* directional velocities */
         float d_equ[NSPEEDS];        /* equilibrium densities */
         float u_sq;                  /* squared velocity */
@@ -6725,7 +6792,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         //if(x == 1 && y == 1)
         //    printf("%f %i %i, ", local_density, x, y);
 
-        u_x = (this_tmp.speeds[1] +
+       /*u_x = (this_tmp.speeds[1] +
                this_tmp.speeds[5] +
                this_tmp.speeds[8]
                - (this_tmp.speeds[3] +
@@ -6740,18 +6807,49 @@ __kernel void fluid_timestep(__global uchar* obstacles,
                - (this_tmp.speeds[4] +
                   this_tmp.speeds[7] +
                   this_tmp.speeds[8]))
-              / local_density;
+              / local_density;*/
 
-        u_sq = u_x * u_x + u_y * u_y;
+        //float u_x = //1,5,8,9,12 - 3,6,7,10,11
+        //float u_y = //2,5,6,9,10 - 4,7,8,11,12 ///why is this defined backwards?
+        //float u_z = //9,10,11,12,13 - 5,6,7,8,14
 
+        u_x = (this_tmp.speeds[1] + this_tmp.speeds[5] + this_tmp.speeds[8] + this_tmp.speeds[9] + this_tmp.speeds[12]) -
+              (this_tmp.speeds[3] + this_tmp.speeds[6] + this_tmp.speeds[7] + this_tmp.speeds[10] + this_tmp.speeds[11]);
+
+        u_x /= local_density;
+
+        u_y = (this_tmp.speeds[2] + this_tmp.speeds[5] + this_tmp.speeds[6] + this_tmp.speeds[9] + this_tmp.speeds[10]) -
+              (this_tmp.speeds[4] + this_tmp.speeds[7] + this_tmp.speeds[8] + this_tmp.speeds[11] + this_tmp.speeds[12]);
+
+        u_y /= local_density;
+
+        u_z = (this_tmp.speeds[9] + this_tmp.speeds[10] + this_tmp.speeds[11] + this_tmp.speeds[12] + this_tmp.speeds[13]) -
+              (this_tmp.speeds[5] + this_tmp.speeds[6] + this_tmp.speeds[7] + this_tmp.speeds[8] + this_tmp.speeds[14]);
+
+        u_z /= local_density;
+
+
+        u_sq = u_x * u_x + u_y * u_y + u_z * u_z;
+
+        ///looks like this is the opposite of the cell orders, ie their reflection
         u[0] =   u_x;        /* east */
         u[1] =         u_y;  /* north */
         u[2] = - u_x;        /* west */
         u[3] =       - u_y;  /* south */
-        u[4] =   u_x + u_y;  /* north-east */
-        u[5] = - u_x + u_y;  /* north-west */
-        u[6] = - u_x - u_y;  /* south-west */
-        u[7] =   u_x - u_y;  /* south-east */
+
+
+        u[4] =   u_x + u_y + u_z;  /* north-east */
+        u[5] = - u_x + u_y + u_z;  /* north-west */
+        u[6] = - u_x - u_y + u_z;  /* south-west */
+        u[7] =   u_x - u_y + u_z;  /* south-east */
+
+        u[8] =   u_x + u_y - u_z;  /* north-east */
+        u[9] = - u_x + u_y - u_z;  /* north-west */
+        u[10] = - u_x - u_y - u_z;  /* south-west */
+        u[11] =   u_x - u_y - u_z;  /* south-east */
+
+        u[12] =             - u_z;  /* south-west */
+        u[13] =             + u_z;  /* south-east */
 
         const float cst2 = 1.0f - u_sq * inv_c_sq * 0.5f;
 
@@ -6769,7 +6867,16 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         d_equ[7] = w2 * local_density * (u[6] * inv_c_sq + u[6] * u[6] * cst1 + cst2);
         d_equ[8] = w2 * local_density * (u[7] * inv_c_sq + u[7] * u[7] * cst1 + cst2);
 
-        const float OMEGA = 1.85f;
+        d_equ[9] = w2 * local_density * (u[8] * inv_c_sq + u[8] * u[8] * cst1 + cst2);
+        d_equ[10] = w2 * local_density * (u[9] * inv_c_sq + u[9] * u[9] * cst1 + cst2);
+        d_equ[11] = w2 * local_density * (u[10] * inv_c_sq + u[10] * u[10] * cst1 + cst2);
+        d_equ[12] = w2 * local_density * (u[11] * inv_c_sq + u[11] * u[11] * cst1 + cst2);
+
+        d_equ[13] = w1 * local_density * (u[12] * inv_c_sq + u[12] * u[12] * cst1 + cst2);
+        d_equ[14] = w1 * local_density * (u[13] * inv_c_sq + u[13] * u[13] * cst1 + cst2);
+
+        //const float OMEGA = 0.185f;
+        const float OMEGA = 1.0;
 
         t_speed this_cell;
 
@@ -6778,12 +6885,20 @@ __kernel void fluid_timestep(__global uchar* obstacles,
             float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
 
             ///what to do about negative fluid flows? Push to other side?
-            this_cell.speeds[kk] = max(val, 0.0001f);
+            this_cell.speeds[kk] = max(val, 0.0f);
+            //this_cell.speeds[kk] = max(val, 0.0001f);
+            //this_cell.speeds[kk] = val;
+            //this_cell.speeds[kk] = val;
         }
 
         //printf("%f\n", u_sq);
 
         cell_out = this_cell;
+
+        if(local_density <= 0)
+        {
+            cell_out = local_cell;
+        }
 
         /*if(local_density < 0.1f)
         {
@@ -6794,7 +6909,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         }*/
     }
 
-    /*if(y == HEIGHT - 3 || y == 4)
+    /*if(y == height - 3 || y == 4)
     {
         if( !is_obstacle &&
                 (cell_out.speeds[3] - w1g*1000) > 0.0f &&
@@ -6811,21 +6926,31 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         }
     }*/
 
-    out_cells_0[IDX(x, y)] = cell_out.speeds[0];
-    out_cells_1[IDX(x, y)] = cell_out.speeds[1];
-    out_cells_2[IDX(x, y)] = cell_out.speeds[2];
-    out_cells_3[IDX(x, y)] = cell_out.speeds[3];
-    out_cells_4[IDX(x, y)] = cell_out.speeds[4];
-    out_cells_5[IDX(x, y)] = cell_out.speeds[5];
-    out_cells_6[IDX(x, y)] = cell_out.speeds[6];
-    out_cells_7[IDX(x, y)] = cell_out.speeds[7];
-    out_cells_8[IDX(x, y)] = cell_out.speeds[8];
+    out_cells_0[IDX(x, y, z)] = cell_out.speeds[0];
+    out_cells_1[IDX(x, y, z)] = cell_out.speeds[1];
+    out_cells_2[IDX(x, y, z)] = cell_out.speeds[2];
+    out_cells_3[IDX(x, y, z)] = cell_out.speeds[3];
+    out_cells_4[IDX(x, y, z)] = cell_out.speeds[4];
+    out_cells_5[IDX(x, y, z)] = cell_out.speeds[5];
+    out_cells_6[IDX(x, y, z)] = cell_out.speeds[6];
+    out_cells_7[IDX(x, y, z)] = cell_out.speeds[7];
+    out_cells_8[IDX(x, y, z)] = cell_out.speeds[8];
+    out_cells_9[IDX(x, y, z)] = cell_out.speeds[9];
+    out_cells_10[IDX(x, y, z)] = cell_out.speeds[10];
+    out_cells_11[IDX(x, y, z)] = cell_out.speeds[11];
+    out_cells_12[IDX(x, y, z)] = cell_out.speeds[12];
+    out_cells_13[IDX(x, y, z)] = cell_out.speeds[13];
+    out_cells_14[IDX(x, y, z)] = cell_out.speeds[14];
+    //out_cells_15[IDX(x, y, z)] = cell_out.speeds[15];
 
     //float speed = cell_out.speeds[0];
 
     float broke = isnan(local_density);
 
-    write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
+    //printf("%f %i %i %i\n", local_density, x, y, z);
+
+    if(z == 2)
+        write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
     //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
 
     //printf("%f %i %i\n", speed, x, y);

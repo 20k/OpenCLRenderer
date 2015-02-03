@@ -1914,6 +1914,30 @@ void engine::draw_smoke(smoke& s)
     ///temp while debuggingf
 }
 
+void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
+{
+    cl_float4 pos = {0};
+    cl_float4 rot = {0};
+
+    arg_list naive_args;
+    ///broke
+    naive_args.push_back(&buf);
+    naive_args.push_back(&w);
+    naive_args.push_back(&h);
+    naive_args.push_back(&d);
+    naive_args.push_back(&c_pos);
+    naive_args.push_back(&c_rot);
+    naive_args.push_back(&pos);
+    naive_args.push_back(&rot);
+    naive_args.push_back(&g_screen);
+    naive_args.push_back(&depth_buffer[nbuf]);
+
+    cl_uint naive_ws[3] = {w, h, d};
+    cl_uint naive_lws[3] = {16, 16, 1};
+
+    run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
+}
+
 void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id)
 {
     compute::opengl_enqueue_release_gl_objects(1, &buf.get(), cl::cqueue);
