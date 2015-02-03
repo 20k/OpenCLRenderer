@@ -25,7 +25,19 @@ struct zebra_info
     float vx, vz;
     objects_container* obj;
 
-    int side;
+    int prev_num = 0;
+    //float prev_angles[10] = {0};
+    constexpr static int smooth_num = 20;
+    float prev_vx[smooth_num] = {0};
+    float prev_vz[smooth_num] = {0};
+
+    zebra_info(float _vx, float _vz, objects_container* _obj)
+    {
+        vx = _vx;
+        vz = _vz;
+
+        obj = _obj;
+    }
 };
 
 struct zebra
@@ -54,7 +66,7 @@ struct zebra
     {
         objects.push_back(obj);
         //zebra_objects.push_back({fmod(rand() - RAND_MAX/2, 5), 0.0f, obj, rand() % 2});
-        zebra_objects.push_back({0.0f, 0.0f, obj, rand() % 2});
+        zebra_objects.push_back({0.0f, 0.0f, obj});
 
         cl_float4 pos = obj->pos;
 
@@ -66,7 +78,7 @@ struct zebra
 
     static void repulse()
     {
-        float minimum_distance = 400;
+        float minimum_distance = 500;
 
         for(int i=0; i<objects.size(); i++)
         {
@@ -83,14 +95,14 @@ struct zebra
 
                 float distance = dist(p1, p2);
 
-                //if(distance > minimum_distance)
-                //    continue;
+                if(distance > minimum_distance)
+                    continue;
 
                 float dx = p2.x - p1.x;
                 float dz = p2.z - p1.z;
 
-                if(fabs(dx) > minimum_distance || fabs(dz) > minimum_distance)
-                    continue;
+                //if(fabs(dx) > minimum_distance || fabs(dz) > minimum_distance)
+                //    continue;
 
                 float angle = atan2(dz, dx);
 
@@ -229,6 +241,33 @@ struct zebra
 
             zeb->set_pos(add(zeb->pos, {zebra_objects[i].vx, 0, zebra_objects[i].vz}));
 
+
+            ///smooth
+            int c = zebra_objects[i].prev_num;
+            //zebra_objects[i].prev_angles[c] = angle;
+            zebra_objects[i].prev_vx[c] = vel.x;
+            zebra_objects[i].prev_vz[c] = vel.y;
+
+            c = (c + 1) % zebra_info::smooth_num;
+
+            zebra_objects[i].prev_num = c;
+
+            float svx = 0;
+            float svz = 0;
+
+            ///needs to ignore unset values
+            for(int n=0; n<zebra_info::smooth_num; n++)
+            {
+                svx += zebra_objects[i].prev_vx[n];
+                svz += zebra_objects[i].prev_vz[n];
+            }
+
+            float sangle = atan2(svz, svx);
+
+            ///end smooth
+
+            zeb->set_rot({0, sangle, 0});
+
             zeb->g_flush_objects();
         }
 
@@ -323,7 +362,7 @@ std::vector<objects_container*> zebra::objects;
 
 int main(int argc, char *argv[])
 {
-    zebra::set_bnd(0, 0, 9000, 3000);
+    zebra::set_bnd(0, 0, 18000, 6000);
 
     constexpr int zebra_count = 36;
 

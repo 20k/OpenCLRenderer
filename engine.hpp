@@ -237,7 +237,7 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         }
     }
 
-    for(int i=0; i<argv.args.size() && args; i++)
+    for(unsigned int i=0; i<argv.args.size() && args; i++)
     {
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
