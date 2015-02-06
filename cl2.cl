@@ -6686,8 +6686,6 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 
     bool is_obstacle = obstacles[IDX(x, y)];
 
-    //float my_av_vels = 0;
-
     float local_density = 0.0f;
 
     if(is_obstacle)
@@ -6773,7 +6771,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         d_equ[7] = w2 * local_density * (u[6] * inv_c_sq + u[6] * u[6] * cst1 + cst2);
         d_equ[8] = w2 * local_density * (u[7] * inv_c_sq + u[7] * u[7] * cst1 + cst2);
 
-        const float OMEGA = 1.085f;
+        const float OMEGA = 1.0f;
 
         t_speed this_cell;
 
@@ -6782,7 +6780,12 @@ __kernel void fluid_timestep(__global uchar* obstacles,
             float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
 
             ///what to do about negative fluid flows? Push to other side?
-            this_cell.speeds[kk] = max(val, 0.0000f);
+            if(kk == 0)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w0);
+            else if(kk <= 4)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w1);
+            else
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w2);
         }
 
         //printf("%f\n", u_sq);
@@ -6817,6 +6820,100 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
 
     //printf("%f %i %i\n", speed, x, y);
+}
+
+__kernel
+void displace_fluid(__global uchar* obstacles,
+                       __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
+                       __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
+                       __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
+
+                       __global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
+                       __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
+                       __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+                       int width, int height,
+                       int xp, int yp
+
+)
+{
+    int id = get_global_id(0);
+
+    const int WIDTH = width;
+    const int HEIGHT = height;
+
+    int x = id % WIDTH;
+    int y = id / WIDTH;
+
+    ///this is technically incorrect for the barrier, but ive never found a situation where this doesnt work in practice
+    if(id >= WIDTH*HEIGHT)
+    {
+        return;
+    }
+
+    t_speed local_cell;
+
+   /* local_cell.speeds[0] = in_cells_0[IDX(x, y)];
+    local_cell.speeds[1] = in_cells_1[IDX(x_w, y)];
+    local_cell.speeds[2] = in_cells_2[IDX(x, y_s)];
+    local_cell.speeds[3] = in_cells_3[IDX(x_e, y)];
+    local_cell.speeds[4] = in_cells_4[IDX(x, y_n)];
+    local_cell.speeds[5] = in_cells_5[IDX(x_w, y_s)];
+    local_cell.speeds[6] = in_cells_6[IDX(x_e, y_s)];
+    local_cell.speeds[7] = in_cells_7[IDX(x_e, y_n)];
+    local_cell.speeds[8] = in_cells_8[IDX(x_w, y_n)];*/
+
+
+    local_cell.speeds[0] = in_cells_0[IDX(x, y)];
+    local_cell.speeds[1] = in_cells_1[IDX(x, y)];
+    local_cell.speeds[2] = in_cells_2[IDX(x, y)];
+    local_cell.speeds[3] = in_cells_3[IDX(x, y)];
+    local_cell.speeds[4] = in_cells_4[IDX(x, y)];
+    local_cell.speeds[5] = in_cells_5[IDX(x, y)];
+    local_cell.speeds[6] = in_cells_6[IDX(x, y)];
+    local_cell.speeds[7] = in_cells_7[IDX(x, y)];
+    local_cell.speeds[8] = in_cells_8[IDX(x, y)];
+
+    t_speed cell_out;
+
+    bool is_obstacle = obstacles[IDX(x, y)];
+
+    float local_density = 0.0f;
+
+    /*if(is_obstacle)
+    {
+        cell_out.speeds[0] = local_cell.speeds[0];
+        cell_out.speeds[1] = local_cell.speeds[3];
+        cell_out.speeds[2] = local_cell.speeds[4];
+        cell_out.speeds[3] = local_cell.speeds[1];
+        cell_out.speeds[4] = local_cell.speeds[2];
+        cell_out.speeds[5] = local_cell.speeds[7];
+        cell_out.speeds[6] = local_cell.speeds[8];
+        cell_out.speeds[7] = local_cell.speeds[5];
+        cell_out.speeds[8] = local_cell.speeds[6];
+    }
+    else
+    {
+        cell_out = local_cell;
+    }*/
+
+    cell_out = local_cell;
+
+    if(x == xp && y == yp)
+    {
+        cell_out.speeds[0] *= 10;
+    }
+
+
+    out_cells_0[IDX(x, y)] = cell_out.speeds[0];
+    out_cells_1[IDX(x, y)] = cell_out.speeds[1];
+    out_cells_2[IDX(x, y)] = cell_out.speeds[2];
+    out_cells_3[IDX(x, y)] = cell_out.speeds[3];
+    out_cells_4[IDX(x, y)] = cell_out.speeds[4];
+    out_cells_5[IDX(x, y)] = cell_out.speeds[5];
+    out_cells_6[IDX(x, y)] = cell_out.speeds[6];
+    out_cells_7[IDX(x, y)] = cell_out.speeds[7];
+    out_cells_8[IDX(x, y)] = cell_out.speeds[8];
+
 }
 
 

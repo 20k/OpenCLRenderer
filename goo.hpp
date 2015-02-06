@@ -15,7 +15,8 @@ struct lattice
     compute::buffer in[n];
     compute::buffer out[n];
 
-    compute::buffer* current_result;
+    compute::buffer* current_out;
+    compute::buffer* current_in;
 
     compute::buffer obstacles;
 
@@ -23,6 +24,7 @@ struct lattice
 
     void init(int sw, int sh, int sd = 1);
     void tick();
+    void swap_buffers();
 
     GLuint screen_id;
 

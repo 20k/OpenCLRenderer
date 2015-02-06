@@ -260,6 +260,7 @@ static void oclstuff(std::string file, int w, int h, int lres)
     cl::update_boundary = load_kernel(program, "update_boundary");
     cl::fluid_initialise_mem = load_kernel(program, "fluid_initialise_mem");
     cl::fluid_timestep = load_kernel(program, "fluid_timestep");
+    cl::displace_fluid = load_kernel(program, "displace_fluid");
 }
 
 

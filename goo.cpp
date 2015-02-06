@@ -205,6 +205,7 @@ void lattice<n, datatype>::tick()
 
     timestep.push_back(&obstacles);
 
+    ///???
     compute::buffer* cur_in = which == 0 ? in : out;
     compute::buffer* cur_out = which != 0 ? in : out;
 
@@ -228,11 +229,18 @@ void lattice<n, datatype>::tick()
 
     run_kernel_with_list(cl::fluid_timestep, &global_ws, &local_ws, 1, timestep);
 
-    current_result = &cur_in[0];
-
-    which = !which;
+    swap_buffers();
 
     compute::opengl_enqueue_release_gl_objects(1, &screen.get(), cl::cqueue);
+}
+
+template<int n, typename datatype>
+void lattice<n, datatype>::swap_buffers()
+{
+    current_out = which == 0 ? in : out;
+    current_in = which != 0 ? in : out;
+
+    which = !which;
 }
 
 template struct lattice<9, cl_float>;

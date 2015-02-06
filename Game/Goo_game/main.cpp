@@ -24,6 +24,36 @@
 
 #include "../../goo.hpp"
 
+template<int N, typename cl_type>
+void do_fluid_displace(int mx, int my, lattice<N, cl_type>& lat)
+{
+    arg_list displace;
+
+    displace.push_back(&lat.obstacles);
+
+    for(int i=0; i<N; i++)
+    {
+        displace.push_back(&lat.current_out[i]);
+    }
+
+    for(int i=0; i<N; i++)
+    {
+        displace.push_back(&lat.current_in[i]);
+    }
+
+    displace.push_back(&lat.width);
+    displace.push_back(&lat.height);
+    displace.push_back(&mx);
+    displace.push_back(&my);
+
+    cl_uint global_ws[] = {lat.width*lat.height};
+    cl_uint local_ws[] = {128};
+
+    run_kernel_with_list(cl::displace_fluid, global_ws, local_ws, 1, displace);
+
+    lat.swap_buffers();
+}
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -145,8 +175,11 @@ int main(int argc, char *argv[])
 
         //window.draw_smoke(gloop);
 
+        int mx = window.get_mouse_x();
+        int my = window.get_height() - window.get_mouse_y();
 
 
+        do_fluid_displace(mx, my, lat);
 
 
         //window.render_buffers();

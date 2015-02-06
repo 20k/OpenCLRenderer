@@ -26,6 +26,7 @@ namespace cl
     extern compute::command_queue cqueue;
     extern compute::context context;
 
+    ///make this a map so that i can just directly call kernels
     extern kernel kernel1;
     extern kernel kernel2;
     extern kernel kernel3;
@@ -69,6 +70,7 @@ namespace cl
     extern kernel update_boundary;
     extern kernel fluid_initialise_mem;
     extern kernel fluid_timestep;
+    extern kernel displace_fluid;
 }
 
 
