@@ -6560,6 +6560,269 @@ float3 get_wavelet(int3 pos, int width, int height, int depth, __global float* w
     return (float3)(d1y - d2z, d3z - d1x, d2x - d3y);
 }
 
+
+
+typedef struct t_speed
+{
+    float speeds[9];
+} t_speed;
+
+
+#define IDX(x, y) (y*WIDTH + x)
+
+#define NSPEEDS 9
+
+///borrowed from coursework
+__kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
+                             __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
+                             __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
+                             int width, int height)
+{
+    const float DENSITY = 0.1f;
+
+    const int WIDTH = width;
+    const int HEIGHT = height;
+
+    const float w0 = DENSITY*4.0f/9.0f;    /* weighting factor */
+    const float w1 = DENSITY/9.0f;    /* weighting factor */
+    const float w2 = DENSITY/36.0f;   /* weighting factor */
+
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    float cdist = 0;
+
+    float2 centre = (float2){WIDTH/2, HEIGHT/2};
+
+    float2 dist = (float2){x, y} - centre;
+    dist /= centre;
+
+    cdist = length(dist);
+
+    out_cells_0[IDX(x, y)] = w0*1 + w0*cdist/1;
+
+    if(x > 100 && x < 800)
+    {
+        out_cells_0[IDX(x, y)] = 0.9*w0;
+    }
+
+    out_cells_1[IDX(x, y)] = w1*1;
+    out_cells_2[IDX(x, y)] = w1/2;
+    out_cells_3[IDX(x, y)] = w1;
+    out_cells_4[IDX(x, y)] = w1*0.03;
+
+    out_cells_5[IDX(x, y)] = w2/2;
+    out_cells_6[IDX(x, y)] = w2*1;
+    out_cells_7[IDX(x, y)] = w2;
+    out_cells_8[IDX(x, y)] = w2;
+
+    ///do accelerate once here?
+}
+
+///make obstacles compile time constant
+///now, do entire thing with no cpu overhead?
+///hybrid texture + buffer for dual bandwidth?
+///try out textures in new memory scheme
+///make av_vels 16bit ints
+///partly borrowed from uni HPC coursework
+__kernel void fluid_timestep(__global uchar* obstacles,
+                       __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
+                       __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
+                       __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
+
+                       __global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
+                       __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
+                       __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+                       int width, int height,
+
+                       __write_only image2d_t screen
+                      )
+{
+    int id = get_global_id(0);
+
+    const int WIDTH = width;
+    const int HEIGHT = height;
+
+    int x = id % WIDTH;
+    int y = id / WIDTH;
+
+    ///this is technically incorrect for the barrier, but ive never found a situation where this doesnt work in practice
+    if(id >= WIDTH*HEIGHT)
+    {
+        return;
+    }
+
+    const int y_n = (y + 1) % HEIGHT;
+    const int y_s = (y == 0) ? (HEIGHT - 1) : (y - 1);
+
+    const int x_e = (x + 1) % WIDTH;
+    const int x_w = (x == 0) ? (WIDTH - 1) : (x - 1);
+
+    t_speed local_cell;
+
+    local_cell.speeds[0] = in_cells_0[IDX(x, y)];
+    local_cell.speeds[1] = in_cells_1[IDX(x_w, y)];
+    local_cell.speeds[2] = in_cells_2[IDX(x, y_s)];
+    local_cell.speeds[3] = in_cells_3[IDX(x_e, y)];
+    local_cell.speeds[4] = in_cells_4[IDX(x, y_n)];
+    local_cell.speeds[5] = in_cells_5[IDX(x_w, y_s)];
+    local_cell.speeds[6] = in_cells_6[IDX(x_e, y_s)];
+    local_cell.speeds[7] = in_cells_7[IDX(x_e, y_n)];
+    local_cell.speeds[8] = in_cells_8[IDX(x_w, y_n)];
+
+
+    const float inv_c_sq = 3.0f;
+    const float w0 = 4.0f/9.0f;    /* weighting factor */
+    const float w1 = 1.0f/9.0f;    /* weighting factor */
+    const float w2 = 1.0f/36.0f;   /* weighting factor */
+    const float cst1 = inv_c_sq * inv_c_sq * 0.5f;
+
+    const float density = 0.1f;
+
+    const float w1g = density * 0.005f / 9.0f;
+    const float w2g = density * 0.005f / 36.0f;
+
+    t_speed cell_out;
+
+    bool is_obstacle = obstacles[IDX(x, y)];
+
+    //float my_av_vels = 0;
+
+    float local_density = 0.0f;
+
+    if(is_obstacle)
+    {
+        /* called after propagate, so taking values from scratch space
+        ** mirroring, and writing into main grid */
+        ///dont think i need to copy this because propagate does not touch the 0the value, and we are ALWAYS an obstacle
+        ///faster to copy whole cell alhuns (coherence?)
+
+        cell_out.speeds[0] = local_cell.speeds[0];
+        cell_out.speeds[1] = local_cell.speeds[3];
+        cell_out.speeds[2] = local_cell.speeds[4];
+        cell_out.speeds[3] = local_cell.speeds[1];
+        cell_out.speeds[4] = local_cell.speeds[2];
+        cell_out.speeds[5] = local_cell.speeds[7];
+        cell_out.speeds[6] = local_cell.speeds[8];
+        cell_out.speeds[7] = local_cell.speeds[5];
+        cell_out.speeds[8] = local_cell.speeds[6];
+
+        //return;
+    }
+    else //if(!obstacles[IX(x, y)])
+    {
+        int kk;
+
+        float u_x,u_y;               /* av. velocities in x and y directions */
+        float u[NSPEEDS-1];            /* directional velocities */
+        float d_equ[NSPEEDS];        /* equilibrium densities */
+        float u_sq;                  /* squared velocity */
+
+        t_speed this_tmp = local_cell;
+
+
+        for(kk=0; kk<NSPEEDS; kk++)
+        {
+            local_density += this_tmp.speeds[kk];
+        }
+
+        //if(x == 1 && y == 1)
+        //    printf("%f %i %i, ", local_density, x, y);
+
+        u_x = (this_tmp.speeds[1] +
+               this_tmp.speeds[5] +
+               this_tmp.speeds[8]
+               - (this_tmp.speeds[3] +
+                  this_tmp.speeds[6] +
+                  this_tmp.speeds[7]))
+              / local_density;
+
+
+        u_y = (this_tmp.speeds[2] +
+               this_tmp.speeds[5] +
+               this_tmp.speeds[6]
+               - (this_tmp.speeds[4] +
+                  this_tmp.speeds[7] +
+                  this_tmp.speeds[8]))
+              / local_density;
+
+        u_sq = u_x * u_x + u_y * u_y;
+
+        u[0] =   u_x;        /* east */
+        u[1] =         u_y;  /* north */
+        u[2] = - u_x;        /* west */
+        u[3] =       - u_y;  /* south */
+        u[4] =   u_x + u_y;  /* north-east */
+        u[5] = - u_x + u_y;  /* north-west */
+        u[6] = - u_x - u_y;  /* south-west */
+        u[7] =   u_x - u_y;  /* south-east */
+
+        const float cst2 = 1.0f - u_sq * inv_c_sq * 0.5f;
+
+        /* equilibrium densities */
+        /* zero velocity density: weight w0 */
+        d_equ[0] = w0 * local_density * cst2;
+        /* axis speeds: weight w1 */
+        d_equ[1] = w1 * local_density * (u[0] * inv_c_sq + u[0] * u[0] * cst1 + cst2);
+        d_equ[2] = w1 * local_density * (u[1] * inv_c_sq + u[1] * u[1] * cst1 + cst2);
+        d_equ[3] = w1 * local_density * (u[2] * inv_c_sq + u[2] * u[2] * cst1 + cst2);
+        d_equ[4] = w1 * local_density * (u[3] * inv_c_sq + u[3] * u[3] * cst1 + cst2);
+        /* diagonal speeds: weight w2 */
+        d_equ[5] = w2 * local_density * (u[4] * inv_c_sq + u[4] * u[4] * cst1 + cst2);
+        d_equ[6] = w2 * local_density * (u[5] * inv_c_sq + u[5] * u[5] * cst1 + cst2);
+        d_equ[7] = w2 * local_density * (u[6] * inv_c_sq + u[6] * u[6] * cst1 + cst2);
+        d_equ[8] = w2 * local_density * (u[7] * inv_c_sq + u[7] * u[7] * cst1 + cst2);
+
+        const float OMEGA = 1.085f;
+
+        t_speed this_cell;
+
+        for(kk=0; kk<NSPEEDS; kk++)
+        {
+            float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
+
+            ///what to do about negative fluid flows? Push to other side?
+            this_cell.speeds[kk] = max(val, 0.0000f);
+        }
+
+        //printf("%f\n", u_sq);
+
+        cell_out = this_cell;
+
+        if(local_density < 0.00001f)
+        {
+            for(int i=0; i<NSPEEDS; i++)
+            {
+                cell_out.speeds[i] = local_cell.speeds[i];
+            }
+        }
+    }
+
+
+    out_cells_0[IDX(x, y)] = cell_out.speeds[0];
+    out_cells_1[IDX(x, y)] = cell_out.speeds[1];
+    out_cells_2[IDX(x, y)] = cell_out.speeds[2];
+    out_cells_3[IDX(x, y)] = cell_out.speeds[3];
+    out_cells_4[IDX(x, y)] = cell_out.speeds[4];
+    out_cells_5[IDX(x, y)] = cell_out.speeds[5];
+    out_cells_6[IDX(x, y)] = cell_out.speeds[6];
+    out_cells_7[IDX(x, y)] = cell_out.speeds[7];
+    out_cells_8[IDX(x, y)] = cell_out.speeds[8];
+
+    //float speed = cell_out.speeds[0];
+
+    float broke = isnan(local_density);
+
+    write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
+    //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
+
+    //printf("%f %i %i\n", speed, x, y);
+}
+
+
+
+///potentially unnecessary 3d code
+#if 0
 #define NSPEEDS 15
 
 typedef struct t_speed
@@ -6955,6 +7218,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 
     //printf("%f %i %i\n", speed, x, y);
 }
+#endif
 
 
 float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
