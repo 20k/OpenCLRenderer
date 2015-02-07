@@ -54,6 +54,68 @@ void do_fluid_displace(int mx, int my, lattice<N, cl_type>& lat)
     lat.swap_buffers();
 }
 
+template<int N, typename cl_type>
+void add_obstacle(int mx, int my, lattice<N, cl_type>& lat)
+{
+    int loc = mx + my * lat.width;
+
+    cl_uchar val = 1;
+
+    clEnqueueWriteBuffer(cl::cqueue, lat.obstacles.get(), CL_FALSE, loc, sizeof(cl_uchar), &val, 0, NULL, NULL);
+}
+
+///the skin of a fluid defined object
+///this will define enemies
+///Make this purely rendering based, and obstacles actually on the fluid map?
+///Make enemies a completely separate fluid rendering piece? (probably will have to rip)
+struct skin
+{
+    ///defines a self connected circle (but not actually a circle)
+    std::vector<cl_float2> points;
+
+    cl_float2 offset = (cl_float2){0, 0};
+
+    template<int N, typename datatype>
+    void project_to_lattice(const lattice<N, datatype>& lat)
+    {
+        for(int i=0; i<points.size()-1; i++)
+        {
+            int next = (i + 1) % points.size();
+
+            cl_float2 start = points[i];
+            cl_float2 stop = points[next];
+
+            printf("%f %f %f %f\n", start.x, start.y, stop.x, stop.y);
+
+            float dx = stop.x - start.x;
+            float dy = stop.y - start.y;
+
+            float max_dist = std::max(fabs(dx), fabs(dy));
+
+            float sx = dx / max_dist;
+            float sy = dy / max_dist;
+
+            printf("%f %f %f\n", sx, sy, max_dist);
+
+            float ix = start.x;
+            float iy = start.y;
+
+            for(int n=0; n<max_dist; n++)
+            {
+                cl_uint loc = roundf(ix) + roundf(iy) * lat.width;
+
+                cl_uint val = 1;
+
+                clEnqueueWriteBuffer(cl::cqueue, lat.obstacles.get(), CL_FALSE, loc, sizeof(cl_uchar), &val, 0, NULL, NULL);
+
+
+                ix += sx;
+                iy += sy;
+            }
+        }
+    }
+};
+
 ///todo eventually
 ///split into dynamic and static objects
 
@@ -84,7 +146,7 @@ int main(int argc, char *argv[])
 
 
 
-    objects_container c1;
+    /*objects_container c1;
     c1.set_file("../../objects/cylinder.obj");
     c1.set_pos({-2000, 0, 0});
     c1.set_active(true);
@@ -93,7 +155,7 @@ int main(int argc, char *argv[])
     objects_container c2;
     c2.set_file("../../objects/cylinder.obj");
     c2.set_pos({0,0,0});
-    //c2.set_active(true);
+    //c2.set_active(true);*/
 
     engine window;
     window.load(1280,720,1000, "turtles", "../../cl2.cl");
@@ -104,7 +166,7 @@ int main(int argc, char *argv[])
 
     lattice<9, cl_float> lat;
 
-    lat.init(1280, 720, 1);
+    lat.init(window.get_width()/4, window.get_height()/4, 1);
 
     window.set_camera_pos((cl_float4){0,100,-300,0});
     //window.set_camera_pos((cl_float4){0,0,0,0});
@@ -112,20 +174,20 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
-    obj_mem_manager::load_active_objects();
+    //obj_mem_manager::load_active_objects();
 
     //sponza.scale(100.0f);
 
-    c1.scale(100.0f);
-    c2.scale(100.0f);
+    //c1.scale(100.0f);
+    //c2.scale(100.0f);
 
-    c1.set_rot({M_PI/2.0f, 0, 0});
-    c2.set_rot({M_PI/2.0f, 0, 0});
+    //c1.set_rot({M_PI/2.0f, 0, 0});
+    //c2.set_rot({M_PI/2.0f, 0, 0});
 
-    texture_manager::allocate_textures();
+    //texture_manager::allocate_textures();
 
-    obj_mem_manager::g_arrange_mem();
-    obj_mem_manager::g_changeover();
+    //obj_mem_manager::g_arrange_mem();
+    //obj_mem_manager::g_changeover();
 
     sf::Event Event;
 
@@ -141,7 +203,7 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
     //l.set_pos((cl_float4){-400, 150, -555, 0});
-    window.add_light(&l);
+    //window.add_light(&l);
 
     //l.set_pos((cl_float4){0, 200, -450, 0});
     l.set_pos((cl_float4){-1200, 150, 0, 0});
@@ -149,7 +211,14 @@ int main(int argc, char *argv[])
 
     //window.add_light(&l);
 
-    window.construct_shadowmaps();
+    //window.construct_shadowmaps();
+
+    bool lastf = false, lastg = false;
+
+    skin s1;
+
+    sf::Mouse mouse;
+    sf::Keyboard key;
 
     int fc = 0;
 
@@ -175,21 +244,48 @@ int main(int argc, char *argv[])
 
         //window.draw_smoke(gloop);
 
-        int mx = window.get_mouse_x();
-        int my = window.get_height() - window.get_mouse_y();
+        float mx = window.get_mouse_x();
+        float my = window.get_height() - window.get_mouse_y();
 
+        mx /= window.get_width();
+        my /= window.get_height();
+
+        mx *= lat.width;
+        my *= lat.height;
 
         do_fluid_displace(mx, my, lat);
 
 
+        if(mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            add_obstacle(mx, my, lat);
+        }
+
+        if(!key.isKeyPressed(sf::Keyboard::F) && lastf)
+        {
+            s1.points.push_back({mx, my});
+            lastf = false;
+            printf("hello %f %f\n", mx, my);
+        }
+        if(key.isKeyPressed(sf::Keyboard::F))
+            lastf = true;
+
+        if(!key.isKeyPressed(sf::Keyboard::G) && lastg)
+        {
+            s1.project_to_lattice(lat);
+            lastg = false;
+        }
+        if(key.isKeyPressed(sf::Keyboard::G))
+            lastg = true;
+
         //window.render_buffers();
 
-        window.render_texture(lat.screen, lat.screen_id);
+        window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
 
         window.display();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
-        printf("framecount %i\n", fc++);
+        //printf("framecount %i\n", fc++);
     }
 }

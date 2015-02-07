@@ -3144,7 +3144,7 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
     ///do lens_centre before scaling? lens*2? /2?
     in_coord -= (float2){width/2, height/2};
 
-    in_coord /= 1.31;
+    in_coord /= 1.31f;
 
     in_coord += (float2){width/2, height/2};
 
@@ -4613,7 +4613,7 @@ int4 bit_to_pos(char b, int size)
 ///dont bother precomputing for now
 float3 plane_intersect(float3 x, float3 dx, float3 px)
 {
-    return (1.0f/dx) * x + (1.0/dx) * (-px);
+    return (1.0f/dx) * x + (1.0f/dx) * (-px);
 }
 
 int select_child(float3 centre, float3 pos, float3 ray, float tmin)
@@ -6454,7 +6454,7 @@ __kernel void update_boundary(__read_only image3d_t in, __write_only image3d_t o
 
     float val;
 
-    val = scale*read_imagef(in, sam, (int4){x, y, z, 0} + desc.xyzz + 0.5f).x;
+    val = scale*read_imagef(in, sam, (int4){x, y, z, 0} + desc.xyzz).x;
 
     write_imagef(out, (int4){x, y, z, 0}, val);
 }
@@ -6771,7 +6771,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         d_equ[7] = w2 * local_density * (u[6] * inv_c_sq + u[6] * u[6] * cst1 + cst2);
         d_equ[8] = w2 * local_density * (u[7] * inv_c_sq + u[7] * u[7] * cst1 + cst2);
 
-        const float OMEGA = 1.0f;
+        const float OMEGA = 1.8f;
 
         t_speed this_cell;
 
@@ -7318,7 +7318,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 #endif
 
 
-float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
+/*float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
             int imin, int imax)
 {
     float3 accum = 0;
@@ -7336,7 +7336,7 @@ float3 y_of(int x, int y, int z, int width, int height, int depth, __global floa
     }
 
     return accum;
-}
+}*/
 
 float do_trilinear(__global float* buf, float vx, float vy, float vz, int width, int height, int depth)
 {

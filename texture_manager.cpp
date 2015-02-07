@@ -1,5 +1,6 @@
 #include "texture_manager.hpp"
 #include <math.h>
+#include <iostream>
 
 std::vector<texture> texture_manager::all_textures;
 std::vector<int> texture_manager::active_textures;
@@ -95,7 +96,7 @@ cl_uchar4 * return_first_free(int size, int &num)
 }
 
 
-inline void setpixel(cl_uchar4 *buf, sf::Color &col, int x, int y, int lx, int ly)
+inline void setpixel(cl_uchar4 *buf, sf::Color col, int x, int y, int lx, int ly)
 {
     buf[x + y*lx].x=col.r;
     buf[x + y*lx].y=col.g;
@@ -103,7 +104,7 @@ inline void setpixel(cl_uchar4 *buf, sf::Color &col, int x, int y, int lx, int l
 }
 
 ///averages out 4 pixel values
-static sf::Color pixel4(sf::Color &p0, sf::Color &p1, sf::Color &p2, sf::Color &p3)
+static sf::Color pixel4(sf::Color p0, sf::Color p1, sf::Color p2, sf::Color p3)
 {
     sf::Color ret;
     ret.r=(p0.r + p1.r + p2.r + p3.r)/4.0f;

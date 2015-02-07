@@ -19,14 +19,25 @@
 
 #include "smoke.hpp"
 
+#ifdef RIFT
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"
 #include "Rift/Src/OVR_CAPI.h"
 
-namespace compute = boost::compute;
 using namespace OVR;
+#endif
+
+namespace compute = boost::compute;
 
 struct point_cloud_info;
+
+#ifndef RIFT
+typedef cl_uint ovrHmd;
+typedef cl_uint ovrEyeRenderDesc;
+typedef cl_uint ovrFovPort;
+typedef cl_uint ovrPosef;
+typedef cl_uint ovrTrackingState;
+#endif
 
 namespace rift
 {
@@ -143,7 +154,7 @@ struct engine
     void draw_raytrace();
     void draw_smoke(smoke& s);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
-    void render_texture(compute::opengl_renderbuffer&, GLuint id);
+    void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
     void render_buffers();
     void display();
 

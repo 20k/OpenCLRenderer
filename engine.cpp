@@ -22,10 +22,12 @@
 #include <chrono>
 #include "ocl.h"
 
+#ifdef RIFT
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"
 #include "Rift/Src/OVR_CAPI.h"
 #include "Rift/Src/OVR_Stereo.h"
+#endif
 
 #define FOV_CONST 500.0f
 
@@ -146,12 +148,15 @@ compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* 
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc)
 {
+    #ifdef RIFT
     ovr_Initialize();
+    #endif
 
     width = pwidth;
     height = pheight;
     depth = pdepth;
 
+    #ifdef RIFT
     {
         using namespace rift;
 
@@ -228,6 +233,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             }
         }
     }
+    #endif
 
     ///in case I need to do scaling for oculus
     int videowidth = width;
@@ -768,6 +774,7 @@ void engine::input()
 
     ///am I going to have to add camera to quaternion here to avoid problems? Yes
     ///convert to produce two eye camera outputs
+    #ifdef RIFT
     if(rift::enabled)
     {
         using namespace rift;
@@ -812,6 +819,7 @@ void engine::input()
             eye_rotation[eye] = {-hrx, -hry, hrz};
         }
     }
+    #endif
 }
 
 void engine::construct_shadowmaps()
@@ -1938,7 +1946,7 @@ void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
     run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
 }
 
-void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id)
+void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w, int h)
 {
     compute::opengl_enqueue_release_gl_objects(1, &buf.get(), cl::cqueue);
 
@@ -1972,7 +1980,7 @@ void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id)
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
     ///blit buffer to screen
-    glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebufferEXT(0 , 0, w, h, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
 
     compute::opengl_enqueue_acquire_gl_objects(1, &buf.get(), cl::cqueue);
@@ -2057,12 +2065,14 @@ void engine::render_buffers()
 
     text_handler::render();
 
+    #ifdef RIFT
     if(rift::enabled)
     {
         using namespace rift;
 
         ovrHmd_EndFrameTiming(HMD);
     }
+    #endif
 
     //rendering to wrong buffer?
     //window.display();
