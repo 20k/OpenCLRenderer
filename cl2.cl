@@ -6637,9 +6637,9 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 
                        int width, int height,
 
-                       __write_only image2d_t screen,
+                       __write_only image2d_t screen
 
-                       __global uchar* skin_in, __global uchar* skin_out
+                       //__global uchar* skin_in, __global uchar* skin_out
                       )
 {
     int id = get_global_id(0);
@@ -6690,7 +6690,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 
     bool is_obstacle = obstacles[IDX(x, y)];
 
-    uchar is_skin = skin_in[IDX(x, y)];
+    //uchar is_skin = skin_in[IDX(x, y)];
 
     float local_density = 0.0f;
     float u_sq = 0;                  /* squared velocity */
@@ -6823,15 +6823,10 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     out_cells_7[IDX(x, y)] = cell_out.speeds[7];
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
 
-    int2 mov = {x, y};
+    /*int2 mov = {x, y};
 
     float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
 
-    //float2 accel = (float2)(u_x, u_y);
-
-    //float2 accel = (float2)(local_cell.speeds[1] - local_cell.speeds[3], 0.f);
-
-    //accel = round(accel);
     accel *= 50.0f;
     accel = clamp(accel, -1, 1);
 
@@ -6845,20 +6840,28 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     if(is_skin)
     {
         skin_out[IDX(mov.x, mov.y)] = 1;
-    }
+    }*/
 
     //float speed = cell_out.speeds[0];
 
     //float broke = isnan(local_density);
 
-    if(!is_skin)
+    /*if(!is_skin)
         write_imagef(screen, (int2){x, y}, clamp(fabs(accel).xyyy, 0.f, 1.f));
     else
-        write_imagef(screen, (int2){x, y}, (float4)(is_skin, 0, 0, 0));
+        write_imagef(screen, (int2){x, y}, (float4)(is_skin, 0, 0, 0));*/
+
+    write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
 
     //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
 
     //printf("%f %i %i\n", speed, x, y);
+}
+
+__kernel
+void process_skins(__global float* in_cells_0, __global float* skin_x, __global float* skin_y, int skin_num, __write_only image2d_t screen)
+{
+
 }
 
 __kernel

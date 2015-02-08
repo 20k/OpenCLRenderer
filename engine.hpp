@@ -183,7 +183,7 @@ struct engine
 
 struct arg_list
 {
-    std::vector<void*> args;
+    std::vector<const void*> args;
     std::vector<int> sizes;
 
     template<typename T>

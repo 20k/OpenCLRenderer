@@ -268,6 +268,7 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     cl::fluid_initialise_mem = load_kernel(program, "fluid_initialise_mem");
     cl::fluid_timestep = load_kernel(program, "fluid_timestep");
     cl::displace_fluid = load_kernel(program, "displace_fluid");
+    cl::process_skins = load_kernel(program, "process_skins");
 }
 
 

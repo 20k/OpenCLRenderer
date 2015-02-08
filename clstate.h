@@ -71,6 +71,7 @@ namespace cl
     extern kernel fluid_initialise_mem;
     extern kernel fluid_timestep;
     extern kernel displace_fluid;
+    extern kernel process_skins;
 }
 
 

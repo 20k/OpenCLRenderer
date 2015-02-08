@@ -51,4 +51,5 @@ kernel cl::update_boundary;
 kernel cl::fluid_initialise_mem;
 kernel cl::fluid_timestep;
 kernel cl::displace_fluid;
+kernel cl::process_skins;
 

@@ -73,14 +73,24 @@ struct skin
     ///defines a self connected circle (but not actually a circle)
     std::vector<cl_float2> points;
     std::vector<cl_float2> visual_points;
+    std::vector<cl_float> point_x;
+    std::vector<cl_float> point_y;
 
-    compute::buffer skin_map[2];
+    compute::buffer skin_x;
+    compute::buffer skin_y;
+
     int which_skin = 0;
 
+    bool skin_init = false;
+
+    ///this method seems highly redundant because it is
     void add_point(cl_float2 point)
     {
         points.push_back(point);
         visual_points.push_back(point);
+
+        point_x.push_back(point.x);
+        point_y.push_back(point.y);
     }
 
     cl_float2 offset = (cl_float2){0, 0};
@@ -121,10 +131,10 @@ struct skin
         }
     }
 
-    template<int N, typename datatype>
-    void generate_skin_buffers(const lattice<N, datatype>& lat)
-    {
-        int width = lat.width;
+    //template<int N, typename datatype>
+    //void generate_skin_buffers(const lattice<N, datatype>& lat)
+    //{
+        /*int width = lat.width;
         int height = lat.height;
 
         cl_uchar* buf = new cl_uchar[width*height]();
@@ -149,10 +159,55 @@ struct skin
 
         which_skin = 0;
 
-        delete [] buf;
+        delete [] buf;*/
 
+    //}
+
+    template<int N, typename datatype>
+    void generate_skin_buffers(const lattice<N, datatype>& lat)
+    {
+        int width = lat.width;
+        int height = lat.height;
+
+        assert(point_x.size() == point_y.size());
+
+        int num = point_x.size();
+
+        skin_x = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_x.data());
+        skin_y = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_y.data());
+
+        skin_init = true;
     }
 
+    template<int N, typename datatype>
+    void advect_skin(const lattice<N, datatype>& lat)
+    {
+        if(!skin_init)
+            return;
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &lat.screen.get(), cl::cqueue);
+
+
+        arg_list skin_args;
+        skin_args.push_back(&lat.current_out[0]);
+
+        skin_args.push_back(&skin_x);
+        skin_args.push_back(&skin_y);
+
+        int num = point_x.size();
+
+        skin_args.push_back(&num);
+        skin_args.push_back(&lat.screen);
+
+
+        cl_uint global_ws[] = {num};
+        cl_uint local_ws[] = {128};
+
+        run_kernel_with_list(cl::process_skins, global_ws, local_ws, 1, skin_args);
+
+        compute::opengl_enqueue_release_gl_objects(1, &lat.screen.get(), cl::cqueue);
+
+    }
 
 
     template<int N, typename datatype>
@@ -453,7 +508,8 @@ int main(int argc, char *argv[])
 
         //window.draw_bulk_objs_n();
 
-        lat.tick(s1.skin_map, s1.which_skin);
+        lat.tick();//s1.skin_map, s1.which_skin);
+        s1.advect_skin(lat);
 
         //window.draw_voxel_grid(*lat.current_result, lat.width, lat.height, lat.depth);
 
