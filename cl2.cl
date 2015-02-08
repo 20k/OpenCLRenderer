@@ -6936,9 +6936,6 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
         ny = y;
     }
 
-
-    ///
-
     skin_x[id] = nx;
     skin_y[id] = ny;
 
