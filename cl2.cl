@@ -6569,7 +6569,7 @@ typedef struct t_speed
 
 
 ///these are officially banned from now on in code, even trivial macros constantly causing problems
-#define IDX(x, y) ((y)*WIDTH + (x))
+#define IDX(x, y) (((int)(y))*WIDTH + (int)(x))
 
 #define NSPEEDS 9
 
@@ -6859,9 +6859,34 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 }
 
 __kernel
-void process_skins(__global float* in_cells_0, __global float* skin_x, __global float* skin_y, int skin_num, __write_only image2d_t screen)
+void process_skins(__global float* in_cells_0, __global float* skin_x, __global float* skin_y, int num, int width, int height, __write_only image2d_t screen)
 {
+    int id = get_global_id(0);
 
+    if(id >= num)
+        return;
+
+    int WIDTH = width;
+
+    float x = skin_x[id];
+    float y = skin_y[id];
+
+    float2 mov = {x, y};
+
+    float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
+
+    accel *= 50.0f;
+    accel = clamp(accel, -0.5f, 0.5f);
+
+    mov += accel;
+
+    mov = clamp(mov, 0.f, (float2)(width-1, height-1));
+
+    skin_x[id] = mov.x;
+    skin_y[id] = mov.y;
+
+
+    write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
 }
 
 __kernel
@@ -6883,11 +6908,11 @@ void displace_fluid(__global uchar* obstacles,
     const int WIDTH = width;
     const int HEIGHT = height;
 
-    int x = id % WIDTH;
-    int y = id / WIDTH;
+    int x = id % width;
+    int y = id / height;
 
     ///this is technically incorrect for the barrier, but ive never found a situation where this doesnt work in practice
-    if(id >= WIDTH*HEIGHT)
+    if(id >= width*height)
     {
         return;
     }

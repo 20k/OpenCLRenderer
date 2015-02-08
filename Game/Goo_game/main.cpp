@@ -197,6 +197,8 @@ struct skin
         int num = point_x.size();
 
         skin_args.push_back(&num);
+        skin_args.push_back(&lat.width);
+        skin_args.push_back(&lat.height);
         skin_args.push_back(&lat.screen);
 
 
