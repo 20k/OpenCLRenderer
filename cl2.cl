@@ -6859,7 +6859,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 }
 
 __kernel
-void process_skins(__global float* in_cells_0, __global float* skin_x, __global float* skin_y, int num, int width, int height, __write_only image2d_t screen)
+void process_skins(__global float* in_cells_0, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
 {
     int id = get_global_id(0);
 
@@ -6882,8 +6882,29 @@ void process_skins(__global float* in_cells_0, __global float* skin_x, __global 
 
     mov = clamp(mov, 1.f, (float2)(width-1, height-1)-1);
 
-    skin_x[id] = mov.x;
-    skin_y[id] = mov.y;
+    float ox = original_skin_x[id];
+    float oy = original_skin_y[id];
+
+    float2 orig = {ox, oy};
+
+    float2 dv = mov - orig;
+
+    float distance = length(dv);
+
+    const float max_distance = 30;
+
+    distance = min(distance, max_distance);
+
+    float angle = atan2(dv.y, dv.x);
+
+    float nx = distance * cos(angle);
+    float ny = distance * sin(angle);
+
+    nx += orig.x;
+    ny += orig.y;
+
+    skin_x[id] = nx;
+    skin_y[id] = ny;
 
 
     write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));

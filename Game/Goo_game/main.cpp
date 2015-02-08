@@ -79,6 +79,9 @@ struct skin
     compute::buffer skin_x;
     compute::buffer skin_y;
 
+    compute::buffer original_skin_x;
+    compute::buffer original_skin_y;
+
     int which_skin = 0;
 
     bool skin_init = false;
@@ -144,6 +147,9 @@ struct skin
         skin_x = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_x.data());
         skin_y = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_y.data());
 
+        original_skin_x = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_x.data());
+        original_skin_y = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_y.data());
+
         skin_init = true;
     }
 
@@ -161,6 +167,8 @@ struct skin
 
         skin_args.push_back(&skin_x);
         skin_args.push_back(&skin_y);
+        skin_args.push_back(&original_skin_x);
+        skin_args.push_back(&original_skin_y);
 
         int num = point_x.size();
 
