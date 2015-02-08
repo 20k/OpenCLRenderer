@@ -6876,11 +6876,11 @@ void process_skins(__global float* in_cells_0, __global float* skin_x, __global 
     float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
 
     accel *= 50.0f;
-    accel = clamp(accel, -0.5f, 0.5f);
+    accel = clamp(accel, -1.f, 1.f);
 
     mov += accel;
 
-    mov = clamp(mov, 0.f, (float2)(width-1, height-1));
+    mov = clamp(mov, 1.f, (float2)(width-1, height-1)-1);
 
     skin_x[id] = mov.x;
     skin_y[id] = mov.y;
@@ -6909,7 +6909,7 @@ void displace_fluid(__global uchar* obstacles,
     const int HEIGHT = height;
 
     int x = id % width;
-    int y = id / height;
+    int y = id / width;
 
     ///this is technically incorrect for the barrier, but ive never found a situation where this doesnt work in practice
     if(id >= width*height)
@@ -6968,7 +6968,7 @@ void displace_fluid(__global uchar* obstacles,
     if(x == xp && y == yp)
     {
         for(int i=0; i<NSPEEDS; i++)
-            cell_out.speeds[i] +=0.5f;
+            cell_out.speeds[i] += 0.5f;
     }
 
 
