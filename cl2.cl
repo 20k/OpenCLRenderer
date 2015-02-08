@@ -6859,7 +6859,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 }
 
 __kernel
-void process_skins(__global float* in_cells_0, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
+void process_skins(__global float* in_cells_0, __global uchar* obstacles, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
 {
     int id = get_global_id(0);
 
@@ -6871,9 +6871,24 @@ void process_skins(__global float* in_cells_0, __global float* skin_x, __global 
     float x = skin_x[id];
     float y = skin_y[id];
 
+    bool o1, o2, o3, o4;
+
+    o1 = obstacles[IDX(x+1, y)];
+    o2 = obstacles[IDX(x-1, y)];
+    o3 = obstacles[IDX(x, y+1)];
+    o4 = obstacles[IDX(x, y-1)];
+
+    float v1, v2, v3, v4;
+
+    v1 = !o1 ? in_cells_0[IDX(x+1, y)] : 0;
+    v2 = !o2 ? in_cells_0[IDX(x-1, y)] : 0;
+    v3 = !o3 ? in_cells_0[IDX(x, y+1)] : 0;
+    v4 = !o4 ? in_cells_0[IDX(x, y-1)] : 0;
+
+
     float2 mov = {x, y};
 
-    float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
+    float2 accel = (float2)(v1 - v2, v3 - v4);
 
     accel *= 50.0f;
     accel = clamp(accel, -1.f, 1.f);
@@ -6891,9 +6906,17 @@ void process_skins(__global float* in_cells_0, __global float* skin_x, __global 
 
     float distance = length(dv);
 
-    const float max_distance = 30;
+    const float max_distance = 20;
 
     distance = min(distance, max_distance);
+
+    //float extra = distance - max_distance;
+
+    //extra = max(extra, 0.0f);
+
+    //const float remove_factor = 16;
+
+    //distance -= min(extra/remove_factor, 1.f);
 
     float angle = atan2(dv.y, dv.x);
 
@@ -6902,6 +6925,19 @@ void process_skins(__global float* in_cells_0, __global float* skin_x, __global 
 
     nx += orig.x;
     ny += orig.y;
+
+
+    if(obstacles[IDX(round(nx), y)])
+    {
+        nx = x;
+    }
+    if(obstacles[IDX(x, round(ny))])
+    {
+        ny = y;
+    }
+
+
+    ///
 
     skin_x[id] = nx;
     skin_y[id] = ny;

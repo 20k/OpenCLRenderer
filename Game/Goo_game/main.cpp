@@ -164,6 +164,7 @@ struct skin
 
         arg_list skin_args;
         skin_args.push_back(&lat.current_out[0]);
+        skin_args.push_back(&lat.obstacles);
 
         skin_args.push_back(&skin_x);
         skin_args.push_back(&skin_y);
