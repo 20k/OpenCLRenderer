@@ -197,7 +197,7 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
 
 
 template<int n, typename datatype>
-void lattice<n, datatype>::tick()
+void lattice<n, datatype>::tick(compute::buffer skin[2], int& which_skin)
 {
     compute::opengl_enqueue_acquire_gl_objects(1, &screen.get(), cl::cqueue);
 
@@ -224,12 +224,17 @@ void lattice<n, datatype>::tick()
 
     timestep.push_back(&screen);
 
+    timestep.push_back(&skin[which_skin]);
+    timestep.push_back(&skin[(which_skin + 1) % 2]);
+
     cl_uint global_ws = width*height*depth;
     cl_uint local_ws = 128;
 
     run_kernel_with_list(cl::fluid_timestep, &global_ws, &local_ws, 1, timestep);
 
     swap_buffers();
+
+    which_skin = (which_skin + 1) % 2;
 
     compute::opengl_enqueue_release_gl_objects(1, &screen.get(), cl::cqueue);
 }

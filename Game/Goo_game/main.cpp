@@ -55,11 +55,9 @@ void do_fluid_displace(int mx, int my, lattice<N, cl_type>& lat)
 }
 
 template<int N, typename cl_type>
-void add_obstacle(int mx, int my, lattice<N, cl_type>& lat)
+void set_obstacle(int mx, int my, lattice<N, cl_type>& lat, cl_uchar val)
 {
     int loc = mx + my * lat.width;
-
-    cl_uchar val = 1;
 
     clEnqueueWriteBuffer(cl::cqueue, lat.obstacles.get(), CL_FALSE, loc, sizeof(cl_uchar), &val, 0, NULL, NULL);
 }
@@ -68,24 +66,34 @@ void add_obstacle(int mx, int my, lattice<N, cl_type>& lat)
 ///this will define enemies
 ///Make this purely rendering based, and obstacles actually on the fluid map?
 ///Make enemies a completely separate fluid rendering piece? (probably will have to rip)
+///diagonal lines are not currently perfect
+
 struct skin
 {
     ///defines a self connected circle (but not actually a circle)
     std::vector<cl_float2> points;
+    std::vector<cl_float2> visual_points;
+
+    compute::buffer skin_map[2];
+    int which_skin = 0;
+
+    void add_point(cl_float2 point)
+    {
+        points.push_back(point);
+        visual_points.push_back(point);
+    }
 
     cl_float2 offset = (cl_float2){0, 0};
 
     template<int N, typename datatype>
     void project_to_lattice(const lattice<N, datatype>& lat)
     {
-        for(int i=0; i<points.size()-1; i++)
+        for(int i=0; i<points.size(); i++)
         {
             int next = (i + 1) % points.size();
 
             cl_float2 start = points[i];
             cl_float2 stop = points[next];
-
-            printf("%f %f %f %f\n", start.x, start.y, stop.x, stop.y);
 
             float dx = stop.x - start.x;
             float dy = stop.y - start.y;
@@ -94,8 +102,6 @@ struct skin
 
             float sx = dx / max_dist;
             float sy = dy / max_dist;
-
-            printf("%f %f %f\n", sx, sy, max_dist);
 
             float ix = start.x;
             float iy = start.y;
@@ -112,6 +118,213 @@ struct skin
                 ix += sx;
                 iy += sy;
             }
+        }
+    }
+
+    template<int N, typename datatype>
+    void generate_skin_buffers(const lattice<N, datatype>& lat)
+    {
+        int width = lat.width;
+        int height = lat.height;
+
+        cl_uchar* buf = new cl_uchar[width*height]();
+
+        ///blank
+        skin_map[1] = compute::buffer(cl::context, sizeof(cl_uchar)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
+
+
+        ///fill with skin map
+        for(auto& i : points)
+        {
+            int x, y;
+
+            x = clamp(i.x, 0.0f, width-1);
+            y = clamp(i.y, 0.0f, height-1);
+
+            buf[y*width + x] = 1;
+        }
+
+        skin_map[0] = compute::buffer(cl::context, sizeof(cl_uchar)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
+
+
+        which_skin = 0;
+
+        delete [] buf;
+
+    }
+
+
+
+    template<int N, typename datatype>
+    void partial_advect_lattice(const lattice<N, datatype>& lat)
+    {
+        for(int i=0; i<visual_points.size(); i++)
+        {
+            cl_float2 point = visual_points[i];
+            cl_float2 original_point = points[i];
+
+            point.x = clamp(point.x, 1.0f, lat.width-2);
+            point.y = clamp(point.y, 1.0f, lat.height-2);
+
+            /*
+            cl_int clEnqueueReadBuffer (	cl_command_queue command_queue,
+                cl_mem buffer,
+                cl_bool blocking_read,
+                size_t offset,
+                size_t cb,
+                void *ptr,
+                cl_uint num_events_in_wait_list,
+                const cl_event *event_wait_list,
+                cl_event *event)*/
+
+
+            /*cl_float av1, av2, av3, av4;
+            cl_float v1=0, v2=0, v3=0, v4=0;
+
+            ///do all reads first async, then block at end (!)
+            ///take gradient of field, not velocity? We kind of maybe want pressure, but i dont know
+            for(int i=0; i<9; i++)
+            {
+                clEnqueueReadBuffer(cl::cqueue, lat.current_out[i].get(), CL_FALSE, roundf(point.x+1) + roundf(point.y) * lat.width, sizeof(cl_float), &av1, 0, NULL, NULL);
+                clEnqueueReadBuffer(cl::cqueue, lat.current_out[i].get(), CL_FALSE, roundf(point.x) + roundf(point.y+1) * lat.width, sizeof(cl_float), &av2, 0, NULL, NULL);
+                clEnqueueReadBuffer(cl::cqueue, lat.current_out[i].get(), CL_FALSE, roundf(point.x-1) + roundf(point.y) * lat.width, sizeof(cl_float), &av3, 0, NULL, NULL);
+                clEnqueueReadBuffer(cl::cqueue, lat.current_out[i].get(), CL_TRUE , roundf(point.x) + roundf(point.y-1) * lat.width, sizeof(cl_float), &av4, 0, NULL, NULL);
+
+                v1 += av1;
+                v2 += av2;
+                v3 += av3;
+                v4 += av4;
+            }*/
+
+            /*float vs[9];
+
+            for(int i=0; i<9; i++)
+            {
+                clEnqueueReadBuffer(cl::cqueue, lat.current_out[i].get(), CL_FALSE, roundf(point.x) + roundf(point.y) * lat.width, sizeof(cl_float), &vs[i], 0, NULL, NULL);
+            }
+
+            ///bad
+            clFinish(cl::cqueue);
+
+            float local_density = 0;
+
+            for(int i=0; i<9; i++)
+            {
+                local_density += vs[i];
+            }
+
+            //local_density = clamp(local_density, 0.01f, 1.0f);
+
+            float vx = (vs[1] + vs[5] + vs[8]) - (vs[3] + vs[6] + vs[7]);
+            vx /= local_density;
+
+            float vy = (vs[2] + vs[5] + vs[6]) - (vs[4] + vs[7] + vs[8]);
+            vy /= local_density;*/
+
+            /*
+cl_int clEnqueueReadImage (	cl_command_queue command_queue,
+ 	cl_mem image,
+ 	cl_bool blocking_read,
+ 	const size_t origin[3],
+ 	const size_t region[3],
+ 	size_t row_pitch,
+ 	size_t slice_pitch,
+ 	void *ptr,
+ 	cl_uint num_events_in_wait_list,
+ 	const cl_event *event_wait_list,
+ 	cl_event *event)*/
+
+            compute::opengl_enqueue_acquire_gl_objects(1, &lat.screen.get(), cl::cqueue);
+
+            cl_float v1, v2, v3, v4;
+
+            size_t origin_1[3] = {point.x+1, point.y, 0};
+            size_t origin_2[3] = {point.x, point.y+1, 0};
+            size_t origin_3[3] = {point.x-1, point.y, 0};
+            size_t origin_4[3] = {point.x, point.y-1, 0};
+            size_t region[3] = {1, 1, 1};
+
+
+            clEnqueueReadImage(cl::cqueue, lat.screen.get(), CL_TRUE, origin_1, region, 0, 0, &v1, 0, NULL, NULL);
+            clEnqueueReadImage(cl::cqueue, lat.screen.get(), CL_TRUE, origin_2, region, 0, 0, &v2, 0, NULL, NULL);
+            clEnqueueReadImage(cl::cqueue, lat.screen.get(), CL_TRUE, origin_3, region, 0, 0, &v3, 0, NULL, NULL);
+            clEnqueueReadImage(cl::cqueue, lat.screen.get(), CL_TRUE, origin_4, region, 0, 0, &v4, 0, NULL, NULL);
+
+
+            float vx = v1 - v3;
+            float vy = v2 - v4;
+
+            //vx *= 0.25f;
+            //vy *= 0.25f;
+
+            vx = clamp(vx, -1, 1);
+            vy = clamp(vy, -1, 1);
+
+            if(isnanf(vx))
+                vx = 0;
+            if(isnanf(vy))
+                vy = 0;
+
+            point.x += vx;
+            point.y += vy;
+
+
+            point.x = clamp(point.x, 1.0f, lat.width-2);
+            point.y = clamp(point.y, 1.0f, lat.height-2);
+
+
+            /*float soft_distance = 50;
+            float hard_distance = 100;
+
+            float dx = point.x - original_point.x;
+            float dy = point.y - original_point.y;
+
+            float dist = sqrtf(dx*dx + dy*dy);
+
+            if(dist > soft_distance)
+                dist -= 0.7f;
+
+            dist = std::min(dist, hard_distance);
+
+            float angle = atan2(dy, dx);
+
+            float nx = dist * cosf(angle);
+            float ny = dist * sinf(angle);
+
+            float bx = nx + original_point.x;
+            float by = ny + original_point.y;*/
+
+            float bx = point.x;
+            float by = point.y;
+
+            visual_points[i].x = bx;
+            visual_points[i].y = by;
+
+
+            compute::opengl_enqueue_release_gl_objects(1, &lat.screen.get(), cl::cqueue);
+
+        }
+    }
+
+    template<int N, typename datatype>
+    void render_points(const lattice<N, datatype>& lat, sf::RenderWindow& window)
+    {
+        for(int i=0; i<visual_points.size(); i++)
+        {
+            sf::RectangleShape rect({2, 2});
+
+            float l_x = visual_points[i].x;
+            float l_y = visual_points[i].y;
+
+            l_x /= lat.width;
+            l_y /= lat.height;
+
+            l_x *= window.getSize().x;
+            l_y *= window.getSize().y;
+
+            rect.setPosition(l_x, window.getSize().y - l_y);
+
+            window.draw(rect);
         }
     }
 };
@@ -213,9 +426,11 @@ int main(int argc, char *argv[])
 
     //window.construct_shadowmaps();
 
-    bool lastf = false, lastg = false;
+    bool lastf = false, lastg = false, lasth = false;
 
     skin s1;
+    s1.add_point({100, 100});
+    s1.generate_skin_buffers(lat);
 
     sf::Mouse mouse;
     sf::Keyboard key;
@@ -238,7 +453,7 @@ int main(int argc, char *argv[])
 
         //window.draw_bulk_objs_n();
 
-        lat.tick();
+        lat.tick(s1.skin_map, s1.which_skin);
 
         //window.draw_voxel_grid(*lat.current_result, lat.width, lat.height, lat.depth);
 
@@ -258,14 +473,19 @@ int main(int argc, char *argv[])
 
         if(mouse.isButtonPressed(sf::Mouse::Left))
         {
-            add_obstacle(mx, my, lat);
+            set_obstacle(mx, my, lat, 1);
+        }
+
+        if(mouse.isButtonPressed(sf::Mouse::Right))
+        {
+            set_obstacle(mx, my, lat, 0);
         }
 
         if(!key.isKeyPressed(sf::Keyboard::F) && lastf)
         {
-            s1.points.push_back({mx, my});
+            s1.add_point({mx, my});
             lastf = false;
-            printf("hello %f %f\n", mx, my);
+            //printf("hello %f %f\n", mx, my);
         }
         if(key.isKeyPressed(sf::Keyboard::F))
             lastf = true;
@@ -278,13 +498,26 @@ int main(int argc, char *argv[])
         if(key.isKeyPressed(sf::Keyboard::G))
             lastg = true;
 
+        if(!key.isKeyPressed(sf::Keyboard::H) && lasth)
+        {
+            s1.generate_skin_buffers(lat);
+            lasth = false;
+        }
+        if(key.isKeyPressed(sf::Keyboard::H))
+            lasth = true;
+
+       // s1.partial_advect_lattice(lat);
+
+
         //window.render_buffers();
 
         window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
 
+       // s1.render_points(lat, window.window);
+
         window.display();
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
         //printf("framecount %i\n", fc++);
     }

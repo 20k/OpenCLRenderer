@@ -6568,7 +6568,8 @@ typedef struct t_speed
 } t_speed;
 
 
-#define IDX(x, y) (y*WIDTH + x)
+///these are officially banned from now on in code, even trivial macros constantly causing problems
+#define IDX(x, y) ((y)*WIDTH + (x))
 
 #define NSPEEDS 9
 
@@ -6633,9 +6634,12 @@ __kernel void fluid_timestep(__global uchar* obstacles,
                        __global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
                        __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
                        __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+
                        int width, int height,
 
-                       __write_only image2d_t screen
+                       __write_only image2d_t screen,
+
+                       __global uchar* skin_in, __global uchar* skin_out
                       )
 {
     int id = get_global_id(0);
@@ -6686,7 +6690,12 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 
     bool is_obstacle = obstacles[IDX(x, y)];
 
+    uchar is_skin = skin_in[IDX(x, y)];
+
     float local_density = 0.0f;
+    float u_sq = 0;                  /* squared velocity */
+    float u_x=0,u_y=0;               /* av. velocities in x and y directions */
+
 
     if(is_obstacle)
     {
@@ -6711,10 +6720,9 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     {
         int kk;
 
-        float u_x,u_y;               /* av. velocities in x and y directions */
+
         float u[NSPEEDS-1];            /* directional velocities */
         float d_equ[NSPEEDS];        /* equilibrium densities */
-        float u_sq;                  /* squared velocity */
 
         t_speed this_tmp = local_cell;
 
@@ -6798,6 +6806,9 @@ __kernel void fluid_timestep(__global uchar* obstacles,
             {
                 cell_out.speeds[i] = local_cell.speeds[i];
             }
+
+            u_x = 0;
+            u_y = 0;
         }
     }
 
@@ -6812,11 +6823,39 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     out_cells_7[IDX(x, y)] = cell_out.speeds[7];
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
 
+    int2 mov = {x, y};
+
+    float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
+
+    //float2 accel = (float2)(u_x, u_y);
+
+    //float2 accel = (float2)(local_cell.speeds[1] - local_cell.speeds[3], 0.f);
+
+    //accel = round(accel);
+    accel *= 50.0f;
+    accel = clamp(accel, -1, 1);
+
+    mov += convert_int2(round(accel));
+
+    mov = clamp(mov, 0, (int2)(width-1, height-1));
+
+    skin_in[IDX(x, y)] = 0;
+
+    ///use rolling bitshifting to avoid having two buffers
+    if(is_skin)
+    {
+        skin_out[IDX(mov.x, mov.y)] = 1;
+    }
+
     //float speed = cell_out.speeds[0];
 
-    float broke = isnan(local_density);
+    //float broke = isnan(local_density);
 
-    write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
+    if(!is_skin)
+        write_imagef(screen, (int2){x, y}, clamp(fabs(accel).xyyy, 0.f, 1.f));
+    else
+        write_imagef(screen, (int2){x, y}, (float4)(is_skin, 0, 0, 0));
+
     //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
 
     //printf("%f %i %i\n", speed, x, y);
@@ -6900,7 +6939,8 @@ void displace_fluid(__global uchar* obstacles,
 
     if(x == xp && y == yp)
     {
-        cell_out.speeds[0] *= 10;
+        for(int i=0; i<NSPEEDS; i++)
+            cell_out.speeds[i] +=0.5f;
     }
 
 
