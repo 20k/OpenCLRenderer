@@ -168,7 +168,7 @@ struct zebra
         {
             for(int i=0; i<xgrid; i++)
             {
-                int id = j*xgrid + i;
+                /*int id = j*xgrid + i;
 
                 id = std::min(id, (int)objects.size());
 
@@ -182,12 +182,36 @@ struct zebra
                 pos.x = i*1000 + xangle;// + fmod(ran d() - RAND_MAX/2, 250);
                 pos.z = j*1000 + yangle;// + fmod(rand() - RAND_MAX/2, 250);
 
-                objects[j*xgrid + i]->set_pos(pos);
+                objects[j*xgrid + i]->set_pos(pos);*/
+
+                float xpos = ((float)i / xgrid) * (maxx - minx);// / (maxx - minx);
+                float zpos = ((float)j / ygrid) * (maxy - miny);// / (maxy - miny);
+
+                xpos += fmod(rand() - RAND_MAX/2, 3000);
+                zpos += fmod(rand() - RAND_MAX/2, 3000);
+
+                //xpos = clamp(xpos, minx, maxx);
+                //zpos = clamp(zpos, miny, maxy);
+
+                xpos = fmod(xpos - minx, maxx - minx) + minx;
+                zpos = fmod(zpos - miny, maxy - miny) + miny;
+
+                int id = j*xgrid + i;
+
+                id = std::min(id, (int)objects.size());
+
+                cl_float4 pos = objects[id]->pos;
+
+                pos.x = xpos;
+                pos.z = zpos;
+
+                objects[id]->set_pos(pos);
             }
         }
     }
 
     ///keep internal counter of bias and then move like then, randomness is how often bias updates + how much?
+    ///standard deviation cutoff is a fixed max, anything above there is not
     static void update()
     {
         ///angle is in 2d plane
@@ -207,8 +231,8 @@ struct zebra
         {
             if(!zilch)
             {
-                zebra_objects[i].vz = -2 * ((i % 2) - 0.5f) * 2;// * ((i % 2) - 0.5f) * 2;
-                zebra_objects[i].vx = 5 * ((i % 2) - 0.5f) * 2;
+                zebra_objects[i].vz = -5 * ((i % 2) - 0.5f) * 2;// * ((i % 2) - 0.5f) * 2;
+                zebra_objects[i].vx = 20 * ((i % 2) - 0.5f) * 2;
             }
 
             cl_float2 vel = (cl_float2){zebra_objects[i].vx, zebra_objects[i].vz};
@@ -362,6 +386,8 @@ std::vector<objects_container*> zebra::objects;
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL));
+
     zebra::set_bnd(0, 0, 18000, 6000);
 
     constexpr int zebra_count = 36;
@@ -384,10 +410,11 @@ int main(int argc, char *argv[])
 
     engine window;
 
-    window.load(1280,768,1000, "turtles", "../../cl2.cl");
+    window.load(1680,1050,1000, "turtles", "../../cl2.cl");
 
-   // window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
-    window.set_camera_pos((cl_float4){5000, 1000, -7000});
+    //window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
+    window.set_camera_pos((cl_float4){10476.4, 2157.87, -5103.68});
+    //window.set_camera_pos((cl_float4){5000, 1000, -7000});
     //window.c_rot.x = -M_PI/2;
 
 
@@ -437,6 +464,17 @@ int main(int argc, char *argv[])
 
     sf::Clock zebra_clock;
 
+    int which_zebra = rand() % zebra_count;
+
+
+    cl_float4 world_position = zebra::objects[which_zebra]->pos;
+    cl_float4 screen_position = engine::project(world_position);
+
+    sf::Mouse mouse;
+
+    mouse.setPosition({screen_position.x, window.get_height() - screen_position.y});
+
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -457,14 +495,14 @@ int main(int argc, char *argv[])
         window.render_buffers();
 
         if(zebra_clock.getElapsedTime().asMilliseconds() < 2000)
-            zebra::highlight_zebra(0, window.window, zebra_clock.getElapsedTime().asMilliseconds());
+            zebra::highlight_zebra(which_zebra, window.window, zebra_clock.getElapsedTime().asMilliseconds());
 
         window.display();
 
         int mx = window.get_mouse_x();
         int my = window.height - window.get_mouse_y();
 
-        float distance = zebra::distance_from_zebra(0, mx, my);
+        float distance = zebra::distance_from_zebra(which_zebra, mx, my);
 
         printf("%f %i %i\n", distance, mx, my);
 

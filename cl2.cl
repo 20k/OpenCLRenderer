@@ -6779,7 +6779,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         d_equ[7] = w2 * local_density * (u[6] * inv_c_sq + u[6] * u[6] * cst1 + cst2);
         d_equ[8] = w2 * local_density * (u[7] * inv_c_sq + u[7] * u[7] * cst1 + cst2);
 
-        const float OMEGA = 1.8f;
+        const float OMEGA = 1.0f;
 
         t_speed this_cell;
 
@@ -6890,7 +6890,7 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
     float2 accel = (float2)(v1 - v2, v3 - v4);
 
-    accel *= 50.0f;
+    accel *= 100.0f;
     accel = clamp(accel, -1.f, 1.f);
 
     mov += accel;

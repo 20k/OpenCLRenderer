@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
     //c2.set_active(true);*/
 
     engine window;
-    window.load(1280,720,1000, "turtles", "../../cl2.cl");
+    window.load(1680,1060,1000, "turtles", "../../cl2.cl");
 
     //goo gloop;
 
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 
     lattice<9, cl_float> lat;
 
-    lat.init(window.get_width()/4, window.get_height()/4, 1);
+    lat.init(window.get_width(), window.get_height(), 1);
 
     window.set_camera_pos((cl_float4){0,100,-300,0});
     //window.set_camera_pos((cl_float4){0,0,0,0});
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
     bool lastf = false, lastg = false, lasth = false;
 
     skin s1;
-    s1.add_point({100, 100});
+    s1.add_point({lat.width/2, lat.height/2});
     s1.generate_skin_buffers(lat);
 
     sf::Mouse mouse;
