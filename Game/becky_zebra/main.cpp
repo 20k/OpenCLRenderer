@@ -1,10 +1,7 @@
 #include "../../proj.hpp"
 #include <map>
 
-#include "../../Rift/Include/OVR.h"
-#include "../../Rift/Include/OVR_Kernel.h"
 //#include "Include/OVR_Math.h"
-#include "../../Rift/Src/OVR_CAPI.h"
 #include "../../vec.hpp"
 #include <random>
 
@@ -212,14 +209,10 @@ struct zebra
 
     ///keep internal counter of bias and then move like then, randomness is how often bias updates + how much?
     ///standard deviation cutoff is a fixed max, anything above there is not
-    static void update()
+    static void update(float standard_deviation)
     {
         ///angle is in 2d plane
-
-        constexpr float zig_probability = 0.005;
         constexpr float ideal_speed = 2.f;
-
-        static float standard_deviation = 1.0f;
 
         static int zilch = 0;
 
@@ -334,31 +327,10 @@ struct zebra
     {
         assert(zid >= 0 && zid < objects.size());
 
-        //cl_float4 p1 = objects[zid]->get_centre();
-
-        //p1 = add(p1, objects[zid]->pos);
-
         objects_container* zeb = objects[zid];
         cl_float4 centre = zeb->pos;
 
-        //printf("%f %f %f\n", p1.x, p1.y, p1.z);
-
         cl_float4 local = engine::project(centre);
-
-        /*float radius = 2;
-
-        sf::CircleShape cs;
-
-        cs.setRadius(radius);
-
-        cs.setPosition(local.x - radius, win.getSize().y - local.y - radius);
-
-        cs.setOutlineColor(sf::Color(255, 0, 0, 255));
-        cs.setOutlineThickness(2.0f);
-        cs.setFillColor(sf::Color(0,0,0,0));
-        cs.setPointCount(300);
-
-        win.draw(cs);*/
 
         float dx = mx - local.x;
         float dy = my - local.y;
@@ -384,19 +356,29 @@ int zebra::tracked_zebra = 0;
 
 std::vector<objects_container*> zebra::objects;
 
+struct simulation_info
+{
+    int running = 0;
+    int zebra_num = 36;
+    float standard_deviation = 1.0f;
+    sf::Clock highlight_clock;
+    int selected_zebra = 0;
+};
+
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
 
     zebra::set_bnd(0, 0, 18000, 6000);
 
-    constexpr int zebra_count = 36;
+    simulation_info info;
 
-    sf::Clock load_time;
+    info.zebra_num = 36;
+    info.selected_zebra = rand() % info.zebra_num;
 
-    objects_container zebras[zebra_count];
+    objects_container zebras[info.zebra_num];
 
-    for(int i=0; i<zebra_count; i++)
+    for(int i=0; i<info.zebra_num; i++)
     {
         zebras[i].set_file("../Res/tex_cube.obj");
         zebras[i].set_active(true);
@@ -414,29 +396,26 @@ int main(int argc, char *argv[])
 
     //window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
     window.set_camera_pos((cl_float4){10476.4, 2157.87, -5103.68});
-    //window.set_camera_pos((cl_float4){5000, 1000, -7000});
     //window.c_rot.x = -M_PI/2;
-
 
     window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 
-    for(int i=0; i<zebra_count; i++)
+    for(int i=0; i<info.zebra_num; i++)
         zebras[i].scale(200.0f);
 
     base.scale(20000.0f);
 
     base.set_pos({0, -200, 0});
 
-    zebra::separate();
+
 
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
 
-    //window.c_rot.z += 0.9;
 
     sf::Event Event;
 
@@ -462,12 +441,12 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
-    sf::Clock zebra_clock;
-
-    int which_zebra = rand() % zebra_count;
+    zebra::separate();
 
 
-    cl_float4 world_position = zebra::objects[which_zebra]->pos;
+    info.highlight_clock.restart();
+
+    cl_float4 world_position = zebra::objects[info.selected_zebra]->pos;
     cl_float4 screen_position = engine::project(world_position);
 
     sf::Mouse mouse;
@@ -486,7 +465,7 @@ int main(int argc, char *argv[])
         }
 
         zebra::repulse();
-        zebra::update();
+        zebra::update(1.f);
 
         window.input();
 
@@ -494,15 +473,15 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        if(zebra_clock.getElapsedTime().asMilliseconds() < 2000)
-            zebra::highlight_zebra(which_zebra, window.window, zebra_clock.getElapsedTime().asMilliseconds());
+        if(info.highlight_clock.getElapsedTime().asMilliseconds() < 2000)
+            zebra::highlight_zebra(info.selected_zebra, window.window, info.highlight_clock.getElapsedTime().asMilliseconds());
 
         window.display();
 
         int mx = window.get_mouse_x();
         int my = window.height - window.get_mouse_y();
 
-        float distance = zebra::distance_from_zebra(which_zebra, mx, my);
+        float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
 
         printf("%f %i %i\n", distance, mx, my);
 
