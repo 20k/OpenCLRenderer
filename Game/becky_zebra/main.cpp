@@ -363,6 +363,7 @@ struct simulation_info
     float standard_deviation = 1.0f;
     sf::Clock highlight_clock;
     int selected_zebra = 0;
+    bool clock_active = false;
 };
 
 int main(int argc, char *argv[])
@@ -443,15 +444,15 @@ int main(int argc, char *argv[])
 
     zebra::separate();
 
-
     info.highlight_clock.restart();
-
-    cl_float4 world_position = zebra::objects[info.selected_zebra]->pos;
-    cl_float4 screen_position = engine::project(world_position);
 
     sf::Mouse mouse;
 
-    mouse.setPosition({screen_position.x, window.get_height() - screen_position.y});
+    for(int i=0; i<5; i++)
+    {
+        zebra::repulse();
+        zebra::update(1.f);
+    }
 
 
     while(window.window.isOpen())
@@ -464,8 +465,25 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        zebra::repulse();
-        zebra::update(1.f);
+        if(mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            info.running = 1;
+            info.clock_active = true;
+        }
+
+        if(!info.running)
+        {
+            cl_float4 world_position = zebra::objects[info.selected_zebra]->pos;
+            cl_float4 screen_position = engine::project(world_position);
+
+            mouse.setPosition({screen_position.x, window.get_height() - screen_position.y});
+        }
+
+        if(info.running)
+        {
+            zebra::repulse();
+            zebra::update(1.f);
+        }
 
         window.input();
 
@@ -473,17 +491,33 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        if(info.highlight_clock.getElapsedTime().asMilliseconds() < 2000)
-            zebra::highlight_zebra(info.selected_zebra, window.window, info.highlight_clock.getElapsedTime().asMilliseconds());
+        if(info.highlight_clock.getElapsedTime().asMilliseconds() < 2000 || !info.running || info.clock_active)
+        {
+            if(info.clock_active && info.running)
+            {
+                info.clock_active = false;
+                info.highlight_clock.restart();
+            }
+
+            float time = info.highlight_clock.getElapsedTime().asMilliseconds();
+
+            if(!info.running)
+                time = 0;
+
+            zebra::highlight_zebra(info.selected_zebra, window.window, time);
+        }
 
         window.display();
 
-        int mx = window.get_mouse_x();
-        int my = window.height - window.get_mouse_y();
+        if(info.running)
+        {
+            int mx = window.get_mouse_x();
+            int my = window.height - window.get_mouse_y();
 
-        float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
+            float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
 
-        printf("%f %i %i\n", distance, mx, my);
+            printf("%f %i %i\n", distance, mx, my);
+        }
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
