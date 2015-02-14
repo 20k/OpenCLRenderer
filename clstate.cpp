@@ -2,6 +2,23 @@
 
 ///kernel information and opencl stuff
 
+void* cl::map(compute::buffer& v, cl_map_flags flag, int size)
+{
+    void* ptr = clEnqueueMapBuffer(cl::cqueue, v.get(), CL_TRUE, flag, 0, size, 0, NULL, NULL, NULL);
+
+    if(ptr == nullptr)
+    {
+        printf("error in cl::map\n");
+    }
+
+    return ptr;
+}
+
+void cl::unmap(compute::buffer& v, void* ptr)
+{
+    clEnqueueUnmapMemObject(cl::cqueue, v.get(), ptr, 0, NULL, NULL);
+}
+
 compute::device cl::device;
 compute::command_queue cl::cqueue;
 compute::context cl::context;

@@ -363,6 +363,9 @@ std::vector<objects_container*> zebra::objects;
 
 bool zebra::first = true;
 
+///need to create prepopulated list with semirandom trials in there
+///then pick rather than doing randomisation
+///do this in a separate struct containing the values, this is the CURRENT simulation state
 struct simulation_info
 {
     int running = 0;
@@ -521,9 +524,9 @@ int main(int argc, char *argv[])
             }
 
             ///the line below will make people cry
-            info.zebra_velocity = (float)rand() / RAND_MAX;
-            info.zebra_velocity *= (info.maximum_velocity - info.minimum_velocty);
-            info.zebra_velocity += info.minimum_velocty;
+            //info.zebra_velocity = (float)rand() / RAND_MAX;
+            //info.zebra_velocity *= (info.maximum_velocity - info.minimum_velocty);
+            //info.zebra_velocity += info.minimum_velocty;
 
             obj_mem_manager::load_active_objects();
 

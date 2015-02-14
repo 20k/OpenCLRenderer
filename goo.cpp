@@ -143,7 +143,11 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
         out[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh*sd, CL_MEM_READ_WRITE, NULL);
     }
 
-    cl_uchar* buf = new cl_uchar[sw*sh*sd];
+    //cl_uchar* buf = new cl_uchar[sw*sh*sd];
+
+    obstacles = compute::buffer(cl::context, sizeof(cl_uchar)*sw*sh*sd, CL_MEM_READ_WRITE, NULL);
+
+    cl_uchar* buf = (cl_uchar*)cl::map(obstacles, CL_MAP_WRITE, sizeof(cl_uchar)*sw*sh*sd);
 
     for(int k=0; k<sd; k++)
     {
@@ -169,9 +173,9 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
         buf[50*sw*sh + 100*sw + i] = 1;
     }*/
 
-    obstacles = compute::buffer(cl::context, sizeof(cl_uchar)*sw*sh*sd, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
+    cl::unmap(obstacles, buf);
 
-    delete [] buf;
+    //delete [] buf;
 
     cl_uint global_ws[] = {sw, sh};
     cl_uint local_ws[] = {128, 1};

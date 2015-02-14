@@ -22,6 +22,12 @@ struct kernel
 
 namespace cl
 {
+    void* map(compute::buffer& v, cl_map_flags flag, int size);
+    void unmap(compute::buffer& v, void* ptr);
+}
+
+namespace cl
+{
     extern compute::device device;
     extern compute::command_queue cqueue;
     extern compute::context context;

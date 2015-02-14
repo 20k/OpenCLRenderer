@@ -209,6 +209,67 @@ struct skin
             window.draw(rect);
         }
     }
+
+    void draw_hermite(sf::RenderWindow& window)
+    {
+        /*moveto (P1);                            // move pen to startpoint
+        for (int t=0; t < steps; t++)
+        {
+          float s = (float)t / (float)steps;    // scale s to go from 0 to 1
+          float h1 =  2s^3 - 3s^2 + 1;          // calculate basis function 1
+          float h2 = -2s^3 + 3s^2;              // calculate basis function 2
+          float h3 =   s^3 - 2*s^2 + s;         // calculate basis function 3
+          float h4 =   s^3 -  s^2;              // calculate basis function 4
+          vector p = h1*P1 +                    // multiply and sum all funtions
+                     h2*P2 +                    // together to build the interpolated
+                     h3*T1 +                    // point along the curve.
+                     h4*T2;
+          lineto (p)                            // draw to calculated point on the curve
+        }*/
+
+        float steps = 100;
+
+        for(int i=0; i<visual_points.size(); i++)
+        {
+            cl_float2 p0 = visual_points[(i - 1 + visual_points.size()) % visual_points.size()];
+            cl_float2 p1 = visual_points[i];
+            cl_float2 p2 = visual_points[(i + 1) % visual_points.size()];
+            cl_float2 p3 = visual_points[(i + 2) % visual_points.size()];
+
+            cl_float2 t1 = {0};
+            cl_float2 t2 = {0};
+
+            const float a = 0.5f;
+
+            t1.x = a * (p2.x - p0.x);
+            t1.y = a * (p2.y - p0.y);
+
+            t2.x = a * (p3.x - p1.x);
+            t2.y = a * (p3.y - p1.y);
+
+            for(float t = 0; t < steps; t++)
+            {
+                float s = t / steps;
+
+                float h1 = 2*s*s*s - 3*s*s + 1;
+                float h2 = -2*s*s*s + 3*s*s;
+                float h3 = s*s*s - 2*s*s + s;
+                float h4 = s*s*s - s*s;
+
+                cl_float2 res = {0};
+
+                res.x = h1 * p1.x + h2*p2.x + h3 * t1.x + h4 * t2.x;
+                res.y = h1 * p1.y + h2*p2.y + h3 * t1.y + h4 * t2.y;
+
+                sf::RectangleShape shape;
+                shape.setPosition(res.x, window.getSize().y - res.y);
+                shape.setFillColor(sf::Color(0, 255, 0));
+                shape.setSize(sf::Vector2f(1, 1));
+
+                window.draw(shape);
+            }
+        }
+    }
 };
 
 ///todo eventually
@@ -225,7 +286,6 @@ struct skin
 
 ///todo
 ///fix memory management to not be atrocious
-
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -389,12 +449,15 @@ int main(int argc, char *argv[])
         if(key.isKeyPressed(sf::Keyboard::H))
             lasth = true;
 
+
        // s1.partial_advect_lattice(lat);
 
 
         //window.render_buffers();
 
         window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
+
+        s1.draw_hermite(window.window);
 
        // s1.render_points(lat, window.window);
 
