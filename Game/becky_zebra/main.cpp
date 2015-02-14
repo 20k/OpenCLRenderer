@@ -44,12 +44,12 @@ struct zebra
 
     static int minx, miny, maxx, maxy;
 
-    static std::map<objects_container*, float> angles;
-
     static std::vector<objects_container*> objects;
     static std::vector<zebra_info> zebra_objects;
 
     static int tracked_zebra;
+
+    static bool first;
 
     static void set_bnd(int _minx, int _miny, int _maxx, int _maxy)
     {
@@ -57,6 +57,14 @@ struct zebra
         miny = _miny;
         maxx = _maxx;
         maxy = _maxy;
+    }
+
+    static void reset()
+    {
+        std::vector<objects_container*>().swap(objects);
+        std::vector<zebra_info>().swap(zebra_objects);
+
+        first = true;
     }
 
     static void add_object(objects_container* obj)
@@ -209,12 +217,10 @@ struct zebra
 
     ///keep internal counter of bias and then move like then, randomness is how often bias updates + how much?
     ///standard deviation cutoff is a fixed max, anything above there is not
-    static void update(float standard_deviation)
+    static void update(float standard_deviation, float zebra_velocity)
     {
         ///angle is in 2d plane
         constexpr float ideal_speed = 2.f;
-
-        static int zilch = 0;
 
         static std::default_random_engine generator;
         static std::normal_distribution<double> distribution(0.0,standard_deviation);
@@ -222,10 +228,10 @@ struct zebra
 
         for(int i=0; i<objects.size(); i++)
         {
-            if(!zilch)
+            if(first)
             {
-                zebra_objects[i].vz = -5 * ((i % 2) - 0.5f) * 2;// * ((i % 2) - 0.5f) * 2;
-                zebra_objects[i].vx = 20 * ((i % 2) - 0.5f) * 2;
+                zebra_objects[i].vz = -zebra_velocity * ((i % 2) - 0.5f) * 2;// * ((i % 2) - 0.5f) * 2;
+                zebra_objects[i].vx = zebra_velocity * ((i % 2) - 0.5f) * 2;
             }
 
             cl_float2 vel = (cl_float2){zebra_objects[i].vx, zebra_objects[i].vz};
@@ -288,7 +294,7 @@ struct zebra
             zeb->g_flush_objects();
         }
 
-        zilch = 1;
+        first = false;
     }
 
     static void highlight_zebra(int zid, sf::RenderWindow& win, float time_after)
@@ -341,7 +347,6 @@ struct zebra
     }
 };
 
-std::map<objects_container*, float> zebra::angles;
 std::vector<zebra_info> zebra::zebra_objects;
 
 int zebra::boundx = 9000;
@@ -356,6 +361,8 @@ int zebra::tracked_zebra = 0;
 
 std::vector<objects_container*> zebra::objects;
 
+bool zebra::first = true;
+
 struct simulation_info
 {
     int running = 0;
@@ -364,6 +371,16 @@ struct simulation_info
     sf::Clock highlight_clock;
     int selected_zebra = 0;
     bool clock_active = false;
+
+    sf::Clock simulation_time;
+    float timeafter_to_reset = 3;
+
+    const int MAX_ZEBRAS = 50;
+    const int MIN_ZEBRAS = 10;
+
+    float zebra_velocity = 15;
+    const float minimum_velocty = 5;
+    const float maximum_velocity = 25;
 };
 
 int main(int argc, char *argv[])
@@ -377,7 +394,8 @@ int main(int argc, char *argv[])
     info.zebra_num = 36;
     info.selected_zebra = rand() % info.zebra_num;
 
-    objects_container zebras[info.zebra_num];
+    objects_container* zebras;
+    zebras = new objects_container[info.zebra_num];
 
     for(int i=0; i<info.zebra_num; i++)
     {
@@ -398,6 +416,8 @@ int main(int argc, char *argv[])
     //window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
     window.set_camera_pos((cl_float4){10476.4, 2157.87, -5103.68});
     //window.c_rot.x = -M_PI/2;
+    window.c_rot.x = 0.24;
+    window.c_rot.y = -0.06;
 
     window.window.setVerticalSyncEnabled(true);
 
@@ -451,9 +471,10 @@ int main(int argc, char *argv[])
     for(int i=0; i<5; i++)
     {
         zebra::repulse();
-        zebra::update(1.f);
+        zebra::update(1.f, info.zebra_velocity);
     }
 
+    info.simulation_time.restart();
 
     while(window.window.isOpen())
     {
@@ -465,10 +486,72 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        if(mouse.isButtonPressed(sf::Mouse::Left))
+        if(info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000)
         {
-            info.running = 1;
+            ///reset simulation
+
+            info.running = false;
+            info.clock_active = false;
+
+            for(int i=0; i<info.zebra_num; i++)
+            {
+                zebras[i].set_active(false);
+            }
+
+            delete [] zebras;
+
+            info.zebra_num = rand() % (info.MAX_ZEBRAS - info.MIN_ZEBRAS);
+            info.zebra_num += info.MIN_ZEBRAS;
+
+            info.selected_zebra = rand() % info.zebra_num;
+
+            for(int i=0; i<info.zebra_num; i++)
+            {
+                zebras = new objects_container[info.zebra_num];
+            }
+
+            zebra::reset();
+
+            for(int i=0; i<info.zebra_num; i++)
+            {
+                zebras[i].set_file("../Res/tex_cube.obj");
+                zebras[i].set_active(true);
+
+                zebra::add_object(&zebras[i]);
+            }
+
+            ///the line below will make people cry
+            info.zebra_velocity = (float)rand() / RAND_MAX;
+            info.zebra_velocity *= (info.maximum_velocity - info.minimum_velocty);
+            info.zebra_velocity += info.minimum_velocty;
+
+            obj_mem_manager::load_active_objects();
+
+            for(int i=0; i<info.zebra_num; i++)
+                zebras[i].scale(200.0f);
+
+            //texture_manager::allocate_textures();
+
+            obj_mem_manager::g_arrange_mem();
+            obj_mem_manager::g_changeover();
+
+            info.simulation_time.restart();
+
+            zebra::separate();
+
+            for(int i=0; i<5; i++)
+            {
+                zebra::repulse();
+                zebra::update(1.f, info.zebra_velocity);
+            }
+        }
+
+        if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
+        {
+            info.running = true;
             info.clock_active = true;
+
+            info.simulation_time.restart();
         }
 
         if(!info.running)
@@ -476,13 +559,20 @@ int main(int argc, char *argv[])
             cl_float4 world_position = zebra::objects[info.selected_zebra]->pos;
             cl_float4 screen_position = engine::project(world_position);
 
-            mouse.setPosition({screen_position.x, window.get_height() - screen_position.y});
+            float mx, my;
+            mx = screen_position.x;
+            my = window.get_height() - screen_position.y;
+
+            mx = clamp(mx, 1, window.get_width() - 1);
+            my = clamp(my, 1, window.get_height() - 1);
+
+            mouse.setPosition({mx, my});
         }
 
         if(info.running)
         {
             zebra::repulse();
-            zebra::update(1.f);
+            zebra::update(1.f, info.zebra_velocity);
         }
 
         window.input();
