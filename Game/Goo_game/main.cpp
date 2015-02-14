@@ -400,14 +400,6 @@ int main(int argc, char *argv[])
     engine window;
     window.load(1680,1060,1000, "turtles", "../../cl2.cl");
 
-    //goo gloop;
-
-    //gloop.init(100, 100, 100, 1, 100);
-
-    lattice<9, cl_float> lat;
-
-    lat.init(window.get_width(), window.get_height(), 1);
-
     window.set_camera_pos((cl_float4){0,100,-300,0});
     //window.set_camera_pos((cl_float4){0,0,0,0});
 
@@ -455,11 +447,8 @@ int main(int argc, char *argv[])
 
     bool lastf = false, lastg = false, lasth = false;
 
-    skin s1;
-    s1.add_point({lat.width/2, lat.height/2});
-    s1.add_point({lat.width/2 + 100, lat.height/2});
-    s1.add_point({lat.width/2, lat.height/2 + 100});
-    s1.generate_skin_buffers(lat);
+    goo_monster m1(window.get_width(), window.get_height());
+    //m1.init(window.get_width(), window.get_height());
 
     sf::Mouse mouse;
     sf::Keyboard key;
@@ -482,13 +471,15 @@ int main(int argc, char *argv[])
 
         //window.draw_bulk_objs_n();
 
-        lat.tick(&s1.skin_obstacle);
+        //lat.tick(&s1.skin_obstacle);
 
 
         //window.draw_voxel_grid(*lat.current_result, lat.width, lat.height, lat.depth);
 
         //window.draw_smoke(gloop);
 
+
+        /*
         float mx = window.get_mouse_x();
         float my = window.get_height() - window.get_mouse_y();
 
@@ -533,16 +524,18 @@ int main(int argc, char *argv[])
             lasth = false;
         }
         if(key.isKeyPressed(sf::Keyboard::H))
-            lasth = true;
+            lasth = true;*/
 
 
        // s1.partial_advect_lattice(lat);
         //window.render_buffers();
 
-        s1.draw_update_hermite(lat);
-        s1.advect_skin(lat);
+        //s1.draw_update_hermite(lat);
+        //s1.advect_skin(lat);
 
-        window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
+        m1.tick();
+
+        window.render_texture(m1.lat.screen, m1.lat.screen_id, m1.lat.width, m1.lat.height);
 
        // s1.render_points(lat, window.window);
 
