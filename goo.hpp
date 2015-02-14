@@ -24,7 +24,7 @@ struct lattice
     compute::opengl_renderbuffer screen;
 
     void init(int sw, int sh, int sd = 1);
-    void tick();//compute::buffer skins[2], int& which_skin);
+    void tick(compute::buffer* temp_obstacles = NULL);//compute::buffer skins[2], int& which_skin);
     void swap_buffers();
 
     GLuint screen_id;

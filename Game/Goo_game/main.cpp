@@ -84,6 +84,9 @@ struct skin
     compute::buffer original_skin_x;
     compute::buffer original_skin_y;
 
+    compute::buffer skin_obstacle;
+
+
     int which_skin = 0;
 
     bool skin_init = false;
@@ -152,6 +155,17 @@ struct skin
         original_skin_x = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_x.data());
         original_skin_y = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_y.data());
 
+        skin_obstacle = compute::buffer(cl::context, sizeof(cl_uchar)*width*height, CL_MEM_READ_WRITE, NULL);
+
+        cl_uchar* buf = (cl_uchar*)cl::map(skin_obstacle, CL_MAP_WRITE, sizeof(cl_uchar)*width*height);
+
+        for(int i=0; i<width*height; i++)
+        {
+            buf[i] = 0;
+        }
+
+        cl::unmap(skin_obstacle, buf);
+
         skin_init = true;
 
         num_at_push = num;
@@ -169,11 +183,13 @@ struct skin
         arg_list skin_args;
         skin_args.push_back(&lat.current_out[0]);
         skin_args.push_back(&lat.obstacles);
+        skin_args.push_back(&skin_obstacle);
 
         skin_args.push_back(&skin_x);
         skin_args.push_back(&skin_y);
         skin_args.push_back(&original_skin_x);
         skin_args.push_back(&original_skin_y);
+
 
         int num = point_x.size();
 
@@ -215,15 +231,16 @@ struct skin
     }
 
     template<int N, typename datatype>
-    void draw_hermite(const lattice<N, datatype>& lat)
+    void draw_update_hermite(const lattice<N, datatype>& lat)
     {
         //void draw_hermite_skin(__global float* skin_x, __global float* skin_y, int step_size, int num, int width, int height, __write_only image2d_t screen)
 
-        int step_size = 100;
+        int step_size = 400;
 
         arg_list hermite;
         hermite.push_back(&skin_x);
         hermite.push_back(&skin_y);
+        hermite.push_back(&skin_obstacle);
         hermite.push_back(&step_size);
         hermite.push_back(&num_at_push);
         hermite.push_back(&lat.width);
@@ -234,7 +251,6 @@ struct skin
         cl_uint local_ws[] = {128};
 
         run_kernel_with_list(cl::draw_hermite_skin, global_ws, local_ws, 1, hermite);
-
     }
 
     template<int N, typename datatype>
@@ -400,6 +416,8 @@ int main(int argc, char *argv[])
 
     skin s1;
     s1.add_point({lat.width/2, lat.height/2});
+    s1.add_point({lat.width/2 + 100, lat.height/2});
+    s1.add_point({lat.width/2, lat.height/2 + 100});
     s1.generate_skin_buffers(lat);
 
     sf::Mouse mouse;
@@ -423,8 +441,8 @@ int main(int argc, char *argv[])
 
         //window.draw_bulk_objs_n();
 
-        lat.tick();//s1.skin_map, s1.which_skin);
-        s1.advect_skin(lat);
+        lat.tick(&s1.skin_obstacle);
+
 
         //window.draw_voxel_grid(*lat.current_result, lat.width, lat.height, lat.depth);
 
@@ -440,7 +458,6 @@ int main(int argc, char *argv[])
         my *= lat.height;
 
         do_fluid_displace(mx, my, lat);
-
 
         if(mouse.isButtonPressed(sf::Mouse::Left))
         {
@@ -479,11 +496,10 @@ int main(int argc, char *argv[])
 
 
        // s1.partial_advect_lattice(lat);
-
-
         //window.render_buffers();
 
-        s1.draw_hermite(lat);
+        s1.draw_update_hermite(lat);
+        s1.advect_skin(lat);
 
         window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
 

@@ -6626,7 +6626,7 @@ __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* 
 ///try out textures in new memory scheme
 ///make av_vels 16bit ints
 ///partly borrowed from uni HPC coursework
-__kernel void fluid_timestep(__global uchar* obstacles,
+__kernel void fluid_timestep(__global uchar* obstacles, __global uchar* transient_obstacles,
                        __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                        __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
                        __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
@@ -6689,6 +6689,11 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     t_speed cell_out;
 
     bool is_obstacle = obstacles[IDX(x, y)];
+
+    if(transient_obstacles)
+    {
+        is_obstacle |= transient_obstacles[IDX(x, y)];
+    }
 
     //uchar is_skin = skin_in[IDX(x, y)];
 
@@ -6823,6 +6828,11 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     out_cells_7[IDX(x, y)] = cell_out.speeds[7];
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
 
+    if(transient_obstacles)
+    {
+        transient_obstacles[IDX(x, y)] = 0;
+    }
+
     /*int2 mov = {x, y};
 
     float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
@@ -6859,7 +6869,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 }
 
 __kernel
-void process_skins(__global float* in_cells_0, __global uchar* obstacles, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
+void process_skins(__global float* in_cells_0, __global uchar* obstacles, __global uchar* transient_obstacles, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
 {
     int id = get_global_id(0);
 
@@ -6873,10 +6883,10 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
     bool o1, o2, o3, o4;
 
-    o1 = obstacles[IDX(x+1, y)];
-    o2 = obstacles[IDX(x-1, y)];
-    o3 = obstacles[IDX(x, y+1)];
-    o4 = obstacles[IDX(x, y-1)];
+    o1 = obstacles[IDX(x+1, y)] || transient_obstacles[IDX(x+1, y)];
+    o2 = obstacles[IDX(x-1, y)] || transient_obstacles[IDX(x-1, y)];
+    o3 = obstacles[IDX(x, y+1)] || transient_obstacles[IDX(x, y+1)];
+    o4 = obstacles[IDX(x, y-1)] || transient_obstacles[IDX(x, y-1)];
 
     float v1, v2, v3, v4;
 
@@ -6890,7 +6900,7 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
     float2 accel = (float2)(v1 - v2, v3 - v4);
 
-    accel *= 100.0f;
+    accel *= 50.0f;
     accel = clamp(accel, -1.f, 1.f);
 
     mov += accel;
@@ -6927,11 +6937,12 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     ny += orig.y;
 
 
-    if(obstacles[IDX(round(nx), y)])
+
+    if(obstacles[IDX(round(nx), y)] || transient_obstacles[IDX(round(nx), y)])
     {
         nx = x;
     }
-    if(obstacles[IDX(x, round(ny))])
+    if(obstacles[IDX(x, round(ny))] || transient_obstacles[IDX(x, round(ny))])
     {
         ny = y;
     }
@@ -6944,7 +6955,7 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 }
 
 __kernel
-void draw_hermite_skin(__global float* skin_x, __global float* skin_y, int step_size, int num, int width, int height, __write_only image2d_t screen)
+void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global uchar* skin_obstacle, int step_size, int num, int width, int height, __write_only image2d_t screen)
 {
     int t = get_global_id(0);
 
@@ -6979,6 +6990,12 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, int step_
     float2 res = h1 * p1 + h2 * p2 + h3 * t1 + h4 * t2;
 
     write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
+
+    res -= t1*0.1f;
+
+    res = clamp(res, 0.0f, (float2){width-1, height-1});
+
+    skin_obstacle[(int)(res.y) * width + (int)(res.x)] = 1;
 }
 
 __kernel

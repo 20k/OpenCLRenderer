@@ -201,13 +201,14 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
 
 
 template<int n, typename datatype>
-void lattice<n, datatype>::tick()//compute::buffer skin[2], int& which_skin)
+void lattice<n, datatype>::tick(compute::buffer* temp_obstacles)//compute::buffer skin[2], int& which_skin)
 {
     compute::opengl_enqueue_acquire_gl_objects(1, &screen.get(), cl::cqueue);
 
     arg_list timestep;
 
     timestep.push_back(&obstacles);
+    timestep.push_back(temp_obstacles);
 
     ///???
     compute::buffer* cur_in = which == 0 ? in : out;
