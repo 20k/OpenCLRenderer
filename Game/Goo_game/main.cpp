@@ -316,6 +316,47 @@ struct skin
     }
 };
 
+struct goo_monster
+{
+    skin s1;
+    lattice<9, cl_float> lat;
+
+    goo_monster(int width, int height)
+    {
+        lat.init(width, height);
+
+        s1.add_point({lat.width/2, lat.height/2});
+        s1.add_point({lat.width/2 + 100, lat.height/2});
+        s1.add_point({lat.width/2, lat.height/2 + 100});
+        s1.generate_skin_buffers(lat);
+    }
+
+    void tick()
+    {
+        if(s1.visual_points.size() == 0)
+            return;
+
+        lat.tick(&s1.skin_obstacle);
+
+        float cx = 0;
+        float cy = 0;
+
+        for(int i=0; i<s1.visual_points.size(); i++)
+        {
+            cx += s1.point_x[i];
+            cy += s1.point_y[i];
+        }
+
+        cx /= s1.visual_points.size();
+        cy /= s1.visual_points.size();
+
+        do_fluid_displace(cx, cy, lat);
+
+        s1.draw_update_hermite(lat);
+        s1.advect_skin(lat);
+    }
+};
+
 ///todo eventually
 ///split into dynamic and static objects
 
