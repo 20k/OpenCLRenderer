@@ -6906,7 +6906,7 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
     float distance = length(dv);
 
-    const float max_distance = 20;
+    const float max_distance = 40;
 
     distance = min(distance, max_distance);
 
@@ -6941,6 +6941,44 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
 
     write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
+}
+
+__kernel
+void draw_hermite_skin(__global float* skin_x, __global float* skin_y, int step_size, int num, int width, int height, __write_only image2d_t screen)
+{
+    int t = get_global_id(0);
+
+    if(t >= step_size * num)
+        return;
+
+    int which = t / step_size;
+
+    t = t % step_size;
+
+    float tf = (float) t / step_size;
+
+    float2 p0 = {skin_x[(which - 1 + num) % num], skin_y[(which - 1 + num) % num]};
+    float2 p1 = {skin_x[(which + 0 + num) % num], skin_y[(which + 0 + num) % num]};
+    float2 p2 = {skin_x[(which + 1 + num) % num], skin_y[(which + 1 + num) % num]};
+    float2 p3 = {skin_x[(which + 2 + num) % num], skin_y[(which + 2 + num) % num]};
+
+    float2 t1, t2;
+
+    const float a = 0.5f;
+
+    t1 = a * (p2 - p0);
+    t2 = a * (p3 - p1);
+
+    float s = tf;
+
+    float h1 = 2*s*s*s - 3*s*s + 1;
+    float h2 = -2*s*s*s + 3*s*s;
+    float h3 = s*s*s - 2*s*s + s;
+    float h4 = s*s*s - s*s;
+
+    float2 res = h1 * p1 + h2 * p2 + h3 * t1 + h4 * t2;
+
+    write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
 }
 
 __kernel
@@ -7035,7 +7073,6 @@ void displace_fluid(__global uchar* obstacles,
     out_cells_6[IDX(x, y)] = cell_out.speeds[6];
     out_cells_7[IDX(x, y)] = cell_out.speeds[7];
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
-
 }
 
 

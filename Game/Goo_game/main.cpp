@@ -79,6 +79,8 @@ struct skin
     compute::buffer skin_x;
     compute::buffer skin_y;
 
+    int num_at_push = 0;
+
     compute::buffer original_skin_x;
     compute::buffer original_skin_y;
 
@@ -151,6 +153,8 @@ struct skin
         original_skin_y = compute::buffer(cl::context, sizeof(cl_float)*num, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, point_y.data());
 
         skin_init = true;
+
+        num_at_push = num;
     }
 
     template<int N, typename datatype>
@@ -210,7 +214,31 @@ struct skin
         }
     }
 
-    void draw_hermite(sf::RenderWindow& window)
+    template<int N, typename datatype>
+    void draw_hermite(const lattice<N, datatype>& lat)
+    {
+        //void draw_hermite_skin(__global float* skin_x, __global float* skin_y, int step_size, int num, int width, int height, __write_only image2d_t screen)
+
+        int step_size = 100;
+
+        arg_list hermite;
+        hermite.push_back(&skin_x);
+        hermite.push_back(&skin_y);
+        hermite.push_back(&step_size);
+        hermite.push_back(&num_at_push);
+        hermite.push_back(&lat.width);
+        hermite.push_back(&lat.height);
+        hermite.push_back(&lat.screen);
+
+        cl_uint global_ws[] = {step_size * num_at_push};
+        cl_uint local_ws[] = {128};
+
+        run_kernel_with_list(cl::draw_hermite_skin, global_ws, local_ws, 1, hermite);
+
+    }
+
+    template<int N, typename datatype>
+    void draw_hermite_cpu(const lattice<N, datatype>& lat, sf::RenderWindow& window)
     {
         /*moveto (P1);                            // move pen to startpoint
         for (int t=0; t < steps; t++)
@@ -264,7 +292,7 @@ struct skin
                 sf::RectangleShape shape;
                 shape.setPosition(res.x, window.getSize().y - res.y);
                 shape.setFillColor(sf::Color(0, 255, 0));
-                shape.setSize(sf::Vector2f(1, 1));
+                shape.setSize(sf::Vector2f(2, 2));
 
                 window.draw(shape);
             }
@@ -455,9 +483,9 @@ int main(int argc, char *argv[])
 
         //window.render_buffers();
 
-        window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
+        s1.draw_hermite(lat);
 
-        s1.draw_hermite(window.window);
+        window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
 
        // s1.render_points(lat, window.window);
 

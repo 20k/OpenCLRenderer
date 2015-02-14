@@ -69,4 +69,5 @@ kernel cl::fluid_initialise_mem;
 kernel cl::fluid_timestep;
 kernel cl::displace_fluid;
 kernel cl::process_skins;
+kernel cl::draw_hermite_skin;
 
