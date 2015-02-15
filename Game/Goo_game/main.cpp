@@ -321,6 +321,8 @@ struct goo_monster
     skin s1;
     lattice<9, cl_float> lat;
 
+    uint32_t counter = 0;
+
     goo_monster(int width, int height)
     {
         lat.init(width, height);
@@ -350,10 +352,14 @@ struct goo_monster
         cx /= s1.visual_points.size();
         cy /= s1.visual_points.size();
 
-        do_fluid_displace(cx, cy, lat);
+        ///use a timer
+        if(counter % 400 < 40)
+            do_fluid_displace(cx, cy, lat);
 
         s1.draw_update_hermite(lat);
         s1.advect_skin(lat);
+
+        counter++;
     }
 };
 

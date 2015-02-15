@@ -6954,6 +6954,7 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
 }
 
+///make it not obstruct if its near a control vertex?
 __kernel
 void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global uchar* skin_obstacle, int step_size, int num, int width, int height, __write_only image2d_t screen)
 {
@@ -6991,11 +6992,16 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
 
     write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
 
-    res -= t1*0.1f;
+    res -= t1*0.4f;
 
     res = clamp(res, 0.0f, (float2){width-1, height-1});
 
-    skin_obstacle[(int)(res.y) * width + (int)(res.x)] = 1;
+    ///instead of doing this hack, rederive new control points from current + tangents
+    if(tf < 0.3)
+        return;
+
+    if(skin_obstacle)
+        skin_obstacle[(int)(res.y) * width + (int)(res.x)] = 1;
 }
 
 __kernel
