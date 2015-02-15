@@ -6955,6 +6955,10 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 }
 
 ///make it not obstruct if its near a control vertex?
+///instead of doing this, move the control vertices towards the centre by tangent then do again
+///this would prevent the current issues by shrinking the overall cell, and by making the cell jiggle with fluid from the current control points
+///could possibly add a second set of control points on the other side of the cell wall, and then average between the two
+///this would make it also jiggle with internal cell dynamics
 __kernel
 void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global uchar* skin_obstacle, int step_size, int num, int width, int height, __write_only image2d_t screen)
 {
@@ -6967,7 +6971,7 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
 
     t = t % step_size;
 
-    float tf = (float) t / step_size;
+    float tf = (float)t / step_size;
 
     float2 p0 = {skin_x[(which - 1 + num) % num], skin_y[(which - 1 + num) % num]};
     float2 p1 = {skin_x[(which + 0 + num) % num], skin_y[(which + 0 + num) % num]};
@@ -6992,12 +6996,15 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
 
     write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
 
+    ///end catmull-rom spline
+
+    ///move point by tangent
     res -= t1*0.4f;
 
     res = clamp(res, 0.0f, (float2){width-1, height-1});
 
     ///instead of doing this hack, rederive new control points from current + tangents
-    if(tf < 0.3)
+    if(tf < 0.3f)
         return;
 
     if(skin_obstacle)

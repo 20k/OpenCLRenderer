@@ -376,7 +376,7 @@ struct simulation_info
     bool clock_active = false;
 
     sf::Clock simulation_time;
-    float timeafter_to_reset = 3;
+    float timeafter_to_reset = 5;
 
     const int MAX_ZEBRAS = 50;
     const int MIN_ZEBRAS = 10;
@@ -385,6 +385,52 @@ struct simulation_info
     const float minimum_velocty = 5;
     const float maximum_velocity = 25;
 };
+
+void log(FILE* log_file, const std::string& data, int do_comma = 1)
+{
+    static int comma = 0;
+
+    if(comma && do_comma)
+        fprintf(log_file, ",%s", data.c_str());
+    else
+        fprintf(log_file, "%s", data.c_str());
+
+    comma = 1;
+}
+
+FILE* init_log(const std::string& str)
+{
+    FILE* log_file = fopen(str.c_str(), "r");
+
+    bool check_for_comma = false;
+
+    if(log_file != NULL)
+    {
+        check_for_comma = true;
+    }
+
+    fclose(log_file);
+
+    log_file = fopen(str.c_str(), "a+");
+
+    if(check_for_comma)
+    {
+        fseek(log_file, -1, SEEK_END);
+
+        int c = fgetc(log_file);
+
+        ///?
+        fseek(log_file, 0, SEEK_END);
+
+        if(c != ',')
+        {
+            fprintf(log_file, ",");
+        }
+    }
+
+    return log_file;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -477,6 +523,8 @@ int main(int argc, char *argv[])
         zebra::update(1.f, info.zebra_velocity);
     }
 
+    FILE* logfile = init_log("results.txt");
+
     info.simulation_time.restart();
 
     while(window.window.isOpen())
@@ -551,6 +599,8 @@ int main(int argc, char *argv[])
 
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
         {
+            log(logfile, "\n\nNEXT\n", 0);
+
             info.running = true;
             info.clock_active = true;
 
@@ -609,9 +659,19 @@ int main(int argc, char *argv[])
 
             float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
 
-            printf("%f %i %i\n", distance, mx, my);
+            //printf("%f %i %i\n", distance, mx, my);
+
+            std::string dist(to_str(distance)), mxs(to_str(mx)), mys(to_str(my));
+
+
+            log(logfile, dist, 0);
+            log(logfile, mxs);
+            log(logfile, mys);
+            log(logfile, "\n", 0);
         }
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
+
+    fclose(logfile);
 }

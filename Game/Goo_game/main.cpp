@@ -363,6 +363,49 @@ struct goo_monster
     }
 };
 
+void log(FILE* log_file, const std::string& data, int do_comma = 1)
+{
+    static int comma = 0;
+
+    if(comma && do_comma)
+        fprintf(log_file, ",%s", data.c_str());
+    else
+        fprintf(log_file, "%s", data.c_str());
+
+    comma = 1;
+}
+
+FILE* init_log(const std::string& str)
+{
+    FILE* log_file = fopen(str.c_str(), "r");
+
+    bool check_for_comma = false;
+
+    if(log_file != NULL)
+    {
+        check_for_comma = true;
+    }
+
+    fclose(log_file);
+
+    log_file = fopen("results.txt", "a+");
+
+    if(check_for_comma)
+    {
+        fseek(log_file, -1, SEEK_END);
+
+        int c = fgetc(log_file);
+
+        ///?
+        fseek(log_file, 0, SEEK_END);
+
+        if(c != ',')
+        {
+            fprintf(log_file, ",");
+        }
+    }
+}
+
 ///todo eventually
 ///split into dynamic and static objects
 
