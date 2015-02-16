@@ -2548,6 +2548,7 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
     *u = 1.0f - *v - *w;
 }
 
+#define BECKY_HACK
 
 
 ///screenspace step, this is slow and needs improving
@@ -2748,6 +2749,10 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         distance_modifier *= distance_modifier;
 
         light *= distance_modifier;
+
+        #ifdef BECKY_HACK
+        light = 1;
+        #endif // BECKY_HACK
 
         int skip = light <= 0.0f;
 

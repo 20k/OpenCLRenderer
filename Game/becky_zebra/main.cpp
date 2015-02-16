@@ -169,9 +169,10 @@ struct zebra
         int xgrid = sqrtf(objects.size());
         int ygrid = sqrtf(objects.size());
 
-        for(int j=0; j<ygrid; j++)
+        //for(int j=0; j<ygrid; j++)
         {
-            for(int i=0; i<xgrid; i++)
+            //for(int i=0; i<xgrid; i++)
+            for(int id = 0; id < objects.size(); id++)
             {
                 /*int id = j*xgrid + i;
 
@@ -189,11 +190,15 @@ struct zebra
 
                 objects[j*xgrid + i]->set_pos(pos);*/
 
+
+                int i = id % xgrid;
+                int j = id / xgrid;
+
                 float xpos = ((float)i / xgrid) * (maxx - minx);// / (maxx - minx);
                 float zpos = ((float)j / ygrid) * (maxy - miny);// / (maxy - miny);
 
-                xpos += fmod(rand() - RAND_MAX/2, 3000);
-                zpos += fmod(rand() - RAND_MAX/2, 3000);
+                xpos += fmod(rand() - RAND_MAX/2, 1000);
+                zpos += fmod(rand() - RAND_MAX/2, 1000);
 
                 //xpos = clamp(xpos, minx, maxx);
                 //zpos = clamp(zpos, miny, maxy);
@@ -201,7 +206,10 @@ struct zebra
                 xpos = fmod(xpos - minx, maxx - minx) + minx;
                 zpos = fmod(zpos - miny, maxy - miny) + miny;
 
-                int id = j*xgrid + i;
+                xpos = clamp(xpos, minx, maxx);
+                zpos = clamp(zpos, miny, maxy);
+
+                //int id = j*xgrid + i;
 
                 id = std::min(id, (int)objects.size());
 
@@ -456,7 +464,7 @@ int main(int argc, char *argv[])
 
     zebras[0].set_file("../Res/tex_cube_2.obj");
     zebras[1].set_file("../Res/tex_cube_3.obj");
-    zebras[2].set_active(true);
+    //zebras[1].set_active(true);
 
     objects_container base;
     base.set_file("../../objects/square.obj");
@@ -508,7 +516,7 @@ int main(int argc, char *argv[])
     l.shadow = 0;
     l.radius = 1000000;
 
-    window.add_light(&l);
+    light* to_modify = window.add_light(&l);
 
     //window.set_camera_pos({0, 100, 200});
     //window.set_camera_rot({0.1, M_PI, 0});
@@ -653,8 +661,8 @@ int main(int argc, char *argv[])
             mx = screen_position.x;
             my = window.get_height() - screen_position.y;
 
-            mx = clamp(mx, 1, window.get_width() - 1);
-            my = clamp(my, 1, window.get_height() - 1);
+            mx = clamp(mx, window.window.getPosition().x + 5, window.get_width() + window.window.getPosition().x - 5);
+            my = clamp(my, window.window.getPosition().y + 5, window.get_height() + window.window.getPosition().y - 5);
 
             mouse.setPosition({mx, my});
         }
@@ -736,13 +744,10 @@ int main(int argc, char *argv[])
 
             if(new_distance)
             {
-                //if(average_state != 0)
-                {
-                    log(logfile_average, to_str(distance_accum / distance_num));
+                log(logfile_average, to_str(distance_accum / distance_num));
 
-                    distance_accum = 0;
-                    distance_num = 0;
-                }
+                distance_accum = 0;
+                distance_num = 0;
 
                 average_state++;
             }
