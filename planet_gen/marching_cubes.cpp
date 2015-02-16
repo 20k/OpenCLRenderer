@@ -158,7 +158,7 @@ float linear_interpolate(float a, float b, float x)
     //return cosine_interpolate(a, b, x);
 }
 
-float interpolate(float a, float b, float x)
+static float interpolate(float a, float b, float x)
 {
     //return linear_interpolate(a, b, x);
     return cosine_interpolate(a, b, x);

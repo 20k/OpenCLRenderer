@@ -51,6 +51,8 @@ struct zebra
 
     static bool first;
 
+    static unsigned int seed;
+
     static void set_bnd(int _minx, int _miny, int _maxx, int _maxy)
     {
         minx = _minx;
@@ -174,23 +176,6 @@ struct zebra
             //for(int i=0; i<xgrid; i++)
             for(int id = 0; id < objects.size(); id++)
             {
-                /*int id = j*xgrid + i;
-
-                id = std::min(id, (int)objects.size());
-
-                cl_float4 pos = objects[id]->pos;
-
-                float angle = fmod(rand(), M_PI*2);
-
-                float xangle = 250*cos(angle);
-                float yangle = 250*sin(angle);
-
-                pos.x = i*1000 + xangle;// + fmod(ran d() - RAND_MAX/2, 250);
-                pos.z = j*1000 + yangle;// + fmod(rand() - RAND_MAX/2, 250);
-
-                objects[j*xgrid + i]->set_pos(pos);*/
-
-
                 int i = id % xgrid;
                 int j = id / xgrid;
 
@@ -200,18 +185,11 @@ struct zebra
                 xpos += fmod(rand() - RAND_MAX/2, 1000);
                 zpos += fmod(rand() - RAND_MAX/2, 1000);
 
-                //xpos = clamp(xpos, minx, maxx);
-                //zpos = clamp(zpos, miny, maxy);
-
                 xpos = fmod(xpos - minx, maxx - minx) + minx;
                 zpos = fmod(zpos - miny, maxy - miny) + miny;
 
                 xpos = clamp(xpos, minx, maxx);
                 zpos = clamp(zpos, miny, maxy);
-
-                //int id = j*xgrid + i;
-
-                id = std::min(id, (int)objects.size());
 
                 cl_float4 pos = objects[id]->pos;
 
@@ -228,10 +206,17 @@ struct zebra
     static void update(float standard_deviation, float zebra_velocity)
     {
         ///angle is in 2d plane
+
+        printf("%f\n", standard_deviation);
+
+        float new_standard = standard_deviation / 4;
+
+        printf("%f\n", new_standard);
+
         constexpr float ideal_speed = 2.f;
 
-        static std::default_random_engine generator;
-        static std::normal_distribution<double> distribution(0.0,standard_deviation);
+        std::default_random_engine generator(seed++);
+        std::normal_distribution<float> distribution(0.0, new_standard);
 
 
         for(int i=0; i<objects.size(); i++)
@@ -250,7 +235,7 @@ struct zebra
 
             float rval = distribution(generator);
 
-            rval /= 16; ///
+            //rval /= 8; ///
 
             rval = clamp(rval, -1, 1);
 
@@ -364,6 +349,7 @@ int zebra::minx = 0;
 int zebra::miny = 0;
 int zebra::maxx = 0;
 int zebra::maxy = 0;
+unsigned zebra::seed = 0;
 
 int zebra::tracked_zebra = 0;
 
@@ -379,6 +365,12 @@ struct simulation_info
     int running = 0;
     int zebra_num = 36;
     float standard_deviation = 1.0f;
+
+    int deviation_nums = 7;
+    float standard_deviations[7] = {0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393};
+
+    int current_deviation = 0;
+
     sf::Clock highlight_clock;
     int selected_zebra = 0;
     bool clock_active = false;
@@ -475,7 +467,7 @@ int main(int argc, char *argv[])
     window.load(1680,1050,1000, "turtles", "../../cl2.cl");
 
     //window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
-    window.set_camera_pos((cl_float4){10476.4, 2157.87, -5103.68});
+    window.set_camera_pos((cl_float4){5000, 2157.87, -5103.68});
     //window.c_rot.x = -M_PI/2;
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
@@ -532,7 +524,7 @@ int main(int argc, char *argv[])
     for(int i=0; i<5; i++)
     {
         zebra::repulse();
-        zebra::update(1.f, info.zebra_velocity);
+        zebra::update(info.standard_deviation, info.zebra_velocity);
     }
 
     FILE* logfile = init_log("results.txt");
@@ -623,13 +615,6 @@ int main(int argc, char *argv[])
 
             info.simulation_time.restart();
 
-            zebra::separate();
-
-            for(int i=0; i<5; i++)
-            {
-                zebra::repulse();
-                zebra::update(1.f, info.zebra_velocity);
-            }
 
             log(logfile_average, to_str(distance_accum / distance_num));
             log(logfile_average, to_str(distance_total / distance_num));
@@ -640,6 +625,22 @@ int main(int argc, char *argv[])
             distance_accum = 0;
             distance_num = 0;
             distance_total = 0;
+
+            info.standard_deviation = info.standard_deviations[info.current_deviation];
+
+            printf("%f\n", info.standard_deviation);
+
+            info.current_deviation++;
+            info.current_deviation %= info.deviation_nums;
+
+            zebra::separate();
+
+            for(int i=0; i<5; i++)
+            {
+                zebra::repulse();
+                zebra::update(info.standard_deviation, info.zebra_velocity);
+            }
+
         }
 
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
@@ -670,7 +671,7 @@ int main(int argc, char *argv[])
         if(info.running)
         {
             zebra::repulse();
-            zebra::update(1.f, info.zebra_velocity);
+            zebra::update(info.standard_deviation, info.zebra_velocity);
         }
 
         window.input();
