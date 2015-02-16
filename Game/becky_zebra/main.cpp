@@ -207,11 +207,7 @@ struct zebra
     {
         ///angle is in 2d plane
 
-        printf("%f\n", standard_deviation);
-
-        float new_standard = standard_deviation / 4;
-
-        printf("%f\n", new_standard);
+        float new_standard = standard_deviation / 1.5;
 
         constexpr float ideal_speed = 2.f;
 
@@ -381,9 +377,7 @@ struct simulation_info
     const int MAX_ZEBRAS = 50;
     const int MIN_ZEBRAS = 10;
 
-    float zebra_velocity = 15;
-    const float minimum_velocty = 5;
-    const float maximum_velocity = 25;
+    float zebra_velocity = 20;
 };
 
 void log(FILE* log_file, const std::string& data, int do_comma = 1)
@@ -436,9 +430,13 @@ int main(int argc, char *argv[])
 {
     srand(time(NULL));
 
-    zebra::set_bnd(0, 0, 16750/2, 16750/2);
+    zebra::set_bnd(0, 0, 16750/1.5, 16750/4);
 
     simulation_info info;
+
+    info.current_deviation = rand() % info.deviation_nums;
+
+    info.standard_deviation = info.standard_deviations[info.current_deviation];
 
     info.zebra_num = 36;
     info.selected_zebra = rand() % info.zebra_num;
@@ -458,9 +456,9 @@ int main(int argc, char *argv[])
     zebras[1].set_file("../Res/tex_cube_3.obj");
     //zebras[1].set_active(true);
 
-    objects_container base;
-    base.set_file("../../objects/square.obj");
-    base.set_active(true);
+    //objects_container base;
+    //base.set_file("../../objects/square.obj");
+    //base.set_active(true);
 
     engine window;
 
@@ -479,9 +477,9 @@ int main(int argc, char *argv[])
     for(int i=0; i<info.zebra_num; i++)
         zebras[i].scale(200.0f);
 
-    base.scale(20000.0f);
+    //base.scale(20000.0f);
 
-    base.set_pos({0, -200, 0});
+    //base.set_pos({0, -200, 0});
 
 
 
@@ -626,12 +624,14 @@ int main(int argc, char *argv[])
             distance_num = 0;
             distance_total = 0;
 
+            info.current_deviation = rand() % info.deviation_nums;
+
             info.standard_deviation = info.standard_deviations[info.current_deviation];
 
             printf("%f\n", info.standard_deviation);
 
-            info.current_deviation++;
-            info.current_deviation %= info.deviation_nums;
+            //info.current_deviation++;
+            //info.current_deviation %= info.deviation_nums;
 
             zebra::separate();
 
