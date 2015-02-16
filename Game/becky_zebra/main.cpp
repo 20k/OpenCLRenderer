@@ -299,7 +299,7 @@ struct zebra
 
     static void highlight_zebra(int zid, sf::RenderWindow& win, float time_after)
     {
-        float fade_duration = 2000.0f;
+        float fade_duration = 1000.0f;
 
         float fade = time_after / fade_duration;
 
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
 {
     srand(time(NULL));
 
-    zebra::set_bnd(0, 0, 18000, 6000);
+    zebra::set_bnd(0, 0, 16750/2, 16750/2);
 
     simulation_info info;
 
@@ -453,6 +453,10 @@ int main(int argc, char *argv[])
 
         zebra::add_object(&zebras[i]);
     }
+
+    zebras[0].set_file("../Res/tex_cube_2.obj");
+    zebras[1].set_file("../Res/tex_cube_3.obj");
+    zebras[2].set_active(true);
 
     objects_container base;
     base.set_file("../../objects/square.obj");
@@ -524,8 +528,17 @@ int main(int argc, char *argv[])
     }
 
     FILE* logfile = init_log("results.txt");
+    FILE* logfile_average = init_log("results_average.txt");
 
     info.simulation_time.restart();
+
+    int striped = 0;
+
+    int average_state = 0;
+    float distance_accum = 0;
+    int distance_num = 0;
+
+    float distance_total = 0;
 
     while(window.window.isOpen())
     {
@@ -563,9 +576,23 @@ int main(int argc, char *argv[])
 
             zebra::reset();
 
+            std::string zeb_str = "../Res/tex_cube.obj";
+
+            if(striped == 1)
+            {
+                zeb_str = "../Res/tex_cube_2.obj";
+            }
+
+            if(striped == 2)
+            {
+                zeb_str = "../Res/tex_cube_3.obj";
+            }
+
+            striped = (striped + 1) % 3;
+
             for(int i=0; i<info.zebra_num; i++)
             {
-                zebras[i].set_file("../Res/tex_cube.obj");
+                zebras[i].set_file(zeb_str.c_str());
                 zebras[i].set_active(true);
 
                 zebra::add_object(&zebras[i]);
@@ -595,6 +622,16 @@ int main(int argc, char *argv[])
                 zebra::repulse();
                 zebra::update(1.f, info.zebra_velocity);
             }
+
+            log(logfile_average, to_str(distance_accum / distance_num));
+            log(logfile_average, to_str(distance_total / distance_num));
+
+            log(logfile_average, "\n\nNEXT\n", 0);
+
+            average_state = 0;
+            distance_accum = 0;
+            distance_num = 0;
+            distance_total = 0;
         }
 
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
@@ -634,7 +671,7 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
-        if(info.highlight_clock.getElapsedTime().asMilliseconds() < 2000 || !info.running || info.clock_active)
+        if(info.highlight_clock.getElapsedTime().asMilliseconds() < 1000 || !info.running || info.clock_active)
         {
             if(info.clock_active && info.running)
             {
@@ -659,6 +696,12 @@ int main(int argc, char *argv[])
 
             float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
 
+
+            distance_accum += distance;
+            distance_num ++;
+
+            distance_total += distance;
+
             //printf("%f %i %i\n", distance, mx, my);
 
             std::string dist(to_str(distance)), mxs(to_str(mx)), mys(to_str(my));
@@ -670,7 +713,44 @@ int main(int argc, char *argv[])
             log(logfile, "\n", 0);
         }
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        if(info.running)
+        {
+            bool new_distance = false;
+
+            if(average_state == 0 && info.simulation_time.getElapsedTime().asMilliseconds() > 1000)
+            {
+                new_distance = true;
+            }
+            if(average_state == 1 && info.simulation_time.getElapsedTime().asMilliseconds() > 2000)
+            {
+                new_distance = true;
+            }
+            if(average_state == 2 && info.simulation_time.getElapsedTime().asMilliseconds() > 3000)
+            {
+                new_distance = true;
+            }
+            if(average_state == 3 && info.simulation_time.getElapsedTime().asMilliseconds() > 4000)
+            {
+                new_distance = true;
+            }
+
+            if(new_distance)
+            {
+                //if(average_state != 0)
+                {
+                    log(logfile_average, to_str(distance_accum / distance_num));
+
+                    distance_accum = 0;
+                    distance_num = 0;
+                }
+
+                average_state++;
+            }
+
+        }
+
+
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     fclose(logfile);
