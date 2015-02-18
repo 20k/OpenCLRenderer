@@ -75,7 +75,9 @@ namespace cl
     extern kernel fluid_amount;
     extern kernel update_boundary;
     extern kernel fluid_initialise_mem;
+    extern kernel fluid_initialise_mem_3d;
     extern kernel fluid_timestep;
+    extern kernel fluid_timestep_3d;
     extern kernel displace_fluid;
     extern kernel process_skins;
     extern kernel draw_hermite_skin;

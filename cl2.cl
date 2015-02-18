@@ -7110,22 +7110,25 @@ void displace_fluid(__global uchar* obstacles,
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
 }
 
-
+/*int index(int3 loc, int width, int height)
+{
+    return loc.z * width * height + loc.y * width + loc.x;
+}*/
 
 ///potentially unnecessary 3d code
-#if 0
 #define NSPEEDS 15
 
-typedef struct t_speed
+typedef struct t_speed_3d
 {
     float speeds[NSPEEDS];
-} t_speed;
+} t_speed_3d;
 
 
+///this is getting really bad
 #define IDX(x, y, z) (z*width*height + y*width + x)
 
 ///borrowed from coursework
-__kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
+__kernel void fluid_initialise_mem_3d(__global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                              __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
                              __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
                              __global float* out_cells_9, __global float* out_cells_10, __global float* out_cells_11,
@@ -7201,7 +7204,7 @@ __kernel void fluid_initialise_mem(__global float* out_cells_0, __global float* 
 ///make av_vels 16bit ints
 ///partly borrowed from uni HPC coursework
 ///http://www.mdpi.com/fibers/fibers-02-00128/article_deploy/html/images/fibers-02-00128-g003-1024.png
-__kernel void fluid_timestep(__global uchar* obstacles,
+__kernel void fluid_timestep_3d(__global uchar* obstacles,
                        __global float* out_cells_0, __global float* out_cells_1, __global float* out_cells_2,
                        __global float* out_cells_3, __global float* out_cells_4, __global float* out_cells_5,
                        __global float* out_cells_6, __global float* out_cells_7, __global float* out_cells_8,
@@ -7214,8 +7217,9 @@ __kernel void fluid_timestep(__global uchar* obstacles,
                        __global float* in_cells_9, __global float* in_cells_10, __global float* in_cells_11,
                        __global float* in_cells_12, __global float* in_cells_13, __global float* in_cells_14,
 
-                       __write_only image2d_t screen,
-                       int width, int height, int depth
+                       int width, int height, int depth,
+
+                       __write_only image2d_t screen
                       )
 {
     int id = get_global_id(0);
@@ -7241,7 +7245,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     const int z_f = (z + 1) % depth;
     const int z_b = (z == 0) ? depth-1 : z-1;
 
-    t_speed local_cell;
+    t_speed_3d local_cell;
 
     ///still valid
     local_cell.speeds[0] = in_cells_0[IDX(x, y, z)];
@@ -7289,7 +7293,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
     const float w1g = density * 0.005f / 9.0f;
     const float w2g = density * 0.005f / 36.0f;*/
 
-    t_speed cell_out;
+    t_speed_3d cell_out;
 
     bool is_obstacle = obstacles[IDX(x, y, z)];
 
@@ -7335,7 +7339,7 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         float d_equ[NSPEEDS];        /* equilibrium densities */
         float u_sq;                  /* squared velocity */
 
-        t_speed this_tmp = local_cell;
+        t_speed_3d this_tmp = local_cell;
 
 
         for(kk=0; kk<NSPEEDS; kk++)
@@ -7432,24 +7436,61 @@ __kernel void fluid_timestep(__global uchar* obstacles,
         //const float OMEGA = 0.185f;
         const float OMEGA = 1.0;
 
-        t_speed this_cell;
+        t_speed_3d this_cell;
 
         for(kk=0; kk<NSPEEDS; kk++)
         {
             float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
 
+            if(kk == 0)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w0);
+            else if(kk < 5)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w1);
+            else if(kk < 13)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w2);
+            else if(kk < 15)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w1);
             ///what to do about negative fluid flows? Push to other side?
-            this_cell.speeds[kk] = max(val, 0.0f);
+            //this_cell.speeds[kk] = max(val, 0.0f);
             //this_cell.speeds[kk] = max(val, 0.0001f);
             //this_cell.speeds[kk] = val;
             //this_cell.speeds[kk] = val;
+        }
+
+
+        /*for(kk=0; kk<NSPEEDS; kk++)
+        {
+            float val = this_tmp.speeds[kk] + OMEGA * (d_equ[kk] - this_tmp.speeds[kk]);
+
+            ///what to do about negative fluid flows? Push to other side?
+            if(kk == 0)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w0);
+            else if(kk <= 4)
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w1);
+            else
+                this_cell.speeds[kk] = clamp(val, 0.0001f, w2);
         }
 
         //printf("%f\n", u_sq);
 
         cell_out = this_cell;
 
-        if(local_density <= 0)
+        if(local_density < 0.00001f)
+        {
+            for(int i=0; i<NSPEEDS; i++)
+            {
+                cell_out.speeds[i] = local_cell.speeds[i];
+            }
+
+            u_x = 0;
+            u_y = 0;
+        }*/
+
+        //printf("%f\n", u_sq);
+
+        cell_out = this_cell;
+
+        if(local_density <= 0.00001f)
         {
             cell_out = local_cell;
         }
@@ -7503,13 +7544,12 @@ __kernel void fluid_timestep(__global uchar* obstacles,
 
     //printf("%f %i %i %i\n", local_density, x, y, z);
 
-    if(z == 2)
-        write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
+    //if(z == 2)
+    //    write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
     //write_imagef(screen, (int2){x, y}, clamp(speed, 0.f, 1.f));
 
     //printf("%f %i %i\n", speed, x, y);
 }
-#endif
 
 
 /*float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,

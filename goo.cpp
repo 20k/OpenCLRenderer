@@ -175,10 +175,14 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
 
     cl::unmap(obstacles, buf);
 
-    //delete [] buf;
+    cl_uint global_ws[3] = {sw,sh,1};
 
-    cl_uint global_ws[] = {sw, sh};
-    cl_uint local_ws[] = {128, 1};
+    if(n == 15)
+        global_ws[2] = sd;
+
+    cl_uint local_ws[3] = {1,1,1};
+
+    local_ws[0] = 128;
 
     arg_list init_arg_list;
 
@@ -187,10 +191,16 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
 
     init_arg_list.push_back(&sw);
     init_arg_list.push_back(&sh);
-    //init_arg_list.push_back(&sd);
+
+    if(n == 15)
+        init_arg_list.push_back(&sd);
 
 
-    run_kernel_with_list(cl::fluid_initialise_mem, global_ws, local_ws, 2, init_arg_list);
+    if(n == 9)
+        run_kernel_with_list(cl::fluid_initialise_mem, global_ws, local_ws, 2, init_arg_list);
+    if(n == 15)
+        run_kernel_with_list(cl::fluid_initialise_mem_3d, global_ws, local_ws, 3, init_arg_list);
+
 
     screen = engine::gen_cl_gl_framebuffer_renderbuffer(&screen_id, sw, sh);
 
@@ -208,7 +218,10 @@ void lattice<n, datatype>::tick(compute::buffer* temp_obstacles)//compute::buffe
     arg_list timestep;
 
     timestep.push_back(&obstacles);
-    timestep.push_back(temp_obstacles);
+
+    ///starting to get pretty hacky
+    if(n == 9)
+        timestep.push_back(temp_obstacles);
 
     ///???
     compute::buffer* cur_in = which == 0 ? in : out;
@@ -226,6 +239,8 @@ void lattice<n, datatype>::tick(compute::buffer* temp_obstacles)//compute::buffe
 
     timestep.push_back(&width);
     timestep.push_back(&height);
+    if(n == 15)
+        timestep.push_back(&depth);
 
     timestep.push_back(&screen);
 

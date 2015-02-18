@@ -266,7 +266,9 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     cl::fluid_amount = load_kernel(program, "fluid_amount");
     cl::update_boundary = load_kernel(program, "update_boundary");
     cl::fluid_initialise_mem = load_kernel(program, "fluid_initialise_mem");
+    cl::fluid_initialise_mem_3d = load_kernel(program, "fluid_initialise_mem_3d");
     cl::fluid_timestep = load_kernel(program, "fluid_timestep");
+    cl::fluid_timestep_3d = load_kernel(program, "fluid_timestep_3d");
     cl::displace_fluid = load_kernel(program, "displace_fluid");
     cl::process_skins = load_kernel(program, "process_skins");
     cl::draw_hermite_skin = load_kernel(program, "draw_hermite_skin");
