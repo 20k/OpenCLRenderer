@@ -250,7 +250,12 @@ void lattice<n, datatype>::tick(compute::buffer* temp_obstacles)//compute::buffe
     cl_uint global_ws = width*height*depth;
     cl_uint local_ws = 128;
 
-    run_kernel_with_list(cl::fluid_timestep, &global_ws, &local_ws, 1, timestep);
+
+    if(n == 9)
+        run_kernel_with_list(cl::fluid_timestep, &global_ws, &local_ws, 1, timestep);
+
+    if(n == 15)
+        run_kernel_with_list(cl::fluid_timestep_3d, &global_ws, &local_ws, 1, timestep);
 
     swap_buffers();
 

@@ -940,34 +940,6 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
 int ret_cubeface(float3 point, float3 light)
 {
-    ///angles for reference
-    /*float3 r_struct[6];
-    r_struct[0]=(float3)
-    {
-        0.0,            0.0,            0.0,0.0
-    };
-    r_struct[1]=(float3)
-    {
-        M_PI/2.0,       0.0,            0.0,0.0
-    };
-    r_struct[2]=(float3)
-    {
-        0.0,            M_PI,           0.0,0.0
-    };
-    r_struct[3]=(float3)
-    {
-        3.0*M_PI/2.0,   0.0,            0.0,0.0
-    };
-    r_struct[4]=(float3)
-    {
-        0.0,            3.0*M_PI/2.0,   0.0,0.0
-    };
-    r_struct[5]=(float3)
-    {
-        0.0,            M_PI/2.0,       0.0,0.0
-    };*/
-
-
     ///derived almost entirely by guesswork
 
     float3 r_pl = point - light;
@@ -7183,13 +7155,13 @@ __kernel void fluid_initialise_mem_3d(__global float* out_cells_0, __global floa
 
     out_cells_5[IDX(x, y, z)] = w2;///2;
     out_cells_6[IDX(x, y, z)] = w2;//*1;
-    out_cells_7[IDX(x, y, z)] = w2;
-    out_cells_8[IDX(x, y, z)] = w2;
+    out_cells_7[IDX(x, y, z)] = w2/2;
+    out_cells_8[IDX(x, y, z)] = w2*2;
 
     out_cells_9[IDX(x, y, z)] = w2;///2;
     out_cells_10[IDX(x, y, z)] = w2;//*1;
     out_cells_11[IDX(x, y, z)] = w2;
-    out_cells_12[IDX(x, y, z)] = w2;
+    out_cells_12[IDX(x, y, z)] = w2/2;
 
     out_cells_13[IDX(x, y, z)] = w1;///3;
     out_cells_14[IDX(x, y, z)] = w1/2;
@@ -7434,7 +7406,7 @@ __kernel void fluid_timestep_3d(__global uchar* obstacles,
         d_equ[14] = w1 * local_density * (u[13] * inv_c_sq + u[13] * u[13] * cst1 + cst2);
 
         //const float OMEGA = 0.185f;
-        const float OMEGA = 1.0;
+        const float OMEGA = 0.7;
 
         t_speed_3d this_cell;
 
