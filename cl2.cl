@@ -6845,6 +6845,8 @@ __kernel void fluid_timestep(__global uchar* obstacles, __global uchar* transien
     //printf("%f %i %i\n", speed, x, y);
 }
 
+///does drift
+///incorporate points on the 'far' end of the catmull rom spline shift thing bit
 __kernel
 void process_skins(__global float* in_cells_0, __global uchar* obstacles, __global uchar* transient_obstacles, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
 {
@@ -6931,6 +6933,24 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
 }
 
+float2 mov_tang(float2 val, float2 tr, float mov_scale)
+{
+    float angle = atan2(tr.y, tr.x);
+
+    angle -= M_PI/2;
+
+    float dist = 30;
+
+    tr.x = dist*cos(angle);
+    tr.y = dist*sin(angle);
+
+    float2 tang_val = tr;
+
+    float2 nres = val - tang_val * mov_scale;
+
+    return nres;
+}
+
 ///make it not obstruct if its near a control vertex?
 ///instead of doing this, move the control vertices towards the centre by tangent then do again
 ///this would prevent the current issues by shrinking the overall cell, and by making the cell jiggle with fluid from the current control points
@@ -6950,17 +6970,23 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
 
     float tf = (float)t / step_size;
 
+    float2 pm1 = {skin_x[(which - 2 + num) % num], skin_y[(which - 2 + num) % num]};
     float2 p0 = {skin_x[(which - 1 + num) % num], skin_y[(which - 1 + num) % num]};
     float2 p1 = {skin_x[(which + 0 + num) % num], skin_y[(which + 0 + num) % num]};
     float2 p2 = {skin_x[(which + 1 + num) % num], skin_y[(which + 1 + num) % num]};
     float2 p3 = {skin_x[(which + 2 + num) % num], skin_y[(which + 2 + num) % num]};
+    float2 p4 = {skin_x[(which + 3 + num) % num], skin_y[(which + 3 + num) % num]};
+    float2 p5 = {skin_x[(which + 4 + num) % num], skin_y[(which + 4 + num) % num]};
 
-    float2 t1, t2;
+    float2 t0, t1, t2, t3, t4;
 
     const float a = 0.5f;
 
+    t0 = a * (p1 - pm1);
     t1 = a * (p2 - p0);
     t2 = a * (p3 - p1);
+    t3 = a * (p4 - p2);
+    t4 = a * (p5 - p3);
 
     float s = tf;
 
@@ -6973,10 +6999,68 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
 
     write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
 
+    float mov_scale = 0.8f;
+
+
+    /*float2 tr = t1;
+
+    float angle = atan2(tr.y, tr.x);
+
+    angle -= M_PI/2;
+
+    float dist = 60;
+
+    tr.x = dist*cos(angle);
+    tr.y = dist*sin(angle);
+
+    float2 tang_val = tr;
+
+    float2 nres = p1 - tang_val * mov_scale;*/
+
+    float2 r0 = mov_tang(p0, t0, mov_scale);
+    float2 r1 = mov_tang(p1, t1, mov_scale);
+    float2 r2 = mov_tang(p2, t2, mov_scale);
+    float2 r3 = mov_tang(p3, t3, mov_scale);
+
+    float2 nt1 = a * (r2 - r0);
+    float2 nt2 = a * (r3 - r1);
+
+    float2 nres = h1 * r1 + h2 * r2 + h3 * nt1 + h4 * nt2;
+
+
+    ///works! not as well as i want, but still
+    /*float2 smooth_tangent = (1.0f - s) * t1 + s * t2;
+
+    float2 nres = mov_tang(res, smooth_tangent);*/
+
+
+
+
+
+
+
+
+    ///shifted initial values
+    /*float2 sp0 = p0 - t0*mov_scale;
+    float2 sp1 = p1 - t1*mov_scale;
+    float2 sp2 = p2 - t2*mov_scale;
+    float2 sp3 = p3 - t3*mov_scale;
+
+
+    float2 nt1 = a * (sp2 - sp0);
+    float2 nt2 = a * (sp3 - sp1);*/
+
+    //float2 nres = h1 * r2 + h2 * r3 + h3 * nt1 + h4 * nt2;
+
+
+    if(skin_obstacle)
+        skin_obstacle[(int)(nres.y) * width + (int)(nres.x)] = 1;
+
+
     ///end catmull-rom spline
 
     ///move point by tangent
-    res -= t1*0.4f;
+    /*res -= t1*0.4f;
 
     res = clamp(res, 0.0f, (float2){width-1, height-1});
 
@@ -6985,7 +7069,9 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
         return;
 
     if(skin_obstacle)
-        skin_obstacle[(int)(res.y) * width + (int)(res.x)] = 1;
+        skin_obstacle[(int)(res.y) * width + (int)(res.x)] = 1;*/
+
+
 }
 
 __kernel

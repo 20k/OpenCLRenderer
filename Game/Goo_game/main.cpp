@@ -330,6 +330,8 @@ struct goo_monster
         s1.add_point({lat.width/2, lat.height/2});
         s1.add_point({lat.width/2 + 100, lat.height/2});
         s1.add_point({lat.width/2, lat.height/2 + 100});
+        //s1.add_point({lat.width/2 - 100, lat.height/2 + 100});
+        //s1.add_point({lat.width/2 - 100, lat.height/2 + 0});
         s1.generate_skin_buffers(lat);
     }
 
