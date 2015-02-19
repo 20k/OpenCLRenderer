@@ -9,6 +9,7 @@
 
 #include <string>
 #include <utility>
+#include <map>
 
 ///kernels and opencl stuff
 
@@ -18,6 +19,7 @@ struct kernel
 {
     compute::kernel kernel;
     std::string name;
+    bool loaded = false;
 };
 
 namespace cl
@@ -31,6 +33,9 @@ namespace cl
     extern compute::device device;
     extern compute::command_queue cqueue;
     extern compute::context context;
+    extern compute::program program;
+
+    extern std::map<std::string, kernel> kernels;
 
     ///make this a map so that i can just directly call kernels
     extern kernel kernel1;

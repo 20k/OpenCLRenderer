@@ -22,6 +22,9 @@ void cl::unmap(compute::buffer& v, void* ptr)
 compute::device cl::device;
 compute::command_queue cl::cqueue;
 compute::context cl::context;
+compute::program cl::program;
+
+std::map<std::string, kernel> cl::kernels;
 
 
 kernel cl::kernel1;

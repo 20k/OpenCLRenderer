@@ -120,6 +120,8 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     kernel k;
     k.kernel = compute::kernel(p, name);
     k.name = name;
+    k.loaded = true;
+
     return k;
 }
 
@@ -225,14 +227,16 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
         exit(1232345);
     }
 
+    cl::program = program;
+
     ///make this more automatic
-    cl::kernel1 = load_kernel(program, "part1");
-    cl::kernel2 = load_kernel(program, "part2");
-    cl::kernel3 = load_kernel(program, "part3");
+    cl::kernel1 = load_kernel(program, "kernel1");
+    cl::kernel2 = load_kernel(program, "kernel2");
+    cl::kernel3 = load_kernel(program, "kernel3");
     cl::prearrange = load_kernel(program, "prearrange");
-    cl::kernel1_oculus = load_kernel(program, "part1_oculus");
-    cl::kernel2_oculus= load_kernel(program, "part2_oculus");
-    cl::kernel3_oculus = load_kernel(program, "part3_oculus");
+    cl::kernel1_oculus = load_kernel(program, "kernel1_oculus");
+    cl::kernel2_oculus= load_kernel(program, "kernel2_oculus");
+    cl::kernel3_oculus = load_kernel(program, "kernel3_oculus");
     cl::prearrange_oculus = load_kernel(program, "prearrange_oculus");
     cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
     cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");

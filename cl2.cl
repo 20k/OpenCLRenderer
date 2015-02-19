@@ -1923,7 +1923,7 @@ bool side(float2 p1, float2 p2, float2 p3)
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
 __kernel
-void part1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
@@ -2063,7 +2063,7 @@ void part1(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 ///fragment number is worng
 __kernel
-void part1_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+void kernel1_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
@@ -2213,7 +2213,7 @@ void part1_oculus(__global struct triangle* triangles, __global uint* fragment_i
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
-void part2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
+void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
             __global float2* distort_buffer)
 {
@@ -2351,7 +2351,7 @@ void part2(__global struct triangle* triangles, __global uint* fragment_id_buffe
 
 
 __kernel
-void part2_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
+void kernel2_oculus(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
             __global float2* distort_buffer)
 {
@@ -2529,7 +2529,7 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
 __kernel
 //__attribute__((reqd_work_group_size(8, 8, 1)))
 //__attribute__((vec_type_hint(float3)))
-void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer
@@ -2874,7 +2874,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 }
 
 __kernel
-void part3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global float4* cutdown_tris
            )
@@ -6887,6 +6887,7 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
     bool o1, o2, o3, o4;
 
+    ///make this -catmull-rom? then obstacle wall == external wall
     o1 = obstacles[IDX(x+1, y)] || transient_obstacles[IDX(x+1, y)];
     o2 = obstacles[IDX(x-1, y)] || transient_obstacles[IDX(x-1, y)];
     o3 = obstacles[IDX(x, y+1)] || transient_obstacles[IDX(x, y+1)];
@@ -7200,6 +7201,51 @@ void displace_fluid(__global uchar* obstacles,
     out_cells_6[IDX(x, y)] = cell_out.speeds[6];
     out_cells_7[IDX(x, y)] = cell_out.speeds[7];
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
+}
+
+__kernel
+void displace_average_skin(__global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
+                       __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
+                       __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+                       int width, int height,
+                       __global float* skin_x, __global float* skin_y,
+                       int num
+                       )
+{
+    int id = get_global_id(0);
+
+    ///this kernel is a little bit retarded, but seemingly the only way to avoid gpu -> cpu transfer which is slow as all hairy balls
+    if(id > 1)
+        return;
+
+    if(num == 0)
+        return;
+
+    float ax = 0, ay = 0;
+
+    int WIDTH = width;
+
+    for(int i=0; i<num; i++)
+    {
+        ax += skin_x[i];
+        ay += skin_y[i];
+    }
+
+    ax /= num;
+    ay /= num;
+
+    ax = clamp(ax, 0.0f, width-1.f);
+    ay = clamp(ay, 0.0f, height-1.f);
+
+    in_cells_0[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_1[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_2[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_3[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_4[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_5[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_6[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_7[IDX((int)ax, (int)ay)] += 0.5f;
+    in_cells_8[IDX((int)ax, (int)ay)] += 0.5f;
 }
 
 /*int index(int3 loc, int width, int height)

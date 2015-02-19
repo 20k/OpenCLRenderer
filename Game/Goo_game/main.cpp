@@ -207,7 +207,6 @@ struct skin
         compute::opengl_enqueue_release_gl_objects(1, &lat.screen.get(), cl::cqueue);
     }
 
-
     template<int N, typename datatype>
     void render_points(const lattice<N, datatype>& lat, sf::RenderWindow& window)
     {
@@ -318,8 +317,10 @@ struct skin
 
 struct goo_monster
 {
+    static constexpr int N = 9;
+
     skin s1;
-    lattice<9, cl_float> lat;
+    lattice<N, cl_float> lat;
 
     uint32_t counter = 0;
 
@@ -333,6 +334,40 @@ struct goo_monster
         //s1.add_point({lat.width/2 - 100, lat.height/2 + 100});
         //s1.add_point({lat.width/2 - 100, lat.height/2 + 0});
         s1.generate_skin_buffers(lat);
+    }
+
+    void heartbeat()
+    {
+        /*void displace_average_skin(__global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
+                       __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
+                       __global float* in_cells_6, __global float* in_cells_7, __global float* in_cells_8,
+                       int width, int height,
+                       __global float* skin_x, __global float* skin_y,
+                       int num
+                       )*/
+
+        arg_list displace;
+
+        for(int i=0; i<N; i++)
+        {
+            displace.push_back(&lat.current_in[i]);
+        }
+
+        displace.push_back(&lat.width);
+        displace.push_back(&lat.height);
+
+        displace.push_back(&s1.skin_x);
+        displace.push_back(&s1.skin_y);
+
+        int num = s1.point_x.size();
+
+        displace.push_back(&num);
+
+        /// :(
+        cl_uint global_ws[] = {1};
+        cl_uint local_ws[] = {1};
+
+        run_kernel_with_string("displace_average_skin", global_ws, local_ws, 1, displace);
     }
 
     void tick()
@@ -356,7 +391,8 @@ struct goo_monster
 
         ///use a timer
         if(counter % 400 < 40)
-            do_fluid_displace(cx, cy, lat);
+            heartbeat();
+            //do_fluid_displace(cx, cy, lat);
 
         s1.draw_update_hermite(lat);
         s1.advect_skin(lat);

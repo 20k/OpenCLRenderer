@@ -19,6 +19,8 @@
 
 #include "smoke.hpp"
 
+#include "ocl.h"
+
 #ifdef RIFT
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"
@@ -271,6 +273,18 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
 
     std::cout << "T  " << kernel.name << " " << duration << std::endl;
     #endif
+}
+
+static void run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
+{
+    kernel k = cl::kernels[name];
+
+    if(!k.loaded)
+    {
+        k = load_kernel(cl::program, name);
+    }
+
+    run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, args);
 }
 
 
