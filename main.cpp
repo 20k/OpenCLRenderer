@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     l.set_shadow_casting(1);
     l.set_brightness(1);
     l.radius = 100000;
-    l.set_pos((cl_float4){-200, 2000, -100, 0});
+    l.set_pos((cl_float4){-200, 500, -100, 0});
     window.add_light(&l);
 
     l.set_col((cl_float4){0.0f, 0.0f, 1.0f, 0});

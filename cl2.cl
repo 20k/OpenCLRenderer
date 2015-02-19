@@ -2520,8 +2520,6 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
     *u = 1.0f - *v - *w;
 }
 
-#define BECKY_HACK
-
 
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
@@ -2734,7 +2732,42 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
             continue;
         }
 
-        //float3 H = fast_normalize(l2c + global_position - *c_pos);
+        float diffuse = (1.0f-ambient)*light*l.brightness;
+
+        diffuse_sum += diffuse*l.col.xyz;
+
+        float3 H = fast_normalize(l2p + l2c);
+
+        float a = acos(dot(normal, H));
+
+
+        float m = 0.8f;
+
+        float ca = cos(a);
+
+        float beckmann = exp(-tan(a)*tan(a)/m*m) / (M_PI * m*m + ca*ca*ca*ca);
+
+
+        float n1, n2;
+
+        n1 = 1;
+        n2 = 1.5f; ///?
+
+        float r0 = (n1 - n2) / (n1 + n2);
+
+        r0 *= r0;
+
+        float fres = r0 + (1 - r0) * (1 - dot(H, l2c));
+
+        float G = min(min(1.f, 2*dot(H, normal)*dot(l2p, normal) / dot(l2p, H)), 2*dot(H, normal)*dot(l2c, normal) / dot(l2p, H));
+
+        float cook_spec = beckmann * fres * G / (4 * dot(l2p, normal) * dot(normal, l2c));
+
+        //float spec = pow(dot(normal, H), 5.f);
+
+        float spec = cook_spec;
+
+        diffuse_sum += spec * l.col.xyz;
 
         ///do light radius
 
@@ -2777,10 +2810,6 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
 
         //light = max(0.0f, light);
-
-        float diffuse = (1.0f-ambient)*light*l.brightness;
-
-        diffuse_sum += diffuse*l.col.xyz * (1.0f - occluded);
     }
 
     //int num = 0;

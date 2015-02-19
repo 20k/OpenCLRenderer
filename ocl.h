@@ -182,8 +182,6 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     cl::cqueue = compute::command_queue(cl::context, cl::device);
     #endif
 
-
-
     int src_size=0;
     const char *source;
 
@@ -210,7 +208,11 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     std::string lresstr = convertlres.str();
 
     ///does not compile properly without (breaks texture filtering), investigate this at some point
-    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr;
+    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr;// + " -D BECKY_HACK=" + sbecky;
+
+    #ifdef BECKY_HACK
+    buildoptions += "-D BECKY_HACK 1"
+    #endif
 
     try
     {
