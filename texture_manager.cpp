@@ -36,20 +36,6 @@ texture* texture_manager::texture_by_id(int id)
     return NULL;
 }
 
-float bilinear_filter(cl_float2 coord, float values[4])
-{
-    float mx, my;
-    mx = coord.x*1 - 0.5f;
-    my = coord.y*1 - 0.5f;
-    cl_float2 uvratio = (cl_float2){mx - floor(mx), my - floor(my)};
-    cl_float2 buvr =  (cl_float2){1.0f-uvratio.x, 1.0f-uvratio.y};
-
-    float result;
-    result=(values[0]*buvr.x + values[1]*uvratio.x)*buvr.y + (values[2]*buvr.x + values[3]*uvratio.x)*uvratio.y;
-
-    return result;
-}
-
 ///maximum number of textures that may fit into a max_tex_size (2048) * max_tex_size slice
 cl_uint return_max_num(int size)
 {
@@ -58,7 +44,7 @@ cl_uint return_max_num(int size)
 
 ///this may resize obj_mem_manager::c_texture_array
 ///returns the first free chunk of memory for texture of size, and gives the position of that texture in memory slice
-cl_uchar4 * return_first_free(int size, int &num)
+cl_uchar4* return_first_free(int size, int& num)
 {
     int maxnum=return_max_num(size);
 
@@ -96,7 +82,7 @@ cl_uchar4 * return_first_free(int size, int &num)
 }
 
 
-inline void setpixel(cl_uchar4 *buf, sf::Color col, int x, int y, int lx, int ly)
+inline void setpixel(cl_uchar4* buf, sf::Color col, int x, int y, int lx, int ly)
 {
     buf[x + y*lx].x=col.r;
     buf[x + y*lx].y=col.g;
@@ -115,14 +101,14 @@ static sf::Color pixel4(sf::Color p0, sf::Color p1, sf::Color p2, sf::Color p3)
 }
 
 ///adds a texture to the 3d texture array
-void add_texture(texture &tex, int &newid, int mlevel = 0)
+void add_texture(texture& tex, int& newid, int mlevel = 0)
 {
     int size=tex.get_largest_num(mlevel);
     int num=0;
 
     cl_uchar4 *firstfree=return_first_free(size, num);
 
-    sf::Image& T=tex.get_texture_level(mlevel);
+    sf::Image& T = tex.get_texture_level(mlevel);
 
     int which = texture_manager::texture_numbers[num];
     int blockalongy = which / (max_tex_size/size);
@@ -156,7 +142,7 @@ void add_texture(texture &tex, int &newid, int mlevel = 0)
 }
 
 
-void add_texture_and_mipmaps(texture &tex, int newmips[], int &newid)
+void add_texture_and_mipmaps(texture& tex, int newmips[], int& newid)
 {
     add_texture(tex, newid, 0);
 
@@ -248,7 +234,7 @@ std::vector<std::pair<int, int> > generate_unique_size_table()
 
 ///unique size table generation may be wrong, thats why there is some memory reallocation
 ///fix but not important because it works, just slower than necessary
-void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
+void allocate_cpu_texture_array(const std::vector<std::pair<int, int> > &unique_sizes)
 {
     unsigned int final_memory_size = 0; ///doesn't do mipmaps, eh
 
@@ -439,7 +425,7 @@ bool texture_manager::exists(int texture_id)
 }
 
 ///checks if a texture exists by using its location as comparison string
-bool texture_manager::exists_by_location(std::string loc)
+bool texture_manager::exists_by_location(const std::string& loc)
 {
     for(int i=0; i<texture_manager::all_textures.size(); i++)
     {
@@ -452,7 +438,7 @@ bool texture_manager::exists_by_location(std::string loc)
 }
 
 ///returns id based on location as comparison
-int texture_manager::id_by_location(std::string loc)
+int texture_manager::id_by_location(const std::string& loc)
 {
     for(int i=0; i<texture_manager::all_textures.size(); i++)
     {

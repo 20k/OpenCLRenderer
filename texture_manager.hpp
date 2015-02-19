@@ -33,20 +33,20 @@ struct texture_manager
 
     static int mipmap_start;
 
-    static int add_texture(texture &tex);
+    static int add_texture(texture& tex);
 
     static int activate_texture(int texture_id);
     static int inactivate_texture(int texture_id);
 
     static void allocate_textures();
 
-    static bool exists_by_location(std::string);
+    static bool exists_by_location(const std::string&);
 
     //static bool does_texture_exist_by_location(std::string);
 
     static bool exists(int texture_id);
 
-    static int id_by_location(std::string);
+    static int id_by_location(const std::string&);
 
     static texture* texture_by_id(int);
 };
