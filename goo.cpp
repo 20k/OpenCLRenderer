@@ -143,8 +143,6 @@ void lattice<n, datatype>::init(int sw, int sh, int sd)
         out[i] = compute::buffer(cl::context, sizeof(datatype)*sw*sh*sd, CL_MEM_READ_WRITE, NULL);
     }
 
-    //cl_uchar* buf = new cl_uchar[sw*sh*sd];
-
     obstacles = compute::buffer(cl::context, sizeof(cl_uchar)*sw*sh*sd, CL_MEM_READ_WRITE, NULL);
 
     cl_uchar* buf = (cl_uchar*)cl::map(obstacles, CL_MAP_WRITE, sizeof(cl_uchar)*sw*sh*sd);

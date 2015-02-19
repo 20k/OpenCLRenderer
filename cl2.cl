@@ -2736,6 +2736,8 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
 
         diffuse_sum += diffuse*l.col.xyz;
 
+        #define COOK_TORRENCE
+        #ifdef COOK_TORRENCE
         float3 H = fast_normalize(l2p + l2c);
 
         float a = acos(dot(normal, H));
@@ -2768,8 +2770,7 @@ void part3(__global struct triangle *triangles,__global uint *tri_num, float4 c_
         float spec = cook_spec;
 
         diffuse_sum += spec * l.col.xyz;
-
-        ///do light radius
+        #endif
 
 
 
