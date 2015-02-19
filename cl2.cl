@@ -6645,8 +6645,6 @@ __kernel void fluid_timestep(__global uchar* obstacles, __global uchar* transien
                        int width, int height,
 
                        __write_only image2d_t screen
-
-                       //__global uchar* skin_in, __global uchar* skin_out
                       )
 {
     int id = get_global_id(0);
@@ -6840,33 +6838,10 @@ __kernel void fluid_timestep(__global uchar* obstacles, __global uchar* transien
         transient_obstacles[IDX(x, y)] = 0;
     }
 
-    /*int2 mov = {x, y};
-
-    float2 accel = (float2)(in_cells_0[IDX(x+1, y)] - in_cells_0[IDX(x-1, y)], in_cells_0[IDX(x, y+1)] - in_cells_0[IDX(x, y-1)]);
-
-    accel *= 50.0f;
-    accel = clamp(accel, -1, 1);
-
-    mov += convert_int2(round(accel));
-
-    mov = clamp(mov, 0, (int2)(width-1, height-1));
-
-    skin_in[IDX(x, y)] = 0;
-
-    ///use rolling bitshifting to avoid having two buffers
-    if(is_skin)
-    {
-        skin_out[IDX(mov.x, mov.y)] = 1;
-    }*/
 
     //float speed = cell_out.speeds[0];
 
     //float broke = isnan(local_density);
-
-    /*if(!is_skin)
-        write_imagef(screen, (int2){x, y}, clamp(fabs(accel).xyyy, 0.f, 1.f));
-    else
-        write_imagef(screen, (int2){x, y}, (float4)(is_skin, 0, 0, 0));*/
 
     write_imagef(screen, (int2){x, y}, clamp(local_density, 0.f, 1.f));
 
@@ -6874,6 +6849,26 @@ __kernel void fluid_timestep(__global uchar* obstacles, __global uchar* transien
 
     //printf("%f %i %i\n", speed, x, y);
 }
+
+
+float2 mov_tang(float2 val, float2 tr, float mov_scale)
+{
+    float angle = atan2(tr.y, tr.x);
+
+    angle -= M_PI/2;
+
+    float dist = 30;
+
+    tr.x = dist*cos(angle);
+    tr.y = dist*sin(angle);
+
+    float2 tang_val = tr;
+
+    float2 nres = val - tang_val * mov_scale;
+
+    return nres;
+}
+
 
 ///does drift
 ///incorporate points on the 'far' end of the catmull rom spline shift thing bit
@@ -6903,6 +6898,49 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     v2 = !o2 ? in_cells_0[IDX(x-1, y)] : 0;
     v3 = !o3 ? in_cells_0[IDX(x, y+1)] : 0;
     v4 = !o4 ? in_cells_0[IDX(x, y-1)] : 0;
+
+
+    ///begin catmull-rom
+
+    float2 p0 = {skin_x[(id - 1 + num) % num], skin_y[(id - 1 + num) % num]};
+    float2 p1 = {skin_x[(id + 0 + num) % num], skin_y[(id + 0 + num) % num]};
+    float2 p2 = {skin_x[(id + 1 + num) % num], skin_y[(id + 1 + num) % num]};
+
+    float2 t1;
+
+    const float a = 0.5f;
+
+    t1 = a * (p2 - p0);
+
+
+    float mov_scale = 0.8f;
+
+    ///move by twice catmull to get inside cell wall
+    float2 r1 = mov_tang(p1, t1, mov_scale*2);
+
+    write_imagef(screen, convert_int2(r1), (float4)(0, 0, 1, 0));
+
+    ///end catmull-rom
+
+    ///begin twice-catmull movement
+
+    int2 loc = convert_int2(r1);
+
+    bool n1, n2, n3, n4;
+
+    loc = clamp(loc, 1, (int2){width, height}-1);
+
+    n1 = obstacles[IDX(loc.x+1, loc.y)] || transient_obstacles[IDX(loc.x+1, loc.y)];
+    n2 = obstacles[IDX(loc.x-1, loc.y)] || transient_obstacles[IDX(loc.x-1, loc.y)];
+    n3 = obstacles[IDX(loc.x, loc.y+1)] || transient_obstacles[IDX(loc.x, loc.y+1)];
+    n4 = obstacles[IDX(loc.x, loc.y-1)] || transient_obstacles[IDX(loc.x, loc.y-1)];
+
+    v1 += !n1 ? in_cells_0[IDX(loc.x+1, loc.y)] : v1;
+    v2 += !n2 ? in_cells_0[IDX(loc.x-1, loc.y)] : v2;
+    v3 += !n3 ? in_cells_0[IDX(loc.x, loc.y+1)] : v3;
+    v4 += !n4 ? in_cells_0[IDX(loc.x, loc.y-1)] : v4;
+
+    ///end
 
 
     float2 mov = {x, y};
@@ -6963,24 +7001,6 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
 }
 
-float2 mov_tang(float2 val, float2 tr, float mov_scale)
-{
-    float angle = atan2(tr.y, tr.x);
-
-    angle -= M_PI/2;
-
-    float dist = 30;
-
-    tr.x = dist*cos(angle);
-    tr.y = dist*sin(angle);
-
-    float2 tang_val = tr;
-
-    float2 nres = val - tang_val * mov_scale;
-
-    return nres;
-}
-
 ///make it not obstruct if its near a control vertex?
 ///instead of doing this, move the control vertices towards the centre by tangent then do again
 ///this would prevent the current issues by shrinking the overall cell, and by making the cell jiggle with fluid from the current control points
@@ -7030,22 +7050,6 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
     write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
 
     float mov_scale = 0.8f;
-
-
-    /*float2 tr = t1;
-
-    float angle = atan2(tr.y, tr.x);
-
-    angle -= M_PI/2;
-
-    float dist = 60;
-
-    tr.x = dist*cos(angle);
-    tr.y = dist*sin(angle);
-
-    float2 tang_val = tr;
-
-    float2 nres = p1 - tang_val * mov_scale;*/
 
     float2 r0 = mov_tang(p0, t0, mov_scale);
     float2 r1 = mov_tang(p1, t1, mov_scale);
