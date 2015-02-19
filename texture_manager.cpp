@@ -252,6 +252,11 @@ void allocate_cpu_texture_array(std::vector<std::pair<int, int> > &unique_sizes)
 {
     unsigned int final_memory_size = 0; ///doesn't do mipmaps, eh
 
+    ///shouldnt really push to global state, should really return a tuple of the two
+
+    std::vector<int>().swap(texture_manager::texture_sizes);
+    std::vector<int>().swap(texture_manager::texture_numbers);
+
     for(unsigned int i=0; i<unique_sizes.size(); i++)
     {
         int size = unique_sizes[i].first;
@@ -282,7 +287,7 @@ void generate_textures_and_mipmaps()
 
     for(unsigned int i=0; i<texture_manager::active_textures.size(); i++)
     {
-        if(texture_manager::texture_by_id(texture_manager::active_textures[i])->type==0)
+        if(texture_manager::texture_by_id(texture_manager::active_textures[i])->type == 0)
         {
             int t=0;
             int mipmaps[MIP_LEVELS];
@@ -354,7 +359,7 @@ int texture_manager::add_texture(texture& tex)
 
 int texture_manager::activate_texture(int texture_id)
 {
-    if(all_textures[texture_id].is_active!=true)
+    if(all_textures[texture_id].is_active != true)
     {
         active_textures.push_back(texture_id);
         all_textures[texture_id].is_active = true;
@@ -406,8 +411,6 @@ void texture_manager::allocate_textures()
             i--;
         }
     }
-
-
 
     load_active_textures();
     generate_all_mipmaps();
