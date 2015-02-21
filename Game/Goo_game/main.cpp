@@ -331,8 +331,8 @@ struct goo_monster
         s1.add_point({lat.width/2, lat.height/2});
         s1.add_point({lat.width/2 + 100, lat.height/2});
         s1.add_point({lat.width/2, lat.height/2 + 100});
-        //s1.add_point({lat.width/2 - 100, lat.height/2 + 100});
-        //s1.add_point({lat.width/2 - 100, lat.height/2 + 0});
+        s1.add_point({lat.width/2 - 100, lat.height/2 + 100});
+        s1.add_point({lat.width/2 - 100, lat.height/2 + 0});
         s1.generate_skin_buffers(lat);
     }
 
@@ -370,6 +370,9 @@ struct goo_monster
         run_kernel_with_string("displace_average_skin", global_ws, local_ws, 1, displace);
     }
 
+    ///for seek, split points in half. Closer half moves in first half of cycle, second half moves in second half of cycle
+    ///That way it doesnt just slide, but stretches and wiggles to its destination
+
     void tick()
     {
         if(s1.visual_points.size() == 0)
@@ -392,7 +395,6 @@ struct goo_monster
         ///use a timer
         if(counter % 400 < 40)
             heartbeat();
-            //do_fluid_displace(cx, cy, lat);
 
         s1.draw_update_hermite(lat);
         s1.advect_skin(lat);
@@ -449,29 +451,11 @@ FILE* init_log(const std::string& str)
 
 ///todo
 ///fix memory management to not be atrocious
+///State of affairs is less terrible nowadays!
 
-
-///fix into different runtime classes - specify ship attributes as vec
-
-///todo eventually
-///split into dynamic and static objects
-
-///todo
-///fix memory management to not be atrocious
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
-
-    //objects_container sponza;
-
-    //sponza.set_file("sp2/sp2.obj");
-    //sponza.set_file("Objects/pre-ruin.obj");
-    //sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
-
-    //sponza.set_active(true);
-    //dsponza.cache = false;
-
-
 
     /*objects_container c1;
     c1.set_file("../../objects/cylinder.obj");

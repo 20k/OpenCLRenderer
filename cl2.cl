@@ -6872,8 +6872,14 @@ float2 mov_tang(float2 val, float2 tr, float mov_scale)
 
 ///does drift
 ///incorporate points on the 'far' end of the catmull rom spline shift thing bit
+///gunna need to give skin vertices a velocity
 __kernel
-void process_skins(__global float* in_cells_0, __global uchar* obstacles, __global uchar* transient_obstacles, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height, __write_only image2d_t screen)
+void process_skins(__global float* in_cells_0, __global uchar* obstacles, __global uchar* transient_obstacles,
+                   __global float* skin_x, __global float* skin_y,
+                   __global float* original_skin_x, __global float* original_skin_y,
+                   int num,
+                   int width, int height,
+                   __write_only image2d_t screen)
 {
     int id = get_global_id(0);
 
@@ -6957,6 +6963,8 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
 
     float ox = original_skin_x[id];
     float oy = original_skin_y[id];
+
+    //original_skin_x[id] += 0.1;
 
     float2 orig = {ox, oy};
 
@@ -7215,6 +7223,8 @@ void displace_average_skin(__global float* in_cells_0, __global float* in_cells_
     int id = get_global_id(0);
 
     ///this kernel is a little bit retarded, but seemingly the only way to avoid gpu -> cpu transfer which is slow as all hairy balls
+    ///Especially on intel
+    ///Which doesnt make any sense
     if(id > 1)
         return;
 
