@@ -7258,6 +7258,90 @@ void displace_average_skin(__global float* in_cells_0, __global float* in_cells_
     in_cells_8[IDX((int)ax, (int)ay)] += 0.5f;
 }
 
+///what this does is bisect the blob into two halves around the centre of the blob. On one call, half the blob moves, on the other, the second half moves
+///Do I want seek points for the blob to try to get to?
+///Do I just want a direct x -> x1 slide?
+///call num = the number of calls so far
+///max calls = until i've reached the end of this cycle
+__kernel
+void move_half_blob(int call_num, int max_calls, int which_side, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
+{
+    int id = get_global_id(0);
+
+    if(num == 0)
+        return;
+
+    if(id >= num)
+        return;
+
+    float max_distance = 40;
+
+    ///get skin_x offset from original_x and carry that through
+
+    float move_frac = (float)call_num / max_calls;
+
+    float ax = 0, ay = 0;
+
+    for(int i=0; i<num; i++)
+    {
+        ax += skin_x[i];
+        ay += skin_y[i];
+    }
+
+    ax /= num;
+    ay /= num;
+
+    ax = clamp(ax, 0.0f, width-1.f);
+    ay = clamp(ay, 0.0f, height-1.f);
+
+
+    float2 my_pos = (float2){skin_x[id], skin_y[id]};
+    float2 my_original_pos = (float2){original_skin_x[id], original_skin_y[id]};
+
+    ///dont do me for vectors
+    int side = my_pos.x < ax;
+
+    if(side != which_side)
+        return;
+
+    ///will need to trace through obstacles to make sure that I don't accidentally move it through a thing. Would be easier cpu side, but rip data read penalty
+
+    ///temporary until i can figure out how i want to pass end seek data to gpu
+
+    ///need to use move_frac and SET the position, rather than accumulating. Are we doing pseudo interpolation, or real movement with bezier based on frac?
+    ///or even catmull???
+
+    float adjusted_frac = move_frac - .5f;
+    adjusted_frac *= 2.f;
+    ///-1 -> 1
+
+    adjusted_frac = fabs(adjusted_frac);
+    adjusted_frac = 1.f - adjusted_frac;
+
+    my_pos.x -= 0.2f * adjusted_frac;
+    my_original_pos.x -= 0.2f * adjusted_frac;
+
+    float ymod = 0.1f;
+
+    if(move_frac > 0.5f)
+    {
+        ymod = -ymod;
+    }
+
+    my_pos.y += ymod;
+    my_original_pos.y += ymod;
+
+    skin_x[id] = my_pos.x;
+    skin_y[id] = my_pos.y;
+
+    original_skin_x[id] = my_original_pos.x;
+    original_skin_y[id] = my_original_pos.y;
+}
+
+///make a 'level' blob kernel, which splits the goo blob into 2-n layers (2 initially)
+///then tries to separate the blob into those levels
+///would make them less formless
+
 /*int index(int3 loc, int width, int height)
 {
     return loc.z * width * height + loc.y * width + loc.x;

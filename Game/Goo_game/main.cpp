@@ -319,6 +319,8 @@ struct goo_monster
 {
     static constexpr int N = 9;
 
+    int movement_side = 0;
+
     skin s1;
     lattice<N, cl_float> lat;
 
@@ -334,6 +336,34 @@ struct goo_monster
         s1.add_point({lat.width/2 - 100, lat.height/2 + 100});
         s1.add_point({lat.width/2 - 100, lat.height/2 + 0});
         s1.generate_skin_buffers(lat);
+    }
+
+    void move_to(int side, int max_calls, int call_num)
+    {
+        arg_list move_half;
+
+        move_half.push_back(&call_num);
+        move_half.push_back(&max_calls);
+
+        move_half.push_back(&side);
+
+        move_half.push_back(&s1.skin_x);
+        move_half.push_back(&s1.skin_y);
+
+        move_half.push_back(&s1.original_skin_x);
+        move_half.push_back(&s1.original_skin_y);
+
+        int num = s1.visual_points.size();
+
+        move_half.push_back(&num);
+
+        move_half.push_back(&lat.width);
+        move_half.push_back(&lat.height);
+
+        cl_uint global_ws[1] = {num};
+        cl_uint local_ws[1] = {128};
+
+        run_kernel_with_string("move_half_blob", global_ws, local_ws, 1, move_half);
     }
 
     void heartbeat()
@@ -392,9 +422,21 @@ struct goo_monster
         cx /= s1.visual_points.size();
         cy /= s1.visual_points.size();
 
+        const int cycle_length = 400;
+
+        const int heartbeat_duration = 40;
+
+        const int movement_duration = 400;
+
         ///use a timer
-        if(counter % 400 < 40)
+        if(counter % cycle_length < heartbeat_duration)
             heartbeat();
+
+        if(counter % cycle_length == 0)
+            movement_side = !movement_side;
+
+        if(counter % cycle_length < movement_duration)
+            move_to(movement_side, movement_duration, counter % cycle_length);
 
         s1.draw_update_hermite(lat);
         s1.advect_skin(lat);
