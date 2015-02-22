@@ -381,6 +381,7 @@ struct goo_monster
 
         norm.push_back(&s1.skin_x);
         norm.push_back(&s1.skin_y);
+
         norm.push_back(&s1.original_skin_x);
         norm.push_back(&s1.original_skin_y);
 
@@ -391,8 +392,8 @@ struct goo_monster
         norm.push_back(&lat.width);
         norm.push_back(&lat.height);
 
-        cl_uint global_ws[1] = {num};
-        cl_uint local_ws[1] = {128};
+        cl_uint global_ws[1] = {1};
+        cl_uint local_ws[1] = {1};
 
         run_kernel_with_string("normalise_lower_half_level", global_ws, local_ws, 1, norm);
     }

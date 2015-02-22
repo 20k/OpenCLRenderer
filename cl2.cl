@@ -7473,7 +7473,7 @@ void move_half_blob_scuttle(int call_num, int max_calls, int which_side, __globa
 __kernel
 void normalise_lower_half_level(float y_level, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
 {
-    int id = get_global_id(0);
+    /*int id = get_global_id(0);
 
     if(id >= num)
         return;
@@ -7483,20 +7483,79 @@ void normalise_lower_half_level(float y_level, __global float* skin_x, __global 
 
     float2 pos = get_average_position(skin_x, skin_y, num, width, height);
 
-
     float x = skin_x[id];
     float y = skin_y[id];
 
     int side = y < pos.y;
 
     ///we only want the lower side
+    float dy = y_level - y;
+
     if(!side)
         return;
 
-    float dy = y_level - y;
-
     skin_y[id] += dy/80;
-    original_skin_y[id] += dy/80;
+    original_skin_y[id] += dy/80;*/
+
+    ///only 1 thread to avoid gpu -> cpu transfer
+    ///Oh PCIE how do I hate thee, let me count the ways
+    int id = get_global_id(0);
+
+    if(id > 1)
+        return;
+
+    if(num < 3)
+        return;
+
+    float2 pos = get_average_position(skin_x, skin_y, num, width, height);
+
+    float average_move_dist = 0;
+    int total_num = 0;
+
+    ///could do this by abusing warp architecture, but instead i will just do it on 1 thread
+    ///because it does not need to be fast
+    for(int i=0; i<num; i++)
+    {
+        float x = skin_x[i];
+        float y = skin_y[i];
+
+        int side = y < pos.y;
+
+        ///we only want the lower side
+        float dy = y_level - y;
+
+        if(!side)
+            continue;
+
+        total_num++;
+
+        average_move_dist += dy/80;
+
+        skin_y[i] += dy/8;
+        original_skin_y[i] += dy/8;
+    }
+
+    if(total_num == 0)
+        return;
+
+    average_move_dist /= total_num;
+
+    for(int i=0; i<num; i++)
+    {
+        float x = skin_x[i];
+        float y = skin_y[i];
+
+        int side = y < pos.y;
+
+        ///we only want the lower side
+        float dy = y_level - y;
+
+        if(side)
+            continue;
+
+        skin_y[i] += average_move_dist;
+        original_skin_y[i] += average_move_dist;
+    }
 }
 
 ///make a 'level' blob kernel, which splits the goo blob into 2-n layers (2 initially)
