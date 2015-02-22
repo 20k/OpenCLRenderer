@@ -7263,12 +7263,16 @@ void displace_average_skin(__global float* in_cells_0, __global float* in_cells_
 ///Do I just want a direct x -> x1 slide?
 ///call num = the number of calls so far
 ///max calls = until i've reached the end of this cycle
+///need to do something better with how we're moving the sides
+///all points don't want to move equally..... Some sort of distance from centre based metric?
+///Model diffusion lag? Points would cycle based on how far from the centre they are
+
 __kernel
-void move_half_blob(int call_num, int max_calls, int which_side, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
+void move_half_blob_stretch(int call_num, int max_calls, int which_side, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
 {
     int id = get_global_id(0);
 
-    if(num == 0)
+    if(num < 3)
         return;
 
     if(id >= num)
@@ -7282,10 +7286,24 @@ void move_half_blob(int call_num, int max_calls, int which_side, __global float*
 
     float ax = 0, ay = 0;
 
+    float minx, maxx, miny, maxy;
+
+    minx = skin_x[0];
+    maxx = skin_x[0];
+
+    minx = skin_y[0];
+    maxy = skin_y[0];
+
     for(int i=0; i<num; i++)
     {
         ax += skin_x[i];
         ay += skin_y[i];
+
+        minx = min(minx, skin_x[i]);
+        miny = min(miny, skin_y[i]);
+
+        maxx = max(maxx, skin_x[i]);
+        maxy = max(maxy, skin_y[i]);
     }
 
     ax /= num;
@@ -7294,9 +7312,15 @@ void move_half_blob(int call_num, int max_calls, int which_side, __global float*
     ax = clamp(ax, 0.0f, width-1.f);
     ay = clamp(ay, 0.0f, height-1.f);
 
-
     float2 my_pos = (float2){skin_x[id], skin_y[id]};
     float2 my_original_pos = (float2){original_skin_x[id], original_skin_y[id]};
+
+
+    float displaced_move_frac = move_frac + ((float)id / (num + 1)) / 5;
+
+    //printf("%f %f\n", displaced_move_frac, move_frac);
+
+    displaced_move_frac = fmod(displaced_move_frac, 1.0f);
 
     ///dont do me for vectors
     int side = my_pos.x < ax;
@@ -7311,15 +7335,17 @@ void move_half_blob(int call_num, int max_calls, int which_side, __global float*
     ///need to use move_frac and SET the position, rather than accumulating. Are we doing pseudo interpolation, or real movement with bezier based on frac?
     ///or even catmull???
 
-    float adjusted_frac = move_frac - .5f;
+    float adjusted_frac = displaced_move_frac - .5f;
     adjusted_frac *= 2.f;
     ///-1 -> 1
 
     adjusted_frac = fabs(adjusted_frac);
     adjusted_frac = 1.f - adjusted_frac;
 
-    my_pos.x -= 0.2f * adjusted_frac;
-    my_original_pos.x -= 0.2f * adjusted_frac;
+    const float xmod = 0.2f;
+
+    my_pos.x -= xmod * adjusted_frac;
+    my_original_pos.x -= xmod * adjusted_frac;
 
     float ymod = 0.1f;
 
@@ -7330,6 +7356,86 @@ void move_half_blob(int call_num, int max_calls, int which_side, __global float*
 
     my_pos.y += ymod;
     my_original_pos.y += ymod;
+
+    skin_x[id] = my_pos.x;
+    skin_y[id] = my_pos.y;
+
+    original_skin_x[id] = my_original_pos.x;
+    original_skin_y[id] = my_original_pos.y;
+}
+
+__kernel
+void move_half_blob_scuttle(int call_num, int max_calls, int which_side, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
+{
+    int id = get_global_id(0);
+
+    if(num < 3)
+        return;
+
+    if(id >= num)
+        return;
+
+    float max_distance = 40;
+
+    ///get skin_x offset from original_x and carry that through
+
+    float move_frac = (float)call_num / max_calls;
+
+    float ax = 0, ay = 0;
+
+    float minx, maxx, miny, maxy;
+
+    minx = skin_x[0];
+    maxx = skin_x[0];
+
+    minx = skin_y[0];
+    maxy = skin_y[0];
+
+    for(int i=0; i<num; i++)
+    {
+        ax += skin_x[i];
+        ay += skin_y[i];
+
+        minx = min(minx, skin_x[i]);
+        miny = min(miny, skin_y[i]);
+
+        maxx = max(maxx, skin_x[i]);
+        maxy = max(maxy, skin_y[i]);
+    }
+
+    ax /= num;
+    ay /= num;
+
+    ax = clamp(ax, 0.0f, width-1.f);
+    ay = clamp(ay, 0.0f, height-1.f);
+
+    float2 my_pos = (float2){skin_x[id], skin_y[id]};
+    float2 my_original_pos = (float2){original_skin_x[id], original_skin_y[id]};
+
+
+    float displaced_move_frac = move_frac + (float)id / (num + 1);
+
+
+    displaced_move_frac = fmod(displaced_move_frac, 1.0f);
+
+    float adjusted_frac = displaced_move_frac - .5f;
+    adjusted_frac *= 2.f;
+    ///-1 -> 1
+
+    adjusted_frac = fabs(adjusted_frac);
+    adjusted_frac = 1.f - adjusted_frac;
+
+    const float xmod = 0.2f;
+
+    my_pos.x -= xmod * adjusted_frac;
+    my_original_pos.x -= xmod * adjusted_frac;
+
+    float ymod = 0.1f;
+
+    if(move_frac > 0.5f)
+    {
+        ymod = -ymod;
+    }
 
     skin_x[id] = my_pos.x;
     skin_y[id] = my_pos.y;

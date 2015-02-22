@@ -14,6 +14,7 @@
 #include <boost/compute/interop/opengl.hpp>
 
 #include <initializer_list>
+#include <unordered_map>
 
 #include <chrono>
 
@@ -187,12 +188,21 @@ struct arg_list
 {
     std::vector<const void*> args;
     std::vector<int> sizes;
+    std::vector<int> can_skip;
+
+    void push_back(compute::buffer* buf)
+    {
+        args.push_back(buf);
+        sizes.push_back(sizeof(compute::buffer));
+        can_skip.push_back(true);
+    }
 
     template<typename T>
     void push_back(T* buf)
     {
         args.push_back(buf);
         sizes.push_back(sizeof(T));
+        can_skip.push_back(false);
     }
 
     template<typename T>
@@ -200,14 +210,8 @@ struct arg_list
     {
         args.push_back(buf);
         sizes.push_back(size);
+        can_skip.push_back(false);
     }
-
-    /*template<typename T>
-    void push_back(const T& buf)
-    {
-        args.push_back(buf);
-        sizes.push_back(sizeof(T));
-    }*/
 };
 
 
@@ -224,6 +228,9 @@ struct Timer
 };
 
 float idcalc(float);
+
+static std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
+
 
 ///runs a kernel with a particular set of arguments
 static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
@@ -252,6 +259,15 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
 
     for(unsigned int i=0; i<argv.args.size() && args; i++)
     {
+        ///I suspect this is already done in the driver
+        const void* previous_buffer = kernel_map[kernel.name][i];
+
+        if((previous_buffer == argv.args[i]) && argv.can_skip[i])
+            continue;
+
+        kernel_map[kernel.name][i] = previous_buffer;
+        ///
+
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
     }
 
@@ -282,6 +298,7 @@ static void run_kernel_with_string(const std::string& name, cl_uint global_ws[],
     if(!k.loaded)
     {
         k = load_kernel(cl::program, name);
+        cl::kernels[name] = k;
     }
 
     run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, args);

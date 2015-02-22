@@ -326,6 +326,8 @@ struct goo_monster
 
     uint32_t counter = 0;
 
+    int move_type = 0;
+
     goo_monster(int width, int height)
     {
         lat.init(width, height);
@@ -335,6 +337,7 @@ struct goo_monster
         s1.add_point({lat.width/2, lat.height/2 + 100});
         s1.add_point({lat.width/2 - 100, lat.height/2 + 100});
         s1.add_point({lat.width/2 - 100, lat.height/2 + 0});
+
         s1.generate_skin_buffers(lat);
     }
 
@@ -363,7 +366,10 @@ struct goo_monster
         cl_uint global_ws[1] = {num};
         cl_uint local_ws[1] = {128};
 
-        run_kernel_with_string("move_half_blob", global_ws, local_ws, 1, move_half);
+        if(move_type == 0)
+            run_kernel_with_string("move_half_blob_stretch", global_ws, local_ws, 1, move_half);
+        if(move_type == 1)
+            run_kernel_with_string("move_half_blob_scuttle", global_ws, local_ws, 1, move_half);
     }
 
     void heartbeat()
@@ -426,7 +432,7 @@ struct goo_monster
 
         const int heartbeat_duration = 40;
 
-        const int movement_duration = 400;
+        const int movement_duration = 300;
 
         ///use a timer
         if(counter % cycle_length < heartbeat_duration)
