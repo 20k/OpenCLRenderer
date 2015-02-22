@@ -372,6 +372,31 @@ struct goo_monster
             run_kernel_with_string("move_half_blob_scuttle", global_ws, local_ws, 1, move_half);
     }
 
+    void normalise_lower_half()
+    {
+        float ty = lat.height/2 + 0;
+
+        arg_list norm;
+        norm.push_back(&ty);
+
+        norm.push_back(&s1.skin_x);
+        norm.push_back(&s1.skin_y);
+        norm.push_back(&s1.original_skin_x);
+        norm.push_back(&s1.original_skin_y);
+
+        int num = s1.visual_points.size();
+
+        norm.push_back(&num);
+
+        norm.push_back(&lat.width);
+        norm.push_back(&lat.height);
+
+        cl_uint global_ws[1] = {num};
+        cl_uint local_ws[1] = {128};
+
+        run_kernel_with_string("normalise_lower_half_level", global_ws, local_ws, 1, norm);
+    }
+
     void heartbeat()
     {
         /*void displace_average_skin(__global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
@@ -443,6 +468,8 @@ struct goo_monster
 
         if(counter % cycle_length < movement_duration)
             move_to(movement_side, movement_duration, counter % cycle_length);
+
+        normalise_lower_half();
 
         s1.draw_update_hermite(lat);
         s1.advect_skin(lat);

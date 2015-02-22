@@ -7211,6 +7211,25 @@ void displace_fluid(__global uchar* obstacles,
     out_cells_8[IDX(x, y)] = cell_out.speeds[8];
 }
 
+float2 get_average_position(__global float* x, __global float* y, int num, int width, int height)
+{
+    float ax = 0, ay = 0;
+
+    for(int i=0; i<num; i++)
+    {
+        ax += x[i];
+        ay += y[i];
+    }
+
+    ax /= num;
+    ay /= num;
+
+    ax = clamp(ax, 0.0f, (float)width - 1.f);
+    ay = clamp(ay, 0.0f, (float)height - 1.f);
+
+    return (float2){ax, ay};
+}
+
 __kernel
 void displace_average_skin(__global float* in_cells_0, __global float* in_cells_1, __global float* in_cells_2,
                        __global float* in_cells_3, __global float* in_cells_4, __global float* in_cells_5,
@@ -7231,9 +7250,9 @@ void displace_average_skin(__global float* in_cells_0, __global float* in_cells_
     if(num == 0)
         return;
 
-    float ax = 0, ay = 0;
-
     int WIDTH = width;
+
+    /*float ax = 0, ay = 0;
 
     for(int i=0; i<num; i++)
     {
@@ -7242,10 +7261,14 @@ void displace_average_skin(__global float* in_cells_0, __global float* in_cells_
     }
 
     ax /= num;
-    ay /= num;
+    ay /= num;*/
 
-    ax = clamp(ax, 0.0f, width-1.f);
-    ay = clamp(ay, 0.0f, height-1.f);
+    float2 pos;
+
+    pos = get_average_position(skin_x, skin_y, num, width, height);
+
+    float ax = pos.x;
+    float ay = pos.y;
 
     in_cells_0[IDX((int)ax, (int)ay)] += 0.5f;
     in_cells_1[IDX((int)ax, (int)ay)] += 0.5f;
@@ -7442,6 +7465,38 @@ void move_half_blob_scuttle(int call_num, int max_calls, int which_side, __globa
 
     original_skin_x[id] = my_original_pos.x;
     original_skin_y[id] = my_original_pos.y;
+}
+
+///I guess nominally this can travel along terrain
+///Split into two halves, each with independent seek
+///along the centre?
+__kernel
+void normalise_lower_half_level(float y_level, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
+{
+    int id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    if(num < 3)
+        return;
+
+    float2 pos = get_average_position(skin_x, skin_y, num, width, height);
+
+
+    float x = skin_x[id];
+    float y = skin_y[id];
+
+    int side = y < pos.y;
+
+    ///we only want the lower side
+    if(!side)
+        return;
+
+    float dy = y_level - y;
+
+    skin_y[id] += dy/80;
+    original_skin_y[id] += dy/80;
 }
 
 ///make a 'level' blob kernel, which splits the goo blob into 2-n layers (2 initially)
