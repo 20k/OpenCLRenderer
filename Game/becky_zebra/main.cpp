@@ -255,7 +255,7 @@ struct zebra
             cl_float4 difference = (cl_float4){zebra_objects[i].vx, 0, zebra_objects[i].vz, 0};
 
             ///8000.f frametime
-            difference = mult(difference, elapsed_time / 4000.f);
+            difference = mult(difference, elapsed_time / 8000.f);
 
             cl_float4 new_pos = add(zeb->pos, difference);
 
