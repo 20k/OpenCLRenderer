@@ -444,11 +444,6 @@ const std::vector<float> protean =
 };
 
 ///currently rand, parallel, perp
-const std::vector<int> stripe_type =
-{
-    0, 1, 2
-};
-
 const std::vector<std::string> stripe_names =
 {
     "../Res/tex_cube.obj",
@@ -460,6 +455,12 @@ const std::vector<cl_float4> viewing_angles =
 {
     {
         0.24, -0.06, 0
+    },
+    {
+        0.24, -0.06, 0
+    },
+    {
+        0.24, -0.06, 0
     }
 };
 
@@ -469,12 +470,42 @@ struct run_config
     int protean_num = 0;
     int stripe_num = 0;
     int viewing_num = 0;
+
+    run_config(int gs, int pn, int sn, int vn)
+    {
+        group_size = gs;
+        protean_num = pn;
+        stripe_num = sn;
+        viewing_num = vn;
+    }
 };
 
 std::vector<run_config> runs;
 
 int current_run = 0;
 
+std::vector<run_config> generate_runs()
+{
+    std::vector<run_config> runs;
+
+    for(int i=0; i<group_sizes.size(); i++)
+    {
+        for(int j=0; j<protean.size(); j++)
+        {
+            for(int k=0; k<stripe_names.size(); k++)
+            {
+                for(int l=0; l<viewing_angles.size(); l++)
+                {
+                    runs.push_back((run_config){i, j, k, l});
+                }
+            }
+        }
+    }
+
+    std::random_shuffle(runs.begin(), runs.end());
+
+    return runs;
+}
 
 int main(int argc, char *argv[])
 {
@@ -504,6 +535,7 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
+    ///no wait, scaling before loading means nothing. Need to make transform stack, or assert
     base.scale(20000.0f);
 
     base.set_pos({0, -200, 0});
@@ -512,7 +544,6 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::g_arrange_mem();
     obj_mem_manager::g_changeover();
-
 
     sf::Event Event;
 
@@ -541,12 +572,15 @@ int main(int argc, char *argv[])
 
     sf::Mouse mouse;
 
+    auto runs = generate_runs();
+    int current_run = 0;
+
     FILE* logfile = init_log("results.txt");
     FILE* logfile_average = init_log("results_average.txt");
 
     info.simulation_time.restart();
 
-    int striped = 0;
+    //int striped = 0;
 
     int average_state = 0;
     float distance_accum = 0;
@@ -570,14 +604,21 @@ int main(int argc, char *argv[])
 
         if(first_start || info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000)
         {
+            if(current_run == runs.size())
+                exit(0);
+
+            run_config cfg = runs[current_run];
+
+            run_config last_cfg = current_run != 0 ? runs[current_run-1] : (run_config){0,0,0,0};
+
             ///reset simulation
 
             info.running = false;
             info.clock_active = false;
 
-            if(zebras)
+            if(current_run != 0)
             {
-                for(int i=0; i<info.zebra_num; i++)
+                for(int i=0; i<group_sizes[last_cfg.group_size]; i++)
                 {
                     zebras[i].set_active(false);
                 }
@@ -585,8 +626,7 @@ int main(int argc, char *argv[])
 
             delete [] zebras;
 
-            info.zebra_num = rand() % (info.MAX_ZEBRAS - info.MIN_ZEBRAS);
-            info.zebra_num += info.MIN_ZEBRAS;
+            info.zebra_num = group_sizes[cfg.group_size];
 
             info.selected_zebra = rand() % info.zebra_num;
 
@@ -597,23 +637,9 @@ int main(int argc, char *argv[])
 
             zebra::reset();
 
-            std::string zeb_str = "../Res/tex_cube.obj";
-
-            if(striped == 1)
-            {
-                zeb_str = "../Res/tex_cube_2.obj";
-            }
-
-            if(striped == 2)
-            {
-                zeb_str = "../Res/tex_cube_3.obj";
-            }
-
-            striped = (striped + 1) % 3;
-
             for(int i=0; i<info.zebra_num; i++)
             {
-                zebras[i].set_file(zeb_str.c_str());
+                zebras[i].set_file(stripe_names[cfg.stripe_num].c_str());
                 zebras[i].set_active(true);
 
                 zebra::add_object(&zebras[i]);
@@ -647,9 +673,11 @@ int main(int argc, char *argv[])
             distance_num = 0;
             distance_total = 0;
 
-            info.current_deviation = rand() % info.deviation_nums;
+            //info.current_deviation = rand() % info.deviation_nums;
 
-            info.standard_deviation = info.standard_deviations[info.current_deviation];
+            //info.standard_deviation = info.standard_deviations[info.current_deviation];
+
+            info.standard_deviation = protean[cfg.protean_num];
 
             printf("%f\n", info.standard_deviation);
 
@@ -667,11 +695,38 @@ int main(int argc, char *argv[])
             }
 
             first_start = false;
+
+
+            cl_float4 viewing_angle = viewing_angles[cfg.viewing_num];
+
+            window.set_camera_rot(viewing_angle);
+
+            current_run++;
         }
 
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
         {
             log(logfile, "\n\nNEXT\n", 0);
+
+            run_config this_cfg = runs[current_run];
+
+            log(logfile, "\ngroup_size\n", 0);
+            log(logfile, to_str(group_sizes[this_cfg.group_size]), 0);
+
+            log(logfile, "\nprotean\n", 0);
+            log(logfile, to_str(protean[this_cfg.protean_num]), 0);
+
+            log(logfile, "\nstripe_type\n", 0);
+            log(logfile, to_str(this_cfg.stripe_num), 0);
+
+            log(logfile, "\nviewing_angle\n", 0);
+
+            log(logfile, to_str(viewing_angles[this_cfg.viewing_num].x), 0);
+            log(logfile, to_str(viewing_angles[this_cfg.viewing_num].y));
+            log(logfile, to_str(viewing_angles[this_cfg.viewing_num].z));
+
+            log(logfile, "\nDATA\n", 0);
+
 
             info.running = true;
             info.clock_active = true;
@@ -786,7 +841,7 @@ int main(int argc, char *argv[])
         }
 
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     fclose(logfile);
