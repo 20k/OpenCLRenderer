@@ -484,27 +484,9 @@ int main(int argc, char *argv[])
 
     simulation_info info;
 
-    info.current_deviation = rand() % info.deviation_nums;
-
-    info.standard_deviation = info.standard_deviations[info.current_deviation];
-
-    info.zebra_num = 36;
-    info.selected_zebra = rand() % info.zebra_num;
-
     objects_container* zebras;
-    zebras = new objects_container[info.zebra_num];
+    zebras = nullptr;
 
-    for(int i=0; i<info.zebra_num; i++)
-    {
-        zebras[i].set_file("../Res/tex_cube.obj");
-        zebras[i].set_active(true);
-
-        zebra::add_object(&zebras[i]);
-    }
-
-    //zebras[0].set_file("../Res/tex_cube_2.obj");
-    //zebras[1].set_file("../Res/tex_cube_3.obj");
-    //zebras[1].set_active(true);
 
     objects_container base;
     base.set_file("../../objects/square_subd.obj");
@@ -514,9 +496,7 @@ int main(int argc, char *argv[])
 
     window.load(1680,1050,1000, "turtles", "../../cl2.cl");
 
-    //window.set_camera_pos((cl_float4){sqrt(zebra_count)*500,600,-570});
     window.set_camera_pos((cl_float4){5000, 2157.87, -5103.68});
-    //window.c_rot.x = -M_PI/2;
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
@@ -524,14 +504,9 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
-    for(int i=0; i<info.zebra_num; i++)
-        zebras[i].scale(200.0f);
-
     base.scale(20000.0f);
 
     base.set_pos({0, -200, 0});
-
-
 
     texture_manager::allocate_textures();
 
@@ -558,9 +533,6 @@ int main(int argc, char *argv[])
 
     light* to_modify = window.add_light(&l);
 
-    //window.set_camera_pos({0, 100, 200});
-    //window.set_camera_rot({0.1, M_PI, 0});
-
     window.construct_shadowmaps();
 
     zebra::separate();
@@ -568,12 +540,6 @@ int main(int argc, char *argv[])
     info.highlight_clock.restart();
 
     sf::Mouse mouse;
-
-    for(int i=0; i<5; i++)
-    {
-        zebra::repulse();
-        zebra::update(info.standard_deviation, info.zebra_velocity, 1000.f);
-    }
 
     FILE* logfile = init_log("results.txt");
     FILE* logfile_average = init_log("results_average.txt");
@@ -590,6 +556,8 @@ int main(int argc, char *argv[])
 
     sf::Clock clk;
 
+    bool first_start = true;
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -600,16 +568,19 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        if(info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000)
+        if(first_start || info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000)
         {
             ///reset simulation
 
             info.running = false;
             info.clock_active = false;
 
-            for(int i=0; i<info.zebra_num; i++)
+            if(zebras)
             {
-                zebras[i].set_active(false);
+                for(int i=0; i<info.zebra_num; i++)
+                {
+                    zebras[i].set_active(false);
+                }
             }
 
             delete [] zebras;
@@ -695,6 +666,7 @@ int main(int argc, char *argv[])
                 zebra::update(info.standard_deviation, info.zebra_velocity, 1000.f);
             }
 
+            first_start = false;
         }
 
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
