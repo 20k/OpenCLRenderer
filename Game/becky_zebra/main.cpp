@@ -446,7 +446,7 @@ const std::vector<float> protean =
 ///currently rand, parallel, perp
 const std::vector<std::string> stripe_names =
 {
-    "../Res/tex_cube.obj",
+    //"../Res/tex_cube.obj",
     "../Res/tex_cube_2.obj",
     "../Res/tex_cube_3.obj"
 };
@@ -455,13 +455,13 @@ const std::vector<cl_float4> viewing_angles =
 {
     {
         0.24, -0.06, 0
-    },
+    }/*,
     {
         0.24, -0.06, 0
     },
     {
         0.24, -0.06, 0
-    }
+    }*/
 };
 
 struct run_config
@@ -708,7 +708,7 @@ int main(int argc, char *argv[])
         {
             log(logfile, "\n\nNEXT\n", 0);
 
-            run_config this_cfg = runs[current_run];
+            run_config this_cfg = runs[current_run-1];
 
             log(logfile, "\ngroup_size\n", 0);
             log(logfile, to_str(group_sizes[this_cfg.group_size]), 0);
