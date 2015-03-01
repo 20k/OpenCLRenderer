@@ -203,7 +203,8 @@ struct zebra
 
     ///keep internal counter of bias and then move like then, randomness is how often bias updates + how much?
     ///standard deviation cutoff is a fixed max, anything above there is not
-    static void update(float standard_deviation, float zebra_velocity)
+    ///MAKE THIS GODDAMN FRAME INDEPENDENT
+    static void update(float standard_deviation, float zebra_velocity, float elapsed_time)
     {
         ///angle is in 2d plane
 
@@ -251,7 +252,14 @@ struct zebra
             //if(i==0)
             //std::cout << zebra_objects[i].vx << std::endl;
 
-            zeb->set_pos(add(zeb->pos, {zebra_objects[i].vx, 0, zebra_objects[i].vz}));
+            cl_float4 difference = (cl_float4){zebra_objects[i].vx, 0, zebra_objects[i].vz, 0};
+
+            ///8000.f frametime
+            difference = mult(difference, elapsed_time / 4000.f);
+
+            cl_float4 new_pos = add(zeb->pos, difference);
+
+            zeb->set_pos(new_pos);
 
 
             ///smooth
@@ -456,9 +464,9 @@ int main(int argc, char *argv[])
     zebras[1].set_file("../Res/tex_cube_3.obj");
     //zebras[1].set_active(true);
 
-    //objects_container base;
-    //base.set_file("../../objects/square.obj");
-    //base.set_active(true);
+    objects_container base;
+    base.set_file("../../objects/square_subd.obj");
+    base.set_active(true);
 
     engine window;
 
@@ -477,9 +485,9 @@ int main(int argc, char *argv[])
     for(int i=0; i<info.zebra_num; i++)
         zebras[i].scale(200.0f);
 
-    //base.scale(20000.0f);
+    base.scale(20000.0f);
 
-    //base.set_pos({0, -200, 0});
+    base.set_pos({0, -200, 0});
 
 
 
@@ -522,7 +530,7 @@ int main(int argc, char *argv[])
     for(int i=0; i<5; i++)
     {
         zebra::repulse();
-        zebra::update(info.standard_deviation, info.zebra_velocity);
+        zebra::update(info.standard_deviation, info.zebra_velocity, 1000.f);
     }
 
     FILE* logfile = init_log("results.txt");
@@ -537,6 +545,8 @@ int main(int argc, char *argv[])
     int distance_num = 0;
 
     float distance_total = 0;
+
+    sf::Clock clk;
 
     while(window.window.isOpen())
     {
@@ -635,10 +645,12 @@ int main(int argc, char *argv[])
 
             zebra::separate();
 
+            clk.restart();
+
             for(int i=0; i<5; i++)
             {
                 zebra::repulse();
-                zebra::update(info.standard_deviation, info.zebra_velocity);
+                zebra::update(info.standard_deviation, info.zebra_velocity, 1000.f);
             }
 
         }
@@ -651,6 +663,8 @@ int main(int argc, char *argv[])
             info.clock_active = true;
 
             info.simulation_time.restart();
+
+            clk.restart();
         }
 
         if(!info.running)
@@ -671,7 +685,9 @@ int main(int argc, char *argv[])
         if(info.running)
         {
             zebra::repulse();
-            zebra::update(info.standard_deviation, info.zebra_velocity);
+            zebra::update(info.standard_deviation, info.zebra_velocity, clk.getElapsedTime().asMicroseconds());
+
+            clk.restart();
         }
 
         window.input();
@@ -756,7 +772,7 @@ int main(int argc, char *argv[])
         }
 
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     fclose(logfile);

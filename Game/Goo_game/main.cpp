@@ -374,7 +374,7 @@ struct goo_monster
 
     void normalise_lower_half()
     {
-        float ty = lat.height/2 + 0;
+        float ty = lat.height/2 + -100;
 
         arg_list norm;
         norm.push_back(&ty);

@@ -6869,6 +6869,12 @@ float2 mov_tang(float2 val, float2 tr, float mov_scale)
     return nres;
 }
 
+///use this to solve all movement
+bool obstacle_between(float2 start, float2 finish, __global uchar* obstacles, int width, int height)
+{
+
+}
+
 
 ///does drift
 ///incorporate points on the 'far' end of the catmull rom spline shift thing bit
@@ -7056,6 +7062,8 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
 
     float2 res = h1 * p1 + h2 * p2 + h3 * t1 + h4 * t2;
 
+    res = clamp(res, 0.0f, (float2){width, height}-1);
+
     write_imagef(screen, (int2){res.x, res.y}, (float4)(0, 255, 0, 0));
 
     float mov_scale = 0.8f;
@@ -7094,6 +7102,8 @@ void draw_hermite_skin(__global float* skin_x, __global float* skin_y, __global 
     float2 nt2 = a * (sp3 - sp1);*/
 
     //float2 nres = h1 * r2 + h2 * r3 + h3 * nt1 + h4 * nt2;
+
+    nres = clamp(nres, 0.0f, (float2){width, height}-1);
 
 
     if(skin_obstacle)
@@ -7252,17 +7262,6 @@ void displace_average_skin(__global float* in_cells_0, __global float* in_cells_
 
     int WIDTH = width;
 
-    /*float ax = 0, ay = 0;
-
-    for(int i=0; i<num; i++)
-    {
-        ax += skin_x[i];
-        ay += skin_y[i];
-    }
-
-    ax /= num;
-    ay /= num;*/
-
     float2 pos;
 
     pos = get_average_position(skin_x, skin_y, num, width, height);
@@ -7380,6 +7379,9 @@ void move_half_blob_stretch(int call_num, int max_calls, int which_side, __globa
     my_pos.y += ymod;
     my_original_pos.y += ymod;
 
+    my_pos = clamp(my_pos, 0.0f, (float2){width, height}-1);
+    my_original_pos = clamp(my_pos, 0.0f, (float2){width, height}-1);
+
     skin_x[id] = my_pos.x;
     skin_y[id] = my_pos.y;
 
@@ -7453,12 +7455,8 @@ void move_half_blob_scuttle(int call_num, int max_calls, int which_side, __globa
     my_pos.x -= xmod * adjusted_frac;
     my_original_pos.x -= xmod * adjusted_frac;
 
-    float ymod = 0.1f;
-
-    if(move_frac > 0.5f)
-    {
-        ymod = -ymod;
-    }
+    my_pos = clamp(my_pos, 0.0f, (float2){width, height}-1);
+    my_original_pos = clamp(my_pos, 0.0f, (float2){width, height}-1);
 
     skin_x[id] = my_pos.x;
     skin_y[id] = my_pos.y;
@@ -7473,30 +7471,6 @@ void move_half_blob_scuttle(int call_num, int max_calls, int which_side, __globa
 __kernel
 void normalise_lower_half_level(float y_level, __global float* skin_x, __global float* skin_y, __global float* original_skin_x, __global float* original_skin_y, int num, int width, int height)
 {
-    /*int id = get_global_id(0);
-
-    if(id >= num)
-        return;
-
-    if(num < 3)
-        return;
-
-    float2 pos = get_average_position(skin_x, skin_y, num, width, height);
-
-    float x = skin_x[id];
-    float y = skin_y[id];
-
-    int side = y < pos.y;
-
-    ///we only want the lower side
-    float dy = y_level - y;
-
-    if(!side)
-        return;
-
-    skin_y[id] += dy/80;
-    original_skin_y[id] += dy/80;*/
-
     ///only 1 thread to avoid gpu -> cpu transfer
     ///Oh PCIE how do I hate thee, let me count the ways
     int id = get_global_id(0);
@@ -7529,7 +7503,7 @@ void normalise_lower_half_level(float y_level, __global float* skin_x, __global 
 
         total_num++;
 
-        average_move_dist += dy/80;
+        average_move_dist += dy/8;
 
         skin_y[i] += dy/8;
         original_skin_y[i] += dy/8;

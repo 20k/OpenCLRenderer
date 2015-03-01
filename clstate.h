@@ -20,6 +20,7 @@ struct kernel
     compute::kernel kernel;
     std::string name;
     bool loaded = false;
+    cl_uint work_size;
 };
 
 namespace cl

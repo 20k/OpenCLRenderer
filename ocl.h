@@ -122,6 +122,12 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     k.name = name;
     k.loaded = true;
 
+    size_t ret;
+
+    clGetKernelWorkGroupInfo(k.kernel.get(), cl::device.id(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &ret, NULL);
+
+    k.work_size = ret;
+
     return k;
 }
 

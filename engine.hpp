@@ -243,17 +243,24 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
         g_ws[i] = global_ws[i];
         l_ws[i] = local_ws[i];
 
-        if(g_ws[i] % local_ws[i]!=0)
+        ///how do i do this for 2d? Or probably best to convert
+        ///2d kernels into 1d because its much faster (I hate everyone)
+        if(dimensions == 1)
         {
-            int rem = g_ws[i] % local_ws[i];
+            l_ws[i] = kernel.work_size;
+        }
+
+        if(g_ws[i] % l_ws[i]!=0)
+        {
+            int rem = g_ws[i] % l_ws[i];
 
             g_ws[i]-=rem;
-            g_ws[i]+=local_ws[i];
+            g_ws[i]+=l_ws[i];
         }
 
         if(g_ws[i] == 0)
         {
-            g_ws[i] += local_ws[i];
+            g_ws[i] += l_ws[i];
         }
     }
 
