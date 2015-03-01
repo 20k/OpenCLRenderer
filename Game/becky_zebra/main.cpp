@@ -460,8 +460,8 @@ int main(int argc, char *argv[])
         zebra::add_object(&zebras[i]);
     }
 
-    zebras[0].set_file("../Res/tex_cube_2.obj");
-    zebras[1].set_file("../Res/tex_cube_3.obj");
+    //zebras[0].set_file("../Res/tex_cube_2.obj");
+    //zebras[1].set_file("../Res/tex_cube_3.obj");
     //zebras[1].set_active(true);
 
     objects_container base;
@@ -616,7 +616,7 @@ int main(int argc, char *argv[])
             for(int i=0; i<info.zebra_num; i++)
                 zebras[i].scale(200.0f);
 
-            //texture_manager::allocate_textures();
+            texture_manager::allocate_textures();
 
             obj_mem_manager::g_arrange_mem();
             obj_mem_manager::g_changeover();

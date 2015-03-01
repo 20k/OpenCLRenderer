@@ -219,7 +219,7 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr;// + " -D BECKY_HACK=" + sbecky;
 
     #ifdef BECKY_HACK
-    buildoptions += "-D BECKY_HACK 1"
+    buildoptions = buildoptions + std::string(" -D BECKY_HACK=1");
     #endif
 
     try
