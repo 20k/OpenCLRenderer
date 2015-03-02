@@ -451,9 +451,12 @@ const std::vector<std::string> stripe_names =
     "../Res/tex_cube_3.obj"
 };
 
-const std::vector<cl_float4> viewing_angles =
+const std::vector<float> viewing_angles =
 {
-    {
+    45.f,
+    30.f,
+    20.f
+    /*{
         0.24, -0.06, 0
     }/*,
     {
@@ -505,6 +508,31 @@ std::vector<run_config> generate_runs()
     std::random_shuffle(runs.begin(), runs.end());
 
     return runs;
+}
+
+///in degrees
+const cl_float4 angle_to_rotation(float angle)
+{
+    angle = (angle / 360.f) * M_PI * 2;
+
+    cl_float4 crot = (cl_float4){angle, 0, 0};
+
+    return crot;
+}
+
+const cl_float4 angle_to_position(float angle)
+{
+    angle = (angle / 360.f) * M_PI * 2;
+
+    const float distance = 4000.f;
+
+    float zpos = -distance * cos(angle);
+    float ypos = distance * sin(angle);
+    float xpos = (zebra::minx + zebra::maxx) / 2.f;
+
+    cl_float4 cpos = (cl_float4){xpos, ypos, zpos};
+
+    return cpos;
 }
 
 int main(int argc, char *argv[])
@@ -577,6 +605,18 @@ int main(int argc, char *argv[])
 
     FILE* logfile = init_log("results.txt");
     FILE* logfile_average = init_log("results_average.txt");
+
+
+    const float set_angle = 45;//(45/360.f) * M_PI*2;
+
+    cl_float4 cpos = angle_to_position(set_angle);
+
+    window.set_camera_pos(cpos);
+
+    cl_float4 crot = angle_to_rotation(set_angle);
+
+    window.set_camera_rot(crot);
+
 
     info.simulation_time.restart();
 
@@ -684,9 +724,17 @@ int main(int argc, char *argv[])
 
             first_start = false;
 
-            cl_float4 viewing_angle = viewing_angles[cfg.viewing_num];
+            float viewing_angle = viewing_angles[cfg.viewing_num];
 
-            window.set_camera_rot(viewing_angle);
+            printf("VIEWING ANGLE: %f\n", viewing_angle);
+
+            cl_float4 c_pos = angle_to_position(viewing_angle);
+            cl_float4 c_rot = angle_to_rotation(viewing_angle);
+
+            window.set_camera_pos(c_pos);
+            window.set_camera_rot(c_rot);
+
+            //window.set_camera_rot(viewing_angle);
 
             current_run++;
         }
@@ -706,11 +754,25 @@ int main(int argc, char *argv[])
             log(logfile, "\nstripe_type\n", 0);
             log(logfile, to_str(this_cfg.stripe_num), 0);
 
+            float viewing_angle = viewing_angles[this_cfg.viewing_num];
+
+            cl_float4 c_pos = angle_to_position(viewing_angle);
+            cl_float4 c_rot = angle_to_rotation(viewing_angle);
+
             log(logfile, "\nviewing_angle\n", 0);
 
-            log(logfile, to_str(viewing_angles[this_cfg.viewing_num].x), 0);
-            log(logfile, to_str(viewing_angles[this_cfg.viewing_num].y));
-            log(logfile, to_str(viewing_angles[this_cfg.viewing_num].z));
+            ///fix
+            log(logfile, to_str(c_rot.x), 0);
+            log(logfile, to_str(c_rot.y));
+            log(logfile, to_str(c_rot.z));
+
+
+            log(logfile, "\nviewing_position\n", 0);
+
+            ///fix
+            log(logfile, to_str(c_pos.x), 0);
+            log(logfile, to_str(c_pos.y));
+            log(logfile, to_str(c_pos.z));
 
             log(logfile, "\nDATA\n", 0);
 

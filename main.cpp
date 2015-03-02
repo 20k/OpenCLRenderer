@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
+    ///use event callbacks for rendering to make blitting to the screen and refresh
+    ///asynchronous to actual bits n bobs
+    ///clSetEventCallback
     while(window.window.isOpen())
     {
         sf::Clock c;
