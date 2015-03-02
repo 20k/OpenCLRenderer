@@ -48,6 +48,8 @@ struct objects_container
     void    call_obj_vis_load(cl_float4 c_pos);
 
     void    swap_90();
+    void    swap_90_perp();
+    void    stretch(int dim, float amount);
     void    scale(float);
 
     ///currently uncached

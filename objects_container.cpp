@@ -204,11 +204,27 @@ void objects_container::swap_90()
     }
 }
 
+void objects_container::swap_90_perp()
+{
+    for(int i=0; i<objs.size(); i++)
+    {
+        objs[i].swap_90_perp();
+    }
+}
+
 void objects_container::scale(float f)
 {
     for(int i=0; i<objs.size(); i++)
     {
         objs[i].scale(f);
+    }
+}
+
+void objects_container::stretch(int dim, float amount)
+{
+    for(int i=0; i<objs.size(); i++)
+    {
+        objs[i].stretch(dim, amount);
     }
 }
 

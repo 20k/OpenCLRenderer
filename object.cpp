@@ -146,6 +146,68 @@ void object::swap_90()
     }
 }
 
+///static full mesh and normal rotation
+void object::swap_90_perp()
+{
+    for(int i=0; i<tri_list.size(); i++)
+    {
+        for(int j=0; j<3; j++)
+        {
+            cl_float4 pos = tri_list[i].vertices[j].get_pos();
+
+            float temp = pos.x;
+
+            cl_float4 new_pos = pos;
+
+            new_pos.x = -pos.y;
+            new_pos.y = temp;
+
+            tri_list[i].vertices[j].set_pos(new_pos);
+
+            cl_float4 normal = tri_list[i].vertices[j].get_normal();
+
+            temp = normal.y;
+
+            cl_float4 new_normal = normal;
+
+            new_normal.x = -normal.y;
+            new_normal.y = temp;
+
+            tri_list[i].vertices[j].set_normal(new_normal);
+
+            /*float temp = tri_list[i].vertices[j].pos.x;
+            tri_list[i].vertices[j].pos.x = -tri_list[i].vertices[j].pos.z;
+            tri_list[i].vertices[j].pos.z = temp;
+
+            temp = tri_list[i].vertices[j].normal.x;
+            tri_list[i].vertices[j].normal.x = -tri_list[i].vertices[j].normal.z;
+            tri_list[i].vertices[j].normal.z = temp;*/
+        }
+    }
+}
+
+void object::stretch(int dim, float amount)
+{
+    for(int i=0; i<tri_list.size(); i++)
+    {
+        for(int j=0; j<3; j++)
+        {
+            cl_float4 pos = tri_list[i].vertices[j].get_pos();
+
+            if(dim == 0)
+                pos.x *= amount;
+            else if(dim == 1)
+                pos.y *= amount;
+            else if(dim == 2)
+                pos.z *= amount;
+            else
+            {
+                printf("Invalid dimension passed to object with id\n");
+            }
+        }
+    }
+}
+
 void object::scale(float f)
 {
     for(int i=0; i<tri_list.size(); i++)

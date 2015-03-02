@@ -578,6 +578,26 @@ int main(int argc, char *argv[])
 
     base.set_pos({0, -200, 0});
 
+    float height = 1000.f;
+
+    for(int i=0; i<3; i++)
+    {
+        sides[i].scale(height);
+    }
+
+    sides[0].set_pos({zebra::minx, height - 170, (zebra::miny)});
+    sides[1].set_pos({(zebra::minx), height - 170, zebra::maxy});
+    sides[2].set_pos({zebra::maxx, height - 170, (zebra::miny)});
+
+    sides[0].swap_90_perp();
+    sides[0].swap_90_perp();
+    sides[0].swap_90_perp();
+
+    sides[1].swap_90_perp();
+    sides[1].swap_90();
+
+    sides[2].swap_90_perp();
+
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
