@@ -385,7 +385,7 @@ struct simulation_info
     const int MAX_ZEBRAS = 50;
     const int MIN_ZEBRAS = 10;
 
-    float zebra_velocity = 20;
+    float zebra_velocity = 25;
 };
 
 void log(FILE* log_file, const std::string& data, int do_comma = 1)
@@ -435,7 +435,7 @@ FILE* init_log(const std::string& str)
 
 const std::vector<int> group_sizes =
 {
-    10, 30, 50
+    10, 30, 50, 70
 };
 
 const std::vector<float> protean =
@@ -448,7 +448,9 @@ const std::vector<std::string> stripe_names =
 {
     //"../Res/tex_cube.obj",
     "../Res/tex_cube_2.obj",
-    "../Res/tex_cube_3.obj"
+    "../Res/tex_cube_3.obj",
+    "../Res/tex_cube_2_low.obj",
+    "../Res/tex_cube_3_low.obj"
 };
 
 const std::vector<float> viewing_angles =
@@ -524,7 +526,7 @@ const cl_float4 angle_to_position(float angle)
 {
     angle = (angle / 360.f) * M_PI * 2;
 
-    const float distance = 4000.f;
+    const float distance = 5500.f;
 
     float zpos = -distance * cos(angle);
     float ypos = distance * sin(angle);
@@ -539,7 +541,7 @@ int main(int argc, char *argv[])
 {
     srand(time(NULL));
 
-    zebra::set_bnd(0, 0, 16750/1.5, 16750/4);
+    zebra::set_bnd(0, 0, 16750/1.0, 16750/3.5);
 
     simulation_info info;
 
@@ -550,6 +552,14 @@ int main(int argc, char *argv[])
     objects_container base;
     base.set_file("../../objects/square_subd.obj");
     base.set_active(true);
+
+    objects_container sides[3];
+
+    for(int i=0; i<3; i++)
+    {
+        sides[i].set_file("../../objects/square_subd.obj");
+        sides[i].set_active(true);
+    }
 
     engine window;
 
@@ -711,6 +721,8 @@ int main(int argc, char *argv[])
             info.standard_deviation = protean[cfg.protean_num];
 
             printf("%f\n", info.standard_deviation);
+
+            printf("Number of zebras %i\n", info.zebra_num);
 
             zebra::separate();
 
