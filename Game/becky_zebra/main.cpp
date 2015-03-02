@@ -645,11 +645,6 @@ int main(int argc, char *argv[])
                 zebra::add_object(&zebras[i]);
             }
 
-            ///the line below will make people cry
-            //info.zebra_velocity = (float)rand() / RAND_MAX;
-            //info.zebra_velocity *= (info.maximum_velocity - info.minimum_velocty);
-            //info.zebra_velocity += info.minimum_velocty;
-
             obj_mem_manager::load_active_objects();
 
             for(int i=0; i<info.zebra_num; i++)
@@ -673,16 +668,9 @@ int main(int argc, char *argv[])
             distance_num = 0;
             distance_total = 0;
 
-            //info.current_deviation = rand() % info.deviation_nums;
-
-            //info.standard_deviation = info.standard_deviations[info.current_deviation];
-
             info.standard_deviation = protean[cfg.protean_num];
 
             printf("%f\n", info.standard_deviation);
-
-            //info.current_deviation++;
-            //info.current_deviation %= info.deviation_nums;
 
             zebra::separate();
 
@@ -695,7 +683,6 @@ int main(int argc, char *argv[])
             }
 
             first_start = false;
-
 
             cl_float4 viewing_angle = viewing_angles[cfg.viewing_num];
 
