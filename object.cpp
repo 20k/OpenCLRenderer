@@ -285,5 +285,8 @@ void object::g_flush()
     posrot.hi = rot;
 
     //cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_obj_desc, sizeof(obj_g_descriptor)*(object_g_id), sizeof(cl_float4)*2, &posrot);
+    ///there is a race condition if posrot gets updated which is undefined
+    ///I believe it should be fine, because posrot will only be updated when g_flush will get called... however it may possibly lead to odd behaviour
+    ///possibly use the event callback system to fix this
     clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, NULL);
 }
