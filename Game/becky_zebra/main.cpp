@@ -519,7 +519,7 @@ const cl_float4 angle_to_position(float angle)
 {
     angle = (angle / 360.f) * M_PI * 2;
 
-    const float distance = 5500.f;
+    const float distance = 9000.f;
 
     float zpos = -distance * cos(angle);
     float ypos = distance * sin(angle);
@@ -556,7 +556,7 @@ int main(int argc, char *argv[])
 
     engine window;
 
-    window.load(1680,1050,1000, "turtles", "../../cl2.cl");
+    window.load(1024,768,1000, "turtles", "../../cl2.cl");
 
     window.set_camera_pos((cl_float4){5000, 2157.87, -5103.68});
     window.c_rot.x = 0.24;
@@ -852,8 +852,8 @@ int main(int argc, char *argv[])
             mx = screen_position.x;
             my = window.get_height() - screen_position.y;
 
-            mx = clamp(mx, window.window.getPosition().x + 5, window.get_width() + window.window.getPosition().x - 5);
-            my = clamp(my, window.window.getPosition().y + 5, window.get_height() + window.window.getPosition().y - 5);
+            mx = clamp(mx + window.window.getPosition().x, window.window.getPosition().x + 5, window.get_width() + window.window.getPosition().x - 5);
+            my = clamp(my + window.window.getPosition().y, window.window.getPosition().y + 5, window.get_height() + window.window.getPosition().y - 5);
 
             mouse.setPosition({mx, my});
         }
