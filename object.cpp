@@ -281,10 +281,9 @@ void object::try_load(cl_float4 pos)
 ///if scene updated behind objects back will not work
 void object::g_flush()
 {
-    cl_float8 posrot;
-
     posrot.lo = pos;
     posrot.hi = rot;
 
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_obj_desc, sizeof(obj_g_descriptor)*(object_g_id), sizeof(cl_float4)*2, &posrot);
+    //cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_obj_desc, sizeof(obj_g_descriptor)*(object_g_id), sizeof(cl_float4)*2, &posrot);
+    clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, NULL);
 }

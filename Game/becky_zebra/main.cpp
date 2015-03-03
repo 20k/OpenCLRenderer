@@ -4,6 +4,7 @@
 //#include "Include/OVR_Math.h"
 #include "../../vec.hpp"
 #include <random>
+#include <math.h>
 
 /*struct zebra_info
 {
@@ -342,6 +343,8 @@ struct zebra
 
         float distance = sqrtf(dx*dx + dy*dy);
 
+
+
         return distance;
     }
 };
@@ -543,14 +546,14 @@ int main(int argc, char *argv[])
 
 
     objects_container base;
-    base.set_file("../../objects/square_subd.obj");
+    base.set_file("../../objects/square.obj");
     base.set_active(true);
 
     objects_container sides[3];
 
     for(int i=0; i<3; i++)
     {
-        sides[i].set_file("../../objects/square_subd.obj");
+        sides[i].set_file("../../objects/square.obj");
         sides[i].set_active(true);
     }
 
@@ -562,7 +565,7 @@ int main(int argc, char *argv[])
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
-    window.window.setVerticalSyncEnabled(true);
+    //window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 
@@ -681,12 +684,15 @@ int main(int argc, char *argv[])
     int average_state = 0;
     float distance_accum = 0;
     int distance_num = 0;
+    int distance_tot_num = 0;
 
     float distance_total = 0;
 
     sf::Clock clk;
 
     bool first_start = true;
+
+    info.running = false;
 
     while(window.window.isOpen())
     {
@@ -698,7 +704,7 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        if(first_start || info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000)
+        if(first_start || (info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000))
         {
             if(current_run == runs.size())
                 exit(0);
@@ -751,18 +757,20 @@ int main(int argc, char *argv[])
             obj_mem_manager::g_arrange_mem();
             obj_mem_manager::g_changeover();
 
-            info.simulation_time.restart();
 
+            if(!first_start)
+            {
+                log(logfile_average, to_str(distance_accum / distance_num));
+                log(logfile_average, to_str(distance_total / distance_tot_num));
 
-            log(logfile_average, to_str(distance_accum / distance_num));
-            log(logfile_average, to_str(distance_total / distance_num));
-
-            log(logfile_average, "\n\nNEXT\n", 0);
+                log(logfile_average, "\n\nNEXT\n", 0);
+            }
 
             average_state = 0;
             distance_accum = 0;
             distance_num = 0;
             distance_total = 0;
+            distance_tot_num = 0;
 
             info.standard_deviation = protean[cfg.protean_num];
 
@@ -793,6 +801,8 @@ int main(int argc, char *argv[])
             window.set_camera_rot(c_rot);
 
             //window.set_camera_rot(viewing_angle);
+
+            info.simulation_time.restart();
 
             current_run++;
         }
@@ -895,22 +905,34 @@ int main(int argc, char *argv[])
             int mx = window.get_mouse_x();
             int my = window.height - window.get_mouse_y();
 
-            float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
+            //float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
 
+            cl_float4 zebra_screen = engine::project(zebra::zebra_objects[info.selected_zebra].obj->pos);
+
+            float xd = mx - zebra_screen.x;
+            float yd = my - zebra_screen.y;
+
+            float distance = sqrt(xd*xd + yd*yd);
 
             distance_accum += distance;
-            distance_num ++;
+            distance_num++;
 
             distance_total += distance;
+            distance_tot_num++;
 
             //printf("%f %i %i\n", distance, mx, my);
 
-            std::string dist(to_str(distance)), mxs(to_str(mx)), mys(to_str(my));
+            std::string dist(to_str(distance)), mxs(to_str(xd)), mys(to_str(yd));
 
 
+            //log(logfile, "INFO\n")
             log(logfile, dist, 0);
             log(logfile, mxs);
             log(logfile, mys);
+            //log(logfile, "\n", 0);
+
+            //log(logfile, "\nFRAMETIME\n", 0);
+            log(logfile, to_str(c.getElapsedTime().asMicroseconds()));
             log(logfile, "\n", 0);
         }
 
@@ -937,6 +959,13 @@ int main(int argc, char *argv[])
 
             if(new_distance)
             {
+                float val = distance_accum / distance_num;
+
+                if(std::isnan(distance_accum) || std::isnan(val) || val != val)
+                {
+                    printf("oh dear %f %f %i\n", distance_accum, distance_accum / distance_num, distance_num);
+                }
+
                 log(logfile_average, to_str(distance_accum / distance_num));
 
                 distance_accum = 0;
@@ -948,7 +977,7 @@ int main(int argc, char *argv[])
         }
 
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     fclose(logfile);

@@ -12,6 +12,7 @@ struct object
 {
     cl_float4 pos;
     cl_float4 rot;
+
     cl_float4 centre; ///unused
 
     bool isactive;
@@ -57,6 +58,10 @@ struct object
     ///unused, probably removing visibility system due to complete infeasibility of automatic object loading based on anything useful
 
     void g_flush(); ///flush position (currently just) etc to gpu memory
+
+    ///for writing to gpu, need the memory to stick around
+    private:
+    cl_float8 posrot;
 };
 
 

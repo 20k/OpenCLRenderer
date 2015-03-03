@@ -1370,7 +1370,6 @@ void engine::draw_bulk_objs_n()
     cl_float4 pos_offset = c_pos;
     cl_float4 rot_offset = c_rot;
 
-
     if(!rift::enabled)
     {
         render_tris(*this, pos_offset, rot_offset, g_screen);
