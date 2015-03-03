@@ -204,6 +204,8 @@ void object::stretch(int dim, float amount)
             {
                 printf("Invalid dimension passed to object with id\n");
             }
+
+            tri_list[i].vertices[j].set_pos(pos);
         }
     }
 }

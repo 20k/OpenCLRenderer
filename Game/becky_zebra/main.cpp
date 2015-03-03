@@ -87,6 +87,8 @@ struct zebra
     {
         float minimum_distance = 500;
 
+        const float edge_padding = 300;
+
         for(int i=0; i<objects.size(); i++)
         {
             cl_float4 p1 = objects[i]->pos;
@@ -142,20 +144,20 @@ struct zebra
             v1 = {zebra_objects[i].vx, zebra_objects[i].vz};
 
 
-            if(p1.x < minx)
+            if(p1.x < minx + edge_padding)
             {
                 v1.x = fabs(v1.x);
             }
-            if(p1.x >= maxx)
+            if(p1.x >= maxx - edge_padding)
             {
                 v1.x = -fabs(v1.x);
             }
 
-            if(p1.z < miny)
+            if(p1.z < miny + edge_padding)
             {
                 v1.y = fabs(v1.y);
             }
-            if(p1.z >= maxy)
+            if(p1.z >= maxy - edge_padding)
             {
                 v1.y = -fabs(v1.y);
             }
@@ -458,15 +460,6 @@ const std::vector<float> viewing_angles =
     45.f,
     30.f,
     20.f
-    /*{
-        0.24, -0.06, 0
-    }/*,
-    {
-        0.24, -0.06, 0
-    },
-    {
-        0.24, -0.06, 0
-    }*/
 };
 
 struct run_config
@@ -574,20 +567,52 @@ int main(int argc, char *argv[])
     obj_mem_manager::load_active_objects();
 
     ///no wait, scaling before loading means nothing. Need to make transform stack, or assert
-    base.scale(20000.0f);
+    //base.scale(20000.0f);
 
-    base.set_pos({0, -200, 0});
+    //base.set_pos({0, -200, 0});
 
-    float height = 1000.f;
+    //base.set_pos({});
+
+    base.set_pos({(zebra::maxx - zebra::minx)/2, -200, (zebra::maxy - zebra::miny)/2});
+
+    base.stretch(0, 1.09*(zebra::maxx - zebra::minx)/2);
+    base.stretch(2, 1.00*(zebra::maxy - zebra::miny)/2);
+
+    float height = 500.f;
 
     for(int i=0; i<3; i++)
     {
-        sides[i].scale(height);
+        //sides[i].scale(height);
     }
 
-    sides[0].set_pos({zebra::minx, height - 170, (zebra::miny)});
-    sides[1].set_pos({(zebra::minx), height - 170, zebra::maxy});
-    sides[2].set_pos({zebra::maxx, height - 170, (zebra::miny)});
+    /*sides[0].stretch(2, (zebra::maxy - zebra::miny));
+    sides[0].stretch(1, height);
+
+    sides[1].stretch(2, (zebra::maxy - zebra::miny));
+    sides[1].stretch(1, height);
+
+    sides[2].stretch(2, (zebra::maxy - zebra::miny));
+    sides[2].stretch(1, height);*/
+
+    sides[0].stretch(2, (zebra::maxy - zebra::miny)/2.f);
+    sides[0].stretch(1, height);
+    sides[0].stretch(0, height);
+
+    sides[1].stretch(2, (zebra::maxx - zebra::minx)/2.f);
+    sides[1].stretch(1, height);
+    sides[1].stretch(0, height);
+
+    sides[2].stretch(2, (zebra::maxy - zebra::miny)/2.f);
+    sides[2].stretch(1, height);
+    sides[2].stretch(0, height);
+
+    //sides[0].set_pos({0, 0, (zebra::maxy - zebra::miny)/2.f});
+
+    const float height_offset = 130;
+
+    sides[0].set_pos({zebra::minx - 250, height - height_offset, (zebra::maxy - zebra::miny)/2});
+    sides[1].set_pos({(zebra::maxx - zebra::minx)/2, height - height_offset, zebra::maxy + 50});
+    sides[2].set_pos({zebra::maxx + 250, height - height_offset, (zebra::maxy - zebra::miny)/2});
 
     sides[0].swap_90_perp();
     sides[0].swap_90_perp();
@@ -597,6 +622,7 @@ int main(int argc, char *argv[])
     sides[1].swap_90();
 
     sides[2].swap_90_perp();
+
 
     texture_manager::allocate_textures();
 
@@ -748,10 +774,10 @@ int main(int argc, char *argv[])
 
             clk.restart();
 
-            for(int i=0; i<5; i++)
+            for(int i=0; i<100; i++)
             {
                 zebra::repulse();
-                zebra::update(info.standard_deviation, info.zebra_velocity, 1000.f);
+                zebra::update(info.standard_deviation, info.zebra_velocity, 8000.f);
             }
 
             first_start = false;
