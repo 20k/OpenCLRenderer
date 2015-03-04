@@ -1029,7 +1029,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
 
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
-void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
+cl_event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
     sf::Clock c;
 
@@ -1181,7 +1181,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+    cl_event final_event = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
 
 
@@ -1242,9 +1242,11 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
+
+    return final_event;
 }
 
-void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer g_screen_out[2])
+cl_event render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer g_screen_out[2])
 {
     cl_uint zero = 0;
 
@@ -1360,7 +1362,9 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     distort_arg_list.push_back(&rift::distortion_constants);
     distort_arg_list.push_back(&rift::abberation_constants);
 
-    run_kernel_with_list(cl::warp_oculus, p3global_ws, p3local_ws, 2, distort_arg_list);
+    cl_event final_event = run_kernel_with_list(cl::warp_oculus, p3global_ws, p3local_ws, 2, distort_arg_list);
+
+    return final_event;
 }
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
@@ -1370,9 +1374,23 @@ void engine::draw_bulk_objs_n()
     cl_float4 pos_offset = c_pos;
     cl_float4 rot_offset = c_rot;
 
+    bool cond = true;
+
+    while(cond)
+    {
+        ///must stall
+        render_mutex.lock();
+        bool stall = render_events.size() >= max_render_events;
+        render_mutex.unlock();
+
+        cond = stall;
+    }
+
+    cl_event final_event;
+
     if(!rift::enabled)
     {
-        render_tris(*this, pos_offset, rot_offset, g_screen);
+        final_event = render_tris(*this, pos_offset, rot_offset, g_screen);
     }
     ///now we have both eye positions and rotations, need to render in 3d and apply distortion
     ///directly render barrel distortion @1080p
@@ -1406,9 +1424,12 @@ void engine::draw_bulk_objs_n()
         rotations[0] = sub({0,0,0,0}, eye_rotation[0]);
         rotations[1] = sub({0,0,0,0}, eye_rotation[1]);
 
-        render_tris_oculus(*this, cameras, rotations, g_rift_screen);
+        final_event = render_tris_oculus(*this, cameras, rotations, g_rift_screen);
     }
 
+    render_mutex.lock();
+    render_events.push_back(final_event);
+    render_mutex.unlock();
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
@@ -1999,7 +2020,8 @@ void engine::render_buffers()
         compute::opengl_enqueue_release_gl_objects(2, bufs, cl::cqueue);
     }
 
-    cl::cqueue.finish();
+    /// /// /// ///
+    //cl::cqueue.finish();
 
     ///reinstate this without the sleep 0
     /*cl_event event;
@@ -2076,7 +2098,7 @@ void engine::render_buffers()
     //rendering to wrong buffer?
     //window.display();
 
-    swap_depth_buffers();
+    //swap_depth_buffers();
 
     if(!rift::enabled)
     {
@@ -2089,6 +2111,10 @@ void engine::render_buffers()
         compute::opengl_enqueue_acquire_gl_objects(2, bufs, cl::cqueue);
     }
 
+    render_mutex.lock();
+    render_events.pop_front();
+    render_mutex.unlock();
+
     ///swap smoothed and proper buffers back
     /*compute::opengl_renderbuffer temp = g_screen;
     g_screen = g_screen_edge_smoothed;
@@ -2098,6 +2124,13 @@ void engine::render_buffers()
 void engine::display()
 {
     window.display();
+}
+
+void engine::render_buffer_async(cl_event event, cl_int event_command_exec_status, engine* eng)
+{
+    eng->render_buffers();
+
+    eng->render_events.pop_front();
 }
 
 void engine::swap_depth_buffers()
