@@ -5948,7 +5948,13 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     //val = read_imagef(x_in, sam, pos).x;
 
-    val /= div;
+    float myval = read_imagef(x_in, sam, pos).x;
+
+    float weight = 100.f;
+
+    //val /= div;
+
+    val = (val + weight*myval) / (div + weight);
 
         //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
 

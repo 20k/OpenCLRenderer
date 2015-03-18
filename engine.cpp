@@ -1041,9 +1041,11 @@ cl_event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, comput
 
     cl_uint id_num = 0;
 
+    ///do this async
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
     ///clear the number of triangles that are generated after first kernel run
+    ///do this after they're needed async then use a waitfor event
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
     cl::cqueue.enqueue_write_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
@@ -1697,7 +1699,8 @@ void engine::draw_smoke(smoke& s)
 
     int nx, ny, nz;
 
-    int n = s.n;
+    int n_dens = s.n_dens;
+    int n_vel = s.n_vel;
 
     arg_list post_args;
     post_args.push_back(&s.width);
@@ -1706,16 +1709,16 @@ void engine::draw_smoke(smoke& s)
     post_args.push_back(&s.uwidth);
     post_args.push_back(&s.uheight);
     post_args.push_back(&s.udepth);
-    post_args.push_back(&s.g_velocity_x[n]);
-    post_args.push_back(&s.g_velocity_y[n]);
-    post_args.push_back(&s.g_velocity_z[n]);
+    post_args.push_back(&s.g_velocity_x[n_vel]);
+    post_args.push_back(&s.g_velocity_y[n_vel]);
+    post_args.push_back(&s.g_velocity_z[n_vel]);
     post_args.push_back(&s.g_w1);
     post_args.push_back(&s.g_w2);
     post_args.push_back(&s.g_w3);
     //post_args.push_back(&s.g_postprocess_storage_x);
     //post_args.push_back(&s.g_postprocess_storage_y);
     //post_args.push_back(&s.g_postprocess_storage_z);
-    post_args.push_back(&s.g_voxel[n]);
+    post_args.push_back(&s.g_voxel[n_dens]);
     post_args.push_back(&s.g_voxel_upscale);
     post_args.push_back(&s.scale);
     //post_args.push_back(&g_screen);

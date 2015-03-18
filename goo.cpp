@@ -33,7 +33,8 @@ void goo::tick(float dt)
     float diffuse_const = 1;
     float dt_const = 0.01f;
 
-    int next = (n + 1) % 2;
+    int next_dens = (n_dens + 1) % 2;
+    int next_vel = (n_vel + 1) % 2;
 
     int bound = -1;
 
@@ -42,8 +43,8 @@ void goo::tick(float dt)
     dens_diffuse.push_back(&height);
     dens_diffuse.push_back(&depth);
     dens_diffuse.push_back(&bound); ///unused
-    dens_diffuse.push_back(&g_voxel[next]); ///out
-    dens_diffuse.push_back(&g_voxel[n]); ///in
+    dens_diffuse.push_back(&g_voxel[next_dens]); ///out
+    dens_diffuse.push_back(&g_voxel[n_dens]); ///in
     dens_diffuse.push_back(&diffuse_const); ///temp
     dens_diffuse.push_back(&dt_const); ///temp
 
@@ -56,11 +57,11 @@ void goo::tick(float dt)
     dens_advect.push_back(&height);
     dens_advect.push_back(&depth);
     dens_advect.push_back(&bound); ///which boundary are we dealing with?
-    dens_advect.push_back(&g_voxel[n]); ///out
-    dens_advect.push_back(&g_voxel[next]); ///in
-    dens_advect.push_back(&g_velocity_x[n]); ///make float3
-    dens_advect.push_back(&g_velocity_y[n]);
-    dens_advect.push_back(&g_velocity_z[n]);
+    dens_advect.push_back(&g_voxel[n_dens]); ///out
+    dens_advect.push_back(&g_voxel[next_dens]); ///in
+    dens_advect.push_back(&g_velocity_x[n_vel]); ///make float3
+    dens_advect.push_back(&g_velocity_y[n_vel]);
+    dens_advect.push_back(&g_velocity_z[n_vel]);
     dens_advect.push_back(&dt_const); ///temp
     dens_advect.push_back(&zero); ///float, but i believe ieee guarantees that 0 and 0 in float have the same representation
 
@@ -69,22 +70,22 @@ void goo::tick(float dt)
     //update_boundary(g_voxel[n], -1, global_ws, local_ws);
 
     ///just modify relevant arguments
-    dens_diffuse.args[4] = &g_velocity_x[next];
-    dens_diffuse.args[5] = &g_velocity_x[n];
+    dens_diffuse.args[4] = &g_velocity_x[next_vel];
+    dens_diffuse.args[5] = &g_velocity_x[n_vel];
     bound = 0;
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
-    dens_diffuse.args[4] = &g_velocity_y[next];
-    dens_diffuse.args[5] = &g_velocity_y[n];
+    dens_diffuse.args[4] = &g_velocity_y[next_vel];
+    dens_diffuse.args[5] = &g_velocity_y[n_vel];
     bound = 1;
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
-    dens_diffuse.args[4] = &g_velocity_z[next];
-    dens_diffuse.args[5] = &g_velocity_z[n];
+    dens_diffuse.args[4] = &g_velocity_z[next_vel];
+    dens_diffuse.args[5] = &g_velocity_z[n_vel];
     bound = 2;
 
     run_kernel_with_list(cl::goo_diffuse, global_ws, local_ws, 3, dens_diffuse);
@@ -94,22 +95,22 @@ void goo::tick(float dt)
     //update_boundary(g_velocity_z[next], 2, global_ws, local_ws);
 
     ///nexts now valid
-    dens_advect.args[4] = &g_velocity_x[n];
-    dens_advect.args[5] = &g_velocity_x[next];
+    dens_advect.args[4] = &g_velocity_x[n_vel];
+    dens_advect.args[5] = &g_velocity_x[next_vel];
     dens_advect.args[10] = &zero;
     bound = 0;
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
 
-    dens_advect.args[4] = &g_velocity_y[n];
-    dens_advect.args[5] = &g_velocity_y[next];
+    dens_advect.args[4] = &g_velocity_y[n_vel];
+    dens_advect.args[5] = &g_velocity_y[next_vel];
     dens_advect.args[10] = &gravity;
     bound = 1;
 
     run_kernel_with_list(cl::goo_advect, global_ws, local_ws, 3, dens_advect);
 
-    dens_advect.args[4] = &g_velocity_z[n];
-    dens_advect.args[5] = &g_velocity_z[next];
+    dens_advect.args[4] = &g_velocity_z[n_vel];
+    dens_advect.args[5] = &g_velocity_z[next_vel];
     dens_advect.args[10] = &zero;
     bound = 2;
 
@@ -120,7 +121,7 @@ void goo::tick(float dt)
     //update_boundary(g_velocity_z[n], 2, global_ws, local_ws);
 
     arg_list fluid_count;
-    fluid_count.push_back(&g_voxel[n]);
+    fluid_count.push_back(&g_voxel[n_dens]);
     fluid_count.push_back(&amount);
 
     run_kernel_with_list(cl::fluid_amount, global_ws, local_ws, 3, fluid_count);

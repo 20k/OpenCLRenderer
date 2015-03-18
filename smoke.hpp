@@ -12,7 +12,8 @@ namespace compute = boost::compute;
 
 struct smoke
 {
-    int n;
+    int n_dens;
+    int n_vel;
 
     compute::image3d g_voxel[2];
     compute::image3d g_voxel_upscale;

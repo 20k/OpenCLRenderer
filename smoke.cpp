@@ -103,7 +103,8 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 ///ie it has coherence at all scales
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size)
 {
-    n = 0;
+    n_dens = 0;
+    n_vel = 0;
 
     width = _width;
     height = _height;
@@ -187,8 +188,11 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
                 if(lpos >= width*height*depth)
                     continue;
 
-                buf1[lpos] = 100.0f;
+                buf1[lpos] = 10 + ((rand() % 5) - 2);
+                buf[lpos] = 1000.0f;
                 //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
+
+                buf2[lpos] = (rand() % 50) - 10;
             }
         }
 
@@ -295,15 +299,16 @@ void smoke::tick(float dt)
     float diffuse_const = 1;
     float dt_const = 0.01f;
 
-    int next = (n + 1) % 2;
+    int next_dens = (n_dens + 1) % 2;
+    int next_vel = (n_vel + 1) % 2;
 
     arg_list dens_diffuse;
     dens_diffuse.push_back(&width);
     dens_diffuse.push_back(&height);
     dens_diffuse.push_back(&depth);
     dens_diffuse.push_back(&zero); ///unused
-    dens_diffuse.push_back(&g_voxel[next]); ///out
-    dens_diffuse.push_back(&g_voxel[n]); ///in
+    dens_diffuse.push_back(&g_voxel[next_dens]); ///out
+    dens_diffuse.push_back(&g_voxel[n_dens]); ///in
     //dens_diffuse.push_back(g_velocity_x[n]);
     //dens_diffuse.push_back(g_velocity_y[n]);
     //dens_diffuse.push_back(g_velocity_z[n]);
@@ -317,50 +322,48 @@ void smoke::tick(float dt)
     dens_advect.push_back(&height);
     dens_advect.push_back(&depth);
     dens_advect.push_back(&zero); ///unused
-    dens_advect.push_back(&g_voxel[n]); ///out
-    dens_advect.push_back(&g_voxel[next]); ///in
-    dens_advect.push_back(&g_velocity_x[n]); ///make float3
-    dens_advect.push_back(&g_velocity_y[n]);
-    dens_advect.push_back(&g_velocity_z[n]);
+    dens_advect.push_back(&g_voxel[n_dens]); ///out
+    dens_advect.push_back(&g_voxel[next_dens]); ///in
+    dens_advect.push_back(&g_velocity_x[n_vel]); ///make float3
+    dens_advect.push_back(&g_velocity_y[n_vel]);
+    dens_advect.push_back(&g_velocity_z[n_vel]);
     dens_advect.push_back(&dt_const); ///temp
 
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
     ///just modify relevant arguments
-    dens_diffuse.args[4] = &g_velocity_x[next];
-    dens_diffuse.args[5] = &g_velocity_x[n];
+    dens_diffuse.args[4] = &g_velocity_x[next_vel];
+    dens_diffuse.args[5] = &g_velocity_x[n_vel];
 
     run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
-    dens_diffuse.args[4] = &g_velocity_y[next];
-    dens_diffuse.args[5] = &g_velocity_y[n];
+    dens_diffuse.args[4] = &g_velocity_y[next_vel];
+    dens_diffuse.args[5] = &g_velocity_y[n_vel];
 
     run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
-    dens_diffuse.args[4] = &g_velocity_z[next];
-    dens_diffuse.args[5] = &g_velocity_z[n];
+    dens_diffuse.args[4] = &g_velocity_z[next_vel];
+    dens_diffuse.args[5] = &g_velocity_z[n_vel];
 
     run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
 
     ///nexts now valid
-    dens_advect.args[4] = &g_velocity_x[n];
-    dens_advect.args[5] = &g_velocity_x[next];
+    dens_advect.args[4] = &g_velocity_x[n_vel];
+    dens_advect.args[5] = &g_velocity_x[next_vel];
 
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
-    dens_advect.args[4] = &g_velocity_y[n];
-    dens_advect.args[5] = &g_velocity_y[next];
+    dens_advect.args[4] = &g_velocity_y[n_vel];
+    dens_advect.args[5] = &g_velocity_y[next_vel];
 
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
-    dens_advect.args[4] = &g_velocity_z[n];
-    dens_advect.args[5] = &g_velocity_z[next];
+    dens_advect.args[4] = &g_velocity_z[n_vel];
+    dens_advect.args[5] = &g_velocity_z[next_vel];
 
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
-
-
-    //n = next;
+    //n_dens = next_dens;
 }

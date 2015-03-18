@@ -1,8 +1,8 @@
 # depslib dependency file v1.0
-1424237166 source:c:\users\james\desktop\openclrenderer\clstate.cpp
+1424327390 source:c:\users\james\desktop\openclrenderer\clstate.cpp
 	"clstate.h"
 
-1424237143 c:\users\james\desktop\openclrenderer\clstate.h
+1424623504 c:\users\james\desktop\openclrenderer\clstate.h
 	<cl/opencl.h>
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
@@ -10,8 +10,9 @@
 	<boost/compute/interop/opengl.hpp>
 	<string>
 	<utility>
+	<map>
 
-1423439989 source:c:\users\james\desktop\openclrenderer\engine.cpp
+1426640875 source:c:\users\james\desktop\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -37,7 +38,7 @@
 	"Rift/Src/OVR_CAPI.h"
 	"Rift/Src/OVR_Stereo.h"
 
-1424055830 c:\users\james\desktop\openclrenderer\engine.hpp
+1425464857 c:\users\james\desktop\openclrenderer\engine.hpp
 	<SFML/graphics.hpp>
 	"object.hpp"
 	<vector>
@@ -50,13 +51,15 @@
 	<boost/compute/algorithm/iota.hpp>
 	<boost/compute/interop/opengl.hpp>
 	<initializer_list>
+	<unordered_map>
 	<chrono>
 	"smoke.hpp"
+	"ocl.h"
 	"Rift/Include/OVR.h"
 	"Rift/Include/OVR_Kernel.h"
 	"Rift/Src/OVR_CAPI.h"
 
-1422984822 c:\users\james\desktop\openclrenderer\object.hpp
+1425397636 c:\users\james\desktop\openclrenderer\object.hpp
 	<vector>
 	"triangle.hpp"
 	<string>
@@ -69,7 +72,7 @@
 1421777392 c:\users\james\desktop\openclrenderer\vertex.hpp
 	<cl/cl.h>
 
-1423788956 c:\users\james\desktop\openclrenderer\objects_container.hpp
+1425322360 c:\users\james\desktop\openclrenderer\objects_container.hpp
 	"object.hpp"
 	<functional>
 
@@ -87,7 +90,7 @@
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 
-1420195948 c:\users\james\desktop\openclrenderer\smoke.hpp
+1426640658 c:\users\james\desktop\openclrenderer\smoke.hpp
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 	<boost/compute/algorithm/iota.hpp>
@@ -303,7 +306,7 @@
 	"object.hpp"
 	<vector>
 
-1420032596 c:\users\james\desktop\openclrenderer\texture_manager.hpp
+1424312495 c:\users\james\desktop\openclrenderer\texture_manager.hpp
 	<vector>
 	"texture.hpp"
 	<boost/compute/source.hpp>
@@ -353,7 +356,7 @@
 	<map>
 	<utility>
 
-1424237130 c:\users\james\desktop\openclrenderer\ocl.h
+1425270662 c:\users\james\desktop\openclrenderer\ocl.h
 	<cstdio>
 	<CL/cl.h>
 	<iostream>
@@ -399,7 +402,7 @@
 	"OVR_ContainerAllocator.h"
 	"OVR_Alg.h"
 
-1424238257 source:c:\users\james\desktop\openclrenderer\goo.cpp
+1426640850 source:c:\users\james\desktop\openclrenderer\goo.cpp
 	"goo.hpp"
 
 1424236911 c:\users\james\desktop\openclrenderer\goo.hpp
@@ -414,7 +417,7 @@
 	"engine.hpp"
 	"proj.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\proj.hpp
+1425588771 c:\users\james\desktop\openclrenderer\proj.hpp
 	<cstdio>
 	<string>
 	<iostream>
@@ -431,11 +434,9 @@
 	"texture_manager.hpp"
 	<math.h>
 	<limits.h>
-	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 	<boost/compute/algorithm/iota.hpp>
 	<boost/compute/interop/opengl.hpp>
-	<initializer_list>
 
 1420032596 c:\users\james\desktop\openclrenderer\obj_load.hpp
 	<string>
@@ -506,7 +507,7 @@
 	"engine.hpp"
 	<map>
 
-1422984230 source:c:\users\james\desktop\openclrenderer\object.cpp
+1425464857 source:c:\users\james\desktop\openclrenderer\object.cpp
 	"object.hpp"
 	"clstate.h"
 	"texture.hpp"
@@ -516,7 +517,7 @@
 	"texture_manager.hpp"
 	"vec.hpp"
 
-1422984833 source:c:\users\james\desktop\openclrenderer\objects_container.cpp
+1425345643 source:c:\users\james\desktop\openclrenderer\objects_container.cpp
 	"objects_container.hpp"
 	<iostream>
 	"obj_load.hpp"
@@ -558,7 +559,7 @@
 1420032596 c:\users\james\desktop\openclrenderer\projectile_buffer_gen.hpp
 	"proj.hpp"
 
-1421769035 source:c:\users\james\desktop\openclrenderer\smoke.cpp
+1426642118 source:c:\users\james\desktop\openclrenderer\smoke.cpp
 	"smoke.hpp"
 	"clstate.h"
 	"engine.hpp"
@@ -584,7 +585,7 @@
 	<boost/bind.hpp>
 	"texture_manager.hpp"
 
-1423439989 source:c:\users\james\desktop\openclrenderer\texture_manager.cpp
+1424312495 source:c:\users\james\desktop\openclrenderer\texture_manager.cpp
 	"texture_manager.hpp"
 	<math.h>
 	<iostream>
@@ -721,7 +722,7 @@
 
 1420032596 c:\users\james\desktop\openclrenderer\game\space_dust.hpp
 
-1424238730 source:c:\users\james\desktop\openclrenderer\game\dissertation\main.cpp
+1426642004 source:c:\users\james\desktop\openclrenderer\game\dissertation\main.cpp
 	"../../hologram.hpp"
 	"../../proj.hpp"
 	"../../ocl.h"

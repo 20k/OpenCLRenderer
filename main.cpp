@@ -9,6 +9,9 @@
 ///we're completely hampered by memory latency
 
 ///rift head movement is wrong
+
+
+
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
@@ -75,8 +78,12 @@ int main(int argc, char *argv[])
 
         window.input();
 
+        ///do manual async on thread
+
         window.draw_bulk_objs_n();
 
+
+        ///doing this async would save 0.5ms
         window.render_buffers();
         window.display();
 

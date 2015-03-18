@@ -106,11 +106,16 @@ int main(int argc, char *argv[])
     engine window;
     window.load(1680,1060,1000, "turtles", "../../cl2.cl");
 
-    window.set_camera_pos((cl_float4){0,100,-300,0});
+    window.set_camera_pos({0,100,-300,0});
     //window.set_camera_pos((cl_float4){0,0,0,0});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
+
+
+    smoke gloop;
+    gloop.init(200, 100, 100, 2, 300);
+
 
     obj_mem_manager::load_active_objects();
 
@@ -130,13 +135,13 @@ int main(int argc, char *argv[])
     sf::Event Event;
 
     light l;
-    l.set_col((cl_float4){1.0, 1.0, 1.0, 0});
+    l.set_col({1.0, 1.0, 1.0, 0});
     //l.set_shadow_bright(1, 1);
     l.set_shadow_casting(0);
     l.set_brightness(1);
     //l.set_pos((cl_float4){-150, 150, 0});
     //l.set_pos((cl_float4){-100, 100, 0});
-    l.set_pos((cl_float4){-100,100,-300,0});
+    l.set_pos({-100,100,-300,0});
     //l.set_pos((cl_float4){4000, 4000, 5000});
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
@@ -144,10 +149,14 @@ int main(int argc, char *argv[])
     //window.add_light(&l);
 
     //l.set_pos((cl_float4){0, 200, -450, 0});
-    l.set_pos((cl_float4){-1200, 150, 0, 0});
+    l.set_pos({100, 350, -300, 0});
     l.shadow=0;
 
-    //window.add_light(&l);
+    window.add_light(&l);
+
+    l.set_pos({0, 0, -300, 0});
+
+    window.add_light(&l);
 
     //window.construct_shadowmaps();
 
@@ -175,18 +184,18 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        //gloop.tick(0.33f);
+        gloop.tick(0.33f);
 
         window.input();
 
         window.draw_bulk_objs_n();
 
-        lat.tick(NULL);
+        //lat.tick(NULL);
 
 
-        window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
+        //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
 
-        //window.draw_smoke(gloop);
+        window.draw_smoke(gloop);
 
 
         /*

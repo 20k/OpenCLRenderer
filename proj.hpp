@@ -10,10 +10,10 @@
 
 #include <cl/cl.h>
 
-#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
+/*#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
 static cl_mem fake;
 #define clCreateFromGLTexture2D(...) fake
-#endif
+#endif*/
 
 #include "clstate.h"
 #include "obj_load.hpp"
@@ -26,12 +26,9 @@ static cl_mem fake;
 #include <math.h>
 #include <limits.h>
 
-#include <boost/compute/source.hpp>
 #include <boost/compute/system.hpp>
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
-
-#include <initializer_list>
 
 namespace compute = boost::compute;
 
