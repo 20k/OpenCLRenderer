@@ -503,7 +503,7 @@ struct time_storage
 {
     ///0 is average for seconds 0 -> 1, then 1 -> 2, 2 -> 3, 3 -> 4, 4  -> 5
     int current_time = 0;
-    float distance[6] = {0};
+    float distance[6] = {-1, -1, -1, -1, -1, -1};
 };
 
 ///maps a run configuration
@@ -644,7 +644,7 @@ int main(int argc, char *argv[])
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
-    window.window.setVerticalSyncEnabled(true);
+    //window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 
