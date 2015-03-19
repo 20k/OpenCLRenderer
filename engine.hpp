@@ -17,7 +17,6 @@
 #include <unordered_map>
 
 #include <chrono>
-#include <mutex>
 
 #include "smoke.hpp"
 
@@ -125,10 +124,6 @@ struct engine
 
     std::vector<object*> objects; ///obsolete?
 
-    std::deque<cl_event> render_events;
-    const int max_render_events = 3;
-
-    std::mutex render_mutex;
 
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&);
@@ -165,8 +160,6 @@ struct engine
     void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
     void render_buffers();
     void display();
-
-    static void render_buffer_async(cl_event event, cl_int event_command_exec_status, engine* eng);
 
     void swap_depth_buffers();
 
@@ -240,7 +233,7 @@ static std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 
 ///runs a kernel with a particular set of arguments
-static cl_event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
+static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
 {
     size_t g_ws[dimensions];
     size_t l_ws[dimensions];
@@ -303,8 +296,6 @@ static cl_event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uin
 
     std::cout << "T  " << kernel.name << " " << duration << std::endl;
     #endif
-
-    return event.get();
 }
 
 static void run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
