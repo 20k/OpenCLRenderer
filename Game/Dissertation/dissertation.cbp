@@ -25,7 +25,8 @@
 				<Option type="1" />
 				<Option compiler="mingw64" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
+					<Add option="-Ofast" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -116,7 +117,6 @@
 		<Unit filename="../Asteroid/asteroid_gen.hpp" />
 		<Unit filename="../Galaxy/galaxy.cpp" />
 		<Unit filename="../Galaxy/galaxy.hpp" />
-		<Unit filename="../Goo_game/main.cpp" />
 		<Unit filename="../Solar_object/solar.cpp" />
 		<Unit filename="../Solar_object/solar.hpp" />
 		<Unit filename="../collision.cpp" />
@@ -133,6 +133,7 @@
 		<Unit filename="../space_dust.cpp" />
 		<Unit filename="../space_dust.hpp" />
 		<Unit filename="../version.hpp" />
+		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

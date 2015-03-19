@@ -479,7 +479,35 @@ struct run_config
         stripe_num = sn;
         viewing_num = vn;
     }
+
+    bool operator<(const run_config& cfg) const
+    {
+        ///if they don't have the same group size, return whichever has the smallest group
+        if(group_size != cfg.group_size)
+            return group_size < cfg.group_size;
+
+        if(protean_num != cfg.protean_num)
+            return protean_num < cfg.protean_num;
+
+        if(stripe_num != cfg.stripe_num)
+            return stripe_num < cfg.stripe_num;
+
+        if(viewing_num != cfg.viewing_num)
+            return viewing_num < cfg.viewing_num;
+
+        return false;
+    }
 };
+
+struct time_storage
+{
+    ///0 is average for seconds 0 -> 1, then 1 -> 2, 2 -> 3, 3 -> 4, 4  -> 5
+    int current_time = 0;
+    float distance[6] = {0};
+};
+
+///maps a run configuration
+std::map<run_config, time_storage> run_list;
 
 std::vector<run_config> runs;
 
@@ -506,6 +534,57 @@ std::vector<run_config> generate_runs()
     std::random_shuffle(runs.begin(), runs.end());
 
     return runs;
+}
+
+///make this take int
+void save_runs(int num)
+{
+    std::string fname = std::string("output") + to_str(num) + ".txt";
+
+    FILE* pFile = fopen(fname.c_str(), "a+");
+
+    for(int i=0; i<group_sizes.size(); i++)
+    {
+        for(int j=0; j<protean.size(); j++)
+        {
+            for(int k=0; k<stripe_names.size(); k++)
+            {
+                for(int l=0; l<viewing_angles.size(); l++)
+                {
+                    fprintf(pFile, ", %i %i %i %i", i, j, k, l);
+                }
+            }
+        }
+    }
+
+    fprintf(pFile, "\n");
+
+    for(int i=0; i<group_sizes.size(); i++)
+    {
+        for(int j=0; j<protean.size(); j++)
+        {
+            for(int k=0; k<stripe_names.size(); k++)
+            {
+                for(int l=0; l<viewing_angles.size(); l++)
+                {
+                    time_storage store = run_list[{i, j, k, l}];
+
+                    fprintf(pFile, ",%f", store.distance[num]);
+
+                    //if(store.distance[num] != -1)
+                    //    printf("%i %i %i %i %f\n", i, j, k, l, store.distance[num]);
+                }
+            }
+        }
+    }
+}
+
+void save_all_runs()
+{
+    for(int i=0; i<6; i++)
+    {
+        save_runs(i);
+    }
 }
 
 ///in degrees
@@ -662,8 +741,8 @@ int main(int argc, char *argv[])
     auto runs = generate_runs();
     int current_run = 0;
 
-    FILE* logfile = init_log("results.txt");
-    FILE* logfile_average = init_log("results_average.txt");
+    //FILE* logfile = init_log("results.txt");
+    //FILE* logfile_average = init_log("results_average.txt");
 
 
     const float set_angle = 45;//(45/360.f) * M_PI*2;
@@ -694,6 +773,8 @@ int main(int argc, char *argv[])
 
     info.running = false;
 
+    atexit(save_all_runs);
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -704,6 +785,7 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
+        ///simulation end or first start (move most of this into leftclick?)
         if(first_start || (info.running && info.simulation_time.getElapsedTime().asMilliseconds() > info.timeafter_to_reset * 1000))
         {
             if(current_run == runs.size())
@@ -712,6 +794,8 @@ int main(int argc, char *argv[])
             run_config cfg = runs[current_run];
 
             run_config last_cfg = current_run != 0 ? runs[current_run-1] : (run_config){0,0,0,0};
+
+            printf("%i %i %i %i\n", cfg.group_size, cfg.protean_num, cfg.stripe_num, cfg.viewing_num);
 
             ///reset simulation
 
@@ -760,10 +844,14 @@ int main(int argc, char *argv[])
 
             if(!first_start)
             {
-                log(logfile_average, to_str(distance_accum / distance_num));
+                /*log(logfile_average, to_str(distance_accum / distance_num));
                 log(logfile_average, to_str(distance_total / distance_tot_num));
 
-                log(logfile_average, "\n\nNEXT\n", 0);
+                log(logfile_average, "\n\nNEXT\n", 0);*/
+
+                run_list[last_cfg].distance[run_list[last_cfg].current_time++] = distance_accum / distance_num;
+                run_list[last_cfg].distance[run_list[last_cfg].current_time++] = distance_total / distance_tot_num;
+                //run_list[last_cfg].avg = distance_total / distance_tot_num;
             }
 
             average_state = 0;
@@ -807,13 +895,14 @@ int main(int argc, char *argv[])
             current_run++;
         }
 
+        ///simulation start
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
         {
-            log(logfile, "\n\nNEXT\n", 0);
+            //log(logfile, "\n\nNEXT\n", 0);
 
-            run_config this_cfg = runs[current_run-1];
+            //run_config this_cfg = runs[current_run-1];
 
-            log(logfile, "\ngroup_size\n", 0);
+            /*log(logfile, "\ngroup_size\n", 0);
             log(logfile, to_str(group_sizes[this_cfg.group_size]), 0);
 
             log(logfile, "\nprotean\n", 0);
@@ -842,7 +931,9 @@ int main(int argc, char *argv[])
             log(logfile, to_str(c_pos.y));
             log(logfile, to_str(c_pos.z));
 
-            log(logfile, "\nDATA\n", 0);
+            log(logfile, "\nDATA\n", 0);*/
+
+
 
 
             info.running = true;
@@ -853,6 +944,7 @@ int main(int argc, char *argv[])
             clk.restart();
         }
 
+        ///while paused, move mouse to centre of zebra
         if(!info.running)
         {
             cl_float4 world_position = zebra::objects[info.selected_zebra]->pos;
@@ -868,6 +960,8 @@ int main(int argc, char *argv[])
             mouse.setPosition({mx, my});
         }
 
+
+        ///do zebra repulse and update while simulation running
         if(info.running)
         {
             zebra::repulse();
@@ -882,6 +976,7 @@ int main(int argc, char *argv[])
 
         window.render_buffers();
 
+        ///highlight zebra while not running or for 1 second
         if(info.highlight_clock.getElapsedTime().asMilliseconds() < 1000 || !info.running || info.clock_active)
         {
             if(info.clock_active && info.running)
@@ -900,6 +995,7 @@ int main(int argc, char *argv[])
 
         window.display();
 
+        ///get mouse position from selected zebra and log to file
         if(info.running)
         {
             int mx = window.get_mouse_x();
@@ -925,17 +1021,15 @@ int main(int argc, char *argv[])
             std::string dist(to_str(distance)), mxs(to_str(xd)), mys(to_str(yd));
 
 
-            //log(logfile, "INFO\n")
-            log(logfile, dist, 0);
+            /*log(logfile, dist, 0);
             log(logfile, mxs);
             log(logfile, mys);
-            //log(logfile, "\n", 0);
 
-            //log(logfile, "\nFRAMETIME\n", 0);
             log(logfile, to_str(c.getElapsedTime().asMicroseconds()));
-            log(logfile, "\n", 0);
+            log(logfile, "\n", 0);*/
         }
 
+        ///log accumulated zebra times to file
         if(info.running)
         {
             bool new_distance = false;
@@ -966,7 +1060,13 @@ int main(int argc, char *argv[])
                     printf("oh dear %f %f %i\n", distance_accum, distance_accum / distance_num, distance_num);
                 }
 
-                log(logfile_average, to_str(distance_accum / distance_num));
+                run_config this_cfg = runs[current_run-1];
+
+                //log(logfile_average, to_str(val));
+
+                time_storage store = run_list[this_cfg];
+                store.distance[store.current_time++] = val;
+                run_list[this_cfg] = store;
 
                 distance_accum = 0;
                 distance_num = 0;
@@ -977,8 +1077,8 @@ int main(int argc, char *argv[])
         }
 
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
-    fclose(logfile);
+    //fclose(logfile);
 }
