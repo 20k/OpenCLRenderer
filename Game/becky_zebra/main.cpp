@@ -440,12 +440,15 @@ FILE* init_log(const std::string& str)
 
 const std::vector<int> group_sizes =
 {
-    10, 30, 50, 70
+    1, 10, 20, 40, 80
 };
 
+///7 in final
 const std::vector<float> protean =
 {
-    0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393
+    //0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393
+    ///PILOT
+    0.049, 0.098, 0.138, 0.278, 0.393
 };
 
 ///currently rand, parallel, perp
@@ -453,13 +456,15 @@ const std::vector<std::string> stripe_names =
 {
     //"../Res/tex_cube.obj",
     "../Res/tex_cube_2.obj",
-    "../Res/tex_cube_3.obj",
-    "../Res/tex_cube_2_low.obj",
-    "../Res/tex_cube_3_low.obj"
+    //"../Res/tex_cube_3.obj",
+    "../Res/tex_cube_2_low.obj"
+    //"../Res/tex_cube_3_low.obj"
 };
 
+///5 levels of angle for finale
 const std::vector<float> viewing_angles =
 {
+    ///PILOT
     45.f,
     30.f,
     20.f
@@ -644,7 +649,7 @@ int main(int argc, char *argv[])
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
-    //window.window.setVerticalSyncEnabled(true);
+    window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 
