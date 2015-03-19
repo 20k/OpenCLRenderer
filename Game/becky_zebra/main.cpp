@@ -452,6 +452,9 @@ const std::vector<float> protean =
 };
 
 ///currently rand, parallel, perp
+///want to have 5 levels of contrast for pilot
+///0.25, 0.5, 0.75, 0.875(?), 1
+
 const std::vector<std::string> stripe_names =
 {
     //"../Res/tex_cube.obj",
@@ -625,9 +628,7 @@ int main(int argc, char *argv[])
 
     simulation_info info;
 
-    objects_container* zebras;
-    zebras = nullptr;
-
+    objects_container* zebras = nullptr;
 
     objects_container base;
     base.set_file("../../objects/square.obj");
@@ -654,11 +655,6 @@ int main(int argc, char *argv[])
     obj_mem_manager::load_active_objects();
 
     ///no wait, scaling before loading means nothing. Need to make transform stack, or assert
-    //base.scale(20000.0f);
-
-    //base.set_pos({0, -200, 0});
-
-    //base.set_pos({});
 
     base.set_pos({(zebra::maxx - zebra::minx)/2, -200, (zebra::maxy - zebra::miny)/2});
 
@@ -733,7 +729,7 @@ int main(int argc, char *argv[])
     l.shadow = 0;
     l.radius = 1000000;
 
-    light* to_modify = window.add_light(&l);
+    window.add_light(&l);
 
     window.construct_shadowmaps();
 
@@ -746,11 +742,7 @@ int main(int argc, char *argv[])
     auto runs = generate_runs();
     int current_run = 0;
 
-    //FILE* logfile = init_log("results.txt");
-    //FILE* logfile_average = init_log("results_average.txt");
-
-
-    const float set_angle = 45;//(45/360.f) * M_PI*2;
+    const float set_angle = 45;
 
     cl_float4 cpos = angle_to_position(set_angle);
 
@@ -762,8 +754,6 @@ int main(int argc, char *argv[])
 
 
     info.simulation_time.restart();
-
-    //int striped = 0;
 
     int average_state = 0;
     float distance_accum = 0;
@@ -849,14 +839,8 @@ int main(int argc, char *argv[])
 
             if(!first_start)
             {
-                /*log(logfile_average, to_str(distance_accum / distance_num));
-                log(logfile_average, to_str(distance_total / distance_tot_num));
-
-                log(logfile_average, "\n\nNEXT\n", 0);*/
-
                 run_list[last_cfg].distance[run_list[last_cfg].current_time++] = distance_accum / distance_num;
                 run_list[last_cfg].distance[run_list[last_cfg].current_time++] = distance_total / distance_tot_num;
-                //run_list[last_cfg].avg = distance_total / distance_tot_num;
             }
 
             average_state = 0;
@@ -893,8 +877,6 @@ int main(int argc, char *argv[])
             window.set_camera_pos(c_pos);
             window.set_camera_rot(c_rot);
 
-            //window.set_camera_rot(viewing_angle);
-
             info.simulation_time.restart();
 
             current_run++;
@@ -903,44 +885,6 @@ int main(int argc, char *argv[])
         ///simulation start
         if(!info.running && mouse.isButtonPressed(sf::Mouse::Left))
         {
-            //log(logfile, "\n\nNEXT\n", 0);
-
-            //run_config this_cfg = runs[current_run-1];
-
-            /*log(logfile, "\ngroup_size\n", 0);
-            log(logfile, to_str(group_sizes[this_cfg.group_size]), 0);
-
-            log(logfile, "\nprotean\n", 0);
-            log(logfile, to_str(protean[this_cfg.protean_num]), 0);
-
-            log(logfile, "\nstripe_type\n", 0);
-            log(logfile, to_str(this_cfg.stripe_num), 0);
-
-            float viewing_angle = viewing_angles[this_cfg.viewing_num];
-
-            cl_float4 c_pos = angle_to_position(viewing_angle);
-            cl_float4 c_rot = angle_to_rotation(viewing_angle);
-
-            log(logfile, "\nviewing_angle\n", 0);
-
-            ///fix
-            log(logfile, to_str(c_rot.x), 0);
-            log(logfile, to_str(c_rot.y));
-            log(logfile, to_str(c_rot.z));
-
-
-            log(logfile, "\nviewing_position\n", 0);
-
-            ///fix
-            log(logfile, to_str(c_pos.x), 0);
-            log(logfile, to_str(c_pos.y));
-            log(logfile, to_str(c_pos.z));
-
-            log(logfile, "\nDATA\n", 0);*/
-
-
-
-
             info.running = true;
             info.clock_active = true;
 
@@ -1006,8 +950,6 @@ int main(int argc, char *argv[])
             int mx = window.get_mouse_x();
             int my = window.height - window.get_mouse_y();
 
-            //float distance = zebra::distance_from_zebra(info.selected_zebra, mx, my);
-
             cl_float4 zebra_screen = engine::project(zebra::zebra_objects[info.selected_zebra].obj->pos);
 
             float xd = mx - zebra_screen.x;
@@ -1020,18 +962,6 @@ int main(int argc, char *argv[])
 
             distance_total += distance;
             distance_tot_num++;
-
-            //printf("%f %i %i\n", distance, mx, my);
-
-            std::string dist(to_str(distance)), mxs(to_str(xd)), mys(to_str(yd));
-
-
-            /*log(logfile, dist, 0);
-            log(logfile, mxs);
-            log(logfile, mys);
-
-            log(logfile, to_str(c.getElapsedTime().asMicroseconds()));
-            log(logfile, "\n", 0);*/
         }
 
         ///log accumulated zebra times to file
@@ -1067,8 +997,6 @@ int main(int argc, char *argv[])
 
                 run_config this_cfg = runs[current_run-1];
 
-                //log(logfile_average, to_str(val));
-
                 time_storage store = run_list[this_cfg];
                 store.distance[store.current_time++] = val;
                 run_list[this_cfg] = store;
@@ -1084,6 +1012,4 @@ int main(int argc, char *argv[])
 
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
-
-    //fclose(logfile);
 }
