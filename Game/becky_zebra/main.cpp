@@ -457,11 +457,16 @@ const std::vector<float> protean =
 
 const std::vector<std::string> stripe_names =
 {
-    //"../Res/tex_cube.obj",
+    ///1.0
+    "../Res/tex_cube.obj",
+    ///0.8
     "../Res/tex_cube_2.obj",
-    //"../Res/tex_cube_3.obj",
-    "../Res/tex_cube_2_low.obj"
-    //"../Res/tex_cube_3_low.obj"
+    ///0.6
+    "../Res/tex_cube_3.obj",
+    ///0.4
+    "../Res/tex_cube_2_low.obj",
+    ///0.2
+    "../Res/tex_cube_3_low.obj"
 };
 
 ///5 levels of angle for finale
@@ -595,6 +600,11 @@ void save_all_runs()
     }
 }
 
+const float d2r(float angle)
+{
+    return (angle / 360.f) * M_PI * 2;
+}
+
 ///in degrees
 const cl_float4 angle_to_rotation(float angle)
 {
@@ -605,14 +615,14 @@ const cl_float4 angle_to_rotation(float angle)
     return crot;
 }
 
+const float height_distance = 9000.f;
+
 const cl_float4 angle_to_position(float angle)
 {
     angle = (angle / 360.f) * M_PI * 2;
 
-    const float distance = 9000.f;
-
-    float zpos = -distance * cos(angle);
-    float ypos = distance * sin(angle);
+    float zpos = -height_distance * cos(angle);
+    float ypos = height_distance * sin(angle);
     float xpos = (zebra::minx + zebra::maxx) / 2.f;
 
     cl_float4 cpos = (cl_float4){xpos, ypos, zpos};
@@ -650,7 +660,7 @@ int main(int argc, char *argv[])
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
-    window.window.setVerticalSyncEnabled(true);
+    //window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 
@@ -954,6 +964,20 @@ int main(int argc, char *argv[])
 
             float xd = mx - zebra_screen.x;
             float yd = my - zebra_screen.y;
+
+            run_config this_cfg = runs[current_run-1];
+
+            int angle_which = this_cfg.viewing_num;
+
+            float angle = viewing_angles[angle_which];
+
+            angle = d2r(angle);
+
+            float mod = height_distance * sin(angle);
+
+            float rat = height_distance / mod;
+
+            yd *= rat;
 
             float distance = sqrt(xd*xd + yd*yd);
 
