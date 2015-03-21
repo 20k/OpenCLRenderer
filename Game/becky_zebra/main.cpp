@@ -211,7 +211,8 @@ struct zebra
     {
         ///angle is in 2d plane
 
-        float new_standard = standard_deviation / 1.5;
+        ///REMOVED 1.5 !!!
+        float new_standard = standard_deviation;// / 1.5;
 
         constexpr float ideal_speed = 2.f;
 
@@ -654,7 +655,7 @@ int main(int argc, char *argv[])
 
     engine window;
 
-    window.load(1024,768,1000, "turtles", "../../cl2.cl");
+    window.load(1366,768,1000, "turtles", "../../cl2.cl");
 
     window.set_camera_pos((cl_float4){5000, 2157.87, -5103.68});
     window.c_rot.x = 0.24;
