@@ -1,5 +1,7 @@
 #include "cloud_gen.hpp"
 #include <math.h>
+#include "../point_cloud.hpp"
+#include "../vec.hpp"
 
 
 inline float noise_2d(int x, int y)
@@ -77,8 +79,128 @@ float noisemult_2d(int x, int y)
     //return noisemod(mx, my, mz, 0, 0.0383, 14.00);
 }
 
+///literally hitler
+float random_float()
+{
+    return (float)rand() / RAND_MAX;
+}
 
-compute::image2d get_nebula()
+point_cloud get_3d_nebula()
+{
+    const int num_points = 100;
+
+    point_cloud points;
+
+    for(int i=0; i<num_points; i++)
+    {
+        cl_float4 pos {random_float(), random_float(), random_float()};
+        cl_float4 col = {0, 0, 1};
+
+        const float spread = 200;
+
+        pos = mult(pos, spread);
+
+        points.position.push_back(pos);
+        points.rgb_colour.push_back(0x0000FF);
+    }
+
+    ///just use actual points for the moment
+
+    /*for(int i=0; i<num_points; i++)
+    {
+        cl_float4 pos = points.position[i];
+        cl_float4 col = points.position[i];
+    }*/
+
+    /*int width = 200;
+    int height = 200;
+
+    sf::Image img;
+    img.create(width, height);
+
+    for(int y=0; y<height; y++)
+    {
+        for(int x=0; x<width; x++)
+        {
+            cl_float4 col_avg = {0};
+
+            float max_distance = 30;
+
+            for(int k=0; k<num_points; k++)
+            {
+                float tx = points.position[k].x;
+                float ty = points.position[k].y;
+
+                float dx, dy;
+
+                dx = tx - x;
+                dy = ty - y;
+
+                float distance = sqrt(dx * dx + dy * dy);
+
+                float frac = distance / max_distance;
+
+                ///take 1 - frac, and clamp
+                frac = 1.f - clamp(frac, 0.f, 1.f);
+
+                ///temporary until i can be arsed to extract real ones
+                cl_float4 col = {0, 0, 1};
+
+                col_avg = add(col_avg, mult(col, frac));
+            }
+
+            col_avg = div(col_avg, num_points);
+
+            float scale = 10.f;
+
+            col_avg = mult(col_avg, scale);
+
+            col_avg = clamp(col_avg, 0.f, 1.f);
+
+
+            ///convert to sfml
+            col_avg = mult(col_avg, 255.f);
+
+            sf::Color col(col_avg.x, col_avg.y, col_avg.z);
+
+            img.setPixel(x, y, col);
+        }
+    }*/
+
+    return points;
+}
+
+point_cloud_info get_nebula()
+{
+    /*auto img = get_3d_nebula();
+
+    const sf::Uint8* ptr = img.getPixelsPtr();
+
+    compute::image_format format(CL_RGBA, CL_UNSIGNED_INT8);
+    ///screen ids as a uint32 texture
+    //compute::image2d nebula(cl::context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, format, img.getSize().x, img.getSize().y, 0, ptr);
+
+    cl_mem mem = clCreateImage2D(cl::context, CL_MEM_READ_WRITE, format.get_format_ptr(), img.getSize().x, img.getSize().y, 0, NULL, NULL);
+
+    size_t origin[] = {0,0,0};
+    size_t region[] = {img.getSize().x, img.getSize().y, 1};
+
+    clEnqueueWriteImage(cl::cqueue, mem, CL_TRUE, origin, region, 0, 0, ptr, 0, NULL, NULL);
+
+    return compute::buffer(mem);*/
+
+    //compute::buffer()
+
+    point_cloud pcloud = get_3d_nebula();
+
+    point_cloud_info info;
+    info = point_cloud_manager::alloc_point_cloud(pcloud);
+
+    return info;
+}
+
+
+compute::image2d get_nebula_old()
 {
     int radius = 200;
 
@@ -109,7 +231,7 @@ compute::image2d get_nebula()
             pixel.z = val;
             pixel.w = 1;
 
-            //debugging.setPixel(i, j, sf::Color(val, val, val));
+            //debugging.setPixel(i, j, sf::Color(val*255, val*255, val*255));
         }
     }
 

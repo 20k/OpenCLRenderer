@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 
         window.draw_fancy_projectiles(projectile_image, projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
 
-        //window.draw_space_nebulae(cloud_buf);
+        window.draw_space_nebulae(cloud_buf);
 
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
 
@@ -535,7 +535,7 @@ int main(int argc, char *argv[])
             t_weps.colours.push_back(col);
         }
 
-        int rect_id = -1;//interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
+        /*int rect_id = -1;//interact::get_mouse_collision_rect(mouse.getPosition(window.window).x, mouse.getPosition(window.window).y);
 
         int identifier = -1;// interact::get_identifier_from_rect(rect_id);
 
@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
             ship.remove_targets_from_weapon_group(weapon_group_selected);
 
             ship.add_target(game_object_manager::object_list[identifier], weapon_group_selected);
-        }
+        }*/
 
         t_weps.set_pos(10, 40);
         //t_weps.set_pos(selectx, selecty);
@@ -576,7 +576,7 @@ int main(int argc, char *argv[])
 
         text_handler::queue_text_block(shield_status);
 
-        //interact::clear(); //interact is probably slow
+        //interact is probably slow
         window.ui_interaction();
 
         window.render_buffers();

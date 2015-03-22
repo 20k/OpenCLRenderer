@@ -4161,10 +4161,10 @@ float3 get_colour(float val)
 
 }*/
 
-__kernel void space_nebulae(float4 c_pos, float4 c_rot, __read_only image2d_t nebula, __global uint* depth_buffer, __write_only image2d_t screen)
+__kernel void space_nebulae_old(float4 c_pos, float4 c_rot, __read_only image2d_t nebula, __global uint* depth_buffer, __write_only image2d_t screen)
 {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
 
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
@@ -4173,12 +4173,13 @@ __kernel void space_nebulae(float4 c_pos, float4 c_rot, __read_only image2d_t ne
     float fy = y;
     float fz = FOV_CONST;
 
-    sampler_t sam = CLK_NORMALIZED_COORDS_TRUE |
-                    CLK_ADDRESS_REPEAT   |
-                    CLK_FILTER_LINEAR;
+    ///code below is using normalised coords
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE   |
+                    CLK_FILTER_NEAREST;
 
 
-    float3 local_position= {((fx - SCREENWIDTH/2.0f)*fz/FOV_CONST), ((fy - SCREENHEIGHT/2.0f)*fz/FOV_CONST), fz};
+    /*float3 local_position= {((fx - SCREENWIDTH/2.0f)*fz/FOV_CONST), ((fy - SCREENHEIGHT/2.0f)*fz/FOV_CONST), fz};
 
     ///backrotate pixel coordinate into globalspace
     float3 global_position = rot(local_position,  0, (float3)
@@ -4251,16 +4252,84 @@ __kernel void space_nebulae(float4 c_pos, float4 c_rot, __read_only image2d_t ne
     //if(x == 0 && y == 0)
     //    printf("%f %f %f\n", global_position.x, global_position.y, global_position.z);
 
-    //remember texture width is not the same as screenwidth
+    //remember texture width is not the same as screenwidth*/
 
-    if(depth_buffer[y*SCREENWIDTH + x] == -1)
+    //if(depth_buffer[y*SCREENWIDTH + x] == -1)
     {
         //write_imagef(screen, (int2){x, y}, (float4)(col, 1.0f));
 
         //depth_buffer[y*SCREENWIDTH + x] = mulint - 1;
 
-        write_imagef(screen, (int2){x, y}, read_imagef(nebula, sam, (float2){px, py}));
+        uint4 val = read_imageui(nebula, sam, (int2){x, y} + 0.5f);
+
+        write_imagef(screen, (int2){x, y}, convert_float4(val)/255);//(float2){px, py}));
     }
+}
+__kernel
+void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __global int* num, __global uint* depth_buffer, __write_only image2d_t screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+
+    float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
+
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(spos, 0, c_rot.xyz);
+
+    float3 ray_dir = global_position;
+
+    float3 ray_origin = c_pos.xyz;
+
+
+
+    float4 col_avg = {0, 0, 0, 0};
+
+    float max_distance = 30;
+
+    for(int k=0; k<*num; k++)
+    {
+        float tx = positions[k].x;
+        float ty = positions[k].y;
+
+        float dx, dy;
+
+        dx = tx - x;
+        dy = ty - y;
+
+        float distance = sqrt(dx * dx + dy * dy);
+
+        float frac = distance / max_distance;
+
+        ///take 1 - frac, and clamp
+        frac = 1.f - clamp(frac, 0.f, 1.f);
+
+        ///temporary until i can be arsed to extract real ones
+        float4 col = {0, 0, 1, 0};
+
+        //col_avg = add(col_avg, mult(col, frac));
+
+        col_avg = col_avg + col * frac;
+    }
+
+    col_avg = col_avg / *num;
+
+    float scale = 10.f;
+
+    col_avg = col_avg * scale;
+
+    col_avg = clamp(col_avg, 0.f, 1.f);
+
+
+    ///convert to sfml
+    col_avg = col_avg;
+
+    write_imagef(screen, (int2){x, y}, col_avg);
+
 }
 
 ///swap this for sfml parallel rendering?
