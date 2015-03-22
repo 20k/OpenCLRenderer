@@ -356,7 +356,8 @@ int main(int argc, char *argv[])
 
 
         ///make nebula blend things which are too far away?
-        window.draw_space_nebulae(cloud_buf);
+        ///make this use game_cam instead of c_pos
+        window.draw_space_nebulae(cloud_buf, g_game_cam);
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 

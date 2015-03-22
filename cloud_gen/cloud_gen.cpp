@@ -96,7 +96,7 @@ point_cloud get_3d_nebula()
         cl_float4 pos {random_float() - 0.5f, random_float() - 0.5f, random_float() - 0.5f};
         //cl_float4 col = {0, 0, 1};
 
-        const float spread = 200000;
+        const float spread = 200;
 
 
         uint32_t r = 0, g = 0, b = 0;

@@ -998,10 +998,10 @@ void engine::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffer& offs
 }
 
 ///16x16?
-void engine::draw_space_nebulae(point_cloud_info& info)
+void engine::draw_space_nebulae(point_cloud_info& info, compute::buffer& g_pos)
 {
     arg_list nebulae_arg_list;
-    nebulae_arg_list.push_back(&c_pos);
+    nebulae_arg_list.push_back(&g_pos);
     nebulae_arg_list.push_back(&c_rot);
     nebulae_arg_list.push_back(&info.g_points_mem);
     nebulae_arg_list.push_back(&info.g_colour_mem);

@@ -55,6 +55,7 @@
 			<Add option="-std=gnu++11" />
 			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 			<Add option="-DGLEW_BUILD" />
+			<Add option="-DRIFT" />
 		</Compiler>
 		<Linker>
 			<Add option="-lport" />

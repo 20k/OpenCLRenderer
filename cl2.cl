@@ -4310,7 +4310,7 @@ float distance_point_line(float3 o, float3 r, float3 p)
 
 ///nebula needs to be infront of stars
 __kernel
-void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __global uint* cols, __global int* num, __global uint* depth_buffer, __read_only image2d_t screen_in, __write_only image2d_t screen)
+void space_nebulae(__global float4* g_pos, float4 c_rot, __global float4* positions, __global uint* cols, __global int* num, __global uint* depth_buffer, __read_only image2d_t screen_in, __write_only image2d_t screen)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -4331,13 +4331,13 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
 
     float3 ray_dir = global_position;
 
-    float3 ray_origin = c_pos.xyz;
+    float3 ray_origin = (*g_pos).xyz;
 
 
 
     float4 col_avg = {0, 0, 0, 0};
 
-    float max_distance = 40000;
+    float max_distance = 40;
 
     for(int k=0; k<*num; k++)
     {
@@ -4358,7 +4358,7 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
 
         f2 = 1.f - clamp(f2, 0.f, 1.f);
 
-        col_avg = col_avg + (col * frac + col * f2) * 0.05f;
+        col_avg = col_avg + (col * frac + col * f2) * 0.1f;
     }
 
     col_avg = col_avg / *num;
