@@ -938,6 +938,7 @@ void engine::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     p1arg_list.push_back(&pc.g_colour_mem);
     p1arg_list.push_back(&g_cam);
     p1arg_list.push_back(&c_rot);
+    p1arg_list.push_back(&g_screen); ///read/write hack
     p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&depth_buffer[nbuf]);
     p1arg_list.push_back(&g_distortion_buffer);
@@ -962,6 +963,7 @@ void engine::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)
     p1arg_list.push_back(&g_cam);
     p1arg_list.push_back(&c_pos);
     p1arg_list.push_back(&c_rot);
+    p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&g_screen);
     p1arg_list.push_back(&depth_buffer[nbuf]);
     p1arg_list.push_back(&g_distortion_buffer);
@@ -1002,8 +1004,10 @@ void engine::draw_space_nebulae(point_cloud_info& info)
     nebulae_arg_list.push_back(&c_pos);
     nebulae_arg_list.push_back(&c_rot);
     nebulae_arg_list.push_back(&info.g_points_mem);
+    nebulae_arg_list.push_back(&info.g_colour_mem);
     nebulae_arg_list.push_back(&info.g_len);
     nebulae_arg_list.push_back(&depth_buffer[nbuf]);
+    nebulae_arg_list.push_back(&g_screen);
     nebulae_arg_list.push_back(&g_screen);
 
 

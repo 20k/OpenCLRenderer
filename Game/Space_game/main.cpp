@@ -351,22 +351,24 @@ int main(int argc, char *argv[])
 
         ///vertex shader, basically, but applies to other things too
         window.generate_distortion(projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
+
         window.draw_bulk_objs_n();
 
+
+        ///make nebula blend things which are too far away?
+        window.draw_space_nebulae(cloud_buf);
+
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
+
 
         sf::Clock h_time;
         window.draw_holograms();
         //std::cout << "H: " << h_time.getElapsedTime().asMicroseconds() << std::endl;
 
 
-
         window.draw_fancy_projectiles(projectile_image, projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
 
-        window.draw_space_nebulae(cloud_buf);
-
         window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
-
 
 
 

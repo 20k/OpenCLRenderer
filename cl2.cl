@@ -3789,7 +3789,7 @@ __kernel void reproject_screen(__global uint* depth, float4 old_pos, float4 old_
 
 //Renders a point cloud which renders correct wrt the depth buffer
 ///make a half resolution depth map, then expand?
-__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer,
+__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __read_only image2d_t screen_in, __write_only image2d_t screen, __global uint* depth_buffer,
                                      __global float2* distortion_buffer)
 {
     uint pid = get_global_id(0);
@@ -3851,7 +3851,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     atomic_min(depth_pointer4, idepth);
 }
 
-__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer,
+__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __read_only image2d_t screen_in, __write_only image2d_t screen, __global uint* depth_buffer,
                                         __global float2* distortion_buffer)
 {
     uint pid = get_global_id(0);
@@ -3910,31 +3910,61 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     relative_brightness = clamp(relative_brightness, 0.1f, 1.0f);
 
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE     |
+                    CLK_FILTER_NEAREST;
+
+
+    float4 blend_col = read_imagef(screen_in, sam, (int2){x, y});
+
+    float w1 = 1/6.f;
+    float w2 = 1.0f - w1;
+
+
+    float4 final_col = rgba * relative_brightness;
+
+    final_col -= length(blend_col) * 2;
+
+    final_col = clamp(final_col, 0.f, 1.f);
+
+
+    float4 lower_val = final_col * w1 + blend_col * w2;
+
+    lower_val = max(lower_val, blend_col);
+
+    //final_col += blend_col * 2;
+
     bool main = false;
     if(idepth == *depth_pointer)
     {
-        write_imagef(screen, (int2){x, y}, rgba*relative_brightness);
+        write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
         main = true;
     }
     if(main && idepth == *depth_pointer1)
-        write_imagef(screen, (int2){x, y+1}, rgba*relative_brightness/6.0f);
+        write_imagef(screen, (int2){x, y+1}, lower_val);
     if(main && idepth == *depth_pointer2)
-        write_imagef(screen, (int2){x, y-1}, rgba*relative_brightness/6.0f);
+        write_imagef(screen, (int2){x, y-1}, lower_val);
     if(main && idepth == *depth_pointer3)
-        write_imagef(screen, (int2){x+1, y}, rgba*relative_brightness/6.0f);
+        write_imagef(screen, (int2){x+1, y}, lower_val);
     if(main && idepth == *depth_pointer4)
-        write_imagef(screen, (int2){x-1, y}, rgba*relative_brightness/6.0f);
+        write_imagef(screen, (int2){x-1, y}, lower_val);
 }
 
 ///nearly identical to point cloud, but space dust instead
-__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, float4 c_pos, float4 c_rot, __write_only image2d_t screen, __global uint* depth_buffer,
+__kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, float4 c_pos, float4 c_rot, __read_only image2d_t screen_in, __write_only image2d_t screen, __global uint* depth_buffer,
                          __global float2* distortion_buffer)
 {
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_FILTER_NEAREST;
+
+
     const int max_distance = 10000;
 
     uint pid = get_global_id(0);
 
-    if(pid > *num)
+    if(pid >= *num)
         return;
 
     float3 position = positions[pid].xyz;
@@ -4033,9 +4063,11 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
         relative_brightness = clamp(relative_brightness, 0.0f, 1.0f);
 
 
+        float4 original_val = read_imagef(screen_in, sam, (int2){x, y});
+
         int2 scoord = {x, y};
 
-        write_imagef(screen, scoord, rgba*relative_brightness);
+        write_imagef(screen, scoord, clamp(rgba*relative_brightness + original_val, 0.f, 1.f));
     }
 }
 
@@ -4265,13 +4297,29 @@ __kernel void space_nebulae_old(float4 c_pos, float4 c_rot, __read_only image2d_
         write_imagef(screen, (int2){x, y}, convert_float4(val)/255);//(float2){px, py}));
     }
 }
+
+float distance_point_line(float3 o, float3 r, float3 p)
+{
+    float3 x2 = o + r;
+    float3 x1 = o;
+
+    return length(cross(p - x1, p - x2)) / length(x2 - x1);
+
+    //return length( (o - p) - dot((o - p), r) * r );
+}
+
+///nebula needs to be infront of stars
 __kernel
-void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __global int* num, __global uint* depth_buffer, __write_only image2d_t screen)
+void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __global uint* cols, __global int* num, __global uint* depth_buffer, __read_only image2d_t screen_in, __write_only image2d_t screen)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
 
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+
+    if(depth_buffer[y*SCREENWIDTH + x] != -1)
         return;
 
 
@@ -4289,19 +4337,11 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
 
     float4 col_avg = {0, 0, 0, 0};
 
-    float max_distance = 30;
+    float max_distance = 30000;
 
     for(int k=0; k<*num; k++)
     {
-        float tx = positions[k].x;
-        float ty = positions[k].y;
-
-        float dx, dy;
-
-        dx = tx - x;
-        dy = ty - y;
-
-        float distance = sqrt(dx * dx + dy * dy);
+        float distance = distance_point_line(ray_origin, ray_dir, positions[k].xyz);
 
         float frac = distance / max_distance;
 
@@ -4309,7 +4349,8 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
         frac = 1.f - clamp(frac, 0.f, 1.f);
 
         ///temporary until i can be arsed to extract real ones
-        float4 col = {0, 0, 1, 0};
+        float4 col = {(cols[k] >> 16) & 0xFF, (cols[k] >> 8) & 0xFF, (cols[k] & 0xFF), 0};// / 255.f;
+        col /= 255.f;
 
         //col_avg = add(col_avg, mult(col, frac));
 
@@ -4324,12 +4365,15 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
 
     col_avg = clamp(col_avg, 0.f, 1.f);
 
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                CLK_ADDRESS_NONE   |
+                CLK_FILTER_NEAREST;
 
-    ///convert to sfml
-    col_avg = col_avg;
 
-    write_imagef(screen, (int2){x, y}, col_avg);
 
+    float4 blend = read_imagef(screen_in, sam, (int2){x, y});
+
+    write_imagef(screen, (int2){x, y}, clamp(col_avg + blend, 0.f, 1.f));
 }
 
 ///swap this for sfml parallel rendering?

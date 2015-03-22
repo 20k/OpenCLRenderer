@@ -93,15 +93,27 @@ point_cloud get_3d_nebula()
 
     for(int i=0; i<num_points; i++)
     {
-        cl_float4 pos {random_float(), random_float(), random_float()};
-        cl_float4 col = {0, 0, 1};
+        cl_float4 pos {random_float() - 0.5f, random_float() - 0.5f, random_float() - 0.5f};
+        //cl_float4 col = {0, 0, 1};
 
-        const float spread = 200;
+        const float spread = 200000;
+
+
+        uint32_t r, g, b;
+
+        r = random_float() * 255.f;
+        g = random_float() * 255.f;
+        b = random_float() * 255.f;
+
+
+        uint32_t col = r | g << 8 | b << 16;
+
+
 
         pos = mult(pos, spread);
 
         points.position.push_back(pos);
-        points.rgb_colour.push_back(0x0000FF);
+        points.rgb_colour.push_back(col);
     }
 
     ///just use actual points for the moment
