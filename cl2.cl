@@ -4358,7 +4358,7 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
 
         f2 = 1.f - clamp(f2, 0.f, 1.f);
 
-        col_avg = col_avg + (col * frac + col * f2) * 0.15f;
+        col_avg = col_avg + (col * frac + col * f2) * 0.05f;
     }
 
     col_avg = col_avg / *num;
