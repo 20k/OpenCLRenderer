@@ -99,10 +99,10 @@ point_cloud get_3d_nebula()
         const float spread = 200000;
 
 
-        uint32_t r, g, b;
+        uint32_t r = 0, g = 0, b = 0;
 
         r = random_float() * 255.f;
-        g = random_float() * 255.f;
+        //g = random_float() * 255.f;
         b = random_float() * 255.f;
 
 

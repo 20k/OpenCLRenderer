@@ -4337,7 +4337,7 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
 
     float4 col_avg = {0, 0, 0, 0};
 
-    float max_distance = 30000;
+    float max_distance = 40000;
 
     for(int k=0; k<*num; k++)
     {
@@ -4346,15 +4346,19 @@ void space_nebulae(float4 c_pos, float4 c_rot, __global float4* positions, __glo
         float frac = distance / max_distance;
 
         ///take 1 - frac, and clamp
-        frac = 1.f - clamp(frac, 0.f, 1.f);
+        frac = 1.f - clamp(frac, 0.f, 0.7f);
+
+        frac *= frac;
 
         ///temporary until i can be arsed to extract real ones
         float4 col = {(cols[k] >> 16) & 0xFF, (cols[k] >> 8) & 0xFF, (cols[k] & 0xFF), 0};// / 255.f;
         col /= 255.f;
 
-        //col_avg = add(col_avg, mult(col, frac));
+        float f2 = distance / (max_distance * 2);
 
-        col_avg = col_avg + col * frac;
+        f2 = 1.f - clamp(f2, 0.f, 1.f);
+
+        col_avg = col_avg + (col * frac + col * f2) * 0.15f;
     }
 
     col_avg = col_avg / *num;
