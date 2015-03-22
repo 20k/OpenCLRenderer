@@ -8155,7 +8155,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     float len = fast_length(vel);
 
     ///squared maybe not best
-    float3 vval = vel + 0.5f*10*len*wval/5.0f;
+    float3 vval = vel + 0.5f*10*len*wval/5.f;
 
 
 
@@ -8184,6 +8184,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
+    ///this disables upscaling
     val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
 
     return val;

@@ -113,8 +113,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     render_size = _render_size;
 
     cl_float4 zero = {0};
-    //g_pos = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
-    //g_rot = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     pos = zero;
     rot = zero;
@@ -127,10 +125,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     compute::image_format format(CL_R, CL_FLOAT);
 
-    //output = engine::gen_cl_gl_framebuffer_renderbuffer(&id, engine::width, engine::height);
-
-
-
     for(int i=0; i<2; i++)
     {
         //g_voxel[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
@@ -140,33 +134,22 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         g_velocity_x[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
         g_velocity_y[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
         g_velocity_z[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
-        //g_velocity_x[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
-        //g_velocity_y[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
-        //g_velocity_z[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
 
-        //cl_float* buf = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
+        if(i == 1)
+            continue;
 
         size_t origin[3] = {0,0,0};
         size_t region[3] = {width, height, depth};
 
         //cl_float* buf = (cl_float*) clEnqueueMapImage(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MEM_WRITE, origin, region, &image_row_pitch, &image_slice, 0, NULL, NULL, NULL);
-        cl_float* buf = new cl_float[width*height*depth];
-        cl_float* buf1 = new cl_float[width*height*depth];
-        cl_float* buf2 = new cl_float[width*height*depth];
-        cl_float* buf3 = new cl_float[width*height*depth];
+        cl_float* buf = new cl_float[width*height*depth]();
+        cl_float* buf1 = new cl_float[width*height*depth]();
+        cl_float* buf2 = new cl_float[width*height*depth]();
+        cl_float* buf3 = new cl_float[width*height*depth]();
 
         //cl_float* buf1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_x[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
         //cl_float* buf2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_y[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
         //cl_float* buf3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-
-        ///not sure how this pans out for stalling
-        for(unsigned int i = 0; i<width*height*depth; i++)
-        {
-            buf[i] = 0.0f;
-            buf1[i] = 0.0f;
-            buf2[i] = 0.0f;
-            buf3[i] = 0.0f;
-        }
 
         ///init some stuff in the centre of the array
         for(int i=-5; i<=5; i++)
@@ -188,11 +171,11 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
                 if(lpos >= width*height*depth)
                     continue;
 
-                buf1[lpos] = 10 + ((rand() % 5) - 2);
+                //buf1[lpos] = 10 + ((rand() % 5) - 2);
                 buf[lpos] = 1000.0f;
                 //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
 
-                buf2[lpos] = (rand() % 50) - 10;
+                buf2[lpos] = (rand() % 20) - 10;
             }
         }
 
@@ -236,7 +219,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     cl_float* bw2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w2.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*uwidth*uheight*udepth, 0, NULL, NULL, NULL);
     cl_float* bw3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_w3.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*uwidth*uheight*udepth, 0, NULL, NULL, NULL);
 
-    //for(unsigned int i = 0; i<width*height*depth; i++)
     for(int z=0; z<udepth; z++)
         for(int y=0; y<uheight; y++)
             for(int x=0; x<uwidth; x++)
@@ -366,4 +348,9 @@ void smoke::tick(float dt)
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
     //n_dens = next_dens;
+}
+
+void smoke::displace(cl_float4 loc, cl_float4 amount)
+{
+
 }
