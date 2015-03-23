@@ -12,7 +12,7 @@
 	<utility>
 	<map>
 
-1426728993 source:c:\users\james\desktop\openclrenderer\engine.cpp
+1427034631 source:c:\users\james\desktop\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -38,7 +38,7 @@
 	"Rift/Src/OVR_CAPI.h"
 	"Rift/Src/OVR_Stereo.h"
 
-1426728993 c:\users\james\desktop\openclrenderer\engine.hpp
+1427034614 c:\users\james\desktop\openclrenderer\engine.hpp
 	<SFML/graphics.hpp>
 	"object.hpp"
 	<vector>
@@ -90,7 +90,7 @@
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 
-1426724027 c:\users\james\desktop\openclrenderer\smoke.hpp
+1426986332 c:\users\james\desktop\openclrenderer\smoke.hpp
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 	<boost/compute/algorithm/iota.hpp>
@@ -559,7 +559,7 @@
 1420032596 c:\users\james\desktop\openclrenderer\projectile_buffer_gen.hpp
 	"proj.hpp"
 
-1426985927 source:c:\users\james\desktop\openclrenderer\smoke.cpp
+1426986336 source:c:\users\james\desktop\openclrenderer\smoke.cpp
 	"smoke.hpp"
 	"clstate.h"
 	"engine.hpp"
