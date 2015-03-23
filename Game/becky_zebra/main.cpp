@@ -447,9 +447,9 @@ const std::vector<int> group_sizes =
 ///7 in final
 const std::vector<float> protean =
 {
-    //0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393
+    0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393
     ///PILOT
-    0.049, 0.098, 0.138, 0.278, 0.393
+    //0.049, 0.098, 0.138, 0.278, 0.393
 };
 
 ///currently rand, parallel, perp
@@ -458,7 +458,7 @@ const std::vector<float> protean =
 
 const std::vector<std::string> stripe_names =
 {
-    ///1.0
+    /*///1.0
     "../Res/tex_cube.obj",
     ///0.8
     "../Res/tex_cube_2.obj",
@@ -467,6 +467,10 @@ const std::vector<std::string> stripe_names =
     ///0.4
     "../Res/tex_cube_2_low.obj",
     ///0.2
+    "../Res/tex_cube_3_low.obj"*/
+    ///1.0
+    "../Res/tex_cube.obj",
+    ///0.25
     "../Res/tex_cube_3_low.obj"
 };
 
@@ -474,9 +478,11 @@ const std::vector<std::string> stripe_names =
 const std::vector<float> viewing_angles =
 {
     ///PILOT
-    45.f,
-    30.f,
-    20.f
+    90,
+    72.5,
+    55,
+    37.5,
+    20
 };
 
 struct run_config

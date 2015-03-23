@@ -357,6 +357,9 @@ int main(int argc, char *argv[])
 
         ///make nebula blend things which are too far away?
         ///make this use game_cam instead of c_pos
+        ///space nebula blends with background, but what I want to do is
+        ///only stars behind blend, stars in front don't
+        ///Maybe we need a galaxy blend buffer?
         window.draw_space_nebulae(cloud_buf, g_game_cam);
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);

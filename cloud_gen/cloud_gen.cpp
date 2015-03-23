@@ -94,10 +94,8 @@ point_cloud get_3d_nebula()
     for(int i=0; i<num_points; i++)
     {
         cl_float4 pos {random_float() - 0.5f, random_float() - 0.5f, random_float() - 0.5f};
-        //cl_float4 col = {0, 0, 1};
 
         const float spread = 200;
-
 
         uint32_t r = 0, g = 0, b = 0;
 
@@ -107,7 +105,6 @@ point_cloud get_3d_nebula()
 
 
         uint32_t col = r | g << 8 | b << 16;
-
 
 
         pos = mult(pos, spread);

@@ -11,7 +11,7 @@
 ///rift head movement is wrong
 
 
-
+///gamma correct mipmap filtering
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!

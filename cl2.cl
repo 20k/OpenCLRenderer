@@ -2858,7 +2858,11 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
-    write_imagef(screen, scoord, (float4)(colclamp*diffuse_sum, 0.0f));
+    float3 final_col = colclamp * diffuse_sum;
+
+    //final_col = pow(final_col, 2.2f);
+
+    write_imagef(screen, scoord, final_col.xyzz);
 
 
     ///debugging
@@ -4303,6 +4307,11 @@ float distance_point_line(float3 o, float3 r, float3 p)
     float3 x2 = o + r;
     float3 x1 = o;
 
+    /*float side = signbit((x2.x - x1.x) * (p.y - x1.y) - (x2.y - x1.y) * (p.x - x1.x));
+
+    if(side > 0)
+        return 999999999;*/
+
     return length(cross(p - x1, p - x2)) / length(x2 - x1);
 
     //return length( (o - p) - dot((o - p), r) * r );
@@ -4339,6 +4348,7 @@ void space_nebulae(__global float4* g_pos, float4 c_rot, __global float4* positi
 
     float max_distance = 40;
 
+    ///cant do in screenspace due to warping?
     for(int k=0; k<*num; k++)
     {
         float distance = distance_point_line(ray_origin, ray_dir, positions[k].xyz);
@@ -4351,7 +4361,7 @@ void space_nebulae(__global float4* g_pos, float4 c_rot, __global float4* positi
         frac *= frac;
 
         ///temporary until i can be arsed to extract real ones
-        float4 col = {(cols[k] >> 16) & 0xFF, (cols[k] >> 8) & 0xFF, (cols[k] & 0xFF), 0};// / 255.f;
+        float4 col = {(cols[k] >> 16) & 0xFF, (cols[k] >> 8) & 0xFF, (cols[k] & 0xFF), 0};
         col /= 255.f;
 
         float f2 = distance / (max_distance * 2);
