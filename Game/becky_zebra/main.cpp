@@ -147,20 +147,20 @@ struct zebra
 
             if(p1.x < minx + edge_padding)
             {
-                v1.x = fabs(v1.x);
+                v1.x = fabs(v1.x) + 1.f;
             }
             if(p1.x >= maxx - edge_padding)
             {
-                v1.x = -fabs(v1.x);
+                v1.x = -fabs(v1.x) - 1.f;
             }
 
             if(p1.z < miny + edge_padding)
             {
-                v1.y = fabs(v1.y);
+                v1.y = fabs(v1.y) + 1.f;
             }
             if(p1.z >= maxy - edge_padding)
             {
-                v1.y = -fabs(v1.y);
+                v1.y = -fabs(v1.y) - 1.f;
             }
 
             zebra_objects[i].vx = v1.x;
@@ -477,7 +477,6 @@ const std::vector<std::string> stripe_names =
 ///5 levels of angle for finale
 const std::vector<float> viewing_angles =
 {
-    ///PILOT
     90,
     72.5,
     55,
@@ -661,7 +660,7 @@ int main(int argc, char *argv[])
 
     engine window;
 
-    window.load(1366,768,1000, "turtles", "../../cl2.cl");
+    window.load(1024,768,1000, "turtles", "../../cl2.cl");
 
     window.set_camera_pos((cl_float4){5000, 2157.87, -5103.68});
     window.c_rot.x = 0.24;
