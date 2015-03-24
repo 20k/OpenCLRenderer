@@ -30,6 +30,12 @@ bool in_bound(int x, int y)
     return true;
 }
 
+struct star_info
+{
+    cl_float4 pos;
+    int type;
+};
+
 
 void different_scatter(int x, int y, int** vals, float dist, int n, float dist_factor)
 {
