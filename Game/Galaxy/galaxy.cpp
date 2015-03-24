@@ -60,14 +60,44 @@ void different_scatter(int x, int y, vector<star_info>& vals, float dist, int n,
     }
 }
 
-void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, bool is_random_z = false)
+void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, bool is_random_z = false, int type = 1)
+{
+    for(int i=0; i<num; i++)
+    {
+        float rad = 0.4f + ((float)rand() / RAND_MAX);
+
+        rad*=rad*rad;
+        rad*=RADIUS*mult_fact;
+
+        float angle = (float)rand() / RAND_MAX;
+
+        angle *= M_PI*2;
+
+        float px = rad*cos(angle);
+        float py = rad*sin(angle);
+
+        px += MAP_RESOLUTION/2.0f;
+        py += MAP_RESOLUTION/2.0f;
+
+        if(is_random_z)
+            type = 3;
+
+        //if(in_bound(px, py))
+        //    vals[(int)py][(int)px] = type;
+
+        vals.push_back({px, py, type});
+
+    }
+}
+
+void random_points(vector<star_info>& vals, int num, float mult_fact, bool is_random_z = false)
 {
     for(int i=0; i<num; i++)
     {
         float rad = (float)rand() / RAND_MAX;
 
-        rad*=rad*rad;
-        rad*=RADIUS*mult_fact;
+        rad *= RADIUS;
+        rad *= mult_fact;
 
         float angle = (float)rand() / RAND_MAX;
 
@@ -92,35 +122,10 @@ void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, 
     }
 }
 
-int** shitty_alloc()
-{
-    int** vals = new int*[MAP_RESOLUTION];
-    for(int i=0; i<MAP_RESOLUTION; i++)
-    {
-        vals[i] = new int[MAP_RESOLUTION];
-        for(int j=0; j<MAP_RESOLUTION; j++)
-            vals[i][j] = 0;
-    }
-
-    return vals;
-}
-
-void shitty_dealloc(int** val)
-{
-    for(int i=0; i<MAP_RESOLUTION; i++)
-        delete [] val[i];
-    delete [] val;
-}
 
 ///remove all references to the map
 vector<star_info> standard_scatter()
 {
-
-    //int** vals = shitty_alloc();
-    //int** nvals = shitty_alloc();
-
-    //int** walk_dots = shitty_alloc();
-
     vector<star_info> vals;
 
     ///scatter regular
@@ -138,8 +143,6 @@ vector<star_info> standard_scatter()
         nx += MAP_RESOLUTION/2.0f;
         ny += MAP_RESOLUTION/2.0f;
 
-        //cout << x << " " << y << " " << val << endl;
-
         if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
         if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
@@ -153,7 +156,7 @@ vector<star_info> standard_scatter()
     }
 
     ///scatter old stars
-    for(float i=0; i<2.0*M_PI; i+=0.02)
+    for(float i=0; i<2.0*M_PI; i+=0.01)
     {
         float val = func(i);
 
@@ -166,8 +169,6 @@ vector<star_info> standard_scatter()
         y += MAP_RESOLUTION/2.0f;
         nx += MAP_RESOLUTION/2.0f;
         ny += MAP_RESOLUTION/2.0f;
-
-        //cout << x << " " << y << " " << val << endl;
 
         if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
@@ -197,8 +198,6 @@ vector<star_info> standard_scatter()
         nx += MAP_RESOLUTION/2.0f;
         ny += MAP_RESOLUTION/2.0f;
 
-        //cout << x << " " << y << " " << val << endl;
-
         if(x < 0 || x >= MAP_RESOLUTION || y < 0 || y >= MAP_RESOLUTION)
             continue;
         if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
@@ -213,31 +212,18 @@ vector<star_info> standard_scatter()
 
     int mult_factor = 4;
 
-    random_points_less_edge(vals, 400 * mult_factor, 2.5, true);
+    //random_points_less_edge(vals, 400 * mult_factor, 2.5, true);
+    random_points(vals, 800 * mult_factor, 2.5, true);
+    random_points(vals, 800 * mult_factor, 1.5, true);
+    random_points(vals, 800 * mult_factor, 0.5, true);
     random_points_less_edge(vals, 400 * mult_factor, 2.5);
     random_points_less_edge(vals, 2000 * mult_factor, 1.5);
-    random_points_less_edge(vals, 1000 * mult_factor, 1.75, true);
-    random_points_less_edge(vals, 2000 * mult_factor, 1.5, true);
-    random_points_less_edge(vals, 5000 * mult_factor * 10, 0.15);
+    random_points_less_edge(vals, 1000 * mult_factor, 1.75);
+    random_points_less_edge(vals, 2000 * mult_factor, 1.5);
+    random_points_less_edge(vals, 5000 * mult_factor, 0.15);
     random_points_less_edge(vals, 5000 * mult_factor, 0.35);
     random_points_less_edge(vals, 2000 * mult_factor, 0.45);
-
-    //smooth(vals, nvals, 100);
-
-    float max_val = 1000.0f/255.0f;
-
-   /* for(int y=0; y<MAP_RESOLUTION; y++)
-    {
-        for(int x=0; x<MAP_RESOLUTION; x++)
-        {
-            if(walk_dots[y][x] == 1)
-                vals[y][x] = 2;
-
-        }
-    }*/
-
-    //shitty_dealloc(nvals);
-    //shitty_dealloc(walk_dots);
+    random_points_less_edge(vals, 500 * mult_factor, 0.45, false, 2);
 
     return vals;
 }
@@ -257,7 +243,7 @@ point_cloud construct_starmap(vector<star_info>& vals)
     vector<cl_float4> positions;
     vector<cl_uint> colours;
 
-    const float bluepercent = 0.4;
+    const float bluepercent = 0.6;
 
     const float bluemod = 0.9;
     const float yellowmod = 0.8;
@@ -446,7 +432,7 @@ int main()
             float x, y;
 
             x = pos.x + 400;
-            y = pos.z + 300;
+            y = pos.y + 300;
 
             if(x >= 800 || y >= 600 || x < 0 || y < 0)
             {
