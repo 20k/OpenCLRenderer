@@ -32,12 +32,12 @@ bool in_bound(int x, int y)
 
 struct star_info
 {
-    cl_float4 pos;
+    float x, y;
     int type;
 };
 
 
-void different_scatter(int x, int y, int** vals, float dist, int n, float dist_factor)
+void different_scatter(int x, int y, vector<star_info>& vals, float dist, int n, float dist_factor, int type = 1)
 {
     for(int i=0; i<n; i++)
     {
@@ -52,13 +52,15 @@ void different_scatter(int x, int y, int** vals, float dist, int n, float dist_f
         float px = 1.0/rdist*cos(rand_angle) + x;
         float py = 1.0/rdist*sin(rand_angle) + y;
 
-        if(in_bound(px, py))
-            vals[(int)py][(int)px] = 1;
+        //if(in_bound(px, py))
+        //    vals[(int)py][(int)px] = 1;
+
+        vals.push_back({px, py, type});
 
     }
 }
 
-void random_points_less_edge(int** vals, int num, float mult_fact, bool is_random_z = false)
+void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, bool is_random_z = false)
 {
     for(int i=0; i<num; i++)
     {
@@ -82,8 +84,10 @@ void random_points_less_edge(int** vals, int num, float mult_fact, bool is_rando
         if(is_random_z)
             type = 3;
 
-        if(in_bound(px, py))
-            vals[(int)py][(int)px] = type;
+        //if(in_bound(px, py))
+        //    vals[(int)py][(int)px] = type;
+
+        vals.push_back({px, py, type});
 
     }
 }
@@ -109,13 +113,15 @@ void shitty_dealloc(int** val)
 }
 
 ///remove all references to the map
-int** standard_scatter()
+vector<star_info> standard_scatter()
 {
 
-    int** vals = shitty_alloc();
-    int** nvals = shitty_alloc();
+    //int** vals = shitty_alloc();
+    //int** nvals = shitty_alloc();
 
-    int** walk_dots = shitty_alloc();
+    //int** walk_dots = shitty_alloc();
+
+    vector<star_info> vals;
 
     ///scatter regular
     for(float i=0; i<2.0*M_PI; i+=0.002)
@@ -171,8 +177,9 @@ int** standard_scatter()
 
         float dist = val;
 
-        different_scatter(x, y, walk_dots, fabs(dist), 8, 0.001);
-        different_scatter(nx, ny, walk_dots, fabs(dist), 8, 0.001);
+        ///plot old stars, they have type 2
+        different_scatter(x, y, vals, fabs(dist), 8, 0.001, 2);
+        different_scatter(nx, ny, vals, fabs(dist), 8, 0.001, 2);
     }
 
     ///scatter.... closer to spiral arm?
@@ -219,7 +226,7 @@ int** standard_scatter()
 
     float max_val = 1000.0f/255.0f;
 
-    for(int y=0; y<MAP_RESOLUTION; y++)
+   /* for(int y=0; y<MAP_RESOLUTION; y++)
     {
         for(int x=0; x<MAP_RESOLUTION; x++)
         {
@@ -227,10 +234,10 @@ int** standard_scatter()
                 vals[y][x] = 2;
 
         }
-    }
+    }*/
 
-    shitty_dealloc(nvals);
-    shitty_dealloc(walk_dots);
+    //shitty_dealloc(nvals);
+    //shitty_dealloc(walk_dots);
 
     return vals;
 }
@@ -245,7 +252,7 @@ float evaluate_func(float x)
     return pow((tanh(x/2 + 2) + 1)/2, 0.3)*1.5;
 }
 
-point_cloud construct_starmap(int** vals)
+point_cloud construct_starmap(vector<star_info>& vals)
 {
     vector<cl_float4> positions;
     vector<cl_uint> colours;
@@ -256,11 +263,17 @@ point_cloud construct_starmap(int** vals)
     const float yellowmod = 0.8;
     const float redmod = 0.5;
 
-    for(int y=0; y<MAP_RESOLUTION; y++)
+    //for(int y=0; y<MAP_RESOLUTION; y++)
     {
-        for(int x=0; x<MAP_RESOLUTION; x++)
+      //  for(int x=0; x<MAP_RESOLUTION; x++)
+        for(int i=0; i<vals.size(); i++)
         {
-            if(vals[y][x] == 1 || vals[y][x] == 2 || vals[y][x] == 3)
+            int my_val = vals[i].type;
+
+            float x = vals[i].x;
+            float y = vals[i].y;
+
+            if(my_val == 1 || my_val == 2 || my_val == 3)
             {
                 float rad = RADIUS*1.5;
 
@@ -277,7 +290,7 @@ point_cloud construct_starmap(int** vals)
 
                 z *= (float)rand()/RAND_MAX;
 
-                if(dist > rad || vals[y][x]==3)
+                if(dist > rad || my_val == 3)
                 {
                     z = (float)rand()/RAND_MAX;
 
@@ -298,11 +311,12 @@ point_cloud construct_starmap(int** vals)
 
                 float brightnessmod = (0.8*(float)rand()/RAND_MAX) - 0.3;
 
-                if(vals[y][x]==1 || vals[y][x]==3)
+                if(my_val == 1 || my_val == 3)
                 {
                     col = sf::Color(255,200,150);
 
                     float yrand = yellowmod + brightnessmod;
+
                     if(yrand > 1)
                         yrand = 1;
 
@@ -315,6 +329,7 @@ point_cloud construct_starmap(int** vals)
                         col = sf::Color(150, 200, 255);
 
                         float brand = bluemod + brightnessmod;
+
                         if(brand > 1)
                             brand = 1;
 
@@ -323,11 +338,12 @@ point_cloud construct_starmap(int** vals)
                         col.b *= brand;
                     }
                 }
-                else if(vals[y][x] == 2)
+                else if(my_val == 2)
                 {
                     col = sf::Color(255, 30, 30);
 
                     float rrand = redmod + brightnessmod;
+
                     if(rrand > 1)
                         rrand = 1;
 
@@ -370,10 +386,10 @@ point_cloud get_starmap(int rand_val)
 {
     srand(rand_val);
 
-    int** vals = standard_scatter();
+    vector<star_info> vals = standard_scatter();
     point_cloud stars = construct_starmap(vals);
 
-    shitty_dealloc(vals);
+    //shitty_dealloc(vals);
 
     return stars;
 }
