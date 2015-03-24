@@ -5,13 +5,14 @@
 #include <cl/cl.h>
 
 #include "galaxy.hpp"
+#include "../../vec.hpp"
 
 using namespace std;
 
 #define RADIUS 200.0f
 
 
-#define MAP_RESOLUTION 1024
+#define MAP_RESOLUTION 9046
 
 float func(float theta)
 {
@@ -544,7 +545,7 @@ point_cloud get_starmap(int rand_val)
     return stars;
 }
 
-/*int main()
+int main()
 {
     sf::RenderWindow window;
     window.create(sf::VideoMode(800, 600), "lele");
@@ -553,7 +554,7 @@ point_cloud get_starmap(int rand_val)
     sf::Image img;
     img.create(800, 600, sf::Color(0, 0, 0));
 
-    vector<star> stars = get_starmap(1);
+    point_cloud stars = get_starmap(1);
 
     sf::Event event;
 
@@ -570,27 +571,41 @@ point_cloud get_starmap(int rand_val)
                 window.close();
         }
 
+        if(key.isKeyPressed(sf::Keyboard::Escape))
+            window.close();
 
-        for(auto& i : stars)
+
+        //for(auto& i : stars)
+        for(int i=0; i<stars.position.size(); i++)
         {
-            sf::Color col;
-
-            if(i.type == 1)
+            /*if(i.type == 1)
                 col = sf::Color(255, 200, 150);
             if(i.type == 2)
-                col = sf::Color(255, 0, 0);
+                col = sf::Color(255, 0, 0);*/
+
+            auto pos = stars.position[i];
+            auto col = stars.rgb_colour[i];
+
+            pos = div(pos, 100.f);
+
+            int r = col >> 24;
+            int g = col >> 16;
+            int b = col >> 8;
+
 
             float x, y;
 
-            x = i.pos.x + 400;
-            y = i.pos.y + 300;
+            x = pos.x + 400;
+            y = pos.z + 300;
 
-            if(!in_bound(x, y))
+            if(x >= 800 || y >= 600 || x < 0 || y < 0)
             {
                 continue;
             }
 
-            img.setPixel(x, y, col);
+            sf::Color colour(r, g, b);
+
+            img.setPixel(x, y, colour);
         }
 
 
@@ -604,4 +619,4 @@ point_cloud get_starmap(int rand_val)
     }
 
     return 0;
-}*/
+}

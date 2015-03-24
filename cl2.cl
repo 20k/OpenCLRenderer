@@ -3936,7 +3936,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
 
     float w1 = 1/6.f;
-    float w2 = 1.0f - w1;
+    //float w2 = 1.0f - w1;
 
 
     float4 final_col = rgba * relative_brightness;

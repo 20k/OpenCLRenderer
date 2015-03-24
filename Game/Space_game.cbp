@@ -143,6 +143,8 @@
 		<Unit filename="ship.hpp" />
 		<Unit filename="space_dust.cpp" />
 		<Unit filename="space_dust.hpp" />
+		<Unit filename="space_manager.cpp" />
+		<Unit filename="space_manager.hpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />
