@@ -14,18 +14,20 @@ namespace compute = boost::compute;
 
 struct space_manager
 {
-    compute::buffer g_depth_buffer;
+    compute::buffer g_space_depth; ///for us
     compute::buffer g_colour_blend;
 
     cl_float4 c_rot;
     cl_float4 c_pos;
 
     compute::opengl_renderbuffer g_screen;
-    compute::buffer depth_buffer;
+    compute::buffer depth_buffer; ///regular rendering depth buffer
     compute::buffer g_distortion_buffer;
 
+    int width, height;
+
     void clear_buffers();
-    void init(int width, int height);
+    void init(int _width, int _height);
 
     void update_camera(cl_float4 _c_pos, cl_float4 _c_rot);
 
@@ -34,6 +36,9 @@ struct space_manager
     void set_distortion_buffer(compute::buffer&);
 
     void draw_galaxy_cloud(point_cloud_info&, compute::buffer& g_pos);
+    void draw_space_dust_cloud(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
+    void draw_space_dust_no_tile(point_cloud_info&, compute::buffer& offset_pos); ///separation of church and state?
+    void draw_space_nebulae(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
 };
 
 #endif // SPACE_MANAGER_H_INCLUDED

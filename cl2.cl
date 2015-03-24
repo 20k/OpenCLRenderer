@@ -4391,6 +4391,19 @@ void space_nebulae(__global float4* g_pos, float4 c_rot, __global float4* positi
     write_imagef(screen, (int2){x, y}, clamp(col_avg + blend, 0.f, 1.f));
 }
 
+__kernel
+void clear_space_buffers(__global uint4* colour_buf, __global uint* depth_buffer)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    colour_buf[y*SCREENWIDTH + x] = (uint4){0, 0, 0, 0};
+    depth_buffer[y*SCREENWIDTH + x] = mulint;
+}
+
 ///swap this for sfml parallel rendering?
 ///will draw for everything in the scene ///reallocate every time..?
 __kernel void draw_ui(__global struct obj_g_descriptor* gobj, __global uint* gnum, __write_only image2d_t screen, float4 c_pos, float4 c_rot)

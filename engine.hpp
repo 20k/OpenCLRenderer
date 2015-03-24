@@ -144,10 +144,6 @@ struct engine
     ///lighting needs to be its own class
 
     void construct_shadowmaps();
-    void draw_galaxy_cloud(point_cloud_info&, compute::buffer& g_pos);
-    void draw_space_dust_cloud(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
-    void draw_space_dust_no_tile(point_cloud_info&, compute::buffer& offset_pos); ///separation of church and state?
-    void draw_space_nebulae(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
     void generate_distortion(compute::buffer& points, int num);
     void draw_bulk_objs_n(); ///draw objects to scene
     void draw_fancy_projectiles(compute::image2d&, compute::buffer&, int); ///fancy looking projectiles
