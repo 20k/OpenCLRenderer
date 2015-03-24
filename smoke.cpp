@@ -171,11 +171,14 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
                 if(lpos >= width*height*depth)
                     continue;
 
+                if(lpos < 0)
+                    continue;
+
                 //buf1[lpos] = 10 + ((rand() % 5) - 2);
                 buf[lpos] = 1000.0f;
                 //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
 
-                buf2[lpos] = (rand() % 20) - 10;
+                buf2[lpos] = 10;
             }
         }
 
@@ -348,9 +351,38 @@ void smoke::tick(float dt)
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
 
     //n_dens = next_dens;
+
+
+    displace({width/2, height/2, depth/2, 0}, {0, 1, 0, 0}, 0.1f);
+
 }
 
-void smoke::displace(cl_float4 loc, cl_float4 amount)
+void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount)
 {
+    /*(float4 force_pos, float4 force_dir, float force, float box_size,
+                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in,
+                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out)*/
 
+
+    int next_vel = (n_vel + 1) % 2;
+
+    float temp_size = 10.f;
+
+    arg_list displace_args;
+    displace_args.push_back(&loc);
+    displace_args.push_back(&dir);
+    displace_args.push_back(&amount);
+    displace_args.push_back(&temp_size);
+
+    displace_args.push_back(&g_velocity_x[n_vel]); ///in
+    displace_args.push_back(&g_velocity_y[n_vel]);
+    displace_args.push_back(&g_velocity_z[n_vel]);
+
+    displace_args.push_back(&g_velocity_x[n_vel]); ///out
+    displace_args.push_back(&g_velocity_y[n_vel]);
+    displace_args.push_back(&g_velocity_z[n_vel]);
+
+    run_kernel_with_string("advect_at_position", {temp_size, temp_size, temp_size}, {16, 16, 1}, 3, displace_args);
+
+    //n_vel = next_vel;
 }

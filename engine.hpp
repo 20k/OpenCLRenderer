@@ -157,7 +157,9 @@ struct engine
     void draw_raytrace();
     void draw_smoke(smoke& s);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
+
     void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
+
     void render_buffers();
     void display();
 
@@ -225,6 +227,11 @@ struct Timer
      Timer(const std::string& n);
 
      void stop();
+};
+
+struct kernel_helper
+{
+    cl_uint args[3];
 };
 
 float idcalc(float);
@@ -309,6 +316,11 @@ static void run_kernel_with_string(const std::string& name, cl_uint global_ws[],
     }
 
     run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, args);
+}
+
+static void run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv)
+{
+    run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv);
 }
 
 

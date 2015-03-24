@@ -43,5 +43,5 @@ struct smoke
     ///later define spatial and real resolution differently
     void init(int _width, int _height, int _depth, int _scale, int _render_size);
     void tick(float timestep);
-    void displace(cl_float4 loc, cl_float4 amount);
+    void displace(cl_float4 loc, cl_float4 dir, cl_float amount);
 };

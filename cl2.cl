@@ -5516,7 +5516,9 @@ __kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int heig
 
     float myval = read_imagef(voxel, sam, (int4){x, y, z, 0}).x;
 
-    if(myval < 0.01f)
+    const float threshold = 0.1f;
+
+    if(myval < threshold)
         return;
 
     if(projected.z < 0.001f)
@@ -5524,12 +5526,12 @@ __kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int heig
 
     ///only render outer hull for the moment
     int c = 0;
-    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(1,0,0,0)).x >= 0.01f ? c+1 : c;
-    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(-1,0,0,0)).x >= 0.01f ? c+1 : c;
-    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,1,0,0)).x >= 0.01f ? c+1 : c;
-    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,-1,0,0)).x >= 0.01f ? c+1 : c;
-    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,0,1,0)).x >= 0.01f ? c+1 : c;
-    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,0,-1,0)).x >= 0.01f ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(1,0,0,0)).x >= threshold ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(-1,0,0,0)).x >= threshold ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,1,0,0)).x >= threshold ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,-1,0,0)).x >= threshold ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,0,1,0)).x >= threshold ? c+1 : c;
+    c = read_imagef(voxel, sam, (int4)(x, y, z, 0) + (int4)(0,0,-1,0)).x >= threshold ? c+1 : c;
 
     int cond = c == 0 || c == 6;
 
@@ -5691,7 +5693,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     //printf("%f %f\n", min_t, max_t);
 
-    const float3 rel = (float3){width, height, depth} / render_size;
+    //const float3 rel = (float3){width, height, depth} / render_size;
+
+    const float3 rel = (float3){1.f, 1.f, 1.f};
 
     const float3 half_size = (float3){width,height,depth}/2;
 
@@ -5750,7 +5754,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     int skip_amount = 8;
 
-    const float threshold = 1.f;
+    const float threshold = 0.1f;
 
 
     for(int i=0; i<num; i++)
@@ -6090,7 +6094,7 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
     write_imagef(x_out, convert_int4(pos), max(val, 0.0f));
 }
 
-float advect_func_vel(int x, int y, int z,
+float advect_func_vel(float x, float y, float z,
                   int width, int height, int depth,
                   __global float* d_in,
                   //__global float* xvel, __global float* yvel, __global float* zvel,
@@ -6185,17 +6189,17 @@ float advect_func_vel_tex(float x, float y, float z,
 }
 
 
-float advect_func(int x, int y, int z,
+float advect_func(float x, float y, float z,
                   int width, int height, int depth,
                   __global float* d_in,
                   __global float* xvel, __global float* yvel, __global float* zvel,
                   float dt)
 {
-    return advect_func_vel(x, y, z, width, height, depth, d_in, xvel[IX(x,y,z)], yvel[IX(x,y,z)], zvel[IX(x,y,z)], dt);
+    return advect_func_vel(x, y, z, width, height, depth, d_in, xvel[IX((int)x,(int)y,(int)z)], yvel[IX((int)x,(int)y,(int)z)], zvel[IX((int)x,(int)y,(int)z)], dt);
 
 }
 
-float advect_func_tex(int x, int y, int z,
+float advect_func_tex(float x, float y, float z,
                   int width, int height, int depth,
                   __read_only image3d_t d_in,
                   __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
@@ -8282,7 +8286,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     float len = fast_length(vel);
 
     ///squared maybe not best
-    float3 vval = vel + 0.5f*100*len*wval/5.f;
+    float3 vval = vel + 0.5f*10*len*wval/5.f;
 
 
 
@@ -8334,15 +8338,18 @@ __kernel void post_upscale(int width, int height, int depth,
     int y = get_global_id(1);
     int z = get_global_id(2);
 
+    if(x >= uw || y >= uh || z >= ud)
+        return;
+
 
     //d_out[pos] =
 
-    /*sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                 CLK_ADDRESS_CLAMP_TO_EDGE |
-                CLK_FILTER_LINEAR;*/
+                CLK_FILTER_LINEAR;
 
 
-    //val = read_imagef(d_in, sam, (int4){rx, ry, rz, 0}).x;
+    //float val = read_imagef(d_in, sam, (int4){x, y, z, 0}).x;
 
     float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in);
 
@@ -8356,6 +8363,52 @@ __kernel void post_upscale(int width, int height, int depth,
     //mag /= 4;
 
     //write_imagef(screen, (int2){x, y}, mag);
+}
+
+///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
+///force_pos is offset within the box
+__kernel
+void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size,
+                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in,
+                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out)
+{
+    int xpos = get_global_id(0);
+    int ypos = get_global_id(1);
+    int zpos = get_global_id(2);
+
+    if(xpos >= box_size || ypos >= box_size || zpos >= box_size)
+        return;
+
+    int3 pos = {xpos, ypos, zpos};
+
+    ///centre
+    pos -= box_size/2.f;
+
+    ///apply within-box offset
+    pos += convert_int3(force_pos.xyz);
+
+
+
+    ///above is basically integer coordinates, only floats because floats are 'better'
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
+    float3 vel;
+
+    vel.x = read_imagef(x_in, sam, pos.xyzz).x;
+    vel.y = read_imagef(y_in, sam, pos.xyzz).x;
+    vel.z = read_imagef(z_in, sam, pos.xyzz).x;
+
+
+    float3 force_dir_amount = force_dir.xyz * force;
+
+    vel += force_dir_amount;
+
+    write_imagef(x_out, pos.xyzz, vel.xxxx);
+    write_imagef(y_out, pos.xyzz, vel.yyyy);
+    write_imagef(z_out, pos.xyzz, vel.zzzz);
 }
 
 
