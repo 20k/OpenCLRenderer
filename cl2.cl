@@ -3842,8 +3842,8 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
 
 
 
-    if(*depth_pointer!=mulint)
-        return;
+    //if(*depth_pointer!=mulint)
+    //    return;
 
 
     ///depth buffering
@@ -3853,6 +3853,21 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     atomic_min(depth_pointer2, idepth);
     atomic_min(depth_pointer3, idepth);
     atomic_min(depth_pointer4, idepth);
+}
+
+typedef union
+{
+    uint4 m_int4;
+    int m_ints[4];
+} intconv;
+
+void accumulate_to_buffer(__global intconv* buf, int x, int y, float4 val)
+{
+    uint4 uval = convert_uint4(val);
+
+    atomic_add(&buf[y*SCREENWIDTH + x].m_ints[0], uval.x);
+    atomic_add(&buf[y*SCREENWIDTH + x].m_ints[1], uval.y);
+    atomic_add(&buf[y*SCREENWIDTH + x].m_ints[2], uval.z);
 }
 
 __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer,
@@ -3928,34 +3943,38 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     float4 final_col = rgba * relative_brightness;
 
-    final_col -= length(blend_col) * 2;
+    //final_col -= length(blend_col) * 2;
 
-    final_col = clamp(final_col, 0.f, 1.f);
+    //final_col = clamp(final_col, 0.f, 1.f);
 
 
-    float4 lower_val = final_col * w1 + blend_col * w2;
+    //float4 lower_val = final_col * w1 + blend_col * w2;
 
-    lower_val = max(lower_val, blend_col);
+    //lower_val = max(lower_val, blend_col);
 
     //final_col += blend_col * 2;
 
+    blend_col = 0;
+
+    float4 lower_val = final_col * w1;
+
     bool main = false;
-    if(idepth == *depth_pointer)
+    //if(idepth == *depth_pointer)
     {
         //write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
-        screen_buf[y*SCREENWIDTH + x] = convert_uint4(clamp(final_col + blend_col, 0.f, 1.f) * 255.f);
+        accumulate_to_buffer(screen_buf, x, y, clamp(final_col + blend_col, 0.f, 1.f) * 255.f);
         main = true;
     }
 
     //write_imagef(screen, (int2){x, y+1}, lower_val);
-    if(idepth == *depth_pointer1)
-        screen_buf[(y + 1)*SCREENWIDTH + x] = convert_uint4(lower_val * 255.f);
-    if(idepth == *depth_pointer2)
-        screen_buf[(y - 1)*SCREENWIDTH + x] = convert_uint4(lower_val * 255.f);
-    if(idepth == *depth_pointer3)
-        screen_buf[y*SCREENWIDTH + x + 1] = convert_uint4(lower_val * 255.f);
-    if(idepth == *depth_pointer4)
-        screen_buf[y*SCREENWIDTH + x - 1] = convert_uint4(lower_val * 255.f);
+    //if(idepth == *depth_pointer1)
+        accumulate_to_buffer(screen_buf, x, y+1, lower_val * 255.f);
+    //if(idepth == *depth_pointer2)
+        accumulate_to_buffer(screen_buf, x, y-1, lower_val * 255.f);
+    //if(idepth == *depth_pointer3)
+        accumulate_to_buffer(screen_buf, x+1, y, lower_val * 255.f);
+    //if(idepth == *depth_pointer4)
+        accumulate_to_buffer(screen_buf, x-1, y, lower_val * 255.f);
 }
 
 ///nearly identical to point cloud, but space dust instead
@@ -4263,6 +4282,8 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
     uint4 my_col = colour_buf[y*SCREENWIDTH + x];
 
     float4 col = convert_float4(my_col) / 255.f;
+
+    col = clamp(col, 0.f, 1.f);
 
     write_imagef(screen, (int2){x, y}, col);
 }

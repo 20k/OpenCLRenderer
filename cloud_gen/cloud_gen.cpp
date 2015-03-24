@@ -178,7 +178,7 @@ void do_newtonian(point_cloud& points, std::vector<cl_float4>& velocities, int t
 
 point_cloud get_3d_nebula()
 {
-    const int num_points = 5000;
+    const int num_points = 2500;
 
     point_cloud points;
 
@@ -232,7 +232,7 @@ point_cloud get_3d_nebula()
     }
 
     ///model swirl by gravity
-    do_newtonian(points, velocities, 50);
+    do_newtonian(points, velocities, 25);
 
 
     float scaling = 100.f;
