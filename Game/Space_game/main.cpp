@@ -30,6 +30,8 @@
 //#include "Include/OVR_Math.h"
 #include "../../Rift/Src/OVR_CAPI.h"
 
+#include "../space_manager.hpp"
+
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -130,6 +132,9 @@ int main(int argc, char *argv[])
 
     engine window;
     window.load(1280,768,1000, "turtles", "../cl2.cl");
+
+    space_manager space_resources;
+    space_resources.init(window.get_width(), window.get_height());
 
     auto cloud_buf = get_nebula();
 
@@ -349,6 +354,14 @@ int main(int argc, char *argv[])
         window.set_camera_pos(add(window.c_pos, (player_ship->position_delta))); ///
         window.set_camera_rot(add(window.c_rot, neg(player_ship->rotation_delta)));
 
+        ///horrible dirty hacks
+        space_resources.set_depth_buffer(window.depth_buffer[window.nbuf]);
+        space_resources.set_distortion_buffer(window.g_distortion_buffer);
+        space_resources.set_screen(window.g_screen);
+        space_resources.update_camera(window.c_pos, window.c_rot);
+        ///ends
+
+
         ///vertex shader, basically, but applies to other things too
         window.generate_distortion(projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
 
@@ -360,7 +373,8 @@ int main(int argc, char *argv[])
         ///space nebula blends with background, but what I want to do is
         ///only stars behind blend, stars in front don't
         ///Maybe we need a galaxy blend buffer?
-        window.draw_space_nebulae(cloud_buf, g_game_cam);
+        //window.draw_space_nebulae(cloud_buf, g_game_cam);
+
 
         window.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
@@ -372,9 +386,11 @@ int main(int argc, char *argv[])
 
         window.draw_fancy_projectiles(projectile_image, projectile_manager::projectile_buffer, projectile_manager::projectiles.size());
 
-        window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
+        //window.draw_galaxy_cloud(cloud_buf, g_game_cam);
+        //window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
 
-
+        space_resources.draw_galaxy_cloud(cloud_buf, g_game_cam);
+        space_resources.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
         if(ui_manager::selected_value != -1 && (ui_manager::selected_value & MINIMAP_BITFLAG))
         {

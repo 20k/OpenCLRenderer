@@ -85,11 +85,104 @@ float random_float()
     return (float)rand() / RAND_MAX;
 }
 
+void do_newtonian(point_cloud& points, std::vector<cl_float4>& velocities, int ticks)
+{
+
+    for(int k=0; k<ticks; k++)
+    {
+        cl_float4 current_centre = {0};
+
+        int num_points = points.position.size();
+
+        for(int j=0; j<num_points; j++)
+        {
+            for(int i=j+1; i<num_points; i++)
+            {
+                cl_float4 p1 = points.position[j];
+                cl_float4 p2 = points.position[i];
+
+                float distance = dist(p1, p2);
+
+                cl_float4 d;
+
+                d.x = p2.x - p1.x;
+                d.y = p2.y - p1.y;
+                d.z = p2.z - p1.z;
+
+                //float force = 1.0 * 1 * 1 / (distance * distance);
+
+                /*float angle1 = atan2(dx, dy);
+                float angle2 = atan2(dx, dz);
+
+                float xf = force * cos(angle1);
+                float yf = force * sin(angle1);
+                float zf = force * cos(angle2);*/
+
+
+                ///the internet tells me that this is correct, but how correct it is I do not know
+                ///-gmm/r^3 * rvec
+
+                float G = 1000.f;
+
+                /*
+                float f1 = (end_of_gravity_1 - k) / end_of_gravity_1;
+
+                float f2 = (k - start_of_gravity_2) / (ticks - start_of_gravity_2);
+
+                float frac = std::max(f1, std::max(f2, 0.f));
+
+                //float frac = (float)(ticks - k) / ticks;
+
+                G *= frac;*/
+
+                float fx, fy, fz;
+
+                ///below values are to make it obvious where equation came from
+                fx = (G * 1.f * 1.f / (distance * distance * distance)) * d.x;
+                fy = (G * 1.f * 1.f / (distance * distance * distance)) * d.y;
+                fz = (G * 1.f * 1.f / (distance * distance * distance)) * d.z;
+
+
+                cl_float4 v1, v2;
+
+                v1 = velocities[j];
+                v2 = velocities[i];
+
+                v1.x += fx;
+                v1.y += fy;
+                v1.z += fz;
+
+                v2.x -= fx;
+                v2.y -= fy;
+                v2.z -= fz;
+
+                velocities[j] = v1;
+                velocities[i] = v2;
+            }
+
+            current_centre = add(current_centre, points.position[j]);
+        }
+
+        current_centre = div(current_centre, num_points);
+
+
+
+        ///modify star colour by velocity too later
+        for(int i=0; i<num_points; i++)
+        {
+            points.position[i] = add(points.position[i], velocities[i]);
+        }
+    }
+}
+
+
 point_cloud get_3d_nebula()
 {
-    const int num_points = 100;
+    const int num_points = 5000;
 
     point_cloud points;
+
+    std::vector<cl_float4> velocities;
 
     for(int i=0; i<num_points; i++)
     {
@@ -104,14 +197,54 @@ point_cloud get_3d_nebula()
         b = random_float() * 255.f;
 
 
-        uint32_t col = r | g << 8 | b << 16;
+        uint32_t col = 0 | r << 8 | g << 16 | b << 24;
 
 
         pos = mult(pos, spread);
 
         points.position.push_back(pos);
         points.rgb_colour.push_back(col);
+        velocities.push_back({0});
     }
+
+    ///smooth out distribution
+    do_newtonian(points, velocities, 5.f);
+
+
+    ///add explosion force
+    for(int i=0; i<num_points; i++)
+    {
+        cl_float4 p1 = points.position[i];
+
+        cl_float4 diff = sub(p1, {0});
+
+        cl_float4 norm = div(diff, length(diff) + 0.01f);
+
+        const float force = 50.f;
+
+        cl_float4 v1 = velocities[i];
+
+        v1.x += norm.x * force;
+        v1.y += norm.y * force;
+        v1.z += norm.z * force;
+
+        velocities[i] = v1;
+    }
+
+    ///model swirl by gravity
+    do_newtonian(points, velocities, 50);
+
+
+    float scaling = 100.f;
+
+    for(int i=0; i<num_points; i++)
+    {
+        points.position[i] = div(points.position[i], scaling);
+    }
+
+    ///do we want to model expansion due to star inflation?
+    ///do that every other tick?
+
 
     ///just use actual points for the moment
 

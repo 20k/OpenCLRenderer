@@ -3817,7 +3817,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
 
-    if(depth < depth_icutoff)// || depth > depth_far)
+    if(depth < 1)// || depth > depth_far)
         return;
 
 
@@ -3878,7 +3878,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
         return;
 
-    if(depth < depth_icutoff)// || depth > depth_far)
+    if(depth < 1)// || depth > depth_far)
         return;
 
     projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
@@ -3945,13 +3945,13 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
         write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
         main = true;
     }
-    if(main && idepth == *depth_pointer1)
+    if(idepth == *depth_pointer1)
         write_imagef(screen, (int2){x, y+1}, lower_val);
-    if(main && idepth == *depth_pointer2)
+    if(idepth == *depth_pointer2)
         write_imagef(screen, (int2){x, y-1}, lower_val);
-    if(main && idepth == *depth_pointer3)
+    if(idepth == *depth_pointer3)
         write_imagef(screen, (int2){x+1, y}, lower_val);
-    if(main && idepth == *depth_pointer4)
+    if(idepth == *depth_pointer4)
         write_imagef(screen, (int2){x-1, y}, lower_val);
 }
 
@@ -4034,7 +4034,7 @@ __kernel void space_dust(__global uint* num, __global float4* positions, __globa
     if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
         return;
 
-    if(depth < depth_icutoff)// || depth > depth_far)
+    if(depth < 1)// || depth > depth_far)
         return;
 
     projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
@@ -4316,6 +4316,7 @@ float distance_point_line(float3 o, float3 r, float3 p)
 
     //return length( (o - p) - dot((o - p), r) * r );
 }
+
 
 ///nebula needs to be infront of stars
 __kernel
