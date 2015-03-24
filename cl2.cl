@@ -3793,7 +3793,7 @@ __kernel void reproject_screen(__global uint* depth, float4 old_pos, float4 old_
 
 //Renders a point cloud which renders correct wrt the depth buffer
 ///make a half resolution depth map, then expand?
-__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __read_only image2d_t screen_in, __write_only image2d_t screen, __global uint* depth_buffer,
+__kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer,
                                      __global float2* distortion_buffer)
 {
     uint pid = get_global_id(0);
@@ -3855,7 +3855,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     atomic_min(depth_pointer4, idepth);
 }
 
-__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __read_only image2d_t screen_in, __write_only image2d_t screen, __global uint* depth_buffer,
+__kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer,
                                         __global float2* distortion_buffer)
 {
     uint pid = get_global_id(0);
@@ -3920,7 +3920,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                     CLK_FILTER_NEAREST;
 
 
-    float4 blend_col = read_imagef(screen_in, sam, (int2){x, y});
+    float4 blend_col = convert_float4(screen_buf[y*SCREENWIDTH + x])/255.f;//read_imagef(screen_in, sam, (int2){x, y});
 
     float w1 = 1/6.f;
     float w2 = 1.0f - w1;
@@ -3942,17 +3942,20 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     bool main = false;
     if(idepth == *depth_pointer)
     {
-        write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
+        //write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
+        screen_buf[y*SCREENWIDTH + x] = convert_uint4(clamp(final_col + blend_col, 0.f, 1.f) * 255.f);
         main = true;
     }
+
+    //write_imagef(screen, (int2){x, y+1}, lower_val);
     if(idepth == *depth_pointer1)
-        write_imagef(screen, (int2){x, y+1}, lower_val);
+        screen_buf[(y + 1)*SCREENWIDTH + x] = convert_uint4(lower_val * 255.f);
     if(idepth == *depth_pointer2)
-        write_imagef(screen, (int2){x, y-1}, lower_val);
+        screen_buf[(y - 1)*SCREENWIDTH + x] = convert_uint4(lower_val * 255.f);
     if(idepth == *depth_pointer3)
-        write_imagef(screen, (int2){x+1, y}, lower_val);
+        screen_buf[y*SCREENWIDTH + x + 1] = convert_uint4(lower_val * 255.f);
     if(idepth == *depth_pointer4)
-        write_imagef(screen, (int2){x-1, y}, lower_val);
+        screen_buf[y*SCREENWIDTH + x - 1] = convert_uint4(lower_val * 255.f);
 }
 
 ///nearly identical to point cloud, but space dust instead
@@ -4144,177 +4147,12 @@ __kernel void space_dust_no_tiling(__global uint* num, __global float4* position
     }
 }
 
-/*float noise(int x, int y, int z)
-{
-    x = x + y * 113 + z*529;
-    x = (x<<13) ^ x;
-    return ( 1.0f - ( (x * (x * x * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f);
-}
-
-float smnoise(float x, float y, float z)
-{
-    float tl, tr, bl, br;
-
-    float3 base = floor((float3){x, y, z});
-
-    float3 upper = base + 1.0f;
-
-    tl = noise(base.x, base.y, base.z);
-    tr = noise(upper.x, base.y, base.z);
-    bl = noise(base.x, upper.y, base.z);
-    br = noise(upper.x, upper.y, base.z);
-
-
-
-    float3 frac = (float3){x, y, z} - base;
-
-    float top_bilin = (1.0f - frac.x) * tl + frac.x * tr;
-    float bot_bilin = (1.0f - frac.x) * bl + frac.x * br;
-
-    float b1 = (1.0f - frac.y) * top_bilin + frac.y * bot_bilin;
-
-
-    tl = noise(base.x, base.y, upper.z);
-    tr = noise(upper.x, base.y, upper.z);
-    bl = noise(base.x, upper.y, upper.z);
-    br = noise(upper.x, upper.y, upper.z);
-
-
-    top_bilin = (1.0f - frac.x) * tl + frac.x * tr;
-    bot_bilin = (1.0f - frac.x) * bl + frac.x * br;
-
-    float b2 = (1.0f - frac.y) * top_bilin + frac.y * bot_bilin;
-
-    //return (1.0f - frac.z) * b1 + frac.z * b1;
-
-    return noise(x, y, z);
-}
-
-float3 get_colour(float val)
-{
-    //red, blue interpolation
-    return (float3){0, 0, val};
-
-}*/
-
-__kernel void space_nebulae_old(float4 c_pos, float4 c_rot, __read_only image2d_t nebula, __global uint* depth_buffer, __write_only image2d_t screen)
-{
-    const int x = get_global_id(0);
-    const int y = get_global_id(1);
-
-    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
-        return;
-
-    float fx = x;
-    float fy = y;
-    float fz = FOV_CONST;
-
-    ///code below is using normalised coords
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_NONE   |
-                    CLK_FILTER_NEAREST;
-
-
-    /*float3 local_position= {((fx - SCREENWIDTH/2.0f)*fz/FOV_CONST), ((fy - SCREENHEIGHT/2.0f)*fz/FOV_CONST), fz};
-
-    ///backrotate pixel coordinate into globalspace
-    float3 global_position = rot(local_position,  0, (float3)
-    {
-        -c_rot.x, 0.0f, 0.0f
-    });
-    global_position        = rot(global_position, 0, (float3)
-    {
-        0.0f, -c_rot.y, 0.0f
-    });
-    global_position        = rot(global_position, 0, (float3)
-    {
-        0.0f, 0.0f, -c_rot.z
-    });
-
-    //global_position += c_pos.xyz;
-
-
-
-    //float3 new_coord = rot(local_position, 0, c_rot.xyz);
-
-    //new_coord = depth_project_singular(new_coord, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
-
-    fx = global_position.x;
-    fy = global_position.y;
-    fz = global_position.z;
-
-    //float sphere_rad = sqrt(SCREENWIDTH/2*SCREENWIDTH/2 + FOV_CONST*FOV_CONST);
-
-
-    float rad = length(global_position);//sphere_rad;
-
-    float theta = acos(fz / rad);
-    float phi = atan2(fy, fz);
-
-
-    float px, py;
-
-    px = theta / M_PI;
-
-    py = log(fabs(tan(M_PI/4 + phi/2)));
-
-    //py = clamp(py, 0.0f, 1.0f);
-
-    //int2 image_dim = get_image_width(nebula);
-
-    //float sx = px * image_dim.x;
-    //float sy = py * image_dim.y;
-
-    //float sphere_rad = sqrt(SCREENWIDTH/2*SCREENWIDTH/2 + FOV_CONST*FOV_CONST);
-
-
-
-    //float r = smnoise(fx * 0.02, fy * 0.02) + smnoise(fx * 0.2, fy * 0.2) + smnoise(fx, fy);
-    //float g = smnoise(fx * 0.02, fy * 0.02) + smnoise(fx * 0.2, fy * 0.2) + smnoise(fx, fy);
-    //float b = smnoise(fx * 0.02, fy * 0.02) + smnoise(fx * 0.2, fy * 0.2) + smnoise(fx, fy);
-
-    //float r = smnoise(fx * 0.02, fy * 0.02)*0.3 + smnoise(fx * 0.2, fy * 0.2)*0.2 + smnoise(fx * 0.6, fy * 0.6)*0.2 + smnoise(fx, fy)*0.1;
-
-    //float val = smnoise(fx * 0.03 , fy * 0.03, fz * 0.03 )*0.3;// + smnoise(fx * 0.2, fy * 0.2, fz * 0.2)*0.2 + smnoise(fx * 0.6, fy * 0.6, fz * 0.6)*0.2 + smnoise(fx, fy, fz)*0.1; //dictate overall colour
-
-    //float val = fx + fy*200 + fz*3000;
-
-    //val /= 8000000;
-
-    //float3 col = get_colour(val);
-
-    //float3 col = val;//global_position / 1000;
-
-    //if(x == 0 && y == 0)
-    //    printf("%f %f %f\n", global_position.x, global_position.y, global_position.z);
-
-    //remember texture width is not the same as screenwidth*/
-
-    //if(depth_buffer[y*SCREENWIDTH + x] == -1)
-    {
-        //write_imagef(screen, (int2){x, y}, (float4)(col, 1.0f));
-
-        //depth_buffer[y*SCREENWIDTH + x] = mulint - 1;
-
-        uint4 val = read_imageui(nebula, sam, (int2){x, y} + 0.5f);
-
-        write_imagef(screen, (int2){x, y}, convert_float4(val)/255);//(float2){px, py}));
-    }
-}
-
 float distance_point_line(float3 o, float3 r, float3 p)
 {
     float3 x2 = o + r;
     float3 x1 = o;
 
-    /*float side = signbit((x2.x - x1.x) * (p.y - x1.y) - (x2.y - x1.y) * (p.x - x1.x));
-
-    if(side > 0)
-        return 999999999;*/
-
     return length(cross(p - x1, p - x2)) / length(x2 - x1);
-
-    //return length( (o - p) - dot((o - p), r) * r );
 }
 
 
@@ -4419,7 +4257,7 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
 
     ///???
     ///leave it alone
-    if(d2 < d1)
+    if(d2 != mulint)
         return;
 
     uint4 my_col = colour_buf[y*SCREENWIDTH + x];

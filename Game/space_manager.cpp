@@ -47,9 +47,9 @@ void space_manager::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_c
     p1arg_list.push_back(&pc.g_colour_mem);
     p1arg_list.push_back(&g_cam);
     p1arg_list.push_back(&c_rot);
-    p1arg_list.push_back(&g_screen); ///read/write hack
-    p1arg_list.push_back(&g_screen);
-    p1arg_list.push_back(&depth_buffer);
+    p1arg_list.push_back(&g_colour_blend); ///read/write hack
+    //p1arg_list.push_back(&g_screen);
+    p1arg_list.push_back(&g_space_depth);
     p1arg_list.push_back(&g_distortion_buffer);
 
     cl_uint local = 128;
