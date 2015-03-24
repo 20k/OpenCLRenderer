@@ -39,6 +39,8 @@ struct space_manager
     void draw_space_dust_cloud(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
     void draw_space_dust_no_tile(point_cloud_info&, compute::buffer& offset_pos); ///separation of church and state?
     void draw_space_nebulae(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
+
+    void blit_space_to_screen();
 };
 
 #endif // SPACE_MANAGER_H_INCLUDED

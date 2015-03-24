@@ -376,6 +376,7 @@ int main(int argc, char *argv[])
         //window.draw_space_nebulae(cloud_buf, g_game_cam);
 
 
+
         space_resources.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
 
@@ -392,6 +393,8 @@ int main(int argc, char *argv[])
         space_resources.draw_galaxy_cloud(cloud_buf, g_game_cam);
         space_resources.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
+
+        space_resources.blit_space_to_screen();
         space_resources.clear_buffers();
 
         if(ui_manager::selected_value != -1 && (ui_manager::selected_value & MINIMAP_BITFLAG))

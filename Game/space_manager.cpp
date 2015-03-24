@@ -106,7 +106,7 @@ void space_manager::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffe
     run_kernel_with_list(cl::space_dust_no_tile, &p1global_ws, &local, 1, p1arg_list, true);
 }
 
-///16x16?
+///unused
 void space_manager::draw_space_nebulae(point_cloud_info& info, compute::buffer& g_pos)
 {
     arg_list nebulae_arg_list;
@@ -124,6 +124,17 @@ void space_manager::draw_space_nebulae(point_cloud_info& info, compute::buffer& 
     cl_uint p3local_ws[]= {8, 8};
 
     run_kernel_with_list(cl::space_nebulae, p3global_ws, p3local_ws, 2, nebulae_arg_list, true);
+}
+
+void space_manager::blit_space_to_screen()
+{
+    arg_list blit_space;
+    blit_space.push_back(&g_screen);
+    blit_space.push_back(&g_colour_blend);
+    blit_space.push_back(&g_space_depth);
+    blit_space.push_back(&depth_buffer);
+
+    run_kernel_with_string("blit_space_to_screen", {width, height, 0}, {16, 16, 0}, 2, blit_space);
 }
 
 void space_manager::clear_buffers()
