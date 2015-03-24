@@ -179,6 +179,7 @@ void shitty_dealloc(int** val)
     delete [] val;
 }
 
+///remove all references to the map
 int** standard_scatter()
 {
 
@@ -187,7 +188,8 @@ int** standard_scatter()
 
     int** walk_dots = shitty_alloc();
 
-    for(float i=0; i<2.0*M_PI; i+=0.02)
+    ///scatter regular
+    for(float i=0; i<2.0*M_PI; i+=0.002)
     {
         float val = func(i);
 
@@ -215,7 +217,8 @@ int** standard_scatter()
         different_scatter(nx, ny, vals, fabs(dist), 4, 0.001);
     }
 
-    for(float i=0; i<2.0*M_PI; i+=0.1)
+    ///scatter old stars
+    for(float i=0; i<2.0*M_PI; i+=0.02)
     {
         float val = func(i);
 
@@ -243,7 +246,8 @@ int** standard_scatter()
         different_scatter(nx, ny, walk_dots, fabs(dist), 8, 0.001);
     }
 
-    for(float i=0; i<2.0*M_PI; i+=0.02)
+    ///scatter.... closer to spiral arm?
+    for(float i=0; i<2.0*M_PI; i+=0.002)
     {
         float val = func(i);
 
@@ -271,13 +275,16 @@ int** standard_scatter()
         different_scatter(nx, ny, vals, fabs(dist), 4, 0.0003);
     }
 
+    int mult_factor = 4;
 
-    random_points_less_edge(vals, 400, 2.5, true);
-    random_points_less_edge(vals, 400, 2.5);
-    random_points_less_edge(vals, 2000, 1.5);
-    random_points_less_edge(vals, 5000, 0.15);
-    random_points_less_edge(vals, 5000, 0.35);
-    random_points_less_edge(vals, 2000, 0.45);
+    random_points_less_edge(vals, 400 * mult_factor, 2.5, true);
+    random_points_less_edge(vals, 400 * mult_factor, 2.5);
+    random_points_less_edge(vals, 2000 * mult_factor, 1.5);
+    random_points_less_edge(vals, 1000 * mult_factor, 1.75, true);
+    random_points_less_edge(vals, 2000 * mult_factor, 1.5, true);
+    random_points_less_edge(vals, 5000 * mult_factor * 10, 0.15);
+    random_points_less_edge(vals, 5000 * mult_factor, 0.35);
+    random_points_less_edge(vals, 2000 * mult_factor, 0.45);
 
     //smooth(vals, nvals, 100);
 
@@ -545,6 +552,7 @@ point_cloud get_starmap(int rand_val)
     return stars;
 }
 
+#ifdef GALAXY_TEST
 int main()
 {
     sf::RenderWindow window;
@@ -620,3 +628,4 @@ int main()
 
     return 0;
 }
+#endif

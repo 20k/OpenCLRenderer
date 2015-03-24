@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
         //window.draw_galaxy_cloud(cloud_buf, g_game_cam);
         //window.draw_galaxy_cloud(g_star_cloud, g_game_cam); ///stars are at deceptive distances, always draw last
 
-        space_resources.draw_galaxy_cloud(cloud_buf, g_game_cam);
+        //space_resources.draw_galaxy_cloud(cloud_buf, g_game_cam);
         space_resources.draw_galaxy_cloud(g_star_cloud, g_game_cam);
 
 
