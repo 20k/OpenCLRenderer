@@ -3935,46 +3935,31 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                     CLK_FILTER_NEAREST;
 
 
-    float4 blend_col = convert_float4(screen_buf[y*SCREENWIDTH + x])/255.f;//read_imagef(screen_in, sam, (int2){x, y});
-
     float w1 = 1/6.f;
     float w2 = 1.0f - w1;
 
 
     float4 final_col = rgba * relative_brightness;
 
-    //final_col -= length(blend_col) * 2;
-
-    //final_col = clamp(final_col, 0.f, 1.f);
-
-
-    //float4 lower_val = final_col * w1 + blend_col * w2;
-
-    //lower_val = max(lower_val, blend_col);
-
-    //final_col += blend_col * 2;
-
-    blend_col = 0;
-
     float4 lower_val = final_col * w1;
 
-    bool main = false;
+    //bool main = false;
     //if(idepth == *depth_pointer)
     {
         //write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
-        accumulate_to_buffer(screen_buf, x, y, clamp(final_col + blend_col, 0.f, 1.f) * 255.f);
-        main = true;
+        accumulate_to_buffer(screen_buf, x, y, clamp(final_col, 0.f, 1.f) * 255.f);
+        //main = true;
     }
 
     //write_imagef(screen, (int2){x, y+1}, lower_val);
     //if(idepth == *depth_pointer1)
-        accumulate_to_buffer(screen_buf, x, y+1, lower_val * 255.f);
+    accumulate_to_buffer(screen_buf, x, y+1, lower_val * 255.f);
     //if(idepth == *depth_pointer2)
-        accumulate_to_buffer(screen_buf, x, y-1, lower_val * 255.f);
+    accumulate_to_buffer(screen_buf, x, y-1, lower_val * 255.f);
     //if(idepth == *depth_pointer3)
-        accumulate_to_buffer(screen_buf, x+1, y, lower_val * 255.f);
+    accumulate_to_buffer(screen_buf, x+1, y, lower_val * 255.f);
     //if(idepth == *depth_pointer4)
-        accumulate_to_buffer(screen_buf, x-1, y, lower_val * 255.f);
+    accumulate_to_buffer(screen_buf, x-1, y, lower_val * 255.f);
 }
 
 ///nearly identical to point cloud, but space dust instead
