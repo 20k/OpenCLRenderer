@@ -54,7 +54,7 @@ void different_scatter(int x, int y, int** vals, float dist, int n, float dist_f
 
 
 
-void scatter(int x, int y, int** vals, float dist)
+/*void scatter(int x, int y, int** vals, float dist)
 {
     float rand_val = (float)rand()/RAND_MAX;
 
@@ -80,9 +80,9 @@ void scatter(int x, int y, int** vals, float dist)
             vals[(int)py][(int)px] = 8000/255.0f;
     }
 
-}
+}*/
 
-void smooth(int** vals, int** nvals, int n)
+/*void smooth(int** vals, int** nvals, int n)
 {
     for(int i=0; i<n; i++)
     {
@@ -102,9 +102,9 @@ void smooth(int** vals, int** nvals, int n)
             }
         }
     }
-}
+}*/
 
-void random_points(int** vals, int num)
+/*void random_points(int** vals, int num)
 {
     for(int i=0; i<num; i++)
     {
@@ -127,7 +127,7 @@ void random_points(int** vals, int num)
             vals[(int)py][(int)px] = 2000.0f/1.f;
 
     }
-}
+}*/
 
 void random_points_less_edge(int** vals, int num, float mult_fact, bool is_random_z = false)
 {
@@ -358,7 +358,7 @@ int** standard_scatter()
 }
 
 
-void alt_scatter(sf::Image& img)
+/*void alt_scatter(sf::Image& img)
 {
     int**vals = new int*[MAP_RESOLUTION];
     for(int i=0; i<MAP_RESOLUTION; i++)
@@ -407,7 +407,7 @@ void alt_scatter(sf::Image& img)
         vals[(int)y][(int)x] = 8000.0f;
         vals[(int)ny][(int)nx] = 8000.0f;
     }
-}
+}*/
 
 float evaluate_func(float x)
 {
