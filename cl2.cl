@@ -3927,39 +3927,64 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     float relative_brightness = brightness * 1.0f/(depth*depth);
 
+    ///relative brightness is our depth measure, 1.0 is maximum closeness, 0.01 is furthest 'away'
+    ///that we're allowing stars to look
     relative_brightness = clamp(relative_brightness, 0.01f, 1.0f);
 
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE     |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
                     CLK_FILTER_NEAREST;
 
 
+    float radius = relative_brightness * 3.f;
+
+    radius = clamp(radius, 1.f, 3.f);
+
+
     float w1 = 1/6.f;
-    //float w2 = 1.0f - w1;
 
 
     float4 final_col = rgba * relative_brightness;
 
     float4 lower_val = final_col * w1;
 
-    //bool main = false;
+
+    final_col *= 255.f;
+    lower_val *= 255.f;
+
+    /*//bool main = false;
     //if(idepth == *depth_pointer)
     {
         //write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
-        accumulate_to_buffer(screen_buf, x, y, clamp(final_col, 0.f, 1.f) * 255.f);
-        //main = true;
-    }
 
+        //main = true;
+    }*/
+
+    accumulate_to_buffer(screen_buf, x, y, final_col);
+    accumulate_to_buffer(screen_buf, x, y+1, lower_val);
+    accumulate_to_buffer(screen_buf, x, y-1, lower_val);
+    accumulate_to_buffer(screen_buf, x+1, y, lower_val);
+    accumulate_to_buffer(screen_buf, x-1, y, lower_val);
+
+    /*
     //write_imagef(screen, (int2){x, y+1}, lower_val);
     //if(idepth == *depth_pointer1)
-    accumulate_to_buffer(screen_buf, x, y+1, lower_val * 255.f);
+
     //if(idepth == *depth_pointer2)
-    accumulate_to_buffer(screen_buf, x, y-1, lower_val * 255.f);
+
     //if(idepth == *depth_pointer3)
-    accumulate_to_buffer(screen_buf, x+1, y, lower_val * 255.f);
+
     //if(idepth == *depth_pointer4)
-    accumulate_to_buffer(screen_buf, x-1, y, lower_val * 255.f);
+    */
+
+
+    ///depth buffering
+    atomic_min(depth_pointer, idepth);
+    atomic_min(depth_pointer1, idepth);
+    atomic_min(depth_pointer2, idepth);
+    atomic_min(depth_pointer3, idepth);
+    atomic_min(depth_pointer4, idepth);
 }
 
 ///nearly identical to point cloud, but space dust instead

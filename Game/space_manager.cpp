@@ -55,7 +55,7 @@ void space_manager::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_c
 
     cl_uint p1global_ws = pc.len;
 
-    run_kernel_with_list(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arg_list, true);
+    //run_kernel_with_list(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arg_list, true);
     run_kernel_with_list(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arg_list, true);
 }
 
