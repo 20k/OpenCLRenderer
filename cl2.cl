@@ -3909,11 +3909,11 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     x = projected.x;
     y = projected.y;
 
-    __global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
+    /*__global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
     __global uint* depth_pointer1 = &depth_buffer[(y+1)*SCREENWIDTH + x];
     __global uint* depth_pointer2 = &depth_buffer[(y-1)*SCREENWIDTH + x];
     __global uint* depth_pointer3 = &depth_buffer[y*SCREENWIDTH + x + 1];
-    __global uint* depth_pointer4 = &depth_buffer[y*SCREENWIDTH + x - 1];
+    __global uint* depth_pointer4 = &depth_buffer[y*SCREENWIDTH + x - 1];*/
 
 
     float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
@@ -3937,9 +3937,9 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                     CLK_FILTER_NEAREST;
 
 
-    float radius = relative_brightness * 3.f;
+    float radius = relative_brightness * 5.f;
 
-    radius = clamp(radius, 1.f, 3.f);
+    radius = clamp(radius, 1.f, 5.f);
 
 
     float w1 = 1/6.f;
@@ -3953,30 +3953,11 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     final_col *= 255.f;
     lower_val *= 255.f;
 
-    /*//bool main = false;
-    //if(idepth == *depth_pointer)
-    {
-        //write_imagef(screen, (int2){x, y}, clamp(final_col + blend_col, 0.f, 1.f));
-
-        //main = true;
-    }*/
-
-    accumulate_to_buffer(screen_buf, x, y, final_col);
+    /*accumulate_to_buffer(screen_buf, x, y, final_col);
     accumulate_to_buffer(screen_buf, x, y+1, lower_val);
     accumulate_to_buffer(screen_buf, x, y-1, lower_val);
     accumulate_to_buffer(screen_buf, x+1, y, lower_val);
     accumulate_to_buffer(screen_buf, x-1, y, lower_val);
-
-    /*
-    //write_imagef(screen, (int2){x, y+1}, lower_val);
-    //if(idepth == *depth_pointer1)
-
-    //if(idepth == *depth_pointer2)
-
-    //if(idepth == *depth_pointer3)
-
-    //if(idepth == *depth_pointer4)
-    */
 
 
     ///depth buffering
@@ -3984,7 +3965,46 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     atomic_min(depth_pointer1, idepth);
     atomic_min(depth_pointer2, idepth);
     atomic_min(depth_pointer3, idepth);
-    atomic_min(depth_pointer4, idepth);
+    atomic_min(depth_pointer4, idepth);*/
+
+
+    float bound = ceil(radius);
+
+    for(int j=-bound; j<=bound; j++)
+    {
+        for(int i=-bound; i<=bound; i++)
+        {
+            float2 bright = {i, j};
+
+            float len = length(bright);
+
+            len = clamp(len, 0.f, bound);
+
+            ///bound at centre, 0 at edge
+            float mag = bound - len;
+
+            ///?
+            float norm_mag = mag / bound;
+
+            norm_mag *= norm_mag;
+
+            ///make all final col?
+            float4 my_col = lower_val;
+
+            if(i == 0 && j == 0)
+                my_col = final_col;
+
+            my_col *= norm_mag;
+
+            if(y + j >= SCREENHEIGHT || x + i >= SCREENWIDTH || y + j < 0 || x + i < 0)
+                continue;
+
+            __global uint* depth_pointer = &depth_buffer[(y+j)*SCREENWIDTH + x + i];
+
+            accumulate_to_buffer(screen_buf, x + i, y + j, my_col);
+            atomic_min(depth_pointer, idepth);
+        }
+    }
 }
 
 ///nearly identical to point cloud, but space dust instead
