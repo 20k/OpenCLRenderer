@@ -3937,6 +3937,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     float highlight_distance = 500.f;
 
+    ///fraction within highlight radius
     float radius_frac = depth / highlight_distance;
 
     radius_frac = 1.f - radius_frac;
@@ -3974,9 +3975,6 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     //rgba.xyz *= rgba.w;
 
-
-
-
     float w1 = 1/2.f;
 
 
@@ -3989,6 +3987,8 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     lower_val *= 255.f;
 
     float bound = ceil(radius);
+
+    bool within_highlight = (radius_frac > 0) && bound > 10;
 
     for(int j=-bound; j<=bound; j++)
     {
@@ -4008,18 +4008,39 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
             norm_mag *= norm_mag * norm_mag;
 
+            float transition_period = 0.4f;
+
+            float transition_frac = radius_frac / transition_period;
+
+            transition_frac = clamp(transition_frac, 0.f, 1.f);
+            transition_frac = sqrt(transition_frac);
+
+
             ///make all final col?
-            float4 my_col = lower_val;
+            float4 my_col = within_highlight ? lower_val * (1.f - transition_frac) : lower_val;//radius_frac > transition_period ? 0.f : lower_val;
 
             if(i == 0 && j == 0)
                 my_col = final_col;
 
 
             ///if hypergiant and i or j but not both equal to 1
-            if(hypergiant && ((abs(i) == 1) != (abs(j) == 1)))
+            if(hypergiant && (abs(i) == 1 && abs(j) == 0 || abs(i) == 0 && abs(j) == 1 || abs(i) == 1 && abs(j) == 1))
             {
-                my_col = final_col;
+                my_col = final_col * (w1 * 1.1f);
             }
+
+            if((abs(i) == 1) != (abs(j) == 1) && within_highlight)
+            {
+                my_col = rgba * 255.f * transition_frac + lower_val * (1.0f - transition_frac);
+            }
+
+            /*if(within_highlight)
+            {
+                norm_mag = (bound - abs(i)) + (bound - abs(j));
+                norm_mag /= 2.f;
+                norm_mag /= bound;
+                norm_mag *= norm_mag * norm_mag;
+            }*/
 
             my_col *= norm_mag;
 
