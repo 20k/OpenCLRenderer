@@ -434,6 +434,16 @@ int main(int argc, char *argv[])
         {
             player_ship->set_linear_force_direction((cl_float4){0, 0, -1, 0});
         }
+
+        if(k.isKeyPressed(sf::Keyboard::Home))
+        {
+            player_ship->set_linear_force_direction((cl_float4){0, 1, 0, 0});
+        }
+        if(k.isKeyPressed(sf::Keyboard::End))
+        {
+            player_ship->set_linear_force_direction((cl_float4){0, -1, 0, 0});
+        }
+
         if(k.isKeyPressed(sf::Keyboard::O))
         {
             player_ship->set_rotation_direction((cl_float4){0, -1, 0, 0});

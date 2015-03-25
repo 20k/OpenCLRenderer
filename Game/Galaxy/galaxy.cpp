@@ -249,107 +249,103 @@ point_cloud construct_starmap(vector<star_info>& vals)
     const float yellowmod = 0.8;
     const float redmod = 0.5;
 
-    //for(int y=0; y<MAP_RESOLUTION; y++)
+    for(int i=0; i<vals.size(); i++)
     {
-      //  for(int x=0; x<MAP_RESOLUTION; x++)
-        for(int i=0; i<vals.size(); i++)
+        int my_val = vals[i].type;
+
+        float x = vals[i].x;
+        float y = vals[i].y;
+
+        if(my_val == 1 || my_val == 2 || my_val == 3)
         {
-            int my_val = vals[i].type;
+            float rad = RADIUS*1.5;
 
-            float x = vals[i].x;
-            float y = vals[i].y;
+            float xd = x - MAP_RESOLUTION/2.0f;
+            float yd = y - MAP_RESOLUTION/2.0f;
 
-            if(my_val == 1 || my_val == 2 || my_val == 3)
+            float dist = sqrt(xd*xd + yd*yd);
+
+            float frac = dist/rad;
+
+            float z = evaluate_func(frac);
+
+            float gap = z;
+
+            z *= (float)rand()/RAND_MAX;
+
+            if(dist > rad || my_val == 3)
             {
-                float rad = RADIUS*1.5;
+                z = (float)rand()/RAND_MAX;
 
-                float xd = x - MAP_RESOLUTION/2.0f;
-                float yd = y - MAP_RESOLUTION/2.0f;
-
-                float dist = sqrt(xd*xd + yd*yd);
-
-                float frac = dist/rad;
-
-                float z = evaluate_func(frac);
-
-                float gap = z;
-
-                z *= (float)rand()/RAND_MAX;
-
-                if(dist > rad || my_val == 3)
-                {
-                    z = (float)rand()/RAND_MAX;
-
-                    if(rand()%2)
-                        z = -z;
-
-                    z *= 10.0f;
-                }
-
-                float randfrac = ((float)rand()/RAND_MAX) - 0.5;
-
-                z += (randfrac)/1.1;
-
-                if(rand()%2) ///hitler
+                if(rand()%2)
                     z = -z;
 
-                sf::Color col;
-
-                float brightnessmod = (0.8*(float)rand()/RAND_MAX) - 0.3;
-
-                if(my_val == 1 || my_val == 3)
-                {
-                    col = sf::Color(255,200,150);
-
-                    float yrand = yellowmod + brightnessmod;
-
-                    if(yrand > 1)
-                        yrand = 1;
-
-                    col.r *= yrand;
-                    col.g *= yrand;
-                    col.b *= yrand;
-
-                    if((float)rand()/RAND_MAX < bluepercent)
-                    {
-                        col = sf::Color(150, 200, 255);
-
-                        float brand = bluemod + brightnessmod;
-
-                        if(brand > 1)
-                            brand = 1;
-
-                        col.r *= brand;
-                        col.g *= brand;
-                        col.b *= brand;
-                    }
-                }
-                else if(my_val == 2)
-                {
-                    col = sf::Color(255, 30, 30);
-
-                    float rrand = redmod + brightnessmod;
-
-                    if(rrand > 1)
-                        rrand = 1;
-
-                    col.r *= rrand;
-                    col.g *= rrand;
-                    col.b *= rrand;
-                }
-
-                cl_float4 pos;
-                pos.x = xd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
-                pos.z = yd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
-                pos.y = z*100 + (((float)rand()/RAND_MAX) - 0.5) * 8;
-                pos.w = 0;
-
-                cl_uint colour = (col.r << 24 | col.g << 16 | col.b << 8) & 0xFFFFFF00;
-
-                positions.push_back(pos);
-                colours.push_back(colour);
-
+                z *= 10.0f;
             }
+
+            float randfrac = ((float)rand()/RAND_MAX) - 0.5;
+
+            z += (randfrac)/1.1;
+
+            if(rand()%2) ///hitler
+                z = -z;
+
+            sf::Color col;
+
+            float brightnessmod = (0.8*(float)rand()/RAND_MAX) - 0.3;
+
+            if(my_val == 1 || my_val == 3)
+            {
+                col = sf::Color(255,200,150);
+
+                float yrand = yellowmod + brightnessmod;
+
+                if(yrand > 1)
+                    yrand = 1;
+
+                col.r *= yrand;
+                col.g *= yrand;
+                col.b *= yrand;
+
+                if((float)rand()/RAND_MAX < bluepercent)
+                {
+                    col = sf::Color(150, 200, 255);
+
+                    float brand = bluemod + brightnessmod;
+
+                    if(brand > 1)
+                        brand = 1;
+
+                    col.r *= brand;
+                    col.g *= brand;
+                    col.b *= brand;
+                }
+            }
+            else if(my_val == 2)
+            {
+                col = sf::Color(255, 30, 30);
+
+                float rrand = redmod + brightnessmod;
+
+                if(rrand > 1)
+                    rrand = 1;
+
+                col.r *= rrand;
+                col.g *= rrand;
+                col.b *= rrand;
+            }
+
+            cl_float4 pos;
+            pos.x = xd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
+            pos.z = yd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
+            pos.y = z*100 + (((float)rand()/RAND_MAX) - 0.5) * 8;
+            pos.w = 0;
+
+            cl_uint colour = (col.r << 24 | col.g << 16 | col.b << 8) & 0xFFFFFF00;
+
+            positions.push_back(pos);
+            colours.push_back(colour);
+
         }
     }
 

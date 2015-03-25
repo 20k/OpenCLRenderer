@@ -118,6 +118,7 @@ void newtonian_body::tick(float timestep)
         //fix
     }
 
+    linear_momentum.y += attempted_force_direction.y;
 
 
     cl_float4 position_old = position;

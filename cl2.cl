@@ -3921,13 +3921,13 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     rgba /= 255.0f;
 
 
-    depth /= 10.0f;
+    depth /= 4.0f;
 
     float brightness = 2000000.0f;
 
     float relative_brightness = brightness * 1.0f/(depth*depth);
 
-    relative_brightness = clamp(relative_brightness, 0.1f, 1.0f);
+    relative_brightness = clamp(relative_brightness, 0.01f, 1.0f);
 
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
@@ -4269,14 +4269,14 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
     float4 col = convert_float4(my_col) / 255.f;
 
 
-    if(col.x > 1 || col.y > 1 || col.z > 1)
+    /*if(col.x > 1 || col.y > 1 || col.z > 1)
     {
         float mv = max(col.x, max(col.y, col.z));
 
         col -= mv;
 
         col += 1;
-    }
+    }*/
 
     col = clamp(col, 0.f, 1.f);
 
