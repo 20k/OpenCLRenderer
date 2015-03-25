@@ -3937,12 +3937,23 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                     CLK_FILTER_NEAREST;
 
 
-    float radius = relative_brightness * relative_brightness * 5.f;
+    float highlight_distance = 500.f;
 
-    radius = clamp(radius, 1.f, 5.f);
+    float radius_frac = depth / highlight_distance;
+
+    radius_frac = 1.f - radius_frac;
+
+    radius_frac = clamp(radius_frac, 0.f, 1.f);
 
 
-    float w1 = 1/6.f;
+    float radius = radius_frac * 10.f;
+
+    radius += relative_brightness * 4.f;
+
+    radius = clamp(radius, 1.f, 10.f);
+
+
+    float w1 = 1/2.f;
 
 
     float4 final_col = rgba * relative_brightness;
@@ -3952,21 +3963,6 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
     final_col *= 255.f;
     lower_val *= 255.f;
-
-    /*accumulate_to_buffer(screen_buf, x, y, final_col);
-    accumulate_to_buffer(screen_buf, x, y+1, lower_val);
-    accumulate_to_buffer(screen_buf, x, y-1, lower_val);
-    accumulate_to_buffer(screen_buf, x+1, y, lower_val);
-    accumulate_to_buffer(screen_buf, x-1, y, lower_val);
-
-
-    ///depth buffering
-    atomic_min(depth_pointer, idepth);
-    atomic_min(depth_pointer1, idepth);
-    atomic_min(depth_pointer2, idepth);
-    atomic_min(depth_pointer3, idepth);
-    atomic_min(depth_pointer4, idepth);*/
-
 
     float bound = ceil(radius);
 
