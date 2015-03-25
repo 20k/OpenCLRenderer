@@ -3910,10 +3910,10 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     y = projected.y;
 
 
-    const float final_modifier = 1.f;
+    float final_modifier = 1.f;
 
 
-    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
+    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
 
     rgba /= 255.0f;
 
@@ -3934,6 +3934,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                     CLK_FILTER_NEAREST;
 
 
+
     float highlight_distance = 500.f;
 
     float radius_frac = depth / highlight_distance;
@@ -3949,6 +3950,31 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     radius += relative_brightness * 4.f;
 
     radius = clamp(radius, 2.f, 10.f);
+
+
+
+    if(rgba.w >= 0.98 && rgba.w < 0.99)
+    {
+        relative_brightness += 0.25;
+        radius *= 2.f;
+    }
+
+    bool hypergiant = false;
+
+
+    if(rgba.w >= 0.9999)
+    {
+        relative_brightness += 0.35;
+        radius *= 2.5;
+        hypergiant = true;
+    }
+
+
+    relative_brightness += rgba.w / 2.5;
+
+    //rgba.xyz *= rgba.w;
+
+
 
 
     float w1 = 1/2.f;
@@ -3987,6 +4013,13 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
             if(i == 0 && j == 0)
                 my_col = final_col;
+
+
+            ///if hypergiant and i or j but not both equal to 1
+            if(hypergiant && ((abs(i) == 1) != (abs(j) == 1)))
+            {
+                my_col = final_col;
+            }
 
             my_col *= norm_mag;
 

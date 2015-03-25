@@ -35,10 +35,17 @@ struct star_info
 {
     float x, y;
     int type;
+    float brightness;
 };
 
 
-void different_scatter(int x, int y, vector<star_info>& vals, float dist, int n, float dist_factor, int type = 1)
+inline float randf()
+{
+    return (float)rand() / RAND_MAX;
+}
+
+
+void different_scatter(int x, int y, vector<star_info>& vals, float dist, int n, float dist_factor, float brightness = 1, int type = 1)
 {
     for(int i=0; i<n; i++)
     {
@@ -56,12 +63,12 @@ void different_scatter(int x, int y, vector<star_info>& vals, float dist, int n,
         //if(in_bound(px, py))
         //    vals[(int)py][(int)px] = 1;
 
-        vals.push_back({px, py, type});
+        vals.push_back({px, py, type, brightness});
 
     }
 }
 
-void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, bool is_random_z = false, int type = 1)
+void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, float brightness = 1, bool is_random_z = false, int type = 1)
 {
     for(int i=0; i<num; i++)
     {
@@ -86,12 +93,12 @@ void random_points_less_edge(vector<star_info>& vals, int num, float mult_fact, 
         //if(in_bound(px, py))
         //    vals[(int)py][(int)px] = type;
 
-        vals.push_back({px, py, type});
+        vals.push_back({px, py, type, brightness});
 
     }
 }
 
-void random_points(vector<star_info>& vals, int num, float mult_fact, bool is_random_z = false)
+void random_points(vector<star_info>& vals, int num, float mult_fact, float brightness = 1, bool is_random_z = false)
 {
     for(int i=0; i<num; i++)
     {
@@ -118,7 +125,7 @@ void random_points(vector<star_info>& vals, int num, float mult_fact, bool is_ra
         //if(in_bound(px, py))
         //    vals[(int)py][(int)px] = type;
 
-        vals.push_back({px, py, type});
+        vals.push_back({px, py, type, brightness});
 
     }
 }
@@ -129,7 +136,11 @@ vector<star_info> standard_scatter()
 {
     vector<star_info> vals;
 
-    ///scatter regular
+    float brightness_close = 1.5f;
+    float brightness_old = 0.7f;
+    float brightness_further = 1.2f;
+
+    ///scatter further away from spiral arm
     for(float i=0; i<2.0*M_PI; i+=0.002)
     {
         float val = func(i);
@@ -149,11 +160,12 @@ vector<star_info> standard_scatter()
         if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
+        float brightness = brightness_further * (randf() + 0.5)/1.5;
 
         float dist = val;
 
-        different_scatter(x, y, vals, fabs(dist), 4, 0.001);
-        different_scatter(nx, ny, vals, fabs(dist), 4, 0.001);
+        different_scatter(x, y, vals, fabs(dist), 4, 0.001, brightness);
+        different_scatter(nx, ny, vals, fabs(dist), 4, 0.001, brightness);
     }
 
     ///scatter old stars
@@ -176,12 +188,13 @@ vector<star_info> standard_scatter()
         if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
+        float brightness = brightness_old * (randf() + 0.5)/1.5;
 
         float dist = val;
 
         ///plot old stars, they have type 2
-        different_scatter(x, y, vals, fabs(dist), 8, 0.001, 2);
-        different_scatter(nx, ny, vals, fabs(dist), 8, 0.001, 2);
+        different_scatter(x, y, vals, fabs(dist), 8, 0.001, brightness, 2);
+        different_scatter(nx, ny, vals, fabs(dist), 8, 0.001, brightness, 2);
     }
 
     ///scatter.... closer to spiral arm?
@@ -204,27 +217,28 @@ vector<star_info> standard_scatter()
         if(nx < 0 || nx >= MAP_RESOLUTION || ny < 0 || ny >= MAP_RESOLUTION)
             continue;
 
+        float brightness = brightness_close * (randf() + 0.5)/1.5;
 
         float dist = val;
 
-        different_scatter(x, y, vals, fabs(dist), 4, 0.0003);
-        different_scatter(nx, ny, vals, fabs(dist), 4, 0.0003);
+        different_scatter(x, y, vals, fabs(dist), 4, 0.0003, brightness);
+        different_scatter(nx, ny, vals, fabs(dist), 4, 0.0003, brightness);
     }
 
     int mult_factor = 4;
 
     //random_points_less_edge(vals, 400 * mult_factor, 2.5, true);
-    random_points(vals, 800 * mult_factor, 2.5, true);
-    random_points(vals, 800 * mult_factor, 1.5, true);
-    random_points(vals, 800 * mult_factor, 0.5, true);
-    random_points_less_edge(vals, 400 * mult_factor, 2.5);
-    random_points_less_edge(vals, 2000 * mult_factor, 1.5);
-    random_points_less_edge(vals, 1000 * mult_factor, 1.75);
-    random_points_less_edge(vals, 2000 * mult_factor, 1.5);
-    random_points_less_edge(vals, 5000 * mult_factor, 0.15);
-    random_points_less_edge(vals, 5000 * mult_factor, 0.35);
-    random_points_less_edge(vals, 2000 * mult_factor, 0.45);
-    random_points_less_edge(vals, 500 * mult_factor, 0.45, false, 2); ///scatter some oldes around
+    random_points(vals, 800 * mult_factor, 2.5, 1.0, true);
+    random_points(vals, 800 * mult_factor, 1.5, 1.0, true);
+    random_points(vals, 800 * mult_factor, 0.5, 1.0, true);
+    random_points_less_edge(vals, 400 * mult_factor, 2.5, 0.8);
+    random_points_less_edge(vals, 2000 * mult_factor, 1.5, 1.0);
+    random_points_less_edge(vals, 1000 * mult_factor, 1.75, 1.1);
+    random_points_less_edge(vals, 2000 * mult_factor, 1.5, 1.2);
+    random_points_less_edge(vals, 2000 * mult_factor, 0.15, 1.7);
+    random_points_less_edge(vals, 5000 * mult_factor, 0.35, 1.45);
+    random_points_less_edge(vals, 2000 * mult_factor, 0.45, 1.4);
+    random_points_less_edge(vals, 500 * mult_factor, 0.45, 1.5, false, 2); ///scatter some oldes around
 
     return vals;
 }
@@ -239,10 +253,6 @@ float evaluate_func(float x)
     return pow((tanh(x/2 + 2) + 1)/2, 0.3)*1.5;
 }
 
-inline float randf()
-{
-    return (float)rand() / RAND_MAX;
-}
 
 point_cloud construct_starmap(vector<star_info>& vals)
 {
@@ -263,8 +273,11 @@ point_cloud construct_starmap(vector<star_info>& vals)
         float y = vals[i].y;
 
         float brightness_rand = randf();
-        brightness_rand *= brightness_rand;
+        //brightness_rand *= brightness_rand;
+        brightness_rand = pow(brightness_rand, 4.f);
         brightness_rand *= 255.f;
+
+        brightness_rand *= vals[i].brightness;
 
         brightness_rand = clamp(brightness_rand, 0.f, 255.f);
 
