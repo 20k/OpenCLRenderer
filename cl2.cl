@@ -3909,11 +3909,8 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     x = projected.x;
     y = projected.y;
 
-    /*__global uint* depth_pointer = &depth_buffer[y*SCREENWIDTH + x];
-    __global uint* depth_pointer1 = &depth_buffer[(y+1)*SCREENWIDTH + x];
-    __global uint* depth_pointer2 = &depth_buffer[(y-1)*SCREENWIDTH + x];
-    __global uint* depth_pointer3 = &depth_buffer[y*SCREENWIDTH + x + 1];
-    __global uint* depth_pointer4 = &depth_buffer[y*SCREENWIDTH + x - 1];*/
+
+    const float final_modifier = 1.f;
 
 
     float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, 0};
@@ -3946,11 +3943,12 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     radius_frac = clamp(radius_frac, 0.f, 1.f);
 
 
+    ///some stars will artificially modify this, see a component
     float radius = radius_frac * 10.f;
 
     radius += relative_brightness * 4.f;
 
-    radius = clamp(radius, 1.f, 10.f);
+    radius = clamp(radius, 2.f, 10.f);
 
 
     float w1 = 1/2.f;
@@ -3982,7 +3980,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
             ///?
             float norm_mag = mag / bound;
 
-            norm_mag *= norm_mag;
+            norm_mag *= norm_mag * norm_mag;
 
             ///make all final col?
             float4 my_col = lower_val;
@@ -3997,7 +3995,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 
             __global uint* depth_pointer = &depth_buffer[(y+j)*SCREENWIDTH + x + i];
 
-            accumulate_to_buffer(screen_buf, x + i, y + j, my_col);
+            accumulate_to_buffer(screen_buf, x + i, y + j, my_col * final_modifier);
             atomic_min(depth_pointer, idepth);
         }
     }

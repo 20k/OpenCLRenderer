@@ -2,6 +2,7 @@
 #include <sfml/graphics.hpp>
 #include <math.h>
 #include <stdio.h>
+#include <algorithm>
 #include <cl/cl.h>
 
 #include "galaxy.hpp"
@@ -223,7 +224,7 @@ vector<star_info> standard_scatter()
     random_points_less_edge(vals, 5000 * mult_factor, 0.15);
     random_points_less_edge(vals, 5000 * mult_factor, 0.35);
     random_points_less_edge(vals, 2000 * mult_factor, 0.45);
-    random_points_less_edge(vals, 500 * mult_factor, 0.45, false, 2);
+    random_points_less_edge(vals, 500 * mult_factor, 0.45, false, 2); ///scatter some oldes around
 
     return vals;
 }
@@ -236,6 +237,11 @@ float evaluate_func(float x)
     x = x*60.0f;
 
     return pow((tanh(x/2 + 2) + 1)/2, 0.3)*1.5;
+}
+
+inline float randf()
+{
+    return (float)rand() / RAND_MAX;
 }
 
 point_cloud construct_starmap(vector<star_info>& vals)
@@ -256,6 +262,13 @@ point_cloud construct_starmap(vector<star_info>& vals)
         float x = vals[i].x;
         float y = vals[i].y;
 
+        float brightness_rand = randf();
+        brightness_rand *= brightness_rand;
+        brightness_rand *= 255.f;
+
+        brightness_rand = clamp(brightness_rand, 0.f, 255.f);
+
+
         if(my_val == 1 || my_val == 2 || my_val == 3)
         {
             float rad = RADIUS*1.5;
@@ -269,7 +282,7 @@ point_cloud construct_starmap(vector<star_info>& vals)
 
             float z = evaluate_func(frac);
 
-            float gap = z;
+            //float gap = z;
 
             z *= (float)rand()/RAND_MAX;
 
@@ -290,50 +303,55 @@ point_cloud construct_starmap(vector<star_info>& vals)
             if(rand()%2) ///hitler
                 z = -z;
 
-            sf::Color col;
+            cl_float4 col = {0};
 
             float brightnessmod = (0.8*(float)rand()/RAND_MAX) - 0.3;
 
             if(my_val == 1 || my_val == 3)
             {
-                col = sf::Color(255,200,150);
+                col = {255,200,150};
 
                 float yrand = yellowmod + brightnessmod;
 
                 if(yrand > 1)
                     yrand = 1;
 
-                col.r *= yrand;
-                col.g *= yrand;
-                col.b *= yrand;
+                col.x *= yrand;
+                col.y *= yrand;
+                col.z *= yrand;
 
                 if((float)rand()/RAND_MAX < bluepercent)
                 {
-                    col = sf::Color(150, 200, 255);
+                    col = {150, 200, 255};
 
                     float brand = bluemod + brightnessmod;
 
                     if(brand > 1)
                         brand = 1;
 
-                    col.r *= brand;
-                    col.g *= brand;
-                    col.b *= brand;
+                    col.x *= brand;
+                    col.y *= brand;
+                    col.z *= brand;
                 }
             }
             else if(my_val == 2)
             {
-                col = sf::Color(255, 30, 30);
+                col = {255, 30, 30};
 
                 float rrand = redmod + brightnessmod;
 
                 if(rrand > 1)
                     rrand = 1;
 
-                col.r *= rrand;
-                col.g *= rrand;
-                col.b *= rrand;
+                col.x *= rrand;
+                col.y *= rrand;
+                col.z *= rrand;
             }
+
+            col.x = min((int)col.x, 255);
+            col.y = min((int)col.y, 255);
+            col.z = min((int)col.z, 255);
+
 
             cl_float4 pos;
             pos.x = xd*10 + (((float)rand()/RAND_MAX) - 0.5) * 8;
@@ -341,7 +359,7 @@ point_cloud construct_starmap(vector<star_info>& vals)
             pos.y = z*100 + (((float)rand()/RAND_MAX) - 0.5) * 8;
             pos.w = 0;
 
-            cl_uint colour = (col.r << 24 | col.g << 16 | col.b << 8) & 0xFFFFFF00;
+            cl_uint colour = ((int)col.x << 24 | (int)col.y << 16 | (int)col.z << 8) | (uint8_t)brightness_rand;
 
             positions.push_back(pos);
             colours.push_back(colour);
