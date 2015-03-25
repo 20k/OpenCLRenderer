@@ -158,19 +158,10 @@ int main(int argc, char *argv[])
 
     window.add_light(&l);
 
-    //window.construct_shadowmaps();
-
     bool lastf = false, lastg = false, lasth = false;
-
-    //goo_monster m1(window.get_width(), window.get_height());
-    //m1.init(window.get_width(), window.get_height());
 
     sf::Mouse mouse;
     sf::Keyboard key;
-
-    lattice<15, cl_float> lat;
-
-    lat.init(100, 100, 100);
 
     int fc = 0;
 
@@ -197,66 +188,7 @@ int main(int argc, char *argv[])
 
         window.draw_smoke(gloop);
 
-
-        /*
-        float mx = window.get_mouse_x();
-        float my = window.get_height() - window.get_mouse_y();
-
-        mx /= window.get_width();
-        my /= window.get_height();
-
-        mx *= lat.width;
-        my *= lat.height;
-
-        do_fluid_displace(mx, my, lat);
-
-        if(mouse.isButtonPressed(sf::Mouse::Left))
-        {
-            set_obstacle(mx, my, lat, 1);
-        }
-
-        if(mouse.isButtonPressed(sf::Mouse::Right))
-        {
-            set_obstacle(mx, my, lat, 0);
-        }
-
-        if(!key.isKeyPressed(sf::Keyboard::F) && lastf)
-        {
-            s1.add_point({mx, my});
-            lastf = false;
-            //printf("hello %f %f\n", mx, my);
-        }
-        if(key.isKeyPressed(sf::Keyboard::F))
-            lastf = true;
-
-        if(!key.isKeyPressed(sf::Keyboard::G) && lastg)
-        {
-            s1.project_to_lattice(lat);
-            lastg = false;
-        }
-        if(key.isKeyPressed(sf::Keyboard::G))
-            lastg = true;
-
-        if(!key.isKeyPressed(sf::Keyboard::H) && lasth)
-        {
-            s1.generate_skin_buffers(lat);
-            lasth = false;
-        }
-        if(key.isKeyPressed(sf::Keyboard::H))
-            lasth = true;*/
-
-
-       // s1.partial_advect_lattice(lat);
         window.render_buffers();
-
-        //s1.draw_update_hermite(lat);
-        //s1.advect_skin(lat);
-
-        //m1.tick();
-
-        //window.render_texture(lat.screen, lat.screen_id, lat.width, lat.height);
-
-       // s1.render_points(lat, window.window);
 
         window.display();
 

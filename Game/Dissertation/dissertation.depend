@@ -12,7 +12,7 @@
 	<utility>
 	<map>
 
-1427159909 source:c:\users\james\desktop\openclrenderer\engine.cpp
+1427167503 source:c:\users\james\desktop\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -38,7 +38,7 @@
 	"Rift/Src/OVR_CAPI.h"
 	"Rift/Src/OVR_Stereo.h"
 
-1427158124 c:\users\james\desktop\openclrenderer\engine.hpp
+1427167472 c:\users\james\desktop\openclrenderer\engine.hpp
 	<SFML/graphics.hpp>
 	"object.hpp"
 	<vector>
@@ -630,13 +630,14 @@
 1420032596 c:\users\james\desktop\openclrenderer\game\collision.hpp
 	<cl/cl.h>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.cpp
+1427214882 source:c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.cpp
 	<iostream>
 	<sfml/graphics.hpp>
 	<math.h>
 	<stdio.h>
 	<cl/cl.h>
 	"galaxy.hpp"
+	"../../vec.hpp"
 
 1420032596 c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.hpp
 	<cl/cl.h>
@@ -682,7 +683,7 @@
 1420032596 c:\users\james\desktop\openclrenderer\game\ship.hpp
 	<vector>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\game_object.cpp
+1427218791 source:c:\users\james\desktop\openclrenderer\game\game_object.cpp
 	"game_object.hpp"
 	<iostream>
 	"../engine.hpp"
@@ -691,7 +692,7 @@
 	"../vec.hpp"
 	"../ui_manager.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\newtonian_body.cpp
+1427218569 source:c:\users\james\desktop\openclrenderer\game\newtonian_body.cpp
 	"newtonian_body.hpp"
 	"../engine.hpp"
 	"../interact_manager.hpp"
