@@ -3937,7 +3937,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                     CLK_FILTER_NEAREST;
 
 
-    float radius = relative_brightness * 5.f;
+    float radius = relative_brightness * relative_brightness * 5.f;
 
     radius = clamp(radius, 1.f, 5.f);
 
