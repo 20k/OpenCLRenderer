@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 
     objects_container c1;
     c1.set_file("../../objects/cylinder.obj");
-    c1.set_pos({-2000, 0, 0});
+    c1.set_pos({-20000, 0, 0});
     c1.set_active(true);
 
 
@@ -182,6 +182,36 @@ int main(int argc, char *argv[])
         window.draw_bulk_objs_n();
 
         //lat.tick(NULL);
+
+        if(key.isKeyPressed(sf::Keyboard::I))
+        {
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, 1}, 0.1f);
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::K))
+        {
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, -1}, 0.1f);
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::J))
+        {
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {-1, 0, 0}, 0.1f);
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::L))
+        {
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {1, 0, 0}, 0.1f);
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::U))
+        {
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, -1, 0}, 0.1f);
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::O))
+        {
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, 0.1f);
+        }
 
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);

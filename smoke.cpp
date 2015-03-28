@@ -353,7 +353,7 @@ void smoke::tick(float dt)
     //n_dens = next_dens;
 
 
-    displace({width/2, height/2, depth/2, 0}, {0, 1, 0, 0}, 0.1f);
+    //displace({width/2, height/2, depth/2, 0}, {0, 1, 0, 0}, 0.1f);
 
 }
 

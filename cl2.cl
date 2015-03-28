@@ -6077,7 +6077,8 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     //x_out[IX(x,y,z)] = max(val, 0.0f);
 
-    write_imagef(x_out, convert_int4(pos), max(val, 0.0f));
+    ///im SURE i fixed this before, I remember it! What happend? Investigate!!
+    write_imagef(x_out, convert_int4(pos), val);
 }
 
 float advect_func_vel(float x, float y, float z,
@@ -6220,7 +6221,7 @@ void advect(int width, int height, int depth, int b, __global float* d_out, __gl
     int z = get_global_id(2);
 
     ///lazy for < 1
-    if(x >= width || y >= height || z >= depth) // || x < 1 || y < 1 || z < 1)
+    if(x >= width || y >= height || z >= depth)
     {
         return;
     }
@@ -6238,11 +6239,6 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
     int x = get_global_id(0);
     int y = get_global_id(1);
     int z = get_global_id(2);
-
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_NEAREST;
-
 
     ///lazy for < 1
     ///figuring out how to do this correctly is important

@@ -107,6 +107,8 @@ bool is_hyperspace = false; ///currently warping? Not sure where to put this var
 
 
 ///make this an actual galaxy simulator... stars age and die, things go supernova, nebulae?
+///need to do spatial gridding
+///could also accelerate nice lookin rendering
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
