@@ -5998,6 +5998,12 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 }*/
 
+typedef enum diffuse_type
+{
+    density,
+    velocity
+} diffuse_type;
+
 __kernel void diffuse_unstable(int width, int height, int depth, int b, __global float* x_out, __global float* x_in, float diffuse, float dt)
 {
     int x = get_global_id(0);
@@ -6021,7 +6027,7 @@ __kernel void diffuse_unstable(int width, int height, int depth, int b, __global
     x_out[IX(x,y,z)] = max(val, 0.0f);
 }
 
-__kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt)
+__kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt, diffuse_type type)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -6076,6 +6082,11 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
         //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
 
     //x_out[IX(x,y,z)] = max(val, 0.0f);
+
+    if(type == density)
+    {
+        val = max(val, 0.f);
+    }
 
     ///im SURE i fixed this before, I remember it! What happend? Investigate!!
     write_imagef(x_out, convert_int4(pos), val);

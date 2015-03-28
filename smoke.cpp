@@ -279,6 +279,10 @@ void smoke::tick(float dt)
     cl_uint local_ws[3] = {64, 2, 2};
 
 
+    int type_density = 0;
+    int type_velocity = 1;
+
+
     int zero = 0;
 
     float diffuse_const = 1;
@@ -299,6 +303,7 @@ void smoke::tick(float dt)
     //dens_diffuse.push_back(g_velocity_z[n]);
     dens_diffuse.push_back(&diffuse_const); ///temp
     dens_diffuse.push_back(&dt_const); ///temp
+    dens_diffuse.push_back(&type_density); ///temp
 
     run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
 
@@ -319,6 +324,7 @@ void smoke::tick(float dt)
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_x[next_vel];
     dens_diffuse.args[5] = &g_velocity_x[n_vel];
+    dens_diffuse.args[8] = &type_velocity;
 
     run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
 

@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 
 
     smoke gloop;
-    gloop.init(200, 100, 100, 2, 300);
+    gloop.init(100, 100, 100, 2, 300);
 
 
     obj_mem_manager::load_active_objects();
