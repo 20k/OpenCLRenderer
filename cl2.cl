@@ -5578,7 +5578,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     ///need to change this to be more intelligent
-    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
     {
         return;
     }
@@ -5705,6 +5705,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 current_pos = start + 0.5f;
 
+    float3 found_pos = current_pos;
+
     float3 diff = finish - start;
 
     float3 absdiff = fabs(diff);
@@ -5741,6 +5743,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     int skip_amount = 8;
 
     const float threshold = 0.1f;
+
+    float voxel_bound = 25.f;
 
 
     for(int i=0; i<num; i++)
@@ -5779,10 +5783,25 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         ///need to find the point at which val EQUALS 0.01f, then change current_pos to there
         ///include OOB?
         ///take one sample along step to find dx/dy/dz/whatever, then advance back to find the 0.01 point
-        if(fabs(val) >= threshold)
+        /*if(fabs(val) >= threshold)
         {
             //voxel_accumulate = 1;
+            //found = true;
+
+
+            break;
+        }*/
+
+        voxel_accumulate += val;
+
+        if(val > threshold)
+        {
             found = true;
+        }
+
+        if(voxel_accumulate >= voxel_bound)
+        {
+            voxel_accumulate = voxel_bound;
 
             break;
         }
@@ -5832,24 +5851,22 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         }*/
 
         current_pos += step;
+
+        if(!found)
+            found_pos = current_pos;
+
     }
 
-    //voxel_accumulate *= 100;
-
-
-
-
-
-    //float3 normal = get_normal(voxel, final_pos);
+    voxel_accumulate /= voxel_bound;
 
     ///do for all? check for quitting outside of bounds and do for that as well?
     ///this is the explicit surface solver step
     if(found)
     {
         if(!skipped)
-            current_pos -= step;
+            found_pos -= step;
         else
-            current_pos -= step*(skip_amount + 1);
+            found_pos -= step*(skip_amount + 1);
 
         int step_const = 8;
 
@@ -5864,15 +5881,15 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
         for(int i=0; i<snum+1; i++)
         {
-             float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
+             float val = read_imagef(voxel, sam_lin, (float4)(found_pos.xyz, 0)).x;
 
              if(fabs(val) >= threshold)
              {
-                 voxel_accumulate = 1;
+                 //voxel_accumulate = 1;
                  break;
              }
 
-             current_pos += step;
+             found_pos += step;
         }
 
         /*int step_const = 8;
@@ -5912,17 +5929,10 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     voxel_accumulate = clamp(voxel_accumulate, 0.f, 1.f);
 
-    //voxel_accumulate *= 100.0f;
+    final_pos = found_pos;
 
-    final_pos = current_pos;
-
-    //for(int i=0; i<1; i++)
-    {
-        ///turns out that the problem IS just hideously unsmoothed normals
-        normal = get_normal(voxel, final_pos);
-
-        //current_pos += step;
-    }
+    ///turns out that the problem IS just hideously unsmoothed normals
+    normal = get_normal(voxel, final_pos);
 
     //normal = normalize(normal);
 
@@ -5959,6 +5969,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
     light = clamp(light, 0.0f, 1.0f);
+
+    light = 1;
 
     //light = 1;
 
@@ -8335,13 +8347,6 @@ __kernel void post_upscale(int width, int height, int depth,
         return;
 
 
-    //d_out[pos] =
-
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                CLK_ADDRESS_CLAMP_TO_EDGE |
-                CLK_FILTER_LINEAR;
-
-
     //float val = read_imagef(d_in, sam, (int4){x, y, z, 0}).x;
 
     float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in);
@@ -8398,6 +8403,9 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     float3 force_dir_amount = force_dir.xyz * force;
 
     vel += force_dir_amount;
+
+    ///temp, may fix black hole
+    vel = clamp(vel, -1.f, 1.f);
 
     write_imagef(x_out, pos.xyzz, vel.xxxx);
     write_imagef(y_out, pos.xyzz, vel.yyyy);
