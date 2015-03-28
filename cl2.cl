@@ -5744,7 +5744,11 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     const float threshold = 0.1f;
 
-    float voxel_bound = 25.f;
+    float voxel_bound = 1.f;
+
+    //float max_density = 20.f;
+
+    int found_num = 0;
 
 
     for(int i=0; i<num; i++)
@@ -5792,12 +5796,31 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
             break;
         }*/
 
+        //val = clamp(val, 0.f, 0.1f);
+
         voxel_accumulate += val;
+
+        //max_density -= val*val;
+
+        /*if(val > threshold/10.f)
+        {
+            cur_samples++;
+        }*/
 
         if(val > threshold)
         {
             found = true;
         }
+
+        if(val > threshold/10.f)
+        {
+            found_num ++;
+        }
+
+        /*if(val > threshold/10.f)
+        {
+            normal += get_normal(voxel, current_pos);
+        }*/
 
         if(voxel_accumulate >= voxel_bound)
         {
@@ -5805,6 +5828,12 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
             break;
         }
+
+        //if(max_density < 0)
+        //    break;
+
+        //if(cur_samples == max_samples)
+        //    break;
 
 
         ///maybe im already doing this,a nd holes are actually outside shape
@@ -5859,10 +5888,26 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     voxel_accumulate /= voxel_bound;
 
+    /*if(found_num != 0)
+    {
+        voxel_accumulate /= found_num;
+
+        //voxel_accumulate *= 40.f;
+
+        voxel_accumulate *= 4.f;
+    }
+    else
+    {
+        voxel_accumulate = 0;
+    }*/
+
+
+
     //voxel_accumulate = sqrt(voxel_accumulate);
 
     ///do for all? check for quitting outside of bounds and do for that as well?
     ///this is the explicit surface solver step
+    #if 0
     if(found)
     {
         if(!skipped)
@@ -5923,6 +5968,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
              current_pos += step;
         }*/
     }
+    #endif
+
+    normal = normalize(normal);
 
     //voxel_accumulate /= num;
 
@@ -5934,7 +5982,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     final_pos = found_pos;
 
     ///turns out that the problem IS just hideously unsmoothed normals
-    normal = get_normal(voxel, final_pos);
+    //normal = get_normal(voxel, final_pos);
 
     //normal = normalize(normal);
 
@@ -5968,7 +6016,6 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     final_pos += v_pos.xyz;
 
     float light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
-
 
     light = clamp(light, 0.0f, 1.0f);
 
@@ -8257,7 +8304,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     float et = 1;
 
     float vx, vy, vz;
-
+https://dl.dropboxusercontent.com/u/9317774/waveletup.PNG
     ///do trilinear beforehand
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
