@@ -5859,6 +5859,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     voxel_accumulate /= voxel_bound;
 
+    //voxel_accumulate = sqrt(voxel_accumulate);
+
     ///do for all? check for quitting outside of bounds and do for that as well?
     ///this is the explicit surface solver step
     if(found)
@@ -8291,6 +8293,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     float len = fast_length(vel);
 
     ///squared maybe not best
+    ///bump these numbers up for AWESOME smoke
     float3 vval = vel + 0.5f*10*len*wval/5.f;
 
 
