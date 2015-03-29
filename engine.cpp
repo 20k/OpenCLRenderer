@@ -1560,7 +1560,7 @@ void engine::draw_raytrace()
     run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);
 }
 
-void engine::draw_smoke(smoke& s)
+void engine::draw_smoke(smoke& s, cl_int solid)
 {
     /*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)*/
@@ -1615,6 +1615,7 @@ void engine::draw_smoke(smoke& s)
     post_args.push_back(&s.g_voxel[n_dens]);
     post_args.push_back(&s.g_voxel_upscale);
     post_args.push_back(&s.scale);
+    post_args.push_back(&s.roughness);
     //post_args.push_back(&g_screen);
 
 
@@ -1753,7 +1754,6 @@ void engine::draw_smoke(smoke& s)
         sorted_closest.push_back(wcorners[(int)vec_corners[i].w]);
     }
 
-    //printf("%f %f\n", scorners[0].x, scorners[0].y);
 
     cl_float2 offset = scorners[0];
 
@@ -1776,6 +1776,8 @@ void engine::draw_smoke(smoke& s)
     smoke_args.push_back(&s.render_size);
     smoke_args.push_back(&obj_mem_manager::g_light_num);
     smoke_args.push_back(&obj_mem_manager::g_light_mem);
+    smoke_args.push_back(&s.voxel_bound);
+    smoke_args.push_back(&solid);
 
     int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
 

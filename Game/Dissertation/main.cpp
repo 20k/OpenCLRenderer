@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 
 
     smoke gloop;
-    gloop.init(100, 100, 100, 2, 300);
+    gloop.init(100, 100, 100, 2, 300, true, 1.f);
 
 
     obj_mem_manager::load_active_objects();
@@ -213,10 +213,40 @@ int main(int argc, char *argv[])
             gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, 0.1f);
         }
 
+        if(key.isKeyPressed(sf::Keyboard::Add))
+        {
+            gloop.voxel_bound += 1.f;
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::Subtract))
+        {
+            gloop.voxel_bound -= 1.f;
+
+            gloop.voxel_bound = std::max(gloop.voxel_bound, 0.1f);
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::T))
+        {
+            gloop.is_solid = false;
+        }
+        if(key.isKeyPressed(sf::Keyboard::Y))
+        {
+            gloop.is_solid = true;
+        }
+
+        if(key.isKeyPressed(sf::Keyboard::RBracket))
+        {
+            gloop.roughness += 1.f;
+        }
+        if(key.isKeyPressed(sf::Keyboard::LBracket))
+        {
+            gloop.roughness -= 1.f;
+        }
+
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
 
-        window.draw_smoke(gloop);
+        window.draw_smoke(gloop, gloop.is_solid);
 
         window.render_buffers();
 

@@ -1,8 +1,8 @@
 # depslib dependency file v1.0
-1424327390 source:c:\users\james\desktop\openclrenderer\clstate.cpp
+1424330990 source:c:\users\james\desktop\openclrenderer\clstate.cpp
 	"clstate.h"
 
-1424623504 c:\users\james\desktop\openclrenderer\clstate.h
+1424627104 c:\users\james\desktop\openclrenderer\clstate.h
 	<cl/opencl.h>
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
@@ -12,7 +12,7 @@
 	<utility>
 	<map>
 
-1427167503 source:c:\users\james\desktop\openclrenderer\engine.cpp
+1427657822 source:c:\users\james\desktop\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -38,7 +38,7 @@
 	"Rift/Src/OVR_CAPI.h"
 	"Rift/Src/OVR_Stereo.h"
 
-1427167472 c:\users\james\desktop\openclrenderer\engine.hpp
+1427657111 c:\users\james\desktop\openclrenderer\engine.hpp
 	<SFML/graphics.hpp>
 	"object.hpp"
 	<vector>
@@ -59,52 +59,52 @@
 	"Rift/Include/OVR_Kernel.h"
 	"Rift/Src/OVR_CAPI.h"
 
-1425397636 c:\users\james\desktop\openclrenderer\object.hpp
+1425401236 c:\users\james\desktop\openclrenderer\object.hpp
 	<vector>
 	"triangle.hpp"
 	<string>
 	<cl/cl.h>
 	<functional>
 
-1420032596 c:\users\james\desktop\openclrenderer\triangle.hpp
+1420036196 c:\users\james\desktop\openclrenderer\triangle.hpp
 	"vertex.hpp"
 
-1421777392 c:\users\james\desktop\openclrenderer\vertex.hpp
+1421780992 c:\users\james\desktop\openclrenderer\vertex.hpp
 	<cl/cl.h>
 
-1425322360 c:\users\james\desktop\openclrenderer\objects_container.hpp
+1425325960 c:\users\james\desktop\openclrenderer\objects_container.hpp
 	"object.hpp"
 	<functional>
 
-1420032596 c:\users\james\desktop\openclrenderer\light.hpp
+1420036196 c:\users\james\desktop\openclrenderer\light.hpp
 	<cl/cl.h>
 	<vector>
 
-1420032596 c:\users\james\desktop\openclrenderer\svo\voxel.h
+1420036196 c:\users\james\desktop\openclrenderer\svo\voxel.h
 	<bitset>
 	"../point_cloud.hpp"
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 
-1420032596 c:\users\james\desktop\openclrenderer\point_cloud.hpp
+1420036196 c:\users\james\desktop\openclrenderer\point_cloud.hpp
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 
-1427157475 c:\users\james\desktop\openclrenderer\smoke.hpp
+1427657706 c:\users\james\desktop\openclrenderer\smoke.hpp
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 	<boost/compute/algorithm/iota.hpp>
 	<boost/compute/interop/opengl.hpp>
 	<initializer_list>
 
-1414103258 c:\users\james\desktop\openclrenderer\rift\include\ovr.h
+1414106858 c:\users\james\desktop\openclrenderer\rift\include\ovr.h
 	"OVR_Version.h"
 	"../Src/Kernel/OVR_Math.h"
 	"../Src/OVR_CAPI.h"
 
-1414103258 c:\users\james\desktop\openclrenderer\rift\include\ovr_version.h
+1414106858 c:\users\james\desktop\openclrenderer\rift\include\ovr_version.h
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_math.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_math.h
 	<assert.h>
 	<stdlib.h>
 	<math.h>
@@ -113,7 +113,7 @@
 	"OVR_Std.h"
 	"OVR_Alg.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_types.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_types.h
 	"OVR_Compiler.h"
 	<stddef.h>
 	<limits.h>
@@ -125,17 +125,17 @@
 	<stdlib.h>
 	<emmintrin.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_compiler.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_compiler.h
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_refcount.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_refcount.h
 	"OVR_Types.h"
 	"OVR_Allocator.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_allocator.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_allocator.h
 	"OVR_Types.h"
 	<new>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_std.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_std.h
 	"OVR_Types.h"
 	<stdarg.h>
 	<string.h>
@@ -146,17 +146,17 @@
 	<wchar.h>
 	<wctype.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_alg.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_alg.h
 	"OVR_Types.h"
 	<string.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\ovr_capi.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\ovr_capi.h
 	<stdint.h>
 	"OVR_CAPI_Keys.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\ovr_capi_keys.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\ovr_capi_keys.h
 
-1414103258 c:\users\james\desktop\openclrenderer\rift\include\ovr_kernel.h
+1414106858 c:\users\james\desktop\openclrenderer\rift\include\ovr_kernel.h
 	"../Src/Kernel/OVR_Types.h"
 	"../Src/Kernel/OVR_Allocator.h"
 	"../Src/Kernel/OVR_RefCount.h"
@@ -169,16 +169,16 @@
 	"../Src/Kernel/OVR_Timer.h"
 	"../Src/Kernel/OVR_SysFile.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_log.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_log.h
 	"OVR_Types.h"
 	"../Kernel/OVR_Delegates.h"
 	"../Kernel//OVR_Observer.h"
 	<stdarg.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_delegates.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_delegates.h
 	"OVR_Types.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_observer.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_observer.h
 	"OVR_Types.h"
 	"OVR_Atomic.h"
 	"OVR_RefCount.h"
@@ -187,7 +187,7 @@
 	"OVR_String.h"
 	"OVR_Hash.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_types.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_types.h
 	"OVR_Compiler.h"
 	<stddef.h>
 	<limits.h>
@@ -199,33 +199,33 @@
 	<stdlib.h>
 	<emmintrin.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_compiler.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_compiler.h
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_atomic.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_atomic.h
 	"OVR_Types.h"
 	<Windows.h>
 	<pthread.h>
 	<intrin.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_refcount.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_refcount.h
 	"OVR_Types.h"
 	"OVR_Allocator.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_allocator.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_allocator.h
 	"OVR_Types.h"
 	<new>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_delegates.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_delegates.h
 	"OVR_Types.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_array.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_array.h
 	"OVR_ContainerAllocator.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_containerallocator.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_containerallocator.h
 	"OVR_Allocator.h"
 	<string.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_string.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_string.h
 	"OVR_Types.h"
 	"OVR_Allocator.h"
 	"OVR_UTF8Util.h"
@@ -233,10 +233,10 @@
 	"OVR_Std.h"
 	"OVR_Alg.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_utf8util.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_utf8util.h
 	"OVR_Types.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_std.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_std.h
 	"OVR_Types.h"
 	<stdarg.h>
 	<string.h>
@@ -247,29 +247,29 @@
 	<wchar.h>
 	<wctype.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_alg.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_alg.h
 	"OVR_Types.h"
 	<string.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_hash.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\\ovr_hash.h
 	"OVR_ContainerAllocator.h"
 	"OVR_Alg.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_system.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_system.h
 	"OVR_Allocator.h"
 	"OVR_Log.h"
 	"OVR_Atomic.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_atomic.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_atomic.h
 	"OVR_Types.h"
 	<Windows.h>
 	<pthread.h>
 	<intrin.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_nullptr.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_nullptr.h
 	"OVR_Types.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_string.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_string.h
 	"OVR_Types.h"
 	"OVR_Allocator.h"
 	"OVR_UTF8Util.h"
@@ -277,42 +277,42 @@
 	"OVR_Std.h"
 	"OVR_Alg.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_utf8util.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_utf8util.h
 	"OVR_Types.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_array.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_array.h
 	"OVR_ContainerAllocator.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_containerallocator.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_containerallocator.h
 	"OVR_Allocator.h"
 	<string.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_timer.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_timer.h
 	"OVR_Types.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_sysfile.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_sysfile.h
 	"OVR_File.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_file.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_file.h
 	"OVR_RefCount.h"
 	"OVR_Std.h"
 	"OVR_Alg.h"
 	<stdio.h>
 	"OVR_String.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\obj_mem_manager.hpp
+1420036196 c:\users\james\desktop\openclrenderer\obj_mem_manager.hpp
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 	"object.hpp"
 	<vector>
 
-1424312495 c:\users\james\desktop\openclrenderer\texture_manager.hpp
+1424316095 c:\users\james\desktop\openclrenderer\texture_manager.hpp
 	<vector>
 	"texture.hpp"
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 
-1420450732 c:\users\james\desktop\openclrenderer\texture.hpp
+1420454332 c:\users\james\desktop\openclrenderer\texture.hpp
 	<sfml/graphics.hpp>
 	<cl/cl.h>
 	<vector>
@@ -320,21 +320,21 @@
 	<boost/function.hpp>
 	<functional>
 
-1420032596 c:\users\james\desktop\openclrenderer\obj_g_descriptor.hpp
+1420036196 c:\users\james\desktop\openclrenderer\obj_g_descriptor.hpp
 	<CL/CL.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\interact_manager.hpp
+1420036196 c:\users\james\desktop\openclrenderer\interact_manager.hpp
 	<SFML/Graphics.hpp>
 	<vector>
 	<utility>
 	<set>
 
-1420032596 c:\users\james\desktop\openclrenderer\text_handler.hpp
+1420036196 c:\users\james\desktop\openclrenderer\text_handler.hpp
 	<vector>
 	<string>
 	<SFML/Graphics.hpp>
 
-1420032596 c:\users\james\desktop\openclrenderer\hologram.hpp
+1420036196 c:\users\james\desktop\openclrenderer\hologram.hpp
 	<string>
 	<vector>
 	<utility>
@@ -344,11 +344,11 @@
 	<sfml/graphics.hpp>
 	<cl/cl.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\vec.hpp
+1420036196 c:\users\james\desktop\openclrenderer\vec.hpp
 	<cl/cl.h>
 	<math.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\ui_manager.hpp
+1420036196 c:\users\james\desktop\openclrenderer\ui_manager.hpp
 	<vector>
 	<cl/cl.h>
 	<string>
@@ -356,7 +356,7 @@
 	<map>
 	<utility>
 
-1425270662 c:\users\james\desktop\openclrenderer\ocl.h
+1425274262 c:\users\james\desktop\openclrenderer\ocl.h
 	<cstdio>
 	<CL/cl.h>
 	<iostream>
@@ -368,15 +368,15 @@
 	<boost/compute/algorithm/iota.hpp>
 	<boost/compute/interop/opengl.hpp>
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\ovr_stereo.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\ovr_stereo.h
 	"Sensors/OVR_DeviceConstants.h"
 	"Displays/OVR_Display.h"
 	"OVR_Profile.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\sensors\ovr_deviceconstants.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\sensors\ovr_deviceconstants.h
 	"../Kernel/OVR_Math.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\displays\ovr_display.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\displays\ovr_display.h
 	"../Sensors/OVR_DeviceConstants.h"
 	"../Kernel/OVR_Types.h"
 	"../Kernel/OVR_Atomic.h"
@@ -385,7 +385,7 @@
 	"../Kernel/OVR_String.h"
 	"../Kernel/OVR_Math.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\ovr_profile.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\ovr_profile.h
 	"OVR_CAPI_Keys.h"
 	"Sensors/OVR_DeviceConstants.h"
 	"Kernel/OVR_String.h"
@@ -394,22 +394,22 @@
 	"Kernel/OVR_StringHash.h"
 	"Kernel/OVR_System.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_stringhash.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_stringhash.h
 	"OVR_String.h"
 	"OVR_Hash.h"
 
-1420032596 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_hash.h
+1420036196 c:\users\james\desktop\openclrenderer\rift\src\kernel\ovr_hash.h
 	"OVR_ContainerAllocator.h"
 	"OVR_Alg.h"
 
-1426724027 source:c:\users\james\desktop\openclrenderer\goo.cpp
+1426727627 source:c:\users\james\desktop\openclrenderer\goo.cpp
 	"goo.hpp"
 
-1424236911 c:\users\james\desktop\openclrenderer\goo.hpp
+1424240511 c:\users\james\desktop\openclrenderer\goo.hpp
 	"smoke.hpp"
 	"engine.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\hologram.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\hologram.cpp
 	"hologram.hpp"
 	<SFML/Graphics.hpp>
 	<iostream>
@@ -417,7 +417,7 @@
 	"engine.hpp"
 	"proj.hpp"
 
-1426724027 c:\users\james\desktop\openclrenderer\proj.hpp
+1426727627 c:\users\james\desktop\openclrenderer\proj.hpp
 	<cstdio>
 	<string>
 	<iostream>
@@ -438,23 +438,23 @@
 	<boost/compute/algorithm/iota.hpp>
 	<boost/compute/interop/opengl.hpp>
 
-1420032596 c:\users\james\desktop\openclrenderer\obj_load.hpp
+1420036196 c:\users\james\desktop\openclrenderer\obj_load.hpp
 	<string>
 	"object.hpp"
 	"objects_container.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\interact_manager.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\interact_manager.cpp
 	"interact_manager.hpp"
 	<SFML/Graphics.hpp>
 	"engine.hpp"
 	<utility>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\light.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\light.cpp
 	"light.hpp"
 	<iostream>
 	<float.h>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\network.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\network.cpp
 	"network.hpp"
 	<ws2tcpip.h>
 	<iostream>
@@ -462,18 +462,18 @@
 	<memory>
 	<cstdio>
 
-1420032596 c:\users\james\desktop\openclrenderer\network.hpp
+1420036196 c:\users\james\desktop\openclrenderer\network.hpp
 	<vector>
 	"objects_container.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\obj_info_struct.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\obj_info_struct.cpp
 	"obj_info_struct.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\obj_info_struct.hpp
+1420036196 c:\users\james\desktop\openclrenderer\obj_info_struct.hpp
 	<cl/cl.h>
 	<vector>
 
-1421777746 source:c:\users\james\desktop\openclrenderer\obj_load.cpp
+1421781346 source:c:\users\james\desktop\openclrenderer\obj_load.cpp
 	"obj_load.hpp"
 	<cstdio>
 	<cstdlib>
@@ -488,7 +488,7 @@
 	<list>
 	<boost/bind.hpp>
 
-1421783904 source:c:\users\james\desktop\openclrenderer\obj_mem_manager.cpp
+1421787504 source:c:\users\james\desktop\openclrenderer\obj_mem_manager.cpp
 	"obj_mem_manager.hpp"
 	<CL/CL.h>
 	"clstate.h"
@@ -507,7 +507,7 @@
 	"engine.hpp"
 	<map>
 
-1426723950 source:c:\users\james\desktop\openclrenderer\object.cpp
+1426727550 source:c:\users\james\desktop\openclrenderer\object.cpp
 	"object.hpp"
 	"clstate.h"
 	"texture.hpp"
@@ -517,13 +517,13 @@
 	"texture_manager.hpp"
 	"vec.hpp"
 
-1425345643 source:c:\users\james\desktop\openclrenderer\objects_container.cpp
+1425349243 source:c:\users\james\desktop\openclrenderer\objects_container.cpp
 	"objects_container.hpp"
 	<iostream>
 	"obj_load.hpp"
 	"vec.hpp"
 
-1424051161 source:c:\users\james\desktop\openclrenderer\planet_gen\marching_cubes.cpp
+1424054761 source:c:\users\james\desktop\openclrenderer\planet_gen\marching_cubes.cpp
 	"marching_cubes.hpp"
 	"cubetables.hpp"
 	<math.h>
@@ -532,52 +532,52 @@
 	"../texture.hpp"
 	"../vec.hpp"
 
-1407625772 c:\users\james\desktop\openclrenderer\planet_gen\marching_cubes.hpp
+1407629372 c:\users\james\desktop\openclrenderer\planet_gen\marching_cubes.hpp
 	<math.h>
 	"../triangle.hpp"
 	"../objects_container.hpp"
 	"../texture.hpp"
 
-1375403584 c:\users\james\desktop\openclrenderer\planet_gen\cubetables.hpp
+1375407184 c:\users\james\desktop\openclrenderer\planet_gen\cubetables.hpp
 
-1375403654 source:c:\users\james\desktop\openclrenderer\planet_gen\planet_gen.cpp
+1375407254 source:c:\users\james\desktop\openclrenderer\planet_gen\planet_gen.cpp
 	"planet_gen.hpp"
 
-1407624576 c:\users\james\desktop\openclrenderer\planet_gen\planet_gen.hpp
+1407628176 c:\users\james\desktop\openclrenderer\planet_gen\planet_gen.hpp
 	"../objects_container.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\point_cloud.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\point_cloud.cpp
 	"point_cloud.hpp"
 	"clstate.h"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\projectile_buffer_gen.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\projectile_buffer_gen.cpp
 	"projectile_buffer_gen.hpp"
 	"vec.hpp"
 	<random>
 	<cstdlib>
 
-1420032596 c:\users\james\desktop\openclrenderer\projectile_buffer_gen.hpp
+1420036196 c:\users\james\desktop\openclrenderer\projectile_buffer_gen.hpp
 	"proj.hpp"
 
-1427514203 source:c:\users\james\desktop\openclrenderer\smoke.cpp
+1427657695 source:c:\users\james\desktop\openclrenderer\smoke.cpp
 	"smoke.hpp"
 	"clstate.h"
 	"engine.hpp"
 	"vec.hpp"
 
-1421778591 source:c:\users\james\desktop\openclrenderer\terrain_gen\terrain_gen.cpp
+1421782191 source:c:\users\james\desktop\openclrenderer\terrain_gen\terrain_gen.cpp
 	"terrain_gen.hpp"
 	"../planet_gen/marching_cubes.hpp"
 	"../vec.hpp"
 	<iostream>
 
-1420032596 c:\users\james\desktop\openclrenderer\terrain_gen\terrain_gen.hpp
+1420036196 c:\users\james\desktop\openclrenderer\terrain_gen\terrain_gen.hpp
 	"../objects_container.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\text_handler.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\text_handler.cpp
 	"text_handler.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\texture.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\texture.cpp
 	"texture.hpp"
 	"clstate.h"
 	<iostream>
@@ -585,15 +585,15 @@
 	<boost/bind.hpp>
 	"texture_manager.hpp"
 
-1424312495 source:c:\users\james\desktop\openclrenderer\texture_manager.cpp
+1424316095 source:c:\users\james\desktop\openclrenderer\texture_manager.cpp
 	"texture_manager.hpp"
 	<math.h>
 	<iostream>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\triangle.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\triangle.cpp
 	"triangle.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\ui_manager.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\ui_manager.cpp
 	"ui_manager.hpp"
 	"hologram.hpp"
 	<boost/compute/source.hpp>
@@ -607,10 +607,10 @@
 	"vec.hpp"
 	"proj.hpp"
 
-1421777642 source:c:\users\james\desktop\openclrenderer\vertex.cpp
+1421781242 source:c:\users\james\desktop\openclrenderer\vertex.cpp
 	"vertex.hpp"
 
-1421778797 source:c:\users\james\desktop\openclrenderer\game\asteroid\asteroid_gen.cpp
+1421782397 source:c:\users\james\desktop\openclrenderer\game\asteroid\asteroid_gen.cpp
 	"asteroid_gen.hpp"
 	<cstdlib>
 	<cl/cl.h>
@@ -620,17 +620,17 @@
 	"../../objects_container.hpp"
 	"../../vec.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\asteroid\asteroid_gen.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\asteroid\asteroid_gen.hpp
 
-1421778474 source:c:\users\james\desktop\openclrenderer\game\collision.cpp
+1421782074 source:c:\users\james\desktop\openclrenderer\game\collision.cpp
 	"collision.hpp"
 	"../objects_container.hpp"
 	<math.h>
 
-1420032596 c:\users\james\desktop\openclrenderer\game\collision.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\collision.hpp
 	<cl/cl.h>
 
-1427313915 source:c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.cpp
+1427317515 source:c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.cpp
 	<iostream>
 	<sfml/graphics.hpp>
 	<math.h>
@@ -640,20 +640,20 @@
 	"galaxy.hpp"
 	"../../vec.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\galaxy\galaxy.hpp
 	<cl/cl.h>
 	"../../point_cloud.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\game_manager.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\game\game_manager.cpp
 	"game_manager.hpp"
 	"../obj_mem_manager.hpp"
 	<cstdlib>
 
-1420032596 c:\users\james\desktop\openclrenderer\game\game_manager.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\game_manager.hpp
 	<vector>
 	"game_object.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\game_object.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\game_object.hpp
 	<vector>
 	<utility>
 	"collision.hpp"
@@ -666,7 +666,7 @@
 	<boost/compute/system.hpp>
 	"ship.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\newtonian_body.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\newtonian_body.hpp
 	<cl/cl.h>
 	<math.h>
 	"../objects_container.hpp"
@@ -676,15 +676,15 @@
 	<map>
 	<utility>
 
-1420032596 c:\users\james\desktop\openclrenderer\game\projectile.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\projectile.hpp
 	"../light.hpp"
 	<vector>
 	"../proj.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\ship.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\ship.hpp
 	<vector>
 
-1427218791 source:c:\users\james\desktop\openclrenderer\game\game_object.cpp
+1427222391 source:c:\users\james\desktop\openclrenderer\game\game_object.cpp
 	"game_object.hpp"
 	<iostream>
 	"../engine.hpp"
@@ -693,7 +693,7 @@
 	"../vec.hpp"
 	"../ui_manager.hpp"
 
-1427218569 source:c:\users\james\desktop\openclrenderer\game\newtonian_body.cpp
+1427222169 source:c:\users\james\desktop\openclrenderer\game\newtonian_body.cpp
 	"newtonian_body.hpp"
 	"../engine.hpp"
 	"../interact_manager.hpp"
@@ -701,30 +701,30 @@
 	"game_object.hpp"
 	<chrono>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\projectile.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\game\projectile.cpp
 	"projectile.hpp"
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\ship.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\game\ship.cpp
 	"ship.hpp"
 	"../ui_manager.hpp"
 	<iostream>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\solar_object\solar.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\game\solar_object\solar.cpp
 	"solar.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\solar_object\solar.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\solar_object\solar.hpp
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 
-1420032596 source:c:\users\james\desktop\openclrenderer\game\space_dust.cpp
+1420036196 source:c:\users\james\desktop\openclrenderer\game\space_dust.cpp
 	"space_dust.hpp"
 	"../point_cloud.hpp"
 	<stdlib.h>
 	"../vec.hpp"
 
-1420032596 c:\users\james\desktop\openclrenderer\game\space_dust.hpp
+1420036196 c:\users\james\desktop\openclrenderer\game\space_dust.hpp
 
-1427514868 source:c:\users\james\desktop\openclrenderer\game\dissertation\main.cpp
+1427657800 source:c:\users\james\desktop\openclrenderer\game\dissertation\main.cpp
 	"../../hologram.hpp"
 	"../../proj.hpp"
 	"../../ocl.h"

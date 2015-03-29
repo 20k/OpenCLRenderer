@@ -5564,7 +5564,7 @@ float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
 ///use half float
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
-                            int render_size, __global uint* lnum, __global struct light* lights
+                            int render_size, __global uint* lnum, __global struct light* lights, float voxel_bound, int is_solid
                             )
 {
     float x = get_global_id(0);
@@ -5744,7 +5744,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     const float threshold = 0.1f;
 
-    float voxel_bound = 1.f;
+    //float voxel_bound = 20.f;
 
     //float max_density = 20.f;
 
@@ -5796,45 +5796,38 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
             break;
         }*/
 
-        //val = clamp(val, 0.f, 0.1f);
-
-        voxel_accumulate += val;
-
-        //max_density -= val*val;
-
-        /*if(val > threshold/10.f)
+        if(!is_solid)
         {
-            cur_samples++;
-        }*/
+            voxel_accumulate += val;
 
-        if(val > threshold)
-        {
-            found = true;
+            if(val > threshold)
+            {
+                found = true;
+            }
+
+            if(val > threshold/10.f)
+            {
+                found_num ++;
+            }
+
+            if(voxel_accumulate >= voxel_bound)
+            {
+                voxel_accumulate = voxel_bound;
+
+                break;
+            }
         }
-
-        if(val > threshold/10.f)
+        else
         {
-            found_num ++;
+            if(val > threshold)
+            {
+                found = true;
+
+                voxel_accumulate = 1.f;
+
+                break;
+            }
         }
-
-        /*if(val > threshold/10.f)
-        {
-            normal += get_normal(voxel, current_pos);
-        }*/
-
-        if(voxel_accumulate >= voxel_bound)
-        {
-            voxel_accumulate = voxel_bound;
-
-            break;
-        }
-
-        //if(max_density < 0)
-        //    break;
-
-        //if(cur_samples == max_samples)
-        //    break;
-
 
         ///maybe im already doing this,a nd holes are actually outside shape
         ///whoooooaaa
@@ -5886,7 +5879,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     }
 
-    voxel_accumulate /= voxel_bound;
+    if(!is_solid)
+        voxel_accumulate /= voxel_bound;
 
     /*if(found_num != 0)
     {
@@ -5907,8 +5901,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     ///do for all? check for quitting outside of bounds and do for that as well?
     ///this is the explicit surface solver step
-    #if 0
-    if(found)
+    if(found && is_solid)
     {
         if(!skipped)
             found_pos -= step;
@@ -5968,9 +5961,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
              current_pos += step;
         }*/
     }
-    #endif
 
-    normal = normalize(normal);
 
     //voxel_accumulate /= num;
 
@@ -5982,9 +5973,13 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     final_pos = found_pos;
 
     ///turns out that the problem IS just hideously unsmoothed normals
-    //normal = get_normal(voxel, final_pos);
 
-    //normal = normalize(normal);
+    if(is_solid)
+    {
+        normal = get_normal(voxel, final_pos);
+
+        normal = normalize(normal);
+    }
 
 
     /*normal += get_normal(voxel, final_pos + (float3){2,0,0});
@@ -6019,7 +6014,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     light = clamp(light, 0.0f, 1.0f);
 
-    light = 1;
+    if(!is_solid)
+        light = 1;
 
     //light = 1;
 
@@ -8226,7 +8222,7 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
     return y1 * (1.0f - zfrac) + y2 * zfrac;
 }
 
-float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global float* w1, __global float* w2, __global float* w3, __read_only image3d_t d_in)
+float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global float* w1, __global float* w2, __global float* w3, __read_only image3d_t d_in, float roughness)
 {
     int width, height, depth;
 
@@ -8304,7 +8300,6 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     float et = 1;
 
     float vx, vy, vz;
-https://dl.dropboxusercontent.com/u/9317774/waveletup.PNG
     ///do trilinear beforehand
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
@@ -8341,7 +8336,7 @@ https://dl.dropboxusercontent.com/u/9317774/waveletup.PNG
 
     ///squared maybe not best
     ///bump these numbers up for AWESOME smoke
-    float3 vval = vel + 0.5f*10*len*wval/5.f;
+    float3 vval = vel + 0.5f*10*len*wval*roughness/5.f;
 
 
 
@@ -8387,7 +8382,7 @@ __kernel void post_upscale(int width, int height, int depth,
                            __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
                            __global float* w1, __global float* w2, __global float* w3,
                            //__global float* x_out, __global float* y_out, __global float* z_out,
-                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale)
+                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale, float roughness)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -8399,7 +8394,7 @@ __kernel void post_upscale(int width, int height, int depth,
 
     //float val = read_imagef(d_in, sam, (int4){x, y, z, 0}).x;
 
-    float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in);
+    float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
 
     write_imagef(d_out, (int4){x, y, z, 0}, val);
 

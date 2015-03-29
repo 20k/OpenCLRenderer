@@ -101,7 +101,7 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 ///figured it out
 ///the noise is fractal at different frequencies
 ///ie it has coherence at all scales
-void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size)
+void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _roughness)
 {
     n_dens = 0;
     n_vel = 0;
@@ -111,6 +111,10 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     depth = _depth;
     scale = _scale;
     render_size = _render_size;
+    is_solid = _is_solid;
+    roughness = _roughness;
+
+    voxel_bound = 20.f;
 
     cl_float4 zero = {0};
 
