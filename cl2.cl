@@ -8336,7 +8336,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     ///squared maybe not best
     ///bump these numbers up for AWESOME smoke
-    float3 vval = vel + 0.5f*10*len*wval*roughness/5.f;
+    float3 vval = vel + len*wval*roughness;
 
 
 
@@ -8391,21 +8391,9 @@ __kernel void post_upscale(int width, int height, int depth,
     if(x >= uw || y >= uh || z >= ud)
         return;
 
-
-    //float val = read_imagef(d_in, sam, (int4){x, y, z, 0}).x;
-
     float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
 
     write_imagef(d_out, (int4){x, y, z, 0}, val);
-
-    //mag_out[(int)rz*uw*uh + (int)ry*uw + (int)rx] = mag;
-
-    //if(z != 1)
-    //    return;
-
-    //mag /= 4;
-
-    //write_imagef(screen, (int2){x, y}, mag);
 }
 
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
@@ -8456,51 +8444,3 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     write_imagef(y_out, pos.xyzz, vel.yyyy);
     write_imagef(z_out, pos.xyzz, vel.zzzz);
 }
-
-
-/*///change to reverse projection
-__kernel void draw_hologram(__read_only image2d_t tex, __global float4* d_pos, __global float4* d_rot, __global float4* c_pos, __global float4* c_rot, __write_only image2d_t screen)
-{
-    const int x = get_global_id(0);
-    const int y = get_global_id(1);
-
-    const int w = get_image_width(tex);
-    const int h = get_image_height(tex);
-
-    if(x >= w)
-        return;
-
-    if(y >= h)
-        return;
-
-    float4 zero = {0,0,0,0};
-
-    float4 postrotate = rot((float4){x - w/2, y - h/2, 1, 0}, zero, *d_rot)*10.0f;
-
-    float4 world_pos = postrotate + *d_pos;
-
-    float4 post_camera_rotate = rot(world_pos, *c_pos, *c_rot);
-
-    float4 projected = depth_project_singular(post_camera_rotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
-
-    if(projected.z < depth_icutoff)
-        return;
-
-    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
-        return;
-
-    const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
-                              CLK_ADDRESS_CLAMP           |
-                              CLK_FILTER_NEAREST;
-
-    uint4 col = read_imageui (tex, sampler, (float2){x, y});
-    float4 newcol = convert_float4(col) / 255.0f;
-
-    int px = round(projected.x);
-    int py = round(projected.y);
-
-    if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENWIDTH)
-        return;
-
-    write_imagef(screen, (int2){px, py}, newcol);
-}*/

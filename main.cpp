@@ -78,9 +78,7 @@ int main(int argc, char *argv[])
         window.input();
 
         ///do manual async on thread
-
         window.draw_bulk_objs_n();
-
 
         ///doing this async would save 0.5ms
         window.render_buffers();
