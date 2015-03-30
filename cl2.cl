@@ -8413,7 +8413,7 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     int3 pos = {xpos, ypos, zpos};
 
     ///centre
-    pos -= box_size/2.f;
+    pos -= (int)box_size/2;
 
     ///apply within-box offset
     pos += convert_int3(force_pos.xyz);
