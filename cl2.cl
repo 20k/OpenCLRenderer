@@ -6024,9 +6024,11 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
                         CLK_FILTER_NEAREST;
 
 
+    voxel_accumulate = sqrt(voxel_accumulate);
+
     float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
 
-    write_imagef(screen, (int2){x, y}, voxel_accumulate*voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
+    write_imagef(screen, (int2){x, y}, voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
 
     //write_imagef(screen, (int2){x, y}, 0);
 }
