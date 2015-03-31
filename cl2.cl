@@ -5562,6 +5562,8 @@ float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
 ///seems to be rendering only one side of cubes
 ///need to make simulation incompressible to get vortices
 ///use half float
+///it might actually be more interesting to render the velocity :P
+///or perhaps additive
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
                             int render_size, __global uint* lnum, __global struct light* lights, float voxel_bound, int is_solid
@@ -5901,7 +5903,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     ///do for all? check for quitting outside of bounds and do for that as well?
     ///this is the explicit surface solver step
-    if(found && is_solid)
+    if(is_solid && found)
     {
         if(!skipped)
             found_pos -= step;
@@ -6004,24 +6006,25 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     ray_origin += half_size;*/
 
     ///undo transforms to global space
-    final_pos -= half_size;
 
-    final_pos /= rel;
+    float light = 1;
 
-    final_pos += v_pos.xyz;
+    if(is_solid)
+    {
+        final_pos -= half_size;
 
-    float light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
+        final_pos /= rel;
 
-    light = clamp(light, 0.0f, 1.0f);
+        final_pos += v_pos.xyz;
 
-    if(!is_solid)
-        light = 1;
+        light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
 
-    //light = 1;
+        light = clamp(light, 0.0f, 1.0f);
+    }
 
     sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
-                        CLK_ADDRESS_NONE |
-                        CLK_FILTER_NEAREST;
+                           CLK_ADDRESS_NONE |
+                           CLK_FILTER_NEAREST;
 
 
     voxel_accumulate = sqrt(voxel_accumulate);
@@ -8446,7 +8449,7 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     vel += force_dir_amount;
 
     ///temp, may fix black hole
-    vel = clamp(vel, -1.f, 1.f);
+    vel = clamp(vel, -3.f, 3.f);
 
     write_imagef(x_out, pos.xyzz, vel.x);
     write_imagef(y_out, pos.xyzz, vel.y);

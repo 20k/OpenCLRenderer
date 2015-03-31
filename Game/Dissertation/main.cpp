@@ -244,12 +244,21 @@ int main(int argc, char *argv[])
 
             rel = add(rel, {gloop.width/2, gloop.height/2, gloop.depth/2});
 
-            rel = sub(rel, {0,0,gloop.depth/4.f});
+            //rel = sub(rel, {0,0,gloop.depth/4.f});
 
             if(rel.x >= 0 && rel.y >= 0 && rel.z >= 0 && rel.x < gloop.width && rel.y < gloop.height && rel.z < gloop.depth
                && (diff.x != 0 || diff.y != 0 || diff.z != 0))
             {
-                gloop.displace(rel, diff, force*200, box_size, 2.f);
+                float biggest = std::max(std::max(diff.x, diff.y), diff.z);
+
+                diff = div(diff, biggest);
+
+                gloop.displace(rel, diff, 2.f, box_size, 0.f);
+            }
+
+            if(key.isKeyPressed(sf::Keyboard::Space))
+            {
+                gloop.displace(rel, {0}, {0}, box_size*2, 1.f);
             }
         }
 
