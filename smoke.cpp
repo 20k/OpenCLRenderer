@@ -101,7 +101,7 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
 ///figured it out
 ///the noise is fractal at different frequencies
 ///ie it has coherence at all scales
-void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _roughness)
+void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
 {
     n_dens = 0;
     n_vel = 0;
@@ -114,7 +114,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     is_solid = _is_solid;
     roughness = _roughness;
 
-    voxel_bound = 20.f;
+    voxel_bound = _voxel_bound;
 
     cl_float4 zero = {0};
 
@@ -156,19 +156,9 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         //cl_float* buf3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
 
         ///init some stuff in the centre of the array
-        for(int i=-5; i<=5; i++)
+        for(int k=-5; k<=5; k++)
         {
-            int lpos = width/2 + i + width*height/2 + (depth/2)*width*height;
-
-            if(lpos >= width*height*depth)
-                continue;
-
-            buf[lpos] = 1000000.0f;
-        }
-
-        for(int k=-25; k<=25; k++)
-        {
-            for(int j=-20; j<=20; j++)
+            for(int j=-10; j<=10; j++)
             {
                 int lpos = width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height;
 
@@ -367,7 +357,7 @@ void smoke::tick(float dt)
 
 }
 
-void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount)
+void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box_size, cl_float add_amount)
 {
     /*(float4 force_pos, float4 force_dir, float force, float box_size,
                         __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in,
@@ -376,23 +366,24 @@ void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount)
 
     int next_vel = (n_vel + 1) % 2;
 
-    float temp_size = 10.f;
-
     arg_list displace_args;
     displace_args.push_back(&loc);
     displace_args.push_back(&dir);
     displace_args.push_back(&amount);
-    displace_args.push_back(&temp_size);
+    displace_args.push_back(&box_size);
+    displace_args.push_back(&add_amount);
 
     displace_args.push_back(&g_velocity_x[n_vel]); ///in
     displace_args.push_back(&g_velocity_y[n_vel]);
     displace_args.push_back(&g_velocity_z[n_vel]);
+    displace_args.push_back(&g_voxel[n_dens]);
 
     displace_args.push_back(&g_velocity_x[n_vel]); ///out
     displace_args.push_back(&g_velocity_y[n_vel]);
     displace_args.push_back(&g_velocity_z[n_vel]);
+    displace_args.push_back(&g_voxel[n_dens]);
 
-    run_kernel_with_string("advect_at_position", {temp_size, temp_size, temp_size}, {16, 16, 1}, 3, displace_args);
+    run_kernel_with_string("advect_at_position", {box_size, box_size, box_size}, {16, 16, 1}, 3, displace_args);
 
     //n_vel = next_vel;
 }

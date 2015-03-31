@@ -6221,7 +6221,8 @@ float advect_func_vel_tex(float x, float y, float z,
 
     float3 distance = dtd * (float3){pvx, pvy, pvz};
 
-    distance = clamp(distance, -1.f, 1.f);
+    ///?
+    //distance = clamp(distance, -1.f, 1.f);
 
     float3 vvec = (float3){x, y, z} - distance;
 
@@ -8401,9 +8402,9 @@ __kernel void post_upscale(int width, int height, int depth,
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
 ///force_pos is offset within the box
 __kernel
-void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size,
-                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in,
-                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out)
+void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size, float add_amount,
+                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in, __read_only image3d_t voxel_in,
+                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out, __write_only image3d_t voxel_out)
 {
     int xpos = get_global_id(0);
     int ypos = get_global_id(1);
@@ -8434,6 +8435,11 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     vel.y = read_imagef(y_in, sam, pos.xyzz).x;
     vel.z = read_imagef(z_in, sam, pos.xyzz).x;
 
+    float voxel_amount = read_imagef(voxel_in, sam, pos.xyzz).x;
+
+    voxel_amount += add_amount;
+
+    write_imagef(voxel_out, pos.xyzz, voxel_amount);
 
     float3 force_dir_amount = force_dir.xyz * force;
 
@@ -8442,7 +8448,7 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     ///temp, may fix black hole
     vel = clamp(vel, -1.f, 1.f);
 
-    write_imagef(x_out, pos.xyzz, vel.xxxx);
-    write_imagef(y_out, pos.xyzz, vel.yyyy);
-    write_imagef(z_out, pos.xyzz, vel.zzzz);
+    write_imagef(x_out, pos.xyzz, vel.x);
+    write_imagef(y_out, pos.xyzz, vel.y);
+    write_imagef(z_out, pos.xyzz, vel.z);
 }
