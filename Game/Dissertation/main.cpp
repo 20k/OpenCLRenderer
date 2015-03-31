@@ -253,7 +253,9 @@ int main(int argc, char *argv[])
 
                 diff = div(diff, biggest);
 
-                gloop.displace(rel, diff, 2.f, box_size, 0.f);
+                ///at the moment i'm just constantly spawning advection
+                ///do I want advection to be modulated by current smoke density?
+                gloop.displace(rel, diff, 2.f, box_size*2, 0.f);
             }
 
             if(key.isKeyPressed(sf::Keyboard::Space))
