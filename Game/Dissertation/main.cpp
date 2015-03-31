@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
             if(rel.x >= 0 && rel.y >= 0 && rel.z >= 0 && rel.x < gloop.width && rel.y < gloop.height && rel.z < gloop.depth
                && (diff.x != 0 || diff.y != 0 || diff.z != 0))
             {
-                float biggest = std::max(std::max(diff.x, diff.y), diff.z);
+                float biggest = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
                 diff = div(diff, biggest);
 
