@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
             gloop.roughness = std::max(gloop.roughness, 0.f);
         }
 
-        {
+        {f
             cl_float4 c_pos = window.c_pos;
             cl_float4 diff = sub(c_pos, last_c_pos);
 
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 
             cl_float4 rel = sub(c_pos, gloop.pos);
 
-            rel = div(rel, 2.f);
+            rel = div(rel, gloop.scale);
 
             rel = add(rel, {gloop.width/2, gloop.height/2, gloop.depth/2});
 

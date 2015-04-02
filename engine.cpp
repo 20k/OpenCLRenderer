@@ -689,7 +689,7 @@ void engine::input()
         distance_multiplier=1;
     }
 
-    double distance=0.04*distance_multiplier*30;
+    float distance=0.04f*distance_multiplier*30;
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {

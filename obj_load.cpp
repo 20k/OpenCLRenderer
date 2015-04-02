@@ -10,7 +10,6 @@
 #include "texture.hpp"
 #include <math.h>
 #include <list>
-#include <boost/bind.hpp>
 
 std::map<std::string, objects_container> cache_map;
 
