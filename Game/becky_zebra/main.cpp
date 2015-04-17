@@ -623,12 +623,12 @@ const cl_float4 angle_to_rotation(float angle)
 
 const float height_distance = 9000.f;
 
-const cl_float4 angle_to_position(float angle)
+const cl_float4 angle_to_position(float angle, float dist = height_distance)
 {
     angle = (angle / 360.f) * M_PI * 2;
 
-    float zpos = -height_distance * cos(angle);
-    float ypos = height_distance * sin(angle);
+    float zpos = -dist * cos(angle);
+    float ypos = dist * sin(angle);
     float xpos = (zebra::minx + zebra::maxx) / 2.f;
 
     cl_float4 cpos = (cl_float4){xpos, ypos, zpos};
@@ -785,6 +785,39 @@ int main(int argc, char *argv[])
     info.running = false;
 
     atexit(save_all_runs);
+
+
+
+
+
+
+
+    for(float f = 20; f <= 90.f; f += 17.5)
+    {
+        cl_float4 c_pos = angle_to_position(f);
+        cl_float4 c_rot = angle_to_rotation(f);
+
+        window.set_camera_pos(c_pos);
+        window.set_camera_rot(c_rot);
+
+        float z_w = 400;
+
+        cl_float4 val = window.project({zebra::maxx, 0, zebra::maxy});
+        cl_float4 val2 = window.project({zebra::minx, 0, zebra::miny});
+
+        printf("%f %f %f\n", val.x - val2.x, val.y - val2.y, val.z);
+
+        //float dist = (16750/3.5);
+
+
+        //val = window.project({(zebra::minx + zebra::maxx)/2.f + 200, 0, dist});
+
+        //printf("%f %f %f\n", val.x - window.width/2.f, val.y - window.height/2.f, val.z);
+    }
+
+    //return 0;
+
+
 
     while(window.window.isOpen())
     {

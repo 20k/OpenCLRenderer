@@ -37,7 +37,6 @@
 			<Add option="-DBECKY_HACK" />
 		</Compiler>
 		<Linker>
-			<Add option="-lport" />
 			<Add option="-lmingw32" />
 			<Add option="-lsfml-graphics" />
 			<Add option="-lsfml-audio" />
@@ -47,7 +46,6 @@
 			<Add option="-luser32" />
 			<Add option="-lopengl32" />
 			<Add option="-lopencl" />
-			<Add option="-lglew64.dll" />
 			<Add option="-ldbghelp" />
 			<Add option="-lwinmm" />
 			<Add option="-lgdi32" />

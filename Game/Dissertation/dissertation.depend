@@ -746,3 +746,714 @@
 	"../../terrain_gen/terrain_gen.hpp"
 	"../../goo.hpp"
 
+1427718017 source:c:\users\sam\desktop\openclrenderer\clstate.cpp
+	"clstate.h"
+
+1427718017 c:\users\sam\desktop\openclrenderer\clstate.h
+	<cl/opencl.h>
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+	<string>
+	<utility>
+	<map>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\engine.cpp
+	<gl/glew.h>
+	<gl/gl.h>
+	"engine.hpp"
+	<math.h>
+	<gl/glext.h>
+	"clstate.h"
+	<iostream>
+	<gl/gl.h>
+	"obj_mem_manager.hpp"
+	<stdio.h>
+	<limits.h>
+	"texture_manager.hpp"
+	"interact_manager.hpp"
+	"text_handler.hpp"
+	"point_cloud.hpp"
+	"hologram.hpp"
+	"vec.hpp"
+	"ui_manager.hpp"
+	<chrono>
+	"ocl.h"
+	"Rift/Include/OVR.h"
+	"Rift/Include/OVR_Kernel.h"
+	"Rift/Src/OVR_CAPI.h"
+	"Rift/Src/OVR_Stereo.h"
+
+1427718017 c:\users\sam\desktop\openclrenderer\engine.hpp
+	<SFML/graphics.hpp>
+	"object.hpp"
+	<vector>
+	"objects_container.hpp"
+	"light.hpp"
+	"clstate.h"
+	"SVO/voxel.h"
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+	<initializer_list>
+	<unordered_map>
+	<chrono>
+	"smoke.hpp"
+	"ocl.h"
+	"Rift/Include/OVR.h"
+	"Rift/Include/OVR_Kernel.h"
+	"Rift/Src/OVR_CAPI.h"
+
+1427718017 c:\users\sam\desktop\openclrenderer\object.hpp
+	<vector>
+	"triangle.hpp"
+	<string>
+	<cl/cl.h>
+	<functional>
+
+1427718017 c:\users\sam\desktop\openclrenderer\triangle.hpp
+	"vertex.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\vertex.hpp
+	<cl/cl.h>
+
+1427718017 c:\users\sam\desktop\openclrenderer\objects_container.hpp
+	"object.hpp"
+	<functional>
+
+1427718017 c:\users\sam\desktop\openclrenderer\light.hpp
+	<cl/cl.h>
+	<vector>
+
+1427718017 c:\users\sam\desktop\openclrenderer\svo\voxel.h
+	<bitset>
+	"../point_cloud.hpp"
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+
+1427718017 c:\users\sam\desktop\openclrenderer\point_cloud.hpp
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+
+1427718017 c:\users\sam\desktop\openclrenderer\smoke.hpp
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+	<initializer_list>
+
+1427718017 c:\users\sam\desktop\openclrenderer\ocl.h
+	<cstdio>
+	<CL/cl.h>
+	<iostream>
+	<sfml/graphics.hpp>
+	"clstate.h"
+	<windows.h>
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+
+1427718017 c:\users\sam\desktop\openclrenderer\rift\src\ovr_capi.h
+	<stdint.h>
+	"OVR_CAPI_Keys.h"
+
+1427718017 c:\users\sam\desktop\openclrenderer\rift\src\ovr_capi_keys.h
+
+1427718017 c:\users\sam\desktop\openclrenderer\obj_mem_manager.hpp
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	"object.hpp"
+	<vector>
+
+1427718017 c:\users\sam\desktop\openclrenderer\texture_manager.hpp
+	<vector>
+	"texture.hpp"
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+
+1427718017 c:\users\sam\desktop\openclrenderer\texture.hpp
+	<sfml/graphics.hpp>
+	<cl/cl.h>
+	<vector>
+	"obj_g_descriptor.hpp"
+	<boost/function.hpp>
+	<functional>
+
+1427718017 c:\users\sam\desktop\openclrenderer\obj_g_descriptor.hpp
+	<CL/CL.h>
+
+1427718017 c:\users\sam\desktop\openclrenderer\interact_manager.hpp
+	<SFML/Graphics.hpp>
+	<vector>
+	<utility>
+	<set>
+
+1427718017 c:\users\sam\desktop\openclrenderer\text_handler.hpp
+	<vector>
+	<string>
+	<SFML/Graphics.hpp>
+
+1427718017 c:\users\sam\desktop\openclrenderer\hologram.hpp
+	<string>
+	<vector>
+	<utility>
+	<gl/glew.h>
+	<gl/gl.h>
+	<gl/glext.h>
+	<sfml/graphics.hpp>
+	<cl/cl.h>
+
+1427718017 c:\users\sam\desktop\openclrenderer\vec.hpp
+	<cl/cl.h>
+	<math.h>
+
+1427718017 c:\users\sam\desktop\openclrenderer\ui_manager.hpp
+	<vector>
+	<cl/cl.h>
+	<string>
+	<cl/cl.h>
+	<map>
+	<utility>
+
+1427718017 c:\users\sam\desktop\openclrenderer\rift\src\ovr_stereo.h
+	"Sensors/OVR_DeviceConstants.h"
+	"Displays/OVR_Display.h"
+	"OVR_Profile.h"
+
+1427718017 c:\users\sam\desktop\openclrenderer\rift\src\sensors\ovr_deviceconstants.h
+	"../Kernel/OVR_Math.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_math.h
+	<assert.h>
+	<stdlib.h>
+	<math.h>
+	"OVR_Types.h"
+	"OVR_RefCount.h"
+	"OVR_Std.h"
+	"OVR_Alg.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_types.h
+	"OVR_Compiler.h"
+	<stddef.h>
+	<limits.h>
+	<float.h>
+	<stdlib.h>
+	<crtdbg.h>
+	<stdint.h>
+	<sys/types.h>
+	<stdlib.h>
+	<emmintrin.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_compiler.h
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_refcount.h
+	"OVR_Types.h"
+	"OVR_Allocator.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_allocator.h
+	"OVR_Types.h"
+	<new>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_std.h
+	"OVR_Types.h"
+	<stdarg.h>
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<ctype.h>
+	<errno.h>
+	<wchar.h>
+	<wctype.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_alg.h
+	"OVR_Types.h"
+	<string.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\displays\ovr_display.h
+	"../Sensors/OVR_DeviceConstants.h"
+	"../Kernel/OVR_Types.h"
+	"../Kernel/OVR_Atomic.h"
+	"../Kernel/OVR_RefCount.h"
+	"../Kernel/OVR_Array.h"
+	"../Kernel/OVR_String.h"
+	"../Kernel/OVR_Math.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_atomic.h
+	"OVR_Types.h"
+	<Windows.h>
+	<pthread.h>
+	<intrin.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_array.h
+	"OVR_ContainerAllocator.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_containerallocator.h
+	"OVR_Allocator.h"
+	<string.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_string.h
+	"OVR_Types.h"
+	"OVR_Allocator.h"
+	"OVR_UTF8Util.h"
+	"OVR_Atomic.h"
+	"OVR_Std.h"
+	"OVR_Alg.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_utf8util.h
+	"OVR_Types.h"
+
+1427718017 c:\users\sam\desktop\openclrenderer\rift\src\ovr_profile.h
+	"OVR_CAPI_Keys.h"
+	"Sensors/OVR_DeviceConstants.h"
+	"Kernel/OVR_String.h"
+	"Kernel/OVR_RefCount.h"
+	"Kernel/OVR_Array.h"
+	"Kernel/OVR_StringHash.h"
+	"Kernel/OVR_System.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_stringhash.h
+	"OVR_String.h"
+	"OVR_Hash.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_hash.h
+	"OVR_ContainerAllocator.h"
+	"OVR_Alg.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_system.h
+	"OVR_Allocator.h"
+	"OVR_Log.h"
+	"OVR_Atomic.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_log.h
+	"OVR_Types.h"
+	"../Kernel/OVR_Delegates.h"
+	"../Kernel//OVR_Observer.h"
+	<stdarg.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\ovr_delegates.h
+	"OVR_Types.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_observer.h
+	"OVR_Types.h"
+	"OVR_Atomic.h"
+	"OVR_RefCount.h"
+	"OVR_Delegates.h"
+	"OVR_Array.h"
+	"OVR_String.h"
+	"OVR_Hash.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_types.h
+	"OVR_Compiler.h"
+	<stddef.h>
+	<limits.h>
+	<float.h>
+	<stdlib.h>
+	<crtdbg.h>
+	<stdint.h>
+	<sys/types.h>
+	<stdlib.h>
+	<emmintrin.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_compiler.h
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_atomic.h
+	"OVR_Types.h"
+	<Windows.h>
+	<pthread.h>
+	<intrin.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_refcount.h
+	"OVR_Types.h"
+	"OVR_Allocator.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_allocator.h
+	"OVR_Types.h"
+	<new>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_delegates.h
+	"OVR_Types.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_array.h
+	"OVR_ContainerAllocator.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_containerallocator.h
+	"OVR_Allocator.h"
+	<string.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_string.h
+	"OVR_Types.h"
+	"OVR_Allocator.h"
+	"OVR_UTF8Util.h"
+	"OVR_Atomic.h"
+	"OVR_Std.h"
+	"OVR_Alg.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_utf8util.h
+	"OVR_Types.h"
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_std.h
+	"OVR_Types.h"
+	<stdarg.h>
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<ctype.h>
+	<errno.h>
+	<wchar.h>
+	<wctype.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_alg.h
+	"OVR_Types.h"
+	<string.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\rift\src\kernel\\ovr_hash.h
+	"OVR_ContainerAllocator.h"
+	"OVR_Alg.h"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\goo.cpp
+	"goo.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\goo.hpp
+	"smoke.hpp"
+	"engine.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\hologram.cpp
+	"hologram.hpp"
+	<SFML/Graphics.hpp>
+	<iostream>
+	"clstate.h"
+	"engine.hpp"
+	"proj.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\proj.hpp
+	<cstdio>
+	<string>
+	<iostream>
+	<windows.h>
+	<gl/gl.h>
+	<cl/cl.h>
+	"clstate.h"
+	"obj_load.hpp"
+	"objects_container.hpp"
+	"texture.hpp"
+	"engine.hpp"
+	"obj_mem_manager.hpp"
+	"obj_g_descriptor.hpp"
+	"texture_manager.hpp"
+	<math.h>
+	<limits.h>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+
+1427718017 c:\users\sam\desktop\openclrenderer\obj_load.hpp
+	<string>
+	"object.hpp"
+	"objects_container.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\interact_manager.cpp
+	"interact_manager.hpp"
+	<SFML/Graphics.hpp>
+	"engine.hpp"
+	<utility>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\light.cpp
+	"light.hpp"
+	<iostream>
+	<float.h>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\network.cpp
+	"network.hpp"
+	<ws2tcpip.h>
+	<iostream>
+	<sstream>
+	<memory>
+	<cstdio>
+
+1427718017 c:\users\sam\desktop\openclrenderer\network.hpp
+	<vector>
+	"objects_container.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\obj_info_struct.cpp
+	"obj_info_struct.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\obj_info_struct.hpp
+	<cl/cl.h>
+	<vector>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\obj_load.cpp
+	"obj_load.hpp"
+	<cstdio>
+	<cstdlib>
+	<vector>
+	<iostream>
+	<fstream>
+	<cstdio>
+	<string.h>
+	"triangle.hpp"
+	"texture.hpp"
+	<math.h>
+	<list>
+	<boost/bind.hpp>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\obj_mem_manager.cpp
+	"obj_mem_manager.hpp"
+	<CL/CL.h>
+	"clstate.h"
+	"triangle.hpp"
+	<iostream>
+	<windows.h>
+	<algorithm>
+	"obj_g_descriptor.hpp"
+	"texture.hpp"
+	"objects_container.hpp"
+	"obj_load.hpp"
+	<math.h>
+	<utility>
+	<iostream>
+	"texture_manager.hpp"
+	"engine.hpp"
+	<map>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\object.cpp
+	"object.hpp"
+	"clstate.h"
+	"texture.hpp"
+	"obj_mem_manager.hpp"
+	"objects_container.hpp"
+	<iostream>
+	"texture_manager.hpp"
+	"vec.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\objects_container.cpp
+	"objects_container.hpp"
+	<iostream>
+	"obj_load.hpp"
+	"vec.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\planet_gen\marching_cubes.cpp
+	"marching_cubes.hpp"
+	"cubetables.hpp"
+	<math.h>
+	<iostream>
+	<vector>
+	"../texture.hpp"
+	"../vec.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\planet_gen\marching_cubes.hpp
+	<math.h>
+	"../triangle.hpp"
+	"../objects_container.hpp"
+	"../texture.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\planet_gen\cubetables.hpp
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\planet_gen\planet_gen.cpp
+	"planet_gen.hpp"
+
+1427718017 c:\users\sam\desktop\openclrenderer\planet_gen\planet_gen.hpp
+	"../objects_container.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\point_cloud.cpp
+	"point_cloud.hpp"
+	"clstate.h"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\projectile_buffer_gen.cpp
+	"projectile_buffer_gen.hpp"
+	"vec.hpp"
+	<random>
+	<cstdlib>
+
+1427718017 c:\users\sam\desktop\openclrenderer\projectile_buffer_gen.hpp
+	"proj.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\smoke.cpp
+	"smoke.hpp"
+	"clstate.h"
+	"engine.hpp"
+	"vec.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\terrain_gen\terrain_gen.cpp
+	"terrain_gen.hpp"
+	"../planet_gen/marching_cubes.hpp"
+	"../vec.hpp"
+	<iostream>
+
+1427718017 c:\users\sam\desktop\openclrenderer\terrain_gen\terrain_gen.hpp
+	"../objects_container.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\text_handler.cpp
+	"text_handler.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\texture.cpp
+	"texture.hpp"
+	"clstate.h"
+	<iostream>
+	<math.h>
+	<boost/bind.hpp>
+	"texture_manager.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\texture_manager.cpp
+	"texture_manager.hpp"
+	<math.h>
+	<iostream>
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\triangle.cpp
+	"triangle.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\ui_manager.cpp
+	"ui_manager.hpp"
+	"hologram.hpp"
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+	<SFML/Graphics.hpp>
+	"clstate.h"
+	"engine.hpp"
+	<map>
+	"vec.hpp"
+	"proj.hpp"
+
+1427718017 source:c:\users\sam\desktop\openclrenderer\vertex.cpp
+	"vertex.hpp"
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\asteroid\asteroid_gen.cpp
+	"asteroid_gen.hpp"
+	<cstdlib>
+	<cl/cl.h>
+	<cmath>
+	"../../triangle.hpp"
+	"../../texture.hpp"
+	"../../objects_container.hpp"
+	"../../vec.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\asteroid\asteroid_gen.hpp
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\collision.cpp
+	"collision.hpp"
+	"../objects_container.hpp"
+	<math.h>
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\collision.hpp
+	<cl/cl.h>
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\galaxy\galaxy.cpp
+	<iostream>
+	<sfml/graphics.hpp>
+	<math.h>
+	<stdio.h>
+	<algorithm>
+	<cl/cl.h>
+	"galaxy.hpp"
+	"../../vec.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\galaxy\galaxy.hpp
+	<cl/cl.h>
+	"../../point_cloud.hpp"
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\game_manager.cpp
+	"game_manager.hpp"
+	"../obj_mem_manager.hpp"
+	<cstdlib>
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\game_manager.hpp
+	<vector>
+	"game_object.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\game_object.hpp
+	<vector>
+	<utility>
+	"collision.hpp"
+	"../objects_container.hpp"
+	"newtonian_body.hpp"
+	<cl/cl.h>
+	<set>
+	<SFML/Graphics.hpp>
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	"ship.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\newtonian_body.hpp
+	<cl/cl.h>
+	<math.h>
+	"../objects_container.hpp"
+	"../light.hpp"
+	"projectile.hpp"
+	"collision.hpp"
+	<map>
+	<utility>
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\projectile.hpp
+	"../light.hpp"
+	<vector>
+	"../proj.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\ship.hpp
+	<vector>
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\game_object.cpp
+	"game_object.hpp"
+	<iostream>
+	"../engine.hpp"
+	"../interact_manager.hpp"
+	"../obj_mem_manager.hpp"
+	"../vec.hpp"
+	"../ui_manager.hpp"
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\newtonian_body.cpp
+	"newtonian_body.hpp"
+	"../engine.hpp"
+	"../interact_manager.hpp"
+	"../vec.hpp"
+	"game_object.hpp"
+	<chrono>
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\projectile.cpp
+	"projectile.hpp"
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\ship.cpp
+	"ship.hpp"
+	"../ui_manager.hpp"
+	<iostream>
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\solar_object\solar.cpp
+	"solar.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\solar_object\solar.hpp
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\space_dust.cpp
+	"space_dust.hpp"
+	"../point_cloud.hpp"
+	<stdlib.h>
+	"../vec.hpp"
+
+1427718016 c:\users\sam\desktop\openclrenderer\game\space_dust.hpp
+
+1427718016 source:c:\users\sam\desktop\openclrenderer\game\dissertation\main.cpp
+	"../../hologram.hpp"
+	"../../proj.hpp"
+	"../../ocl.h"
+	"../../texture_manager.hpp"
+	"../newtonian_body.hpp"
+	"../collision.hpp"
+	"../../interact_manager.hpp"
+	"../game_object.hpp"
+	"../../text_handler.hpp"
+	<sstream>
+	<string>
+	"../../vec.hpp"
+	"../galaxy/galaxy.hpp"
+	"../game_manager.hpp"
+	"../space_dust.hpp"
+	"../asteroid/asteroid_gen.hpp"
+	"../../ui_manager.hpp"
+	"../ship.hpp"
+	"../../terrain_gen/terrain_gen.hpp"
+	"../../goo.hpp"
+
