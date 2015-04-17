@@ -5562,6 +5562,8 @@ float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
 ///seems to be rendering only one side of cubes
 ///need to make simulation incompressible to get vortices
 ///use half float
+///it might actually be more interesting to render the velocity :P
+///or perhaps additive
 __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
                             int render_size, __global uint* lnum, __global struct light* lights, float voxel_bound, int is_solid
@@ -5901,7 +5903,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     ///do for all? check for quitting outside of bounds and do for that as well?
     ///this is the explicit surface solver step
-    if(found && is_solid)
+    if(is_solid && found)
     {
         if(!skipped)
             found_pos -= step;
@@ -6004,29 +6006,32 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     ray_origin += half_size;*/
 
     ///undo transforms to global space
-    final_pos -= half_size;
 
-    final_pos /= rel;
+    float light = 1;
 
-    final_pos += v_pos.xyz;
+    if(is_solid)
+    {
+        final_pos -= half_size;
 
-    float light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
+        final_pos /= rel;
 
-    light = clamp(light, 0.0f, 1.0f);
+        final_pos += v_pos.xyz;
 
-    if(!is_solid)
-        light = 1;
+        light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
 
-    //light = 1;
+        light = clamp(light, 0.0f, 1.0f);
+    }
 
     sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
-                        CLK_ADDRESS_NONE |
-                        CLK_FILTER_NEAREST;
+                           CLK_ADDRESS_NONE |
+                           CLK_FILTER_NEAREST;
 
+
+    voxel_accumulate = sqrt(voxel_accumulate);
 
     float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
 
-    write_imagef(screen, (int2){x, y}, voxel_accumulate*voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
+    write_imagef(screen, (int2){x, y}, voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
 
     //write_imagef(screen, (int2){x, y}, 0);
 }
@@ -6219,7 +6224,8 @@ float advect_func_vel_tex(float x, float y, float z,
 
     float3 distance = dtd * (float3){pvx, pvy, pvz};
 
-    distance = clamp(distance, -1.f, 1.f);
+    ///?
+    //distance = clamp(distance, -1.f, 1.f);
 
     float3 vvec = (float3){x, y, z} - distance;
 
@@ -8399,9 +8405,9 @@ __kernel void post_upscale(int width, int height, int depth,
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
 ///force_pos is offset within the box
 __kernel
-void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size,
-                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in,
-                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out)
+void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size, float add_amount,
+                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in, __read_only image3d_t voxel_in,
+                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out, __write_only image3d_t voxel_out)
 {
     int xpos = get_global_id(0);
     int ypos = get_global_id(1);
@@ -8432,15 +8438,20 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     vel.y = read_imagef(y_in, sam, pos.xyzz).x;
     vel.z = read_imagef(z_in, sam, pos.xyzz).x;
 
+    float voxel_amount = read_imagef(voxel_in, sam, pos.xyzz).x;
+
+    voxel_amount += add_amount;
+
+    write_imagef(voxel_out, pos.xyzz, voxel_amount);
 
     float3 force_dir_amount = force_dir.xyz * force;
 
     vel += force_dir_amount;
 
     ///temp, may fix black hole
-    vel = clamp(vel, -1.f, 1.f);
+    vel = clamp(vel, -3.f, 3.f);
 
-    write_imagef(x_out, pos.xyzz, vel.xxxx);
-    write_imagef(y_out, pos.xyzz, vel.yyyy);
-    write_imagef(z_out, pos.xyzz, vel.zzzz);
+    write_imagef(x_out, pos.xyzz, vel.x);
+    write_imagef(y_out, pos.xyzz, vel.y);
+    write_imagef(z_out, pos.xyzz, vel.z);
 }

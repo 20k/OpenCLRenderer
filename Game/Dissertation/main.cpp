@@ -81,10 +81,11 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    //objects_container sponza;
+    objects_container sponza;
 
     //sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
+    //sponza.set_file("../../sp2/cornellfixed.obj");
     //sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
 
     //sponza.set_active(true);
@@ -107,12 +108,12 @@ int main(int argc, char *argv[])
 
 
     smoke gloop;
-    gloop.init(100, 100, 100, 2, 300, true, 1.f);
+    gloop.init(100, 100, 100, 2, 300, false, 80.f, 1.f);
 
 
     obj_mem_manager::load_active_objects();
 
-    //sponza.scale(100.0f);
+    //sponza.scale(200.0f);
 
     //c1.scale(100.0f);
 
@@ -144,6 +145,13 @@ int main(int argc, char *argv[])
 
     int fc = 0;
 
+
+    float box_size = 2.f;
+    float force = 0.4f;
+    float displace_amount = 0.f;
+
+    cl_float4 last_c_pos = window.c_pos;
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -164,32 +172,32 @@ int main(int argc, char *argv[])
 
         if(key.isKeyPressed(sf::Keyboard::I))
         {
-            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, 1}, 0.1f);
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, 1}, force, box_size, displace_amount);
         }
 
         if(key.isKeyPressed(sf::Keyboard::K))
         {
-            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, -1}, 0.1f);
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, -1}, force, box_size, displace_amount);
         }
 
         if(key.isKeyPressed(sf::Keyboard::J))
         {
-            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {-1, 0, 0}, 0.1f);
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {-1, 0, 0}, force, box_size, displace_amount);
         }
 
         if(key.isKeyPressed(sf::Keyboard::L))
         {
-            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {1, 0, 0}, 0.1f);
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {1, 0, 0}, force, box_size, displace_amount);
         }
 
         if(key.isKeyPressed(sf::Keyboard::U))
         {
-            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, -1, 0}, 0.1f);
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, -1, 0}, force, box_size, displace_amount);
         }
 
         if(key.isKeyPressed(sf::Keyboard::O))
         {
-            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, 0.1f);
+            gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, force, box_size, displace_amount);
         }
 
         if(key.isKeyPressed(sf::Keyboard::Add))
@@ -223,6 +231,38 @@ int main(int argc, char *argv[])
 
             gloop.roughness = std::max(gloop.roughness, 0.f);
         }
+
+        {
+            cl_float4 c_pos = window.c_pos;
+            cl_float4 diff = sub(c_pos, last_c_pos);
+
+            last_c_pos = c_pos;
+
+            cl_float4 rel = sub(c_pos, gloop.pos);
+
+            rel = div(rel, 2.f);
+
+            rel = add(rel, {gloop.width/2, gloop.height/2, gloop.depth/2});
+
+            //rel = sub(rel, {0,0,gloop.depth/4.f});
+
+            if(rel.x >= 0 && rel.y >= 0 && rel.z >= 0 && rel.x < gloop.width && rel.y < gloop.height && rel.z < gloop.depth
+               && (diff.x != 0 || diff.y != 0 || diff.z != 0))
+            {
+                float biggest = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+
+                diff = div(diff, biggest);
+
+                gloop.displace(rel, diff, 2.f, box_size, 0.f);
+            }
+
+            if(key.isKeyPressed(sf::Keyboard::Space))
+            {
+                gloop.displace(rel, {0}, {0}, box_size*2, 1.f);
+            }
+        }
+
+        ///do camera gloop displace!!
 
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);

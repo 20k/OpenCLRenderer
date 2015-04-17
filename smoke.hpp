@@ -46,7 +46,7 @@ struct smoke
     cl_float roughness;
 
     ///later define spatial and real resolution differently
-    void init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _roughness);
+    void init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness);
     void tick(float timestep);
-    void displace(cl_float4 loc, cl_float4 dir, cl_float amount);
+    void displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box_size, cl_float add_amount);
 };
