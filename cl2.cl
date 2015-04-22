@@ -8296,13 +8296,6 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     int pos = z*uw*uh + y*uw + x;
 
-    ///the generation of this is a bit incorrect
-    ///we're accessing low res noise
-    ///this causes it to be broke
-    ///interpolate? or use high res?
-    //val.x = w1[IX((int)rx, (int)ry, (int)rz)];
-    //val.y = w2[IX((int)rx, (int)ry, (int)rz)];
-    //val.z = w3[IX((int)rx, (int)ry, (int)rz)];
 
     ///would be beneficial to be able to use lower res smoke
     ///ALMOST CERTAINLY NEED TO INTERPOLATE
@@ -8320,26 +8313,6 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_LINEAR;
 
-
-
-    ///if i do interpolation, it means i dont need to use more memory
-    ///IE MUCH FASTER
-    //val.x = do_trilinear(w1, rx, ry, rz, width, height, depth);
-    //val.y = do_trilinear(w2, rx, ry, rz, width, height, depth);
-    //val.z = do_trilinear(w3, rx, ry, rz, width, height, depth);
-
-    /*val.x += w1[IX((int)rx, (int)ry, (int)rz)];
-    val.x += w1[IX((int)rx-1, (int)ry, (int)rz)];
-    val.x += w1[IX((int)rx+1, (int)ry, (int)rz)];
-    val.x += w1[IX((int)rx, (int)ry-1, (int)rz)];
-    val.x += w1[IX((int)rx, (int)ry+1, (int)rz)];
-    val.x += w1[IX((int)rx, (int)ry, (int)rz+1)];
-    val.x += w1[IX((int)rx, (int)ry, (int)rz-1)];
-
-    val.x /= 7;*/
-
-    //float mag = length(val);
-
     ///et is length(vx, vy, vz?)
     float et = 1;
 
@@ -8348,13 +8321,6 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
     ///do i need smooth vx....????
-    //vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
-    //vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
-    //vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
-
-    //vx = xvel[IX((int)rx, (int)ry, (int)rz)];
-    //vy = yvel[IX((int)rx, (int)ry, (int)rz)];
-    //vz = zvel[IX((int)rx, (int)ry, (int)rz)];
 
     vx = read_imagef(xvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
     vy = read_imagef(yvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
@@ -8408,6 +8374,8 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     ///draw from here somehow?
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
+
+    val += val * length(vval)/1.f;
 
     ///this disables upscaling
     //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;

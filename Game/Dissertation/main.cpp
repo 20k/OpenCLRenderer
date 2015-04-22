@@ -266,11 +266,7 @@ int main(int argc, char *argv[])
 
                 forw = engine::back_rotate(forw, window.c_rot);
 
-                //vec3f t = back_rot({0, 0, distance}, {0}, c_rot);
-
-
-
-                gloop.displace(rel, forw, 2.f, box_size*2, 0.f);
+                gloop.displace(rel, forw, 0.5f, box_size*1, 0.f);
             }
         }
 
