@@ -916,7 +916,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
                 p1arg_list.push_back(&juan);
                 p1arg_list.push_back(&g_distortion_buffer);
-                //p1arg_list.push_back(&g_id_screen_tex);
+                p1arg_list.push_back(&g_id_screen_tex);
 
                 run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
@@ -1031,7 +1031,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&eng.g_distortion_buffer);
-    //p1arg_list.push_back(&eng.g_id_screen_tex);
+    p1arg_list.push_back(&eng.g_id_screen_tex);
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
@@ -1044,6 +1044,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 
+    ///hmmm. Using second kernel seems to have better depth complexity
     arg_list p2arg_list;
     p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);

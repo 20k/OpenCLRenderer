@@ -448,8 +448,6 @@ const std::vector<int> group_sizes =
 const std::vector<float> protean =
 {
     0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393
-    ///PILOT
-    //0.049, 0.098, 0.138, 0.278, 0.393
 };
 
 ///currently rand, parallel, perp
@@ -458,16 +456,6 @@ const std::vector<float> protean =
 
 const std::vector<std::string> stripe_names =
 {
-    /*///1.0
-    "../Res/tex_cube.obj",
-    ///0.8
-    "../Res/tex_cube_2.obj",
-    ///0.6
-    "../Res/tex_cube_3.obj",
-    ///0.4
-    "../Res/tex_cube_2_low.obj",
-    ///0.2
-    "../Res/tex_cube_3_low.obj"*/
     ///1.0
     "../Res/tex_cube.obj",
     ///0.25
@@ -666,7 +654,7 @@ int main(int argc, char *argv[])
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
-    //window.window.setVerticalSyncEnabled(true);
+    window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 

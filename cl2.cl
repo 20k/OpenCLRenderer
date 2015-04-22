@@ -1625,6 +1625,11 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         return;
     }
 
+    __local int a_mem;
+
+    if(get_local_id(0) == 0)
+        a_mem = 0;
+
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
@@ -1953,9 +1958,10 @@ bool side(float2 p1, float2 p2, float2 p3)
 #define ERR_COMP -4.f
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
+///lets do something cleverer with this
 __kernel
 void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
+           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer, __write_only image2d_t id_buffer)
 {
     uint id = get_global_id(0);
 
@@ -2243,6 +2249,7 @@ void kernel1_oculus(__global struct triangle* triangles, __global uint* fragment
 #define BUF_ERROR 20
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
+///nvidia finally... finally 64 bit atomics
 __kernel
 void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,

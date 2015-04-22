@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
             gloop.roughness = std::max(gloop.roughness, 0.f);
         }
 
-        {f
+        {
             cl_float4 c_pos = window.c_pos;
             cl_float4 diff = sub(c_pos, last_c_pos);
 
@@ -255,12 +255,22 @@ int main(int argc, char *argv[])
 
                 ///at the moment i'm just constantly spawning advection
                 ///do I want advection to be modulated by current smoke density?
-                gloop.displace(rel, diff, 2.f, box_size*2, 0.f);
+                //gloop.displace(rel, diff, 2.f, box_size*2, 0.f);
             }
 
             if(key.isKeyPressed(sf::Keyboard::Space))
             {
-                gloop.displace(rel, {0}, {0}, box_size*2, 1.f);
+                //gloop.displace(rel, {0}, {0}, box_size*2, 1.f);
+
+                cl_float4 forw = {0, 0, 1, 0};
+
+                forw = engine::back_rotate(forw, window.c_rot);
+
+                //vec3f t = back_rot({0, 0, distance}, {0}, c_rot);
+
+
+
+                gloop.displace(rel, forw, 2.f, box_size*2, 0.f);
             }
         }
 
