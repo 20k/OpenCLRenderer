@@ -106,9 +106,10 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
+    int upscale = 4;
 
     smoke gloop;
-    gloop.init(100, 100, 100, 2, 300, false, 80.f, 1.f);
+    gloop.init(50, 50, 50, upscale, 300, false, 80.f, 1.f);
 
 
     obj_mem_manager::load_active_objects();
@@ -146,11 +147,14 @@ int main(int argc, char *argv[])
     int fc = 0;
 
 
-    float box_size = 2.f;
+    float box_size = 12.f/upscale;
     float force = 0.4f;
     float displace_amount = 0.f;
 
     cl_float4 last_c_pos = window.c_pos;
+
+    float avg_time = 0.f;
+    int avg_count = 0;
 
     while(window.window.isOpen())
     {
@@ -270,7 +274,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        ///do camera gloop displace!!
+        ///do camera gloopdisplace!!
 
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
@@ -281,6 +285,11 @@ int main(int argc, char *argv[])
 
         window.display();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+
+        avg_time += c.getElapsedTime().asMicroseconds();
+        avg_count ++;
+
+        printf("%f\n", avg_time / avg_count);
     }
 }
