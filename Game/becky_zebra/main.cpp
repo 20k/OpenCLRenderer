@@ -774,6 +774,47 @@ int main(int argc, char *argv[])
 
     atexit(save_all_runs);
 
+    for(int i=0; i<viewing_angles.size(); i++)
+    {
+        float viewing_angle = viewing_angles[i];
+
+        //viewing_angle = 0;
+
+        printf("VIEWING ANGLE: %f\n", viewing_angle);
+
+        cl_float4 c_pos = angle_to_position(viewing_angle);
+        cl_float4 c_rot = angle_to_rotation(viewing_angle);
+
+        window.set_camera_pos(c_pos);
+        window.set_camera_rot(c_rot);
+
+        cl_float4 p1 = {(zebra::minx + zebra::maxx)/2, height, zebra::maxy + 50};
+        cl_float4 p2 = {(zebra::minx + zebra::maxx)/2, 0, zebra::maxy + 50};
+
+        p1 = engine::project(p1);
+        p2 = engine::project(p2);
+
+
+        printf("%f\n", p2.y - p1.y);
+
+        /*float vel = info.zebra_velocity;
+
+        cl_float4 p1c = {(zebra::minx + zebra::maxx)/2, 0, zebra::miny};
+        cl_float4 p1f = {(zebra::minx + zebra::maxx)/2, 0, zebra::maxy};
+
+        cl_float4 p2c = {vel + (zebra::minx + zebra::maxx)/2, 0, zebra::miny + vel};
+        cl_float4 p2f = {vel + (zebra::minx + zebra::maxx)/2, 0, zebra::maxy - vel};
+
+        p1c = engine::project(p1c);
+        p1f = engine::project(p1f);
+
+        p2c = engine::project(p2c);
+        p2f = engine::project(p2f);
+
+
+        printf("%f %f %f %f\n", (p2c.x - p1c.x)*2.5, (p2c.y - p1c.y)*2.5, (p2f.x - p1f.x)*2.5, (p2f.y - p1f.y)*2.5);*/
+    }
+
     while(window.window.isOpen())
     {
         sf::Clock c;

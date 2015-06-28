@@ -99,17 +99,18 @@ int main(int argc, char *argv[])
     c1.set_active(true);
 
     engine window;
-    window.load(1680,1050,1000, "turtles", "../../cl2.cl");
+    window.load(1680,1050,1000, "James Berrow", "../../cl2.cl");
 
     window.set_camera_pos({0,100,-300,0});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
-    int upscale = 4;
+    int upscale = 2;
+    int res = 100;
 
     smoke gloop;
-    gloop.init(50, 50, 50, upscale, 300, false, 80.f, 1.f);
+    gloop.init(res, res, res, upscale, 300, false, 80.f, 1.f);
 
 
     obj_mem_manager::load_active_objects();

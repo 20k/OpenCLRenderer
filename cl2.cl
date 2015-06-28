@@ -6069,6 +6069,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
 
+    //voxel_accumulate *= 1.2;
+
     write_imagef(screen, (int2){x, y}, voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
 
     //write_imagef(screen, (int2){x, y}, 0);
@@ -6133,7 +6135,6 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
     int y = get_global_id(1);
     int z = get_global_id(2);
 
-    ///lazy for < 1
     if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
     {
         return;
@@ -6145,11 +6146,8 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     float4 pos = (float4){x, y, z, 0};
 
-    //pos += 0.5f;
 
     float val = 0;
-
-    //if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
 
     val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
         + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
@@ -6160,35 +6158,17 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     int div = 6;
 
-    /*if(x == 0 || x == width-1)
-        div--;
-
-    if(y == 0 || y == height-1)
-        div--;
-
-    if(z == 0 || z == depth-1)
-        div--;*/
-
-    //val = read_imagef(x_in, sam, pos).x;
-
     float myval = read_imagef(x_in, sam, pos).x;
 
     float weight = 100.f;
 
-    //val /= div;
-
     val = (val + weight*myval) / (div + weight);
-
-        //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
-
-    //x_out[IX(x,y,z)] = max(val, 0.0f);
 
     if(type == density)
     {
         val = max(val, 0.f);
     }
 
-    ///im SURE i fixed this before, I remember it! What happend? Investigate!!
     write_imagef(x_out, convert_int4(pos), val);
 }
 
@@ -6245,7 +6225,6 @@ float advect_func_vel(float x, float y, float z,
 float advect_func_vel_tex(float x, float y, float z,
                   int width, int height, int depth,
                   __read_only image3d_t d_in,
-                  //__global float* xvel, __global float* yvel, __global float* zvel,
                   float pvx, float pvy, float pvz,
                   float dt)
 {
@@ -6253,34 +6232,11 @@ float advect_func_vel_tex(float x, float y, float z,
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_LINEAR;
 
-
-    /*float dt0x = dt*width;
-    float dt0y = dt*height;
-    float dt0z = dt*depth;*/
-
     float3 dtd = dt * (float3){width, height, depth};
 
     float3 distance = dtd * (float3){pvx, pvy, pvz};
 
-    ///?
-    //distance = clamp(distance, -1.f, 1.f);
-
     float3 vvec = (float3){x, y, z} - distance;
-
-    /*float vx = x - dt0x * pvx;
-    float vy = y - dt0y * pvy;
-    float vz = z - dt0z * pvz;
-
-    float3 vvec = (float3)(vx, vy, vz);*/
-
-    if(any(vvec < 0) || any(vvec >= (float3)(width, height, depth)))
-    {
-        //return read_imagef(d_in, sam, (float4)(x, y, z, 0) + 0.5f).x;
-    }
-
-    //vx = clamp(vx, 0.5f, width - 1.5f);
-    //vy = clamp(vy, 0.5f, height - 1.5f);
-    //vz = clamp(vz, 0.5f, depth - 1.5f);
 
     float val = read_imagef(d_in, sam, vvec.xyzz + 0.5f).x;
 
@@ -8314,7 +8270,6 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
                     CLK_FILTER_LINEAR;
 
     ///et is length(vx, vy, vz?)
-    float et = 1;
 
     float vx, vy, vz;
     ///do trilinear beforehand
@@ -8375,7 +8330,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
-    val += val * length(vval)/1.f;
+    val += val * length(vval);
 
     ///this disables upscaling
     //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
@@ -8430,9 +8385,6 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     ///apply within-box offset
     pos += convert_int3(force_pos.xyz);
 
-
-
-    ///above is basically integer coordinates, only floats because floats are 'better'
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
@@ -8454,7 +8406,6 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
 
     vel += force_dir_amount;
 
-    ///temp, may fix black hole
     vel = clamp(vel, -3.f, 3.f);
 
     write_imagef(x_out, pos.xyzz, vel.x);

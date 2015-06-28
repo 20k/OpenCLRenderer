@@ -25,14 +25,6 @@ struct smoke
     compute::buffer g_w2;
     compute::buffer g_w3;
 
-    //compute::buffer g_postprocess_storage_x;
-    //compute::buffer g_postprocess_storage_y;
-    //compute::buffer g_postprocess_storage_z;
-
-    //compute::opengl_renderbuffer output;
-    //GLuint id;
-    //compute::buffer g_pos;
-    //compute::buffer g_rot; ///implement this later
     cl_float4 pos, rot;
     cl_int width, height, depth;
     cl_int uwidth, uheight, udepth;

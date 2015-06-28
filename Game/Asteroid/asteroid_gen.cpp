@@ -28,7 +28,7 @@ cl_float4 sphere_func(float m, const float M, float n, const float N)
 
 ///need smooth noise, which perlin noise is not really good for
 
-float randf()
+static float randf()
 {
     return (float)rand()/RAND_MAX;
 }

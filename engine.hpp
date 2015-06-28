@@ -167,6 +167,7 @@ struct engine
     int get_mouse_y();
     int get_mouse_delta_x();
     int get_mouse_delta_y();
+    float get_frametime();
 
     int get_width();
     int get_height();
@@ -180,6 +181,11 @@ struct engine
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);
 
     static int nbuf;
+
+private:
+    sf::Clock ftime;
+    size_t old_time;
+    size_t current_time;
 };
 
 struct arg_list

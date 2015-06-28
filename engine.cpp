@@ -156,6 +156,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     height = pheight;
     depth = pdepth;
 
+    old_time = 0;
+    current_time = 0;
+
     #ifdef RIFT
     {
         using namespace rift;
@@ -689,7 +692,7 @@ void engine::input()
         distance_multiplier=1;
     }
 
-    float distance=0.04f*distance_multiplier*30;
+    float distance=0.04f*distance_multiplier*30 * get_frametime() / 8000.f;
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {
@@ -737,24 +740,26 @@ void engine::input()
         c_pos.y+=0.04*distance_multiplier*30;
     }
 
+    float camera_mult = get_frametime() / 8000.f;
+
     if(keyboard.isKeyPressed(sf::Keyboard::Left))
     {
-        c_rot.y-=0.001*30;
+        c_rot.y-=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Right))
     {
-        c_rot.y+=0.001*30;
+        c_rot.y+=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Up))
     {
-        c_rot.x-=0.001*30;
+        c_rot.x-=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Down))
     {
-        c_rot.x+=0.001*30;
+        c_rot.x+=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
@@ -820,6 +825,14 @@ void engine::input()
         }
     }
     #endif
+
+    old_time = current_time;
+    current_time = ftime.getElapsedTime().asMicroseconds();
+}
+
+float engine::get_frametime()
+{
+    return current_time - old_time;
 }
 
 void engine::construct_shadowmaps()
