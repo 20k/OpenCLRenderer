@@ -416,13 +416,15 @@ void network::tick()
         int network_id = i.second;
 
         cl_float4 pos = obj->pos;
+        cl_float4 rot = obj->rot;
 
-        int len = sizeof(cl_float4) + sizeof(int);
+        int len = sizeof(cl_float4)*2 + sizeof(int);
 
         char* mem = (char*)malloc(len + sizeof(char));
 
         memcpy(mem, &network_id, sizeof(int));
         memcpy((mem + sizeof(int)), &pos, sizeof(cl_float4));
+        memcpy((mem + sizeof(int) + sizeof(cl_float4)), &rot, sizeof(cl_float4));
 
         mem[len] = '\0';
 
@@ -439,7 +441,7 @@ void network::tick()
 
         while(msg.size() > 0)
         {
-            if(msg.size() < sizeof(int) + sizeof(cl_float4))
+            if(msg.size() < sizeof(int) + sizeof(cl_float4)*2)
             {
                 std::cout << "error, no msg recieved ?????" << std::endl; ///fucking trigraphs
                 break;
@@ -448,14 +450,17 @@ void network::tick()
             int network_id = *(int*)&msg[0];
 
             const char* buf = &msg[sizeof(int)];
-
             const cl_float4* pfloat4 = (const cl_float4*) buf; ///figuratively hitler
+
+            const char* buf2 = &msg[sizeof(int) + sizeof(cl_float4)];
+            const cl_float4* rfloat4 = (const cl_float4*) buf2;
 
             objects_container* obj = get_object_by_id(network_id);
 
             if(obj != NULL)
             {
                 obj->set_pos(*pfloat4);
+                obj->set_rot(*rfloat4);
                 obj->g_flush_objects(); ///temporary/permanent
             }
             else
@@ -465,7 +470,7 @@ void network::tick()
 
             auto it = msg.begin();
 
-            std::advance(it, sizeof(int) + sizeof(cl_float4));
+            std::advance(it, sizeof(int) + sizeof(cl_float4)*2);
 
             msg.erase(msg.begin(), it);
         }
