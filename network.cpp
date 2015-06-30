@@ -209,7 +209,7 @@ bool is_writable(int clientfd)
 
 decltype(send)* send_t = &send;
 
-void network::send(int fd, std::string& msg)
+void network::send(int fd, const std::string& msg)
 {
     send(fd, msg.c_str(), msg.length());
 }
@@ -228,7 +228,7 @@ void network::send(int fd, const char* msg, int len)
     }
 }
 
-void network::broadcast(std::string& msg)
+void network::broadcast(const std::string& msg)
 {
     for(auto& i : networked_clients)
     {
@@ -400,6 +400,31 @@ int network::get_id_by_object(objects_container* obj)
     return -1;
 }
 
+struct byte_vector
+{
+    std::vector<char> ptr;
+
+    template<typename T>
+    void push_back(T v)
+    {
+        char* pv = (char*)&v;
+
+        for(int i=0; i<sizeof(T); i++)
+        {
+            ptr.push_back(pv[i]);
+        }
+    }
+
+    std::string get()
+    {
+        std::string dat;
+
+        dat.append(&ptr[0], ptr.size());
+
+        return dat;
+    }
+};
+
 ///this function is literally hitler
 void network::tick()
 {
@@ -418,19 +443,13 @@ void network::tick()
         cl_float4 pos = obj->pos;
         cl_float4 rot = obj->rot;
 
-        int len = sizeof(cl_float4)*2 + sizeof(int);
+        byte_vector vec;
 
-        char* mem = (char*)malloc(len + sizeof(char));
+        vec.push_back(network_id);
+        vec.push_back(pos);
+        vec.push_back(rot);
 
-        memcpy(mem, &network_id, sizeof(int));
-        memcpy((mem + sizeof(int)), &pos, sizeof(cl_float4));
-        memcpy((mem + sizeof(int) + sizeof(cl_float4)), &rot, sizeof(cl_float4));
-
-        mem[len] = '\0';
-
-        broadcast(mem, len);
-
-        free(mem);
+        broadcast(vec.get());
     }
 
     while(any_readable())

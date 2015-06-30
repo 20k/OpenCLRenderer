@@ -2028,6 +2028,11 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
         mod = 1;
     }
 
+    if(area < 25)
+    {
+        mod = 0.1;
+    }
+
     if(area > 60000)
     {
         mod = 2500;
@@ -2312,6 +2317,13 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     {
         mod = 1;
     }
+
+
+    if(area < 25)
+    {
+        mod = 0.1;
+    }
+
 
     if(area > 60000)
     {
@@ -2655,6 +2667,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     normal = fast_normalize(normal);
 
+    normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
     float3 ambient_sum = 0;
 
@@ -2774,7 +2787,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         diffuse_sum += diffuse*l.col.xyz;
 
-        #define COOK_TORRENCE
+        //#define COOK_TORRENCE
         #ifdef COOK_TORRENCE
         float3 H = fast_normalize(l2p + l2c);
 

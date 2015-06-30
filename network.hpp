@@ -32,10 +32,10 @@ struct network
     static void transform_slave_object(objects_container*);
 
 
-    static void broadcast(std::string&);
+    static void broadcast(const std::string&);
     static void broadcast(char*, int);
 
-    static void send(int, std::string&);
+    static void send(int, const std::string&);
     static void send(int, const char*, int);
 
     static std::vector<char> receive();
