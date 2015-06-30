@@ -415,13 +415,51 @@ struct byte_vector
         }
     }
 
-    std::string get()
+    std::string data()
     {
         std::string dat;
 
         dat.append(&ptr[0], ptr.size());
 
         return dat;
+    }
+};
+
+struct byte_fetch
+{
+    std::vector<char> ptr;
+
+    int internal_counter;
+
+    byte_fetch()
+    {
+        internal_counter = 0;
+    }
+
+    template<typename T>
+    void push_back(T v)
+    {
+        char* pv = (char*)&v;
+
+        for(int i=0; i<sizeof(T); i++)
+        {
+            ptr.push_back(pv[i]);
+        }
+    }
+
+    void push_back(std::vector<char> v)
+    {
+        ptr.insert(ptr.end(), v.begin(), v.end());
+    }
+
+    template<typename T>
+    T get()
+    {
+        int prev = internal_counter;
+
+        internal_counter += sizeof(T);
+
+        return *(T*)&ptr[prev];
     }
 };
 
@@ -449,7 +487,7 @@ void network::tick()
         vec.push_back(pos);
         vec.push_back(rot);
 
-        broadcast(vec.get());
+        broadcast(vec.data());
     }
 
     while(any_readable())
@@ -462,24 +500,23 @@ void network::tick()
         {
             if(msg.size() < sizeof(int) + sizeof(cl_float4)*2)
             {
-                std::cout << "error, no msg recieved ?????" << std::endl; ///fucking trigraphs
+                std::cout << "erro r, no msg recieved ?????" << std::endl; ///fucking trigraphs
                 break;
             }
 
-            int network_id = *(int*)&msg[0];
+            byte_fetch fetch;
+            fetch.push_back(msg);
 
-            const char* buf = &msg[sizeof(int)];
-            const cl_float4* pfloat4 = (const cl_float4*) buf; ///figuratively hitler
-
-            const char* buf2 = &msg[sizeof(int) + sizeof(cl_float4)];
-            const cl_float4* rfloat4 = (const cl_float4*) buf2;
+            int network_id = fetch.get<int>();
+            cl_float4 pos = fetch.get<cl_float4>();
+            cl_float4 rot = fetch.get<cl_float4>();
 
             objects_container* obj = get_object_by_id(network_id);
 
             if(obj != NULL)
             {
-                obj->set_pos(*pfloat4);
-                obj->set_rot(*rfloat4);
+                obj->set_pos(pos);
+                obj->set_rot(rot);
                 obj->g_flush_objects(); ///temporary/permanent
             }
             else
