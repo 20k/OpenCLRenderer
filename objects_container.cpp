@@ -192,7 +192,7 @@ void objects_container::g_flush_objects()
     }
     else
     {
-        std::cout << "Warning " __FILE__ << ": " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
+        //std::cout << "Warning " __FILE__ << ": " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
     }
 }
 
