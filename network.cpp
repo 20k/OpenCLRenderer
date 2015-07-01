@@ -13,6 +13,8 @@ int network::listen_fd;
 std::vector<std::pair<objects_container*, int>> network::host_networked_objects; ///authoratitive for me
 std::vector<std::pair<objects_container*, int>> network::slave_networked_objects; ///server authoratitive
 
+std::map<objects_container*, bool> network::active_status;
+
 int network::global_network_id;
 int network::network_state;
 
@@ -297,6 +299,8 @@ void network::host_object(objects_container* obj)
     ///do sanity checks later, ie already in list to prevent duplicate listings
 
     host_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+
+    active_status[obj] = obj->isactive;
 }
 
 void network::slave_object(objects_container* obj)
@@ -306,6 +310,8 @@ void network::slave_object(objects_container* obj)
     ///do sanity checks later, ie already in list to prevent duplicate listings
 
     slave_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+
+    active_status[obj] = obj->isactive;
 }
 
 void network::transform_host_object(objects_container* obj)
@@ -463,13 +469,53 @@ struct byte_fetch
     }
 };
 
+const int canary = 0xdeadbeef;
+
+void network::communicate(objects_container* obj)
+{
+
+}
+
+enum comm_type : unsigned int
+{
+    POSROT = 0,
+    ISACTIVE = 1
+};
+
+void network::process_posrot(byte_fetch& fetch)
+{
+    int network_id = fetch.get<int>();
+
+    cl_float4 pos = fetch.get<cl_float4>();
+    cl_float4 rot = fetch.get<cl_float4>();
+
+    objects_container* obj = get_object_by_id(network_id);
+
+    ///make this only the bits if they are different
+    if(obj != NULL)
+    {
+        obj->set_pos(pos);
+        obj->set_rot(rot);
+
+        obj->g_flush_objects(); ///temporary/permanent
+    }
+    else
+    {
+        std::cout << "warning, invalid networked object" << std::endl;
+    }
+}
+
+
 ///this function is literally hitler
-void network::tick()
+///we're gunna need to send different events like is_active ONLY IF THEY CHANGE
+///this is so that anyone can have authority over them
+///how the hell are we gunna do security like this, this is awful
+bool network::tick()
 {
     ///enum?
     if(network_state == 0)
     {
-        return;
+        return false;
     }
 
     for(auto& i : host_networked_objects)
@@ -483,12 +529,16 @@ void network::tick()
 
         byte_vector vec;
 
+        vec.push_back(canary);
+        vec.push_back((comm_type)POSROT);
         vec.push_back(network_id);
         vec.push_back(pos);
         vec.push_back(rot);
 
         broadcast(vec.data());
     }
+
+    bool need_realloc = false;
 
     while(any_readable())
     {
@@ -498,38 +548,47 @@ void network::tick()
 
         while(msg.size() > 0)
         {
-            if(msg.size() < sizeof(int) + sizeof(cl_float4)*2)
+            if(msg.size() < sizeof(int)*3 + sizeof(cl_float4)*2)
             {
-                std::cout << "erro r, no msg recieved ?????" << std::endl; ///fucking trigraphs
+                std::cout << "error, no msg recieved ?????" << std::endl; ///fucking trigraphs
                 break;
             }
 
             byte_fetch fetch;
             fetch.push_back(msg);
 
-            int network_id = fetch.get<int>();
-            cl_float4 pos = fetch.get<cl_float4>();
-            cl_float4 rot = fetch.get<cl_float4>();
+            int recv_canary = fetch.get<int>();
 
-            objects_container* obj = get_object_by_id(network_id);
-
-            if(obj != NULL)
+            if(recv_canary != canary)
             {
-                obj->set_pos(pos);
-                obj->set_rot(rot);
-                obj->g_flush_objects(); ///temporary/permanent
+                std::cout << "bad canary" << std::endl;
+                break;
             }
-            else
+
+            comm_type t = fetch.get<comm_type>();
+
+            if(t == POSROT)
             {
-                std::cout << "warning, invalid networked object" << std::endl;
+                process_posrot(fetch);
             }
 
             auto it = msg.begin();
 
-            std::advance(it, sizeof(int) + sizeof(cl_float4)*2);
+            std::advance(it, fetch.internal_counter);
 
             msg.erase(msg.begin(), it);
         }
     }
 
+    for(auto& i : host_networked_objects)
+    {
+        active_status[i.first] = i.first->isactive;
+    }
+
+    for(auto& i : slave_networked_objects)
+    {
+        active_status[i.first] = i.first->isactive;
+    }
+
+    return need_realloc;
 }
