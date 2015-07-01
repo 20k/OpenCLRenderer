@@ -56,7 +56,8 @@ struct network
     static bool tick();
 
 private:
-    static void process_posrot(byte_fetch& fetch);
+    static bool process_posrot(byte_fetch& fetch);
+    static bool process_isactive(byte_fetch& fetch);
 };
 
 #endif // NETWORKING_HPP

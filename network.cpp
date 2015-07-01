@@ -470,6 +470,7 @@ struct byte_fetch
 };
 
 const int canary = 0xdeadbeef;
+const int end_canary = 0xafaefeae;
 
 void network::communicate(objects_container* obj)
 {
@@ -482,12 +483,16 @@ enum comm_type : unsigned int
     ISACTIVE = 1
 };
 
-void network::process_posrot(byte_fetch& fetch)
+bool network::process_posrot(byte_fetch& fetch)
 {
     int network_id = fetch.get<int>();
 
     cl_float4 pos = fetch.get<cl_float4>();
     cl_float4 rot = fetch.get<cl_float4>();
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
 
     objects_container* obj = get_object_by_id(network_id);
 
@@ -503,6 +508,31 @@ void network::process_posrot(byte_fetch& fetch)
     {
         std::cout << "warning, invalid networked object" << std::endl;
     }
+
+    return true;
+}
+
+bool network::process_isactive(byte_fetch& fetch)
+{
+    int network_id = fetch.get<int>();
+    int isactive = fetch.get<int>();
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    objects_container* obj = get_object_by_id(network_id);
+
+    if(obj != nullptr)
+    {
+        obj->set_active(isactive);
+    }
+    else
+    {
+        std::cout <<  "warning, invalid networked objects" << std::endl;
+    }
+
+    return true;
 }
 
 
@@ -534,8 +564,33 @@ bool network::tick()
         vec.push_back(network_id);
         vec.push_back(pos);
         vec.push_back(rot);
+        vec.push_back(end_canary);
 
         broadcast(vec.data());
+    }
+
+    for(auto& i : active_status)
+    {
+        objects_container* obj = i.first;
+
+        int network_id = get_id_by_object(obj);
+
+        int isactive = obj->isactive;
+
+        int think_isactive = i.second;
+
+        if(isactive != think_isactive)
+        {
+            byte_vector vec;
+
+            vec.push_back(canary);
+            vec.push_back(ISACTIVE);
+            vec.push_back(network_id);
+            vec.push_back(isactive);
+            vec.push_back(end_canary);
+
+            broadcast(vec.data());
+        }
     }
 
     bool need_realloc = false;
@@ -548,11 +603,11 @@ bool network::tick()
 
         while(msg.size() > 0)
         {
-            if(msg.size() < sizeof(int)*3 + sizeof(cl_float4)*2)
+            /*if(msg.size() < sizeof(int)*4)// + sizeof(cl_float4)*2)
             {
                 std::cout << "error, no msg recieved ?????" << std::endl; ///fucking trigraphs
                 break;
-            }
+            }*/
 
             byte_fetch fetch;
             fetch.push_back(msg);
@@ -561,20 +616,33 @@ bool network::tick()
 
             if(recv_canary != canary)
             {
-                std::cout << "bad canary" << std::endl;
-                break;
+                msg.erase(msg.begin(), msg.begin() + 1);
+
+                continue;
             }
 
             comm_type t = fetch.get<comm_type>();
 
-            if(t == POSROT)
+
+            bool success = false;
+
+            if(t == POSROT && msg.size() >= sizeof(int)*4 + sizeof(cl_float4)*2)
             {
-                process_posrot(fetch);
+                success = process_posrot(fetch);
+            }
+            if(t == ISACTIVE)
+            {
+                success = process_isactive(fetch);
+
+                need_realloc = true;
             }
 
             auto it = msg.begin();
 
-            std::advance(it, fetch.internal_counter);
+            if(success)
+                std::advance(it, fetch.internal_counter);
+            else
+                std::advance(it, 1);
 
             msg.erase(msg.begin(), it);
         }
