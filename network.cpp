@@ -603,12 +603,6 @@ bool network::tick()
 
         while(msg.size() > 0)
         {
-            /*if(msg.size() < sizeof(int)*4)// + sizeof(cl_float4)*2)
-            {
-                std::cout << "error, no msg recieved ?????" << std::endl; ///fucking trigraphs
-                break;
-            }*/
-
             byte_fetch fetch;
             fetch.push_back(msg);
 
