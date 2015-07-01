@@ -663,7 +663,8 @@ int engine::get_mouse_delta_y()
     return mdy;
 }
 
-void engine::input()
+
+void engine::update_mouse()
 {
     int mx, my;
 
@@ -673,10 +674,13 @@ void engine::input()
     mdx = mx - cmx;
     mdy = my - cmy;
 
-    cmx = mx;
+    cmx = mx;;
     cmy = my;
+}
 
 
+void engine::input()
+{
     sf::Keyboard keyboard;
 
     static int distance_multiplier=1;
