@@ -68,7 +68,7 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
                         continue;
                     }*/
 
-                    if(strstr(chBuffer, "NVIDIA") != NULL || strstr(chBuffer, "Intel") != NULL)
+                    if(strstr(chBuffer, "NVIDIA") != NULL)// || strstr(chBuffer, "Intel") != NULL)
                     {
                         printf("selected platform %d\n", i);
                         *clSelectedPlatformID = clPlatformIDs[i];
@@ -148,6 +148,10 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
         std::cout << "Error getting platform id: " << std::endl;
         exit(error);
     }
+    else
+    {
+        std::cout << "Got platform IDs" << std::endl;
+    }
 
     ///this is essentially black magic
     cl_context_properties props[] =
@@ -158,31 +162,48 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
         0
     };
 
-    cl_device_id device;
+
+    cl_uint num;
+
+    cl_device_id device[100];
 
     // Device
-    error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
+    error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, device, &num);
+
+    std::cout << "Found " << num << " devices" << std::endl;
 
     if(error != CL_SUCCESS)
     {
         std::cout << "Error getting device ids: ";
         exit(error);
     }
+    else
+    {
+        std::cout << "Got device ids" << std::endl;
+    }
 
 
     // Context
-    cl_context context = clCreateContext(props, 1, &device, NULL, NULL, &error);
+    cl_context context = clCreateContext(props, 1, &device[0], NULL, NULL, &error);
 
     if(error != CL_SUCCESS)
     {
         std::cout << "Error creating context: ";
         exit(error);
     }
+    else
+    {
+        std::cout << "Created context" << std::endl;
+    }
 
 
     cl::context = compute::context(context, true);
 
-    cl::device = compute::device(device, true);
+    std::cout << "Bound context" << std::endl;
+
+    cl::device = compute::device(device[0], true);
+
+    std::cout << "Bound device" << std::endl;
 
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
@@ -190,12 +211,21 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     cl::cqueue = compute::command_queue(cl::context, cl::device);
     #endif
 
+
+    std::cout << "Created command queue" << std::endl;
+
+
     int src_size=0;
     const char *source;
 
     source = file_contents(file.c_str(), &src_size);
 
+
+    std::cout << "Loaded file" << std::endl;
+
     compute::program program = compute::program::create_with_source(source, cl::context);
+
+    std::cout << "Created Program" << std::endl;
 
     std::ostringstream convert;
 
@@ -232,6 +262,8 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
 
         exit(1232345);
     }
+
+    std::cout << "Built program" << std::endl;
 
     cl::program = program;
 
@@ -284,6 +316,8 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     cl::displace_fluid = load_kernel(program, "displace_fluid");
     cl::process_skins = load_kernel(program, "process_skins");
     cl::draw_hermite_skin = load_kernel(program, "draw_hermite_skin");
+
+    std::cout << "Loaded obscene numbers of kernels" << std::endl;
 }
 
 

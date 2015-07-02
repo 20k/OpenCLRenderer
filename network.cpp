@@ -13,6 +13,9 @@ int network::listen_fd;
 std::vector<std::pair<objects_container*, int>> network::host_networked_objects; ///authoratitive for me
 std::vector<std::pair<objects_container*, int>> network::slave_networked_objects; ///server authoratitive
 
+std::map<int, int*> network::hosted_var;
+std::map<int, int*> network::slaved_var;
+
 std::map<objects_container*, bool> network::active_status;
 
 int network::global_network_id;
@@ -314,6 +317,27 @@ void network::slave_object(objects_container* obj)
     active_status[obj] = obj->isactive;
 }
 
+
+void network::host_var(int* v)
+{
+    if(v == nullptr)
+        return;
+
+    int id = global_network_id++;
+
+    hosted_var[id] = v;
+}
+
+void network::slave_var(int* v)
+{
+    if(v == nullptr)
+        return;
+
+    int id = global_network_id++;
+
+    slaved_var[id] = v;
+}
+
 void network::transform_host_object(objects_container* obj)
 {
     int id = get_id_by_object(obj);
@@ -472,15 +496,11 @@ struct byte_fetch
 const int canary = 0xdeadbeef;
 const int end_canary = 0xafaefeae;
 
-void network::communicate(objects_container* obj)
-{
-
-}
-
 enum comm_type : unsigned int
 {
     POSROT = 0,
-    ISACTIVE = 1
+    ISACTIVE = 1,
+    VAR = 2
 };
 
 bool network::process_posrot(byte_fetch& fetch)
@@ -535,6 +555,21 @@ bool network::process_isactive(byte_fetch& fetch)
     return true;
 }
 
+bool network::process_var(byte_fetch& fetch)
+{
+    int network_id = fetch.get<int>();
+    int val = fetch.get<int>();
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    if(slaved_var[network_id] == nullptr)
+        return false;
+
+    *slaved_var[network_id] = val;
+}
+
 
 ///this function is literally hitler
 ///we're gunna need to send different events like is_active ONLY IF THEY CHANGE
@@ -564,6 +599,26 @@ bool network::tick()
         vec.push_back(network_id);
         vec.push_back(pos);
         vec.push_back(rot);
+        vec.push_back(end_canary);
+
+        broadcast(vec.data());
+    }
+
+    for(auto& i : hosted_var)
+    {
+        ///cant be null
+        int* var = i.second;
+
+        int network_id = i.first;
+
+        int val = *var;
+
+        byte_vector vec;
+
+        vec.push_back(canary);
+        vec.push_back(VAR);
+        vec.push_back(network_id);
+        vec.push_back(val);
         vec.push_back(end_canary);
 
         broadcast(vec.data());
@@ -629,6 +684,10 @@ bool network::tick()
                 success = process_isactive(fetch);
 
                 need_realloc = true;
+            }
+            if(t == VAR)
+            {
+                success = process_var(fetch);
             }
 
             auto it = msg.begin();

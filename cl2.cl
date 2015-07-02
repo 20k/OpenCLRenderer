@@ -1,3 +1,5 @@
+#pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
+
 #define MIP_LEVELS 4
 
 #define FOV_CONST 500.0f
@@ -1282,7 +1284,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
     ///off by one error hack, yes this is appallingly bad
-    postrotate_pos.xy = clamp(postrotate_pos.xy, 1, LIGHTBUFFERDIM-2);
+    postrotate_pos.xy = clamp(postrotate_pos.xy, 1.f, LIGHTBUFFERDIM-2.f);
 
 
     float ldp = idcalc(native_divide((float)ldepth_map[(int)round(postrotate_pos.y)*LIGHTBUFFERDIM + (int)round(postrotate_pos.x)], mulint));
@@ -7212,8 +7214,9 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     skin_x[id] = nx;
     skin_y[id] = ny;
 
+    float2 lpos = (float2){x, y};
 
-    write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
+    write_imagef(screen, convert_int2(lpos), (float4)(1, 0, 0, 0));
 }
 
 ///make it not obstruct if its near a control vertex?
