@@ -8,12 +8,15 @@
 #include <SFML/System/Clock.hpp>
 
 struct byte_fetch;
+struct addrinfo;
 
 struct network
 {
     static int network_update_rate;
 
     static sf::Clock timeout_clock;
+
+    static addrinfo* host_p;
 
     static std::vector<int> networked_clients;
     static int listen_fd;

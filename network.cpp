@@ -9,6 +9,8 @@
 
 sf::Clock network::timeout_clock;
 
+addrinfo* network::host_p;
+
 std::vector<int> network::networked_clients;
 int network::listen_fd;
 
@@ -70,7 +72,7 @@ int address_to_socket(const std::string& ip)
 
     WSADATA wsaData;
 
-    if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0)
+    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
     {
         fprintf(stderr, "WSAStartup failed.\n");
         exit(1);
@@ -110,7 +112,9 @@ int address_to_socket(const std::string& ip)
         exit(5432);
     }
 
-    connect(sockfd, p->ai_addr, p->ai_addrlen);
+    network::host_p = p;
+
+    //connect(sockfd, p->ai_addr, p->ai_addrlen);
 
     s b;
     b.fd = sockfd;
@@ -128,7 +132,7 @@ void network::host()
 
     WSADATA wsaData;
 
-    if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0)
+    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
     {
         fprintf(stderr, "WSAStartup failed\n");
         exit(1);
@@ -158,14 +162,17 @@ void network::host()
                              p->ai_protocol)) == -1)
         {
             perror("listener: socket");
+
+
             continue;
 
         }
 
-        if(bind(sockfd, p->ai_addr, p->ai_addrlen) == -1)
+        if(bind(sockfd, p->ai_addr, p->ai_addrlen) != 0)
         {
             closesocket(sockfd);
             perror("listener: bind");
+
             continue;
         }
         break;
@@ -186,8 +193,8 @@ void network::host()
     listen_fd = sockfd;
 
     ///does nothing for dgram sockets
-    listen(sockfd, 5);
-    new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_len);
+    //listen(sockfd, 5);
+    //new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_len);
 
     disconnected_sockets[new_fd] = false;
 
@@ -196,6 +203,8 @@ void network::host()
     networked_clients.push_back(new_fd);
 
     network_state = 1;
+
+    host_p = nullptr;
 
     printf("%i\n", new_fd);
 }
@@ -206,7 +215,7 @@ void network::join(std::string ip)
 
     WSADATA wsaData;
 
-    if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0)
+    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
     {
         fprintf(stderr, "WSAStartup failed.\n");
         exit(1);
@@ -246,7 +255,9 @@ void network::join(std::string ip)
         exit(5432);
     }
 
-    connect(sockfd, p->ai_addr, p->ai_addrlen);
+    host_p = p;
+
+    //connect(sockfd, p->ai_addr, p->ai_addrlen);
 
     networked_clients.push_back(sockfd);
 
@@ -331,7 +342,12 @@ void network::send(int fd, const char* msg, int len)
 
         if(status == write_status::YES)
         {
-            send_t(fd, msg, len, 0);
+            //if(network_state == 1)
+            //send_t(fd, msg, len, 0);
+
+            if(network_state == 2)
+                sendto(fd, msg, len, 0, host_p->ai_addr, host_p->ai_addrlen);
+
             sent = true;
         }
 
@@ -376,20 +392,24 @@ std::vector<char> network::receive(int fd)
     int len;
 
     //if(network_state == 2)
-        len = recv(fd, &recv_buffer[0], l*sizeof(char), 0);
-    /*if(network_state == 1)
+    {
+        //len = recv(fd, &recv_buffer[0], l*sizeof(char), 0);
+    }
+
+    if(network_state == 1)
     {
         struct sockaddr_storage their_addr;
-        int fromlen;
+        int fromlen = sizeof(sockaddr_storage);
 
         len = recvfrom(listen_fd, &recv_buffer[0], l*sizeof(char), 0, (sockaddr*)&their_addr, &fromlen);
+        //len = recv(listen_fd, &recv_buffer[0], l*sizeof(char), 0);//, (sockaddr*)&their_addr, &fromlen);
 
         char s[INET6_ADDRSTRLEN];
 
         const char* ip = inet_ntop(their_addr.ss_family,
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof(s));
-    }*/
+    }
 
     if(len == -1)
     {
@@ -546,29 +566,6 @@ void network::transform_host_object(objects_container* obj)
     std::advance(it, id);
 
     slave_networked_objects.erase(it);
-
-    /*for(int i=0; i<slave_networked_objects.size(); i++)
-    {
-        if(slave_networked_objects[i].second == id)
-        {
-            auto it = slave_networked_objects.begin();
-            std::advance(it, i);
-            slave_networked_objects.erase(it);
-
-            break;
-        }
-    }*/
-
-    /*
-
-    ///already host
-    for(int i=0; i<host_networked_objects.size(); i++)
-    {
-        if(host_networked_objects[i].second == id)
-            return;
-    }
-
-    host_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));*/
 }
 
 void network::transform_slave_object(objects_container* obj)
@@ -789,7 +786,7 @@ bool network::tick()
     ///to seconds
     float change_time = t.getElapsedTime().asMicroseconds() / 1000.f;
 
-    if(change_time > update_time)
+    //if(change_time > update_time)
     {
         for(auto& i : host_networked_objects)
         {
