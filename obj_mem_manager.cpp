@@ -154,16 +154,27 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     t.obj_num = obj_descriptor_size;
 
-    t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices, CL_MEM_READ_ONLY);
-    t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size(), CL_MEM_READ_ONLY);
-    ///3d texture array
-    t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, number_of_texture_slices, 0, 0, NULL);
+    if(texture_manager::dirty)
+    {
+        t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices, CL_MEM_READ_ONLY);
+        t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size(), CL_MEM_READ_ONLY);
+        ///3d texture array
+        t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, number_of_texture_slices, 0, 0, NULL);
 
-    size_t origin[3] = {0,0,0};
-    size_t region[3] = {2048, 2048, number_of_texture_slices};
+        size_t origin[3] = {0,0,0};
+        size_t region[3] = {2048, 2048, number_of_texture_slices};
 
-    cl::cqueue.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+        cl::cqueue.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
 
+        cl::cqueue.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
+        cl::cqueue.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
+    }
+    else
+    {
+        t.g_texture_sizes = texture_manager::g_texture_sizes;
+        t.g_texture_nums  = texture_manager::g_texture_numbers;
+        t.g_texture_array  = texture_manager::g_texture_array;
+    }
 
     //delete [] texture_manager::c_texture_array;
     //texture_manager::c_texture_array = NULL;
@@ -180,12 +191,6 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
     t.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
-
-
-
-    cl::cqueue.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
-    cl::cqueue.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
-
     cl::cqueue.enqueue_write_buffer(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
     cl::cqueue.enqueue_write_buffer(t.g_obj_num, 0, t.g_obj_num.size(), &obj_descriptor_size);
 
@@ -268,4 +273,6 @@ void obj_mem_manager::g_changeover()
     obj_num         = T->obj_num;
 
     obj_mem_manager::ready = false;
+
+    texture_manager::dirty = false;
 }
