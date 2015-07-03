@@ -1,5 +1,5 @@
 #include "network.hpp"
-#define _WIN32_WINNT 0x501
+#define _WIN32_WINNT 0x601
 
 #include <ws2tcpip.h>
 #include <iostream>
@@ -27,6 +27,8 @@ int network::network_state;
 
 int network::network_update_rate = 60;
 
+std::map<std::string, int> network::ip_map;
+
 ///mingw being testicles workaround
 #ifdef __MINGW32__
 template<typename T>
@@ -50,6 +52,76 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+struct s
+{
+    int fd;
+
+    s() : fd(-1) {}
+};
+
+int address_to_socket(const std::string& ip)
+{
+    static std::map<std::string, s> socket_map;
+
+    if(socket_map[ip].fd != -1)
+        return socket_map[ip].fd;
+
+    std::string port = "6950";
+
+    WSADATA wsaData;
+
+    if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0)
+    {
+        fprintf(stderr, "WSAStartup failed.\n");
+        exit(1);
+    }
+
+    int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    //hints.ai_flags = AI_PASSIVE;
+
+    if ((rv = getaddrinfo(ip.c_str(), port.c_str(), &hints, &servinfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        exit(2345);
+    }
+
+    // loop through all the results and make a socket
+    for(p = servinfo; p != NULL; p = p->ai_next)
+    {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                             p->ai_protocol)) == -1)
+        {
+            perror("talker: socket");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL)
+    {
+        fprintf(stderr, "talker: failed to bind socket\n");
+        exit(5432);
+    }
+
+    connect(sockfd, p->ai_addr, p->ai_addrlen);
+
+    s b;
+    b.fd = sockfd;
+
+    socket_map[ip] = b;
+
+    network::ip_map[ip] = sockfd;
+
+    return sockfd;
+}
+
 void network::host()
 {
     std::string port = "6950";
@@ -70,7 +142,7 @@ void network::host()
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET; // set to AF_INET to force IPv4 //currently AF_UNSPEC
-    hints.ai_socktype = SOCK_STREAM; //sock_dgram for non stream.
+    hints.ai_socktype = SOCK_DGRAM; //sock_dgram for non stream.
     hints.ai_flags = AI_PASSIVE; // use my IP
 
     if((rv = getaddrinfo(NULL, port.c_str(), &hints, &servinfo)) != 0)
@@ -113,14 +185,19 @@ void network::host()
 
     listen_fd = sockfd;
 
+    ///does nothing for dgram sockets
     listen(sockfd, 5);
-
     new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_len);
+
     disconnected_sockets[new_fd] = false;
+
+    new_fd = sockfd;
 
     networked_clients.push_back(new_fd);
 
     network_state = 1;
+
+    printf("%i\n", new_fd);
 }
 
 void network::join(std::string ip)
@@ -140,11 +217,11 @@ void network::join(std::string ip)
     int rv;
 
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
     //hints.ai_flags = AI_PASSIVE;
 
-    if ((rv = getaddrinfo(ip.c_str(), port.c_str(), &hints, &servinfo)) != 0)   //77.100.255.158 //85.228.220.111 //66 bubby
+    if ((rv = getaddrinfo(ip.c_str(), port.c_str(), &hints, &servinfo)) != 0)
     {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(2345);
@@ -283,15 +360,91 @@ void network::broadcast(char* msg, int len)
     }
 }
 
-//std::unique_ptr<char> network::receive(int fd, int& len)
-std::vector<char> network::receive(int fd, int& len)
-{
-    std::vector<char> ptr;
-    ptr.resize(200);
+const int canary = 0xdeadbeef;
+const int end_canary = 0xafaefead;
 
-    len = recv(fd, &ptr[0], 200*sizeof(char), 0);
+const char end_ar[4] = {0xaf, 0xae, 0xfe, 0xad};
+
+std::vector<char> network::receive(int fd)
+{
+    constexpr int l = 2000;
+
+    static std::vector<char> recv_buffer(l);
+
+    recv_buffer.resize(l);
+
+    int len;
+
+    //if(network_state == 2)
+        len = recv(fd, &recv_buffer[0], l*sizeof(char), 0);
+    /*if(network_state == 1)
+    {
+        struct sockaddr_storage their_addr;
+        int fromlen;
+
+        len = recvfrom(listen_fd, &recv_buffer[0], l*sizeof(char), 0, (sockaddr*)&their_addr, &fromlen);
+
+        char s[INET6_ADDRSTRLEN];
+
+        const char* ip = inet_ntop(their_addr.ss_family,
+            get_in_addr((struct sockaddr *)&their_addr),
+            s, sizeof(s));
+    }*/
+
+    if(len == -1)
+    {
+        printf("%i\n", WSAGetLastError());
+    }
+
+    if(len < 0)
+    {
+        return std::vector<char>();
+    }
 
     if(len == 0)
+        return std::vector<char>();
+
+
+    recv_buffer.resize(len);
+
+    return recv_buffer;
+
+
+    /*std::vector<char> ptr;
+
+    int end_state = 0;
+
+    for(int i=0; i<200; i++)
+    {
+        //if(!is_readable(fd))
+        //    return ptr;
+
+        char c;
+
+        int status = recv(fd, &c, 1, 0);
+
+        if(status < 0)
+        {
+            disconnected_sockets[fd] = true;
+
+            return std::vector<char>();
+        }
+
+        if(status == 0)
+            return std::vector<char>();
+
+        ptr.push_back(c);
+
+        if(end_state != 4 && c == end_ar[end_state])
+            end_state++;
+
+        if(end_state == 4)
+            return ptr;
+    }*/
+
+    //len = recv(fd, &ptr[0], 200*sizeof(char), 0);
+
+    /*if(len == 0)
         return std::vector<char>();
 
     if(len < 0)
@@ -299,24 +452,20 @@ std::vector<char> network::receive(int fd, int& len)
         disconnected_sockets[fd] = true;
 
         return std::vector<char>();
-    }
+    }*/
 
-    ptr.resize(len);
-
-    return ptr;
+    //ptr.resize(len);
 }
 
-std::vector<char> network::receive(int& len)
+std::vector<char> network::receive()
 {
     for(auto& i : networked_clients)
     {
         if(is_readable(i))
         {
-            return receive(i, len);
+            return receive(i);
         }
     }
-
-    len = 0;
 
     return std::vector<char>();
 }
@@ -548,9 +697,6 @@ struct byte_fetch
     }
 };
 
-const int canary = 0xdeadbeef;
-const int end_canary = 0xafaefeae;
-
 enum comm_type : unsigned int
 {
     POSROT = 0,
@@ -638,10 +784,10 @@ bool network::tick()
 
     static sf::Clock t;
 
-    float update_time = 1.f / network_update_rate;
+    float update_time = 16.f;
 
     ///to seconds
-    float change_time = t.getElapsedTime().asMicroseconds() / 1000000.f;
+    float change_time = t.getElapsedTime().asMicroseconds() / 1000.f;
 
     if(change_time > update_time)
     {
@@ -718,8 +864,7 @@ bool network::tick()
 
     while(any_readable())
     {
-        int len;
-        auto msg = receive(len);
+        auto msg = receive();
 
         byte_fetch fetch;
         fetch.ptr.swap(msg);

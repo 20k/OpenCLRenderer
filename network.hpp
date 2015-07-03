@@ -29,6 +29,8 @@ struct network
 
     static std::map<objects_container*, bool> active_status;
 
+    static std::map<std::string, int> ip_map;
+
     static int global_network_id;
 
     static int network_state;
@@ -58,8 +60,8 @@ struct network
     static void send(int, const std::string&);
     static void send(int, const char*, int);
 
-    static std::vector<char> receive(int& len);
-    static std::vector<char> receive(int, int& len);
+    static std::vector<char> receive();
+    static std::vector<char> receive(int);
 
     static bool any_readable();
 
