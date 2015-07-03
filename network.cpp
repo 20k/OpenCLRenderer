@@ -12,8 +12,8 @@ sf::Clock network::timeout_clock;
 std::vector<int> network::networked_clients;
 int network::listen_fd;
 
-std::vector<std::pair<objects_container*, int>> network::host_networked_objects; ///authoratitive for me
-std::vector<std::pair<objects_container*, int>> network::slave_networked_objects; ///server authoratitive
+std::map<int, objects_container*> network::host_networked_objects; ///authoratitive for me
+std::map<int, objects_container*> network::slave_networked_objects; ///server authoratitive
 
 std::map<int, int*> network::hosted_var;
 std::map<int, int*> network::slaved_var;
@@ -240,6 +240,7 @@ void network::send(int fd, const std::string& msg)
     send(fd, msg.c_str(), msg.length());
 }
 
+///will crash if disco while send
 void network::send(int fd, const char* msg, int len)
 {
     if(len == 0)
@@ -259,8 +260,6 @@ void network::send(int fd, const char* msg, int len)
 
         if(status == write_status::DISCONNECTED)
             return;
-
-        printf("%i ", sent);
     }
 }
 
@@ -288,9 +287,9 @@ void network::broadcast(char* msg, int len)
 std::vector<char> network::receive(int fd, int& len)
 {
     std::vector<char> ptr;
-    ptr.resize(100);
+    ptr.resize(200);
 
-    len = recv(fd, &ptr[0], 100*sizeof(char), 0);
+    len = recv(fd, &ptr[0], 200*sizeof(char), 0);
 
     if(len == 0)
         return std::vector<char>();
@@ -339,7 +338,7 @@ void network::host_object(objects_container* obj)
 
     ///do sanity checks later, ie already in list to prevent duplicate listings
 
-    host_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+    host_networked_objects[id] = obj;
 
     active_status[obj] = obj->isactive;
 }
@@ -350,7 +349,7 @@ void network::slave_object(objects_container* obj)
 
     ///do sanity checks later, ie already in list to prevent duplicate listings
 
-    slave_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+    slave_networked_objects[id] = obj;
 
     active_status[obj] = obj->isactive;
 }
@@ -383,7 +382,23 @@ void network::transform_host_object(objects_container* obj)
     if(id < 0)
         return;
 
-    for(int i=0; i<slave_networked_objects.size(); i++)
+    ///does not exist
+    if(slave_networked_objects[id] == nullptr)
+        return;
+
+    ///already a host object
+    if(host_networked_objects[id] != nullptr)
+        return;
+
+    host_networked_objects[id] = slave_networked_objects[id];
+
+    auto it = slave_networked_objects.begin();
+
+    std::advance(it, id);
+
+    slave_networked_objects.erase(it);
+
+    /*for(int i=0; i<slave_networked_objects.size(); i++)
     {
         if(slave_networked_objects[i].second == id)
         {
@@ -393,7 +408,9 @@ void network::transform_host_object(objects_container* obj)
 
             break;
         }
-    }
+    }*/
+
+    /*
 
     ///already host
     for(int i=0; i<host_networked_objects.size(); i++)
@@ -402,7 +419,7 @@ void network::transform_host_object(objects_container* obj)
             return;
     }
 
-    host_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+    host_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));*/
 }
 
 void network::transform_slave_object(objects_container* obj)
@@ -412,57 +429,52 @@ void network::transform_slave_object(objects_container* obj)
     if(id < 0)
         return;
 
-    for(int i=0; i<host_networked_objects.size(); i++)
-    {
-        if(host_networked_objects[i].second == id)
-        {
-            auto it = host_networked_objects.begin();
-            std::advance(it, i);
-            host_networked_objects.erase(it);
+    ///does not exist
+    if(host_networked_objects[id] == nullptr)
+        return;
 
-            break;
-        }
-    }
+    ///already a slave object
+    if(slave_networked_objects[id] != nullptr)
+        return;
 
-    ///already slave
-    for(int i=0; i<slave_networked_objects.size(); i++)
-    {
-        if(slave_networked_objects[i].second == id)
-            return;
-    }
+    slave_networked_objects[id] = host_networked_objects[id];
 
-    slave_networked_objects.push_back(std::pair<objects_container*, int>(obj, id));
+    auto it = host_networked_objects.begin();
+
+    std::advance(it, id);
+
+    host_networked_objects.erase(it);
 }
 
 objects_container* network::get_object_by_id(int id)
 {
     for(auto& i : slave_networked_objects)
     {
-        if(i.second == id)
-            return i.first;
+        if(i.first == id)
+            return i.second;
     }
 
     for(auto& i : host_networked_objects)
     {
-        if(i.second == id)
-            return i.first;
+        if(i.first == id)
+            return i.second;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 int network::get_id_by_object(objects_container* obj)
 {
     for(auto& i : slave_networked_objects)
     {
-        if(i.first == obj)
-            return i.second;
+        if(i.second == obj)
+            return i.first;
     }
 
     for(auto& i : host_networked_objects)
     {
-        if(i.first == obj)
-            return i.second;
+        if(i.second == obj)
+            return i.first;
     }
 
     return -1;
@@ -624,65 +636,83 @@ bool network::tick()
     if(network_state == 0)
         return false;
 
-    byte_vector vec;
+    static sf::Clock t;
 
-    for(auto& i : host_networked_objects)
+    float update_time = 1.f / network_update_rate;
+
+    ///to seconds
+    float change_time = t.getElapsedTime().asMicroseconds() / 1000000.f;
+
+    if(change_time > update_time)
     {
-        objects_container* obj = i.first;
-
-        int network_id = i.second;
-
-        cl_float4 pos = obj->pos;
-        cl_float4 rot = obj->rot;
-
-        vec.push_back(canary);
-        vec.push_back((comm_type)POSROT);
-        vec.push_back(network_id);
-        vec.push_back(pos);
-        vec.push_back(rot);
-        vec.push_back(end_canary);
-    }
-
-    for(auto& i : hosted_var)
-    {
-        ///cant be null
-        int* var = i.second;
-
-        int network_id = i.first;
-
-        int val = *var;
-
-        vec.push_back(canary);
-        vec.push_back(VAR);
-        vec.push_back(network_id);
-        vec.push_back(val);
-        vec.push_back(end_canary);
-    }
-
-    for(auto& i : active_status)
-    {
-        objects_container* obj = i.first;
-
-        int network_id = get_id_by_object(obj);
-
-        int isactive = obj->isactive;
-
-        int think_isactive = i.second;
-
-        if(isactive != think_isactive)
+        for(auto& i : host_networked_objects)
         {
+            objects_container* obj = i.second;
+
+            int network_id = i.first;
+
+            cl_float4 pos = obj->pos;
+            cl_float4 rot = obj->rot;
+
+            byte_vector vec;
+
             vec.push_back(canary);
-            vec.push_back(ISACTIVE);
+            vec.push_back((comm_type)POSROT);
             vec.push_back(network_id);
-            vec.push_back(isactive);
+            vec.push_back(pos);
+            vec.push_back(rot);
             vec.push_back(end_canary);
+
+            broadcast(vec.data());
         }
+
+        for(auto& i : hosted_var)
+        {
+            ///cant be null
+            int* var = i.second;
+
+            int network_id = i.first;
+
+            int val = *var;
+
+
+            byte_vector vec;
+
+            vec.push_back(canary);
+            vec.push_back(VAR);
+            vec.push_back(network_id);
+            vec.push_back(val);
+            vec.push_back(end_canary);
+
+            broadcast(vec.data());
+        }
+
+        for(auto& i : active_status)
+        {
+            objects_container* obj = i.first;
+
+            int network_id = get_id_by_object(obj);
+
+            int isactive = obj->isactive;
+
+            int think_isactive = i.second;
+
+            if(isactive != think_isactive)
+            {
+                byte_vector vec;
+
+                vec.push_back(canary);
+                vec.push_back(ISACTIVE);
+                vec.push_back(network_id);
+                vec.push_back(isactive);
+                vec.push_back(end_canary);
+
+                broadcast(vec.data());
+            }
+        }
+
+        t.restart();
     }
-
-    broadcast(vec.data());
-
-    sf::Clock c;
-
 
     bool need_realloc = false;
 
@@ -731,12 +761,12 @@ bool network::tick()
 
     for(auto& i : host_networked_objects)
     {
-        active_status[i.first] = i.first->isactive;
+        active_status[i.second] = i.second->isactive;
     }
 
     for(auto& i : slave_networked_objects)
     {
-        active_status[i.first] = i.first->isactive;
+        active_status[i.second] = i.second->isactive;
     }
 
     return need_realloc;

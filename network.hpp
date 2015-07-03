@@ -19,8 +19,8 @@ struct network
     static int listen_fd;
 
     ///now that i know what a map is, i should really, REALLY use one
-    static std::vector<std::pair<objects_container*, int>> host_networked_objects; ///authoratitive for me
-    static std::vector<std::pair<objects_container*, int>> slave_networked_objects; ///server authoratitive
+    static std::map<int, objects_container*> host_networked_objects; ///authoratitive for me
+    static std::map<int, objects_container*> slave_networked_objects; ///server authoratitive
 
     static std::map<int, int*> hosted_var;
     static std::map<int, int*> slaved_var;
