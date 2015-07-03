@@ -829,9 +829,6 @@ void engine::input()
         }
     }
     #endif
-
-    old_time = current_time;
-    current_time = ftime.getElapsedTime().asMicroseconds();
 }
 
 float engine::get_frametime()
@@ -2033,8 +2030,12 @@ void engine::render_buffers()
     g_screen_edge_smoothed = temp;*/
 }
 
+///also updates frametime
 void engine::display()
 {
+    old_time = current_time;
+    current_time = ftime.getElapsedTime().asMicroseconds();
+
     window.display();
 }
 
