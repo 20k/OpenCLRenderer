@@ -332,11 +332,6 @@ write_status::writable_status is_writable(int clientfd)
 
 decltype(send)* send_t = &send;
 
-/*void network::send(sockaddr_storage* dest, const std::string& msg)
-{
-    send(dest, msg.c_str(), msg.length());
-}*/
-
 ///will crash if disco while send
 void network::send(int id, const char* msg, int len)
 {
@@ -358,9 +353,6 @@ void network::send(int id, const char* msg, int len)
 
             int nl = sendto(socket_descriptor, msg, len, 0, (sockaddr*)dest, size);
 
-            //if(network_state == 1)
-            //printf("%i", nl);
-
             sent = true;
         }
 
@@ -371,11 +363,6 @@ void network::send(int id, const char* msg, int len)
 
 void network::broadcast(const std::string& msg)
 {
-    /*for(auto& i : connections)
-    {
-        send(i, msg);
-    }*/
-
     broadcast(msg.data(), msg.length());
 }
 
