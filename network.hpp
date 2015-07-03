@@ -7,8 +7,11 @@
 
 #include <SFML/System/Clock.hpp>
 
+#include <set>
+
 struct byte_fetch;
 struct addrinfo;
+struct sockaddr_storage;
 
 struct network
 {
@@ -16,10 +19,10 @@ struct network
 
     static sf::Clock timeout_clock;
 
-    static addrinfo* host_p;
+    //static addrinfo* host_p;
 
-    static std::vector<int> networked_clients;
-    static int listen_fd;
+    //static std::vector<int> networked_clients;
+    static int socket_descriptor;
 
     ///now that i know what a map is, i should really, REALLY use one
     static std::map<int, objects_container*> host_networked_objects; ///authoratitive for me
@@ -32,7 +35,11 @@ struct network
 
     static std::map<objects_container*, bool> active_status;
 
-    static std::map<std::string, int> ip_map;
+    //static std::map<std::string, int> ip_map;
+    //static std::map<int, addrinfo*> id_to_addrinfo;
+
+    static std::vector<sockaddr_storage*> connections;
+    static std::vector<int> connection_length;
 
     static int global_network_id;
 
@@ -58,13 +65,13 @@ struct network
     static void set_update_rate(int);
 
     static void broadcast(const std::string&);
-    static void broadcast(char*, int);
+    static void broadcast(const char*, int);
 
-    static void send(int, const std::string&);
-    static void send(int, const char*, int);
+    static void send(int id, const std::string&);
+    static void send(int id, const char*, int);
 
     static std::vector<char> receive();
-    static std::vector<char> receive(int);
+    static std::vector<char> receive_any();
 
     static bool any_readable();
 

@@ -9,10 +9,10 @@
 
 sf::Clock network::timeout_clock;
 
-addrinfo* network::host_p;
+//addrinfo* network::host_p;
 
-std::vector<int> network::networked_clients;
-int network::listen_fd;
+//std::vector<int> network::networked_clients;
+int network::socket_descriptor;
 
 std::map<int, objects_container*> network::host_networked_objects; ///authoratitive for me
 std::map<int, objects_container*> network::slave_networked_objects; ///server authoratitive
@@ -29,7 +29,12 @@ int network::network_state;
 
 int network::network_update_rate = 60;
 
-std::map<std::string, int> network::ip_map;
+//std::map<std::string, int> network::ip_map;
+
+//std::map<int, addrinfo*> network::id_to_addrinfo;
+
+std::vector<sockaddr_storage*> network::connections;
+std::vector<int> network::connection_length;
 
 ///mingw being testicles workaround
 #ifdef __MINGW32__
@@ -61,7 +66,7 @@ struct s
     s() : fd(-1) {}
 };
 
-int address_to_socket(const std::string& ip)
+/*int address_to_socket(const std::string& ip)
 {
     static std::map<std::string, s> socket_map;
 
@@ -112,7 +117,9 @@ int address_to_socket(const std::string& ip)
         exit(5432);
     }
 
-    network::host_p = p;
+    network::id_to_addrinfo[sockfd] = p;
+
+    //network::host_p = p;
 
     //connect(sockfd, p->ai_addr, p->ai_addrlen);
 
@@ -124,6 +131,18 @@ int address_to_socket(const std::string& ip)
     network::ip_map[ip] = sockfd;
 
     return sockfd;
+}*/
+
+bool operator==(sockaddr_storage s1, sockaddr_storage s2)
+{
+    char* ip1 = (char*)get_in_addr((sockaddr*)&s1);
+
+    char* ip2 = (char*)get_in_addr((sockaddr*)&s2);
+
+    if(strcmp(ip1, ip2) == 0)
+        return true;
+
+    return false;
 }
 
 void network::host()
@@ -186,27 +205,11 @@ void network::host()
 
     freeaddrinfo(servinfo);
 
-    addr_len = sizeof(their_addr);
+    socket_descriptor = sockfd;
 
-    new_fd=-1;
-
-    listen_fd = sockfd;
-
-    ///does nothing for dgram sockets
-    //listen(sockfd, 5);
-    //new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_len);
-
-    disconnected_sockets[new_fd] = false;
-
-    new_fd = sockfd;
-
-    networked_clients.push_back(new_fd);
+    disconnected_sockets[sockfd] = false;
 
     network_state = 1;
-
-    host_p = nullptr;
-
-    printf("%i\n", new_fd);
 }
 
 void network::join(std::string ip)
@@ -255,11 +258,17 @@ void network::join(std::string ip)
         exit(5432);
     }
 
-    host_p = p;
+    //int len = sendto(sockfd, "bum", strlen("bum"), 0, p->ai_addr, p->ai_addrlen);
 
-    //connect(sockfd, p->ai_addr, p->ai_addrlen);
+    //printf("%i\n", len);
 
-    networked_clients.push_back(sockfd);
+
+    connections.push_back((sockaddr_storage*)p->ai_addr);
+    connection_length.push_back(p->ai_addrlen);
+
+    socket_descriptor = sockfd;
+
+    disconnected_sockets[sockfd] = false;
 
     network_state = 2;
 }
@@ -323,14 +332,16 @@ write_status::writable_status is_writable(int clientfd)
 
 decltype(send)* send_t = &send;
 
-void network::send(int fd, const std::string& msg)
+/*void network::send(sockaddr_storage* dest, const std::string& msg)
 {
-    send(fd, msg.c_str(), msg.length());
-}
+    send(dest, msg.c_str(), msg.length());
+}*/
 
 ///will crash if disco while send
-void network::send(int fd, const char* msg, int len)
+void network::send(int id, const char* msg, int len)
 {
+    //printf("send %i\n", len);
+
     if(len == 0)
         return;
 
@@ -338,15 +349,17 @@ void network::send(int fd, const char* msg, int len)
 
     while(!sent)
     {
-        auto status = is_writable(fd);
+        auto status = is_writable(socket_descriptor);
 
         if(status == write_status::YES)
         {
-            //if(network_state == 1)
-            //send_t(fd, msg, len, 0);
+            sockaddr_storage* dest = connections[id];
+            int size = connection_length[id];
 
-            if(network_state == 2)
-                sendto(fd, msg, len, 0, host_p->ai_addr, host_p->ai_addrlen);
+            int nl = sendto(socket_descriptor, msg, len, 0, (sockaddr*)dest, size);
+
+            //if(network_state == 1)
+            //printf("%i", nl);
 
             sent = true;
         }
@@ -358,21 +371,20 @@ void network::send(int fd, const char* msg, int len)
 
 void network::broadcast(const std::string& msg)
 {
-    for(auto& i : networked_clients)
+    /*for(auto& i : connections)
     {
-        int fd = i;
+        send(i, msg);
+    }*/
 
-        send(fd, msg);
-    }
+    broadcast(msg.data(), msg.length());
 }
 
-void network::broadcast(char* msg, int len)
+void network::broadcast(const char* msg, int len)
 {
-    for(auto& i : networked_clients)
+    //for(auto& i : connections)
+    for(int i=0; i<connections.size(); i++)
     {
-        int fd = i;
-
-        send(fd, msg, len);
+        send(i, msg, len);
     }
 }
 
@@ -381,7 +393,7 @@ const int end_canary = 0xafaefead;
 
 const char end_ar[4] = {0xaf, 0xae, 0xfe, 0xad};
 
-std::vector<char> network::receive(int fd)
+std::vector<char> network::receive_any()
 {
     constexpr int l = 2000;
 
@@ -391,24 +403,47 @@ std::vector<char> network::receive(int fd)
 
     int len;
 
-    //if(network_state == 2)
-    {
-        //len = recv(fd, &recv_buffer[0], l*sizeof(char), 0);
-    }
-
-    if(network_state == 1)
+    if(network_state == 2)
     {
         struct sockaddr_storage their_addr;
         int fromlen = sizeof(sockaddr_storage);
 
-        len = recvfrom(listen_fd, &recv_buffer[0], l*sizeof(char), 0, (sockaddr*)&their_addr, &fromlen);
-        //len = recv(listen_fd, &recv_buffer[0], l*sizeof(char), 0);//, (sockaddr*)&their_addr, &fromlen);
+        len = recvfrom(socket_descriptor, &recv_buffer[0], l*sizeof(char), 0, (sockaddr*)&their_addr, &fromlen);
+    }
 
-        char s[INET6_ADDRSTRLEN];
+    if(network_state == 1)
+    {
+        struct sockaddr_storage* their_addr = new sockaddr_storage;
+        int fromlen = sizeof(sockaddr_storage);
 
-        const char* ip = inet_ntop(their_addr.ss_family,
-            get_in_addr((struct sockaddr *)&their_addr),
-            s, sizeof(s));
+        len = recvfrom(socket_descriptor, &recv_buffer[0], l*sizeof(char), 0, (sockaddr*)their_addr, &fromlen);
+
+        /*char s[INET6_ADDRSTRLEN];
+
+        printf("listener: got packet from %s\n",
+        inet_ntop(their_addr->ss_family,
+            get_in_addr((struct sockaddr *)their_addr),
+            s, sizeof s));
+
+        free(their_addr);*/
+
+        //printf("Received %i", len);
+
+        bool add = true;
+
+        for(auto& i : connections)
+        {
+            if(*i == *their_addr)
+                add = false;
+        }
+
+        if(add)
+        {
+            connections.push_back(their_addr);
+            connection_length.push_back(fromlen);
+        }
+        else
+            delete their_addr;
     }
 
     if(len == -1)
@@ -479,11 +514,11 @@ std::vector<char> network::receive(int fd)
 
 std::vector<char> network::receive()
 {
-    for(auto& i : networked_clients)
+    //for(auto& i : connections)
     {
-        if(is_readable(i))
+        if(is_readable(socket_descriptor))
         {
-            return receive(i);
+            return receive_any();
         }
     }
 
@@ -492,9 +527,9 @@ std::vector<char> network::receive()
 
 bool network::any_readable()
 {
-    for(auto& i : networked_clients)
+    //for(auto& i : connections)
     {
-        if(is_readable(i))
+        if(is_readable(socket_descriptor))
             return true;
     }
 
