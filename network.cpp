@@ -25,6 +25,8 @@ std::map<int, bool> network::disconnected_sockets;
 int network::global_network_id;
 int network::network_state;
 
+int network::network_update_rate = 60;
+
 ///mingw being testicles workaround
 #ifdef __MINGW32__
 template<typename T>
@@ -464,6 +466,11 @@ int network::get_id_by_object(objects_container* obj)
     }
 
     return -1;
+}
+
+void network::set_update_rate(int rate)
+{
+    network_update_rate = rate;
 }
 
 struct byte_vector

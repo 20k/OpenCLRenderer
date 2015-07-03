@@ -11,6 +11,8 @@ struct byte_fetch;
 
 struct network
 {
+    static int network_update_rate;
+
     static sf::Clock timeout_clock;
 
     static std::vector<int> networked_clients;
@@ -48,6 +50,8 @@ struct network
     static void host_var(int*);
     static void slave_var(int*);
 
+    static void set_update_rate(int);
+
     static void broadcast(const std::string&);
     static void broadcast(char*, int);
 
@@ -64,6 +68,7 @@ struct network
 
     ///returns if we need to reallocate memory because somethings changed
     static bool tick();
+
 
 private:
     static bool process_posrot(byte_fetch& fetch);
