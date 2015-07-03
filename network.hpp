@@ -5,10 +5,14 @@
 #include <map>
 #include "objects_container.hpp"
 
+#include <SFML/System/Clock.hpp>
+
 struct byte_fetch;
 
 struct network
 {
+    static sf::Clock timeout_clock;
+
     static std::vector<int> networked_clients;
     static int listen_fd;
 
@@ -18,6 +22,8 @@ struct network
 
     static std::map<int, int*> hosted_var;
     static std::map<int, int*> slaved_var;
+
+    static std::map<int, bool> disconnected_sockets;
 
     static std::map<objects_container*, bool> active_status;
 
@@ -48,9 +54,8 @@ struct network
     static void send(int, const std::string&);
     static void send(int, const char*, int);
 
-    static std::vector<char> receive();
-
-    static std::vector<char> receive(int);
+    static std::vector<char> receive(int& len);
+    static std::vector<char> receive(int, int& len);
 
     static bool any_readable();
 

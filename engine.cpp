@@ -101,7 +101,7 @@ Timer::Timer(const std::string& n) : name(n), stopped(false){clk.restart();}
 
 void Timer::stop()
 {
-    float time = clk.getElapsedTime().asMicroseconds();
+    float time = clk.getElapsedTime().asMicroseconds() / 1000.f;
 
     std::cout << name << " " << time << std::endl;
 
@@ -2034,7 +2034,7 @@ void engine::render_buffers()
 void engine::display()
 {
     old_time = current_time;
-    current_time = ftime.getElapsedTime().asMicroseconds();
+    current_time = ftime.getElapsedTime().asMicroseconds() / 1000.f;
 
     window.display();
 }

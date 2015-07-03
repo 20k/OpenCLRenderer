@@ -7,6 +7,8 @@
 #include <memory>
 #include <cstdio>
 
+sf::Clock network::timeout_clock;
+
 std::vector<int> network::networked_clients;
 int network::listen_fd;
 
@@ -17,6 +19,8 @@ std::map<int, int*> network::hosted_var;
 std::map<int, int*> network::slaved_var;
 
 std::map<objects_container*, bool> network::active_status;
+
+std::map<int, bool> network::disconnected_sockets;
 
 int network::global_network_id;
 int network::network_state;
@@ -110,6 +114,7 @@ void network::host()
     listen(sockfd, 5);
 
     new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_len);
+    disconnected_sockets[new_fd] = false;
 
     networked_clients.push_back(new_fd);
 
@@ -169,7 +174,7 @@ void network::join(std::string ip)
     network_state = 2;
 }
 
-
+///only true if the socket can be read from AND IT ISNT DISCONNECTED
 bool is_readable(int clientfd)
 {
     fd_set fds;
@@ -185,13 +190,24 @@ bool is_readable(int clientfd)
 
     if(FD_ISSET((uint32_t)clientfd, &fds))
     {
-        return true;
+        return !network::disconnected_sockets[clientfd];
     }
 
     return false;
 }
 
-bool is_writable(int clientfd)
+namespace write_status
+{
+    enum writable_status : unsigned int
+    {
+        NO,
+        YES,
+        DISCONNECTED
+    };
+}
+
+
+write_status::writable_status is_writable(int clientfd)
 {
     fd_set fds;
     struct timeval tmo;
@@ -206,10 +222,13 @@ bool is_writable(int clientfd)
 
     if(FD_ISSET((uint32_t)clientfd, &fds))
     {
-        return true;
+        if(network::disconnected_sockets[clientfd])
+            return write_status::DISCONNECTED;
+
+        return write_status::YES;
     }
 
-    return false;
+    return write_status::NO;
 }
 
 decltype(send)* send_t = &send;
@@ -221,15 +240,25 @@ void network::send(int fd, const std::string& msg)
 
 void network::send(int fd, const char* msg, int len)
 {
+    if(len == 0)
+        return;
+
     bool sent = false;
 
     while(!sent)
     {
-        if(is_writable(fd))
+        auto status = is_writable(fd);
+
+        if(status == write_status::YES)
         {
             send_t(fd, msg, len, 0);
             sent = true;
         }
+
+        if(status == write_status::DISCONNECTED)
+            return;
+
+        printf("%i ", sent);
     }
 }
 
@@ -254,32 +283,39 @@ void network::broadcast(char* msg, int len)
 }
 
 //std::unique_ptr<char> network::receive(int fd, int& len)
-std::vector<char> network::receive(int fd)
+std::vector<char> network::receive(int fd, int& len)
 {
-    char buf[1000] = {0}; ///entire string null terminated
-    int len = recv(fd, buf, 1000*sizeof(char), 0);
+    std::vector<char> ptr;
+    ptr.resize(100);
 
-    if(len <= 0)
+    len = recv(fd, &ptr[0], 100*sizeof(char), 0);
+
+    if(len == 0)
         return std::vector<char>();
 
-    std::vector<char> ptr;
-    ptr.resize(len);
+    if(len < 0)
+    {
+        disconnected_sockets[fd] = true;
 
-    for(int i=0; i<len; i++)
-        ptr[i] = buf[i];
+        return std::vector<char>();
+    }
+
+    ptr.resize(len);
 
     return ptr;
 }
 
-std::vector<char> network::receive()
+std::vector<char> network::receive(int& len)
 {
     for(auto& i : networked_clients)
     {
         if(is_readable(i))
         {
-            return receive(i);
+            return receive(i, len);
         }
     }
+
+    len = 0;
 
     return std::vector<char>();
 }
@@ -477,7 +513,7 @@ struct byte_fetch
         }
     }
 
-    void push_back(std::vector<char> v)
+    void push_back(const std::vector<char>& v)
     {
         ptr.insert(ptr.end(), v.begin(), v.end());
     }
@@ -579,9 +615,9 @@ bool network::tick()
 {
     ///enum?
     if(network_state == 0)
-    {
         return false;
-    }
+
+    byte_vector vec;
 
     for(auto& i : host_networked_objects)
     {
@@ -592,16 +628,12 @@ bool network::tick()
         cl_float4 pos = obj->pos;
         cl_float4 rot = obj->rot;
 
-        byte_vector vec;
-
         vec.push_back(canary);
         vec.push_back((comm_type)POSROT);
         vec.push_back(network_id);
         vec.push_back(pos);
         vec.push_back(rot);
         vec.push_back(end_canary);
-
-        broadcast(vec.data());
     }
 
     for(auto& i : hosted_var)
@@ -613,15 +645,11 @@ bool network::tick()
 
         int val = *var;
 
-        byte_vector vec;
-
         vec.push_back(canary);
         vec.push_back(VAR);
         vec.push_back(network_id);
         vec.push_back(val);
         vec.push_back(end_canary);
-
-        broadcast(vec.data());
     }
 
     for(auto& i : active_status)
@@ -636,46 +664,43 @@ bool network::tick()
 
         if(isactive != think_isactive)
         {
-            byte_vector vec;
-
             vec.push_back(canary);
             vec.push_back(ISACTIVE);
             vec.push_back(network_id);
             vec.push_back(isactive);
             vec.push_back(end_canary);
-
-            broadcast(vec.data());
         }
     }
+
+    broadcast(vec.data());
+
+    sf::Clock c;
+
 
     bool need_realloc = false;
 
     while(any_readable())
     {
-        auto msg = receive();
+        int len;
+        auto msg = receive(len);
 
-        ///remove first 20 charcters, go to here
+        byte_fetch fetch;
+        fetch.ptr.swap(msg);
 
-        while(msg.size() > 0)
+        while(fetch.internal_counter < fetch.ptr.size())
         {
-            byte_fetch fetch;
-            fetch.push_back(msg);
-
             int recv_canary = fetch.get<int>();
 
             if(recv_canary != canary)
-            {
-                msg.erase(msg.begin(), msg.begin() + 1);
-
                 continue;
-            }
+
+            int byte_backup = fetch.internal_counter;
 
             comm_type t = fetch.get<comm_type>();
 
-
             bool success = false;
 
-            if(t == POSROT && msg.size() >= sizeof(int)*4 + sizeof(cl_float4)*2)
+            if(t == POSROT && fetch.ptr.size() >= sizeof(int)*4 + sizeof(cl_float4)*2)
             {
                 success = process_posrot(fetch);
             }
@@ -690,14 +715,10 @@ bool network::tick()
                 success = process_var(fetch);
             }
 
-            auto it = msg.begin();
-
-            if(success)
-                std::advance(it, fetch.internal_counter);
-            else
-                std::advance(it, 1);
-
-            msg.erase(msg.begin(), it);
+            if(!success)
+            {
+                fetch.internal_counter = byte_backup;
+            }
         }
     }
 
