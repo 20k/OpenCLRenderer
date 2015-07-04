@@ -335,8 +335,6 @@ decltype(send)* send_t = &send;
 ///will crash if disco while send
 void network::send(int id, const char* msg, int len)
 {
-    //printf("send %i\n", len);
-
     if(len == 0)
         return;
 
@@ -368,7 +366,6 @@ void network::broadcast(const std::string& msg)
 
 void network::broadcast(const char* msg, int len)
 {
-    //for(auto& i : connections)
     for(int i=0; i<connections.size(); i++)
     {
         send(i, msg, len);
@@ -450,63 +447,13 @@ std::vector<char> network::receive_any()
     recv_buffer.resize(len);
 
     return recv_buffer;
-
-
-    /*std::vector<char> ptr;
-
-    int end_state = 0;
-
-    for(int i=0; i<200; i++)
-    {
-        //if(!is_readable(fd))
-        //    return ptr;
-
-        char c;
-
-        int status = recv(fd, &c, 1, 0);
-
-        if(status < 0)
-        {
-            disconnected_sockets[fd] = true;
-
-            return std::vector<char>();
-        }
-
-        if(status == 0)
-            return std::vector<char>();
-
-        ptr.push_back(c);
-
-        if(end_state != 4 && c == end_ar[end_state])
-            end_state++;
-
-        if(end_state == 4)
-            return ptr;
-    }*/
-
-    //len = recv(fd, &ptr[0], 200*sizeof(char), 0);
-
-    /*if(len == 0)
-        return std::vector<char>();
-
-    if(len < 0)
-    {
-        disconnected_sockets[fd] = true;
-
-        return std::vector<char>();
-    }*/
-
-    //ptr.resize(len);
 }
 
 std::vector<char> network::receive()
 {
-    //for(auto& i : connections)
+    if(is_readable(socket_descriptor))
     {
-        if(is_readable(socket_descriptor))
-        {
-            return receive_any();
-        }
+        return receive_any();
     }
 
     return std::vector<char>();
@@ -514,11 +461,8 @@ std::vector<char> network::receive()
 
 bool network::any_readable()
 {
-    //for(auto& i : connections)
-    {
-        if(is_readable(socket_descriptor))
-            return true;
-    }
+    if(is_readable(socket_descriptor))
+        return true;
 
     return false;
 }
