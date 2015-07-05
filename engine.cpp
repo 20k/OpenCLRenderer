@@ -2034,7 +2034,7 @@ void engine::render_buffers()
 void engine::display()
 {
     old_time = current_time;
-    current_time = ftime.getElapsedTime().asMicroseconds() / 1000.f;
+    current_time = ftime.getElapsedTime().asMicroseconds();
 
     window.display();
 }
