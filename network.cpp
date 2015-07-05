@@ -36,6 +36,10 @@ int network::network_update_rate = 60;
 std::vector<sockaddr_storage*> network::connections;
 std::vector<int> network::connection_length;
 
+int network::join_id = -1;
+bool network::loaded = false;
+
+
 ///mingw being testicles workaround
 #ifdef __MINGW32__
 template<typename T>
@@ -580,6 +584,71 @@ void network::transform_slave_object(objects_container* obj)
     host_networked_objects.erase(it);
 }
 
+void network::transform_host_var(int* var)
+{
+    int id = get_id_by_var(var);
+
+    if(id < 0)
+        return;
+
+    ///does not exist
+    if(slaved_var[id] == nullptr)
+        return;
+
+    ///already a host object
+    if(hosted_var[id] != nullptr)
+        return;
+
+    hosted_var[id] = slaved_var[id];
+
+    auto it = slaved_var.begin();
+
+    std::advance(it, id);
+
+    slaved_var.erase(it);
+}
+
+void network::transform_slave_var(int* var)
+{
+    int id = get_id_by_var(var);
+
+    if(id < 0)
+        return;
+
+    ///does not exist
+    if(hosted_var[id] == nullptr)
+        return;
+
+    ///already a slave object
+    if(slaved_var[id] != nullptr)
+        return;
+
+    slaved_var[id] = hosted_var[id];
+
+    auto it = hosted_var.begin();
+
+    std::advance(it, id);
+
+    hosted_var.erase(it);
+}
+
+int network::get_id_by_var(int* var)
+{
+    for(auto& i : slaved_var)
+    {
+        if(i.second == var)
+            return i.first;
+    }
+
+    for(auto& i : hosted_var)
+    {
+        if(i.second == var)
+            return i.first;
+    }
+
+    return -1;
+}
+
 objects_container* network::get_object_by_id(int id)
 {
     for(auto& i : slave_networked_objects)
@@ -731,6 +800,8 @@ bool network::process_joinresponse(byte_fetch& fetch)
 
     if(found_end != end_canary)
         return false;
+
+    join_id = connection_num;
 
     return true;
 }

@@ -46,6 +46,9 @@ struct network
 
     static int network_state;
 
+    static int join_id; ///init to -1, is a number when we've joined a game
+    static bool loaded; ///for external use so we don't have to do bookkeeping. have we done the loading to join a game
+
 
     static void host();
 
@@ -64,6 +67,9 @@ struct network
     static void host_var(int*);
     static void slave_var(int*);
 
+    static void transform_host_var(int*);
+    static void transform_slave_var(int*);
+
     static void set_update_rate(int);
 
     ///broadcast has a 'skip', this is to avoid broadcasting data
@@ -81,6 +87,7 @@ struct network
 
     static objects_container* get_object_by_id(int);
     static int get_id_by_object(objects_container*);
+    static int get_id_by_var(int*);
 
     ///returns if we need to reallocate memory because somethings changed
     static bool tick();
