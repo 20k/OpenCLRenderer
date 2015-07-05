@@ -253,6 +253,20 @@ cl_float4 objects_container::get_centre()
     }
 }
 
+void objects_container::unload()
+{
+    isloaded = false;
+
+    for(auto& o : objs)
+    {
+        o.isloaded = false;
+    }
+
+    set_active(false);
+
+    objs.clear();
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)
