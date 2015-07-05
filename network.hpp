@@ -53,6 +53,7 @@ struct network
 
 
     static void generate_networked_id();
+    static void add_new_connection(sockaddr_storage*, int addrlen);
 
     static void host_object(objects_container*);
     static void slave_object(objects_container*);
@@ -84,11 +85,16 @@ struct network
     ///returns if we need to reallocate memory because somethings changed
     static bool tick();
 
+    ///ping the server with a hello to get a joinresponse
+    static void ping();
 
 private:
     static bool process_posrot(byte_fetch& fetch);
     static bool process_isactive(byte_fetch& fetch);
     static bool process_var(byte_fetch& fetch);
+    static bool process_joinresponse(byte_fetch& fetch);
+
+    static void send_joinresponse(int id);
 };
 
 #endif // NETWORKING_HPP

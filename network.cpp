@@ -332,6 +332,11 @@ write_status::writable_status is_writable(int clientfd)
 
 decltype(send)* send_t = &send;
 
+void network::send(int id, const std::string& msg)
+{
+    send(id, msg.c_str(), msg.length());
+}
+
 ///will crash if disco while send
 void network::send(int id, const char* msg, int len)
 {
@@ -373,6 +378,14 @@ void network::broadcast(const char* msg, int len, int address_to_skip)
 
         send(i, msg, len);
     }
+}
+
+void network::add_new_connection(sockaddr_storage* their_addr, int len)
+{
+    connections.push_back(their_addr);
+    connection_length.push_back(len);
+
+    send_joinresponse(connections.size()-1);
 }
 
 const int canary = 0xdeadbeef;
@@ -434,9 +447,7 @@ std::vector<char> network::receive_any(int& ret_address)
 
         if(add)
         {
-            connections.push_back(their_addr);
-            connection_length.push_back(fromlen);
-
+            add_new_connection(their_addr, fromlen);
             ret_address = connections.size() - 1;
         }
         else
@@ -671,12 +682,58 @@ struct byte_fetch
     }
 };
 
+void network::ping()
+{
+    if(network_state == 1)
+    {
+        printf("Server cannot ping itself\n");
+        return;
+    }
+
+    byte_vector vec;
+    vec.push_back(canary);
+    vec.push_back(end_canary);
+
+    broadcast(vec.data());
+}
+
+
 enum comm_type : unsigned int
 {
     POSROT = 0,
     ISACTIVE = 1,
-    VAR = 2
+    VAR = 2,
+    JOINRESPONSE = 3
 };
+
+
+void network::send_joinresponse(int id)
+{
+    byte_vector vec;
+    vec.push_back(canary);
+    vec.push_back(JOINRESPONSE);
+    vec.push_back(connections.size());
+    vec.push_back(end_canary);
+
+    printf("To client: %i\n", connections.size());
+
+    send(id, vec.data());
+}
+
+///if server, do nothing
+bool network::process_joinresponse(byte_fetch& fetch)
+{
+    int connection_num = fetch.get<int>();
+
+    printf("From server: %i\n", connection_num);
+
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    return true;
+}
 
 bool network::process_posrot(byte_fetch& fetch)
 {
@@ -873,6 +930,10 @@ bool network::tick()
             if(t == VAR)
             {
                 success = process_var(fetch);
+            }
+            if(t == JOINRESPONSE)
+            {
+                success = process_joinresponse(fetch);
             }
 
             if(!success)
