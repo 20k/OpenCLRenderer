@@ -359,15 +359,18 @@ void network::send(int id, const char* msg, int len)
     }
 }
 
-void network::broadcast(const std::string& msg)
+void network::broadcast(const std::string& msg, int address_to_skip)
 {
-    broadcast(msg.data(), msg.length());
+    broadcast(msg.data(), msg.length(), address_to_skip);
 }
 
-void network::broadcast(const char* msg, int len)
+void network::broadcast(const char* msg, int len, int address_to_skip)
 {
     for(int i=0; i<connections.size(); i++)
     {
+        if(i == address_to_skip)
+            continue;
+
         send(i, msg, len);
     }
 }
@@ -377,7 +380,7 @@ const int end_canary = 0xafaefead;
 
 const char end_ar[4] = {0xaf, 0xae, 0xfe, 0xad};
 
-std::vector<char> network::receive_any()
+std::vector<char> network::receive_any(int& ret_address)
 {
     constexpr int l = 2000;
 
@@ -393,6 +396,8 @@ std::vector<char> network::receive_any()
         int fromlen = sizeof(sockaddr_storage);
 
         len = recvfrom(socket_descriptor, &recv_buffer[0], l*sizeof(char), 0, (sockaddr*)&their_addr, &fromlen);
+
+        ret_address = 0;
     }
 
     if(network_state == 1)
@@ -413,18 +418,26 @@ std::vector<char> network::receive_any()
 
         //printf("Received %i", len);
 
+        int num = 0;
         bool add = true;
 
         for(auto& i : connections)
         {
             if(*i == *their_addr)
+            {
                 add = false;
+                ret_address = num;
+            }
+
+            num++;
         }
 
         if(add)
         {
             connections.push_back(their_addr);
             connection_length.push_back(fromlen);
+
+            ret_address = connections.size() - 1;
         }
         else
             delete their_addr;
@@ -436,9 +449,7 @@ std::vector<char> network::receive_any()
     }
 
     if(len < 0)
-    {
         return std::vector<char>();
-    }
 
     if(len == 0)
         return std::vector<char>();
@@ -449,11 +460,11 @@ std::vector<char> network::receive_any()
     return recv_buffer;
 }
 
-std::vector<char> network::receive()
+std::vector<char> network::receive(int& ret_address)
 {
     if(is_readable(socket_descriptor))
     {
-        return receive_any();
+        return receive_any(ret_address);
     }
 
     return std::vector<char>();
@@ -827,7 +838,11 @@ bool network::tick()
 
     while(any_readable())
     {
-        auto msg = receive();
+        int received_from;
+        std::vector<char> msg = receive(received_from);
+
+        if(msg.size() > 0 && network_state == 1)
+            broadcast(&msg[0], msg.size(), received_from); ///skip the address that sent this to me, and retransmit IF I AM HOST to all others
 
         byte_fetch fetch;
         fetch.ptr.swap(msg);
