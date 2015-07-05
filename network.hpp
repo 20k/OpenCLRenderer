@@ -15,6 +15,7 @@ struct sockaddr_storage;
 
 struct network
 {
+    ///currently inoperable, pending review
     static int network_update_rate;
 
     static sf::Clock timeout_clock;
