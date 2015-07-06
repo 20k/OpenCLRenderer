@@ -74,10 +74,10 @@ struct network
 
     ///broadcast has a 'skip', this is to avoid broadcasting data
     ///to the source which sent us the data!
-    static void broadcast(const std::string&, int address_to_skip = -1);
+    static void broadcast(const std::vector<char>&, int address_to_skip = -1);
     static void broadcast(const char*, int, int address_to_skip = -1);
 
-    static void send(int id, const std::string&);
+    static void send(int id, const std::vector<char>&);
     static void send(int id, const char*, int);
 
     static std::vector<char> receive(int& ret_address);

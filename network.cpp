@@ -161,11 +161,9 @@ void network::host()
         exit(1);
     }
 
-    int sockfd, new_fd;
+    int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    struct sockaddr_storage their_addr;
-    int  addr_len;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET; // set to AF_INET to force IPv4 //currently AF_UNSPEC
@@ -336,9 +334,9 @@ write_status::writable_status is_writable(int clientfd)
 
 decltype(send)* send_t = &send;
 
-void network::send(int id, const std::string& msg)
+void network::send(int id, const std::vector<char>& msg)
 {
-    send(id, msg.c_str(), msg.length());
+    send(id, &msg[0], msg.size());
 }
 
 ///will crash if disco while send
@@ -368,9 +366,9 @@ void network::send(int id, const char* msg, int len)
     }
 }
 
-void network::broadcast(const std::string& msg, int address_to_skip)
+void network::broadcast(const std::vector<char>& msg, int address_to_skip)
 {
-    broadcast(msg.data(), msg.length(), address_to_skip);
+    broadcast(&msg[0], msg.size(), address_to_skip);
 }
 
 void network::broadcast(const char* msg, int len, int address_to_skip)
@@ -703,13 +701,15 @@ struct byte_vector
         }
     }
 
-    std::string data()
+    std::vector<char> data()
     {
-        std::string dat;
+       /* std::string dat;
 
         dat.append(&ptr[0], ptr.size());
 
-        return dat;
+        return dat;*/
+
+        return ptr;
     }
 };
 
@@ -781,7 +781,7 @@ void network::send_joinresponse(int id)
     byte_vector vec;
     vec.push_back(canary);
     vec.push_back(JOINRESPONSE);
-    vec.push_back(connections.size());
+    vec.push_back((int)connections.size());
     vec.push_back(end_canary);
 
     printf("To client: %i\n", connections.size());
@@ -794,12 +794,12 @@ bool network::process_joinresponse(byte_fetch& fetch)
 {
     int connection_num = fetch.get<int>();
 
-    printf("From server: %i\n", connection_num);
-
     int found_end = fetch.get<int>();
 
     if(found_end != end_canary)
         return false;
+
+    printf("From server: %i\n", connection_num);
 
     join_id = connection_num;
 
@@ -829,6 +829,8 @@ bool network::process_posrot(byte_fetch& fetch)
     }
     else
     {
+        printf("%i\n", network_id);
+
         std::cout << "warning, invalid networked object" << std::endl;
     }
 
@@ -871,6 +873,8 @@ bool network::process_var(byte_fetch& fetch)
         return false;
 
     *slaved_var[network_id] = val;
+
+    return true;
 }
 
 
@@ -886,10 +890,10 @@ bool network::tick()
 
     static sf::Clock t;
 
-    float update_time = 16.f;
+    //float update_time = 16.f;
 
     ///to seconds
-    float change_time = t.getElapsedTime().asMicroseconds() / 1000.f;
+    //float change_time = t.getElapsedTime().asMicroseconds() / 1000.f;
 
     //if(change_time > update_time)
     {
