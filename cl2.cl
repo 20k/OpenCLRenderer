@@ -12,7 +12,7 @@
 
 #define mulint UINT_MAX
 
-#define depth_icutoff 75
+#define depth_icutoff 10
 
 #define depth_no_clear (mulint-1)
 
