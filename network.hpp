@@ -13,6 +13,12 @@ struct byte_fetch;
 struct addrinfo;
 struct sockaddr_storage;
 
+struct networked_variable
+{
+    void* ptr = nullptr;
+    size_t size = 0;
+};
+
 struct network
 {
     ///currently inoperable, pending review
@@ -29,8 +35,8 @@ struct network
     static std::map<int, objects_container*> host_networked_objects; ///authoratitive for me
     static std::map<int, objects_container*> slave_networked_objects; ///server authoratitive
 
-    static std::map<int, int*> hosted_var;
-    static std::map<int, int*> slaved_var;
+    static std::map<int, networked_variable> hosted_var;
+    static std::map<int, networked_variable> slaved_var;
 
     static std::map<int, bool> disconnected_sockets;
 
@@ -64,11 +70,13 @@ struct network
     static void transform_host_object(objects_container*);
     static void transform_slave_object(objects_container*);
 
-    static void host_var(int*);
-    static void slave_var(int*);
+    template<typename T>
+    static void host_var(T*);
+    template<typename T>
+    static void slave_var(T*);
 
-    static void transform_host_var(int*);
-    static void transform_slave_var(int*);
+    static void transform_host_var(void*);
+    static void transform_slave_var(void*);
 
     static void set_update_rate(int);
 
@@ -87,7 +95,7 @@ struct network
 
     static objects_container* get_object_by_id(int);
     static int get_id_by_object(objects_container*);
-    static int get_id_by_var(int*);
+    static int get_id_by_var(void*);
 
     ///returns if we need to reallocate memory because somethings changed
     static bool tick();

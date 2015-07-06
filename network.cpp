@@ -17,8 +17,8 @@ int network::socket_descriptor;
 std::map<int, objects_container*> network::host_networked_objects; ///authoratitive for me
 std::map<int, objects_container*> network::slave_networked_objects; ///server authoratitive
 
-std::map<int, int*> network::hosted_var;
-std::map<int, int*> network::slaved_var;
+std::map<int, networked_variable> network::hosted_var;
+std::map<int, networked_variable> network::slaved_var;
 
 std::map<objects_container*, bool> network::active_status;
 
@@ -513,26 +513,38 @@ void network::slave_object(objects_container* obj)
     active_status[obj] = obj->isactive;
 }
 
-
-void network::host_var(int* v)
+template<typename T>
+void network::host_var(T* v)
 {
     if(v == nullptr)
         return;
 
     int id = global_network_id++;
 
-    hosted_var[id] = v;
+    networked_variable var;
+    var.ptr = v;
+    var.size = sizeof(T);
+
+    hosted_var[id] = var;
 }
 
-void network::slave_var(int* v)
+template<typename T>
+void network::slave_var(T* v)
 {
     if(v == nullptr)
         return;
 
     int id = global_network_id++;
 
-    slaved_var[id] = v;
+    networked_variable var;
+    var.ptr = v;
+    var.size = sizeof(T);
+
+    slaved_var[id] = var;
 }
+
+template void network::host_var<int>(int*);
+template void network::slave_var<int>(int*);
 
 void network::transform_host_object(objects_container* obj)
 {
@@ -580,7 +592,7 @@ void network::transform_slave_object(objects_container* obj)
     host_networked_objects.erase(id);
 }
 
-void network::transform_host_var(int* var)
+void network::transform_host_var(void* var)
 {
     int id = get_id_by_var(var);
 
@@ -588,11 +600,11 @@ void network::transform_host_var(int* var)
         return;
 
     ///does not exist
-    if(slaved_var[id] == nullptr)
+    if(slaved_var[id].ptr == nullptr)
         return;
 
     ///already a host object
-    if(hosted_var[id] != nullptr)
+    if(hosted_var[id].ptr != nullptr)
         return;
 
     hosted_var[id] = slaved_var[id];
@@ -600,7 +612,7 @@ void network::transform_host_var(int* var)
     slaved_var.erase(id);
 }
 
-void network::transform_slave_var(int* var)
+void network::transform_slave_var(void* var)
 {
     int id = get_id_by_var(var);
 
@@ -608,11 +620,11 @@ void network::transform_slave_var(int* var)
         return;
 
     ///does not exist
-    if(hosted_var[id] == nullptr)
+    if(hosted_var[id].ptr == nullptr)
         return;
 
     ///already a slave object
-    if(slaved_var[id] != nullptr)
+    if(slaved_var[id].ptr != nullptr)
         return;
 
     slaved_var[id] = hosted_var[id];
@@ -620,17 +632,17 @@ void network::transform_slave_var(int* var)
     hosted_var.erase(id);
 }
 
-int network::get_id_by_var(int* var)
+int network::get_id_by_var(void* var)
 {
     for(auto& i : slaved_var)
     {
-        if(i.second == var)
+        if(i.second.ptr == var)
             return i.first;
     }
 
     for(auto& i : hosted_var)
     {
-        if(i.second == var)
+        if(i.second.ptr == var)
             return i.first;
     }
 
@@ -685,7 +697,17 @@ struct byte_vector
     {
         char* pv = (char*)&v;
 
-        for(int i=0; i<sizeof(T); i++)
+        for(uint32_t i=0; i<sizeof(T); i++)
+        {
+            ptr.push_back(pv[i]);
+        }
+    }
+
+    void push_back(const networked_variable& var)
+    {
+        char* pv = (char*)var.ptr;
+
+        for(uint32_t i=0; i<var.size; i++)
         {
             ptr.push_back(pv[i]);
         }
@@ -738,6 +760,15 @@ struct byte_fetch
         internal_counter += sizeof(T);
 
         return *(T*)&ptr[prev];
+    }
+
+    void* get(int size)
+    {
+        int prev = internal_counter;
+
+        internal_counter += size;
+
+        return (void*)&ptr[prev];
     }
 };
 
@@ -853,16 +884,24 @@ bool network::process_isactive(byte_fetch& fetch)
 bool network::process_var(byte_fetch& fetch)
 {
     int network_id = fetch.get<int>();
-    int val = fetch.get<int>();
+
+    if(slaved_var[network_id].ptr == nullptr)
+        return false;
+
+    int size = slaved_var[network_id].size;
+
+    void* vptr = fetch.get(size);
+
+    //int val = fetch.get<int>();
+
     int found_end = fetch.get<int>();
 
     if(found_end != end_canary)
         return false;
 
-    if(slaved_var[network_id] == nullptr)
-        return false;
+    memcpy(slaved_var[network_id].ptr, vptr, size);
 
-    *slaved_var[network_id] = val;
+    //*slaved_var[network_id] = val;
 
     return true;
 }
@@ -911,19 +950,16 @@ bool network::tick()
         for(auto& i : hosted_var)
         {
             ///cant be null
-            int* var = i.second;
+            networked_variable var = i.second;
 
             int network_id = i.first;
-
-            int val = *var;
-
 
             byte_vector vec;
 
             vec.push_back(canary);
             vec.push_back(VAR);
             vec.push_back(network_id);
-            vec.push_back(val);
+            vec.push_back(var);
             vec.push_back(end_canary);
 
             broadcast(vec.data());
