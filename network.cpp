@@ -551,11 +551,13 @@ void network::transform_host_object(objects_container* obj)
 
     host_networked_objects[id] = slave_networked_objects[id];
 
-    auto it = slave_networked_objects.begin();
+    /*auto it = slave_networked_objects.begin();
 
     std::advance(it, id);
 
-    slave_networked_objects.erase(it);
+    slave_networked_objects.erase(it);*/
+
+    slave_networked_objects.erase(id);
 }
 
 void network::transform_slave_object(objects_container* obj)
@@ -575,11 +577,7 @@ void network::transform_slave_object(objects_container* obj)
 
     slave_networked_objects[id] = host_networked_objects[id];
 
-    auto it = host_networked_objects.begin();
-
-    std::advance(it, id);
-
-    host_networked_objects.erase(it);
+    host_networked_objects.erase(id);
 }
 
 void network::transform_host_var(int* var)
@@ -599,11 +597,7 @@ void network::transform_host_var(int* var)
 
     hosted_var[id] = slaved_var[id];
 
-    auto it = slaved_var.begin();
-
-    std::advance(it, id);
-
-    slaved_var.erase(it);
+    slaved_var.erase(id);
 }
 
 void network::transform_slave_var(int* var)
@@ -623,11 +617,7 @@ void network::transform_slave_var(int* var)
 
     slaved_var[id] = hosted_var[id];
 
-    auto it = hosted_var.begin();
-
-    std::advance(it, id);
-
-    hosted_var.erase(it);
+    hosted_var.erase(id);
 }
 
 int network::get_id_by_var(int* var)
