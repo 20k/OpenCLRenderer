@@ -546,6 +546,9 @@ void network::slave_var(T* v)
 template void network::host_var<int>(int*);
 template void network::slave_var<int>(int*);
 
+template void network::host_var<float>(float*);
+template void network::slave_var<float>(float*);
+
 void network::transform_host_object(objects_container* obj)
 {
     int id = get_id_by_object(obj);
@@ -683,6 +686,26 @@ int network::get_id_by_object(objects_container* obj)
     return -1;
 }
 
+void network::host_update(void* var)
+{
+    int id = get_id_by_var(var);
+
+    networked_variable* v = nullptr;
+
+    ///get the networked variable representation
+    if(hosted_var[id].ptr)
+        v = &hosted_var[id];
+    else if(slaved_var[id].ptr)
+        v = &slaved_var[id];
+    else
+    {
+        printf("Error: Var not found\n");
+        return;
+    }
+
+    broadcast(*v);
+}
+
 void network::set_update_rate(int rate)
 {
     network_update_rate = rate;
@@ -795,6 +818,29 @@ enum comm_type : unsigned int
     VAR = 2,
     JOINRESPONSE = 3
 };
+
+void network::broadcast(networked_variable& v)
+{
+    networked_variable var = v;
+
+    int network_id = get_id_by_var(v.ptr);
+
+    if(network_id < 0)
+    {
+        printf("Cannot broadcast var, not found\n");
+        return;
+    }
+
+    byte_vector vec;
+
+    vec.push_back(canary);
+    vec.push_back(VAR);
+    vec.push_back(network_id);
+    vec.push_back(var);
+    vec.push_back(end_canary);
+
+    broadcast(vec.data());
+}
 
 
 void network::send_joinresponse(int id)
@@ -952,17 +998,7 @@ bool network::tick()
             ///cant be null
             networked_variable var = i.second;
 
-            int network_id = i.first;
-
-            byte_vector vec;
-
-            vec.push_back(canary);
-            vec.push_back(VAR);
-            vec.push_back(network_id);
-            vec.push_back(var);
-            vec.push_back(end_canary);
-
-            broadcast(vec.data());
+            broadcast(var);
         }
 
         for(auto& i : active_status)

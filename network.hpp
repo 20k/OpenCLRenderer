@@ -78,12 +78,16 @@ struct network
     static void transform_host_var(void*);
     static void transform_slave_var(void*);
 
+    ///send an update about var as if i am host... maybe this could entirely replace the host/slave system
+    static void host_update(void* var);
+
     static void set_update_rate(int);
 
     ///broadcast has a 'skip', this is to avoid broadcasting data
     ///to the source which sent us the data!
     static void broadcast(const std::vector<char>&, int address_to_skip = -1);
     static void broadcast(const char*, int, int address_to_skip = -1);
+    static void broadcast(networked_variable& v);
 
     static void send(int id, const std::vector<char>&);
     static void send(int id, const char*, int);
