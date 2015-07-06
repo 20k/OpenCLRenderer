@@ -131,7 +131,7 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     return k;
 }
 
-static void oclstuff(const std::string& file, int w, int h, int lres)
+static void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
 {
     ///need to initialise context and the like
     ///cant use boost::compute as it does not support opengl context sharing on windows
@@ -245,8 +245,13 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
 
     std::string lresstr = convertlres.str();
 
+    std::string pure_3d;
+
+    if(only_3d)
+        pure_3d = " -D ONLY_3D";
+
     ///does not compile properly without (breaks texture filtering), investigate this at some point
-    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr;// + " -D BECKY_HACK=" + sbecky;
+    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
 
     #ifdef BECKY_HACK
     buildoptions = buildoptions + std::string(" -D BECKY_HACK=1");
@@ -276,46 +281,50 @@ static void oclstuff(const std::string& file, int w, int h, int lres)
     cl::kernel2_oculus= load_kernel(program, "kernel2_oculus");
     cl::kernel3_oculus = load_kernel(program, "kernel3_oculus");
     cl::prearrange_oculus = load_kernel(program, "prearrange_oculus");
-    cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
-    cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");
-    cl::space_dust = load_kernel(program, "space_dust");
-    cl::space_dust_no_tile = load_kernel(program, "space_dust_no_tiling");
-    cl::draw_ui = load_kernel(program, "draw_ui");
-    cl::draw_hologram = load_kernel(program, "draw_hologram");
-    cl::blit_with_id = load_kernel(program, "blit_with_id");
-    cl::blit_clear = load_kernel(program, "blit_clear");
-    cl::clear_id_buf = load_kernel(program, "clear_id_buf");
-    cl::clear_screen_dbuf = load_kernel(program, "clear_screen_dbuf");
-    cl::draw_voxel_octree = load_kernel(program, "draw_voxel_octree");
-    cl::create_distortion_offset = load_kernel(program, "create_distortion_offset");
-    cl::draw_fancy_projectile = load_kernel(program, "draw_fancy_projectile");
-    cl::reproject_depth = load_kernel(program, "reproject_depth");
-    cl::reproject_screen = load_kernel(program, "reproject_screen");
-    cl::space_nebulae = load_kernel(program, "space_nebulae");
-    cl::edge_smoothing = load_kernel(program, "edge_smoothing");
-    cl::shadowmap_smoothing_x = load_kernel(program, "shadowmap_smoothing_x");
-    cl::shadowmap_smoothing_y = load_kernel(program, "shadowmap_smoothing_y");
-    cl::raytrace = load_kernel(program, "raytrace");
-    cl::render_voxels = load_kernel(program, "render_voxels");
-    cl::render_voxels_tex = load_kernel(program, "render_voxels_tex");
-    cl::render_voxel_cube = load_kernel(program, "render_voxel_cube");
-    cl::diffuse_unstable = load_kernel(program, "diffuse_unstable");
-    cl::diffuse_unstable_tex = load_kernel(program, "diffuse_unstable_tex");
-    cl::advect = load_kernel(program, "advect");
-    cl::advect_tex = load_kernel(program, "advect_tex");
-    cl::post_upscale = load_kernel(program, "post_upscale");
-    cl::warp_oculus = load_kernel(program, "warp_oculus");
-    cl::goo_diffuse = load_kernel(program, "goo_diffuse");
-    cl::goo_advect = load_kernel(program, "goo_advect");
-    cl::fluid_amount = load_kernel(program, "fluid_amount");
-    cl::update_boundary = load_kernel(program, "update_boundary");
-    cl::fluid_initialise_mem = load_kernel(program, "fluid_initialise_mem");
-    cl::fluid_initialise_mem_3d = load_kernel(program, "fluid_initialise_mem_3d");
-    cl::fluid_timestep = load_kernel(program, "fluid_timestep");
-    cl::fluid_timestep_3d = load_kernel(program, "fluid_timestep_3d");
-    cl::displace_fluid = load_kernel(program, "displace_fluid");
-    cl::process_skins = load_kernel(program, "process_skins");
-    cl::draw_hermite_skin = load_kernel(program, "draw_hermite_skin");
+
+    if(!only_3d)
+    {
+        cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
+        cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");
+        cl::space_dust = load_kernel(program, "space_dust");
+        cl::space_dust_no_tile = load_kernel(program, "space_dust_no_tiling");
+        cl::draw_ui = load_kernel(program, "draw_ui");
+        cl::draw_hologram = load_kernel(program, "draw_hologram");
+        cl::blit_with_id = load_kernel(program, "blit_with_id");
+        cl::blit_clear = load_kernel(program, "blit_clear");
+        cl::clear_id_buf = load_kernel(program, "clear_id_buf");
+        cl::clear_screen_dbuf = load_kernel(program, "clear_screen_dbuf");
+        cl::draw_voxel_octree = load_kernel(program, "draw_voxel_octree");
+        cl::create_distortion_offset = load_kernel(program, "create_distortion_offset");
+        cl::draw_fancy_projectile = load_kernel(program, "draw_fancy_projectile");
+        cl::reproject_depth = load_kernel(program, "reproject_depth");
+        cl::reproject_screen = load_kernel(program, "reproject_screen");
+        cl::space_nebulae = load_kernel(program, "space_nebulae");
+        cl::edge_smoothing = load_kernel(program, "edge_smoothing");
+        cl::shadowmap_smoothing_x = load_kernel(program, "shadowmap_smoothing_x");
+        cl::shadowmap_smoothing_y = load_kernel(program, "shadowmap_smoothing_y");
+        cl::raytrace = load_kernel(program, "raytrace");
+        cl::render_voxels = load_kernel(program, "render_voxels");
+        cl::render_voxels_tex = load_kernel(program, "render_voxels_tex");
+        cl::render_voxel_cube = load_kernel(program, "render_voxel_cube");
+        cl::diffuse_unstable = load_kernel(program, "diffuse_unstable");
+        cl::diffuse_unstable_tex = load_kernel(program, "diffuse_unstable_tex");
+        cl::advect = load_kernel(program, "advect");
+        cl::advect_tex = load_kernel(program, "advect_tex");
+        cl::post_upscale = load_kernel(program, "post_upscale");
+        cl::warp_oculus = load_kernel(program, "warp_oculus");
+        cl::goo_diffuse = load_kernel(program, "goo_diffuse");
+        cl::goo_advect = load_kernel(program, "goo_advect");
+        cl::fluid_amount = load_kernel(program, "fluid_amount");
+        cl::update_boundary = load_kernel(program, "update_boundary");
+        cl::fluid_initialise_mem = load_kernel(program, "fluid_initialise_mem");
+        cl::fluid_initialise_mem_3d = load_kernel(program, "fluid_initialise_mem_3d");
+        cl::fluid_timestep = load_kernel(program, "fluid_timestep");
+        cl::fluid_timestep_3d = load_kernel(program, "fluid_timestep_3d");
+        cl::displace_fluid = load_kernel(program, "displace_fluid");
+        cl::process_skins = load_kernel(program, "process_skins");
+        cl::draw_hermite_skin = load_kernel(program, "draw_hermite_skin");
+    }
 
     std::cout << "Loaded obscene numbers of kernels" << std::endl;
 }

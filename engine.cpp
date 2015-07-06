@@ -146,7 +146,7 @@ compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* 
     return buf;
 }
 
-void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc)
+void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d)
 {
     #ifdef RIFT
     ovr_Initialize();
@@ -254,7 +254,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     l_size = 2048;
 
     ///including opencl compilation parameters
-    oclstuff(loc.c_str(), width, height, l_size);
+    oclstuff(loc.c_str(), width, height, l_size, only_3d);
 
     mdx = 0;
     mdy = 0;

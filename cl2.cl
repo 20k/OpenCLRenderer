@@ -3313,6 +3313,8 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
     write_imagef(output, (int2){x, y}, val);
 }
 
+#ifndef ONLY_3D
+
 //detect step edges, then blur gaussian and mask with object ids?
 
 ///this isn't really edge smoothing, more like edge softening
@@ -8428,3 +8430,5 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     write_imagef(y_out, pos.xyzz, vel.y);
     write_imagef(z_out, pos.xyzz, vel.z);
 }
+
+#endif
