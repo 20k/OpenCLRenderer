@@ -1053,8 +1053,6 @@ bool network::tick()
             if(var.ptr == nullptr)
                 continue;
 
-            printf("hi\n");
-
             broadcast(var);
         }
 
