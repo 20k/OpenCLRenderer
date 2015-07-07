@@ -87,7 +87,7 @@ struct network
     ///to the source which sent us the data!
     static void broadcast(const std::vector<char>&, int address_to_skip = -1);
     static void broadcast(const char*, int, int address_to_skip = -1);
-    static void broadcast(networked_variable& v);
+    static void broadcast(networked_variable& v); ///starting to get less complex
 
     static void send(int id, const std::vector<char>&);
     static void send(int id, const char*, int);
@@ -100,6 +100,7 @@ struct network
     static objects_container* get_object_by_id(int);
     static int get_id_by_object(objects_container*);
     static int get_id_by_var(void*);
+    static networked_variable* get_variable_by_var(void*);
 
     ///returns if we need to reallocate memory because somethings changed
     static bool tick();

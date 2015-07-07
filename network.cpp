@@ -519,6 +519,14 @@ void network::host_var(T* v)
     if(v == nullptr)
         return;
 
+    for(auto& i : hosted_var)
+        if(i.second.ptr == v)
+            return;
+
+    for(auto& i : slaved_var)
+        if(i.second.ptr == v)
+            return;
+
     int id = global_network_id++;
 
     networked_variable var;
@@ -533,6 +541,15 @@ void network::slave_var(T* v)
 {
     if(v == nullptr)
         return;
+
+    for(auto& i : hosted_var)
+        if(i.second.ptr == v)
+            return;
+
+    for(auto& i : slaved_var)
+        if(i.second.ptr == v)
+            return;
+
 
     int id = global_network_id++;
 
@@ -556,21 +573,18 @@ void network::transform_host_object(objects_container* obj)
     if(id < 0)
         return;
 
-    ///does not exist
-    if(slave_networked_objects[id] == nullptr)
-        return;
+    bool found = false;
 
-    ///already a host object
-    if(host_networked_objects[id] != nullptr)
+    for(auto& i : slave_networked_objects)
+    {
+        if(i.second == obj)
+            found = true;
+    }
+
+    if(!found)
         return;
 
     host_networked_objects[id] = slave_networked_objects[id];
-
-    /*auto it = slave_networked_objects.begin();
-
-    std::advance(it, id);
-
-    slave_networked_objects.erase(it);*/
 
     slave_networked_objects.erase(id);
 }
@@ -582,12 +596,16 @@ void network::transform_slave_object(objects_container* obj)
     if(id < 0)
         return;
 
-    ///does not exist
-    if(host_networked_objects[id] == nullptr)
-        return;
 
-    ///already a slave object
-    if(slave_networked_objects[id] != nullptr)
+    bool found = false;
+
+    for(auto& i : host_networked_objects)
+    {
+        if(i.second == obj)
+            found = true;
+    }
+
+    if(!found)
         return;
 
     slave_networked_objects[id] = host_networked_objects[id];
@@ -602,12 +620,15 @@ void network::transform_host_var(void* var)
     if(id < 0)
         return;
 
-    ///does not exist
-    if(slaved_var[id].ptr == nullptr)
-        return;
+    bool found = false;
 
-    ///already a host object
-    if(hosted_var[id].ptr != nullptr)
+    for(auto& i : slaved_var)
+    {
+        if(i.second.ptr == var)
+            found = true;
+    }
+
+    if(!found)
         return;
 
     hosted_var[id] = slaved_var[id];
@@ -622,12 +643,15 @@ void network::transform_slave_var(void* var)
     if(id < 0)
         return;
 
-    ///does not exist
-    if(hosted_var[id].ptr == nullptr)
-        return;
+    bool found = false;
 
-    ///already a slave object
-    if(slaved_var[id].ptr != nullptr)
+    for(auto& i : hosted_var)
+    {
+        if(i.second.ptr == var)
+            found = true;
+    }
+
+    if(!found)
         return;
 
     slaved_var[id] = hosted_var[id];
@@ -650,6 +674,23 @@ int network::get_id_by_var(void* var)
     }
 
     return -1;
+}
+
+networked_variable* network::get_variable_by_var(void* var)
+{
+    for(auto& i : slaved_var)
+    {
+        if(i.second.ptr == var)
+            return &i.second;
+    }
+
+    for(auto& i : hosted_var)
+    {
+        if(i.second.ptr == var)
+            return &i.second;
+    }
+
+    return nullptr;
 }
 
 objects_container* network::get_object_by_id(int id)
@@ -688,18 +729,14 @@ int network::get_id_by_object(objects_container* obj)
 
 void network::host_update(void* var)
 {
-    int id = get_id_by_var(var);
+    if(network_state == 0)
+        return;
 
-    networked_variable* v = nullptr;
+    networked_variable* v = get_variable_by_var(var);
 
-    ///get the networked variable representation
-    if(hosted_var[id].ptr)
-        v = &hosted_var[id];
-    else if(slaved_var[id].ptr)
-        v = &slaved_var[id];
-    else
+    if(v == nullptr)
     {
-        printf("Error: Var not found\n");
+        printf("Variable not found\n");
         return;
     }
 
@@ -831,6 +868,10 @@ void network::broadcast(networked_variable& v)
         return;
     }
 
+    if(v.ptr == nullptr)
+        return;
+
+
     byte_vector vec;
 
     vec.push_back(canary);
@@ -931,8 +972,15 @@ bool network::process_var(byte_fetch& fetch)
 {
     int network_id = fetch.get<int>();
 
-    if(slaved_var[network_id].ptr == nullptr)
+    bool found = false;
+
+    for(auto& i : slaved_var)
+        if(i.first == network_id)
+            found = true;
+
+    if(!found)
         return false;
+
 
     int size = slaved_var[network_id].size;
 
@@ -976,6 +1024,10 @@ bool network::tick()
         {
             objects_container* obj = i.second;
 
+            ///really should remove
+            if(obj == nullptr)
+                continue;
+
             int network_id = i.first;
 
             cl_float4 pos = obj->pos;
@@ -998,12 +1050,20 @@ bool network::tick()
             ///cant be null
             networked_variable var = i.second;
 
+            if(var.ptr == nullptr)
+                continue;
+
+            printf("hi\n");
+
             broadcast(var);
         }
 
         for(auto& i : active_status)
         {
             objects_container* obj = i.first;
+
+            if(obj == nullptr)
+                continue;
 
             int network_id = get_id_by_object(obj);
 
