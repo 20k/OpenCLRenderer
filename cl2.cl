@@ -3322,7 +3322,7 @@ int get_id(int x, int y, int z, int width, int height)
 
 ///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
 __kernel
-void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, ly, lz), int width, int height, int depth, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, ly, lz), AOS(__global float*, defx, defy, defz), int width, int height, int depth, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
 {
     int id = get_global_id(0);
 
@@ -3447,21 +3447,23 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
 
     ///do vertlet bit, not sure if it is correct to do it here
     ///mypos is now my NEW positions, whereas px/y/z are old
+    ///I think vertlet is broken because of how I'm doing this on a gpu (ie full transform)
+    ///use euler?
 
     //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
 
     float3 dp = (float3){px[id], py[id], pz[id]} - (float3){lx[id], ly[id], lz[id]};
 
-    mypos += clamp(dp/1.f, -40.f, 40.f);
+    mypos += clamp(dp/1.6f, -40.f, 40.f);
 
     //mypos += dp;
 
-    float timestep = 0.3f;
+    float timestep = 0.9f;
 
-    mypos.y += timestep * - 0.98f;
+    mypos.y -= timestep * 0.98f;
 
     if(y == height-1)
-        mypos = (float3){x * rest_dist, (height-1) * rest_dist, 0};
+        mypos = (float3){defx[x], defy[x], defz[x]};
 
     lx[id] = mypos.x;
     ly[id] = mypos.y;
@@ -3476,6 +3478,9 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
     float3 pos = rot(mypos, c_pos.xyz, c_rot.xyz);
 
     float3 proj = depth_project_singular(pos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(proj.z < 0)
+        return;
 
     int2 scr = convert_int2(proj.xy);
 

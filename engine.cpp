@@ -1880,7 +1880,7 @@ void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
     run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
 }
 
-void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, int w, int h, int d)
+void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, compute::buffer defx, compute::buffer defy, compute::buffer defz, int w, int h, int d)
 {
     arg_list cloth_args;
 
@@ -1890,6 +1890,9 @@ void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer 
     cloth_args.push_back(&lx);
     cloth_args.push_back(&ly);
     cloth_args.push_back(&lz);
+    cloth_args.push_back(&defx);
+    cloth_args.push_back(&defy);
+    cloth_args.push_back(&defz);
     cloth_args.push_back(&w);
     cloth_args.push_back(&h);
     cloth_args.push_back(&d);
