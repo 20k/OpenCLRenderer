@@ -3450,6 +3450,10 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
 
     //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
 
+    float3 dp = (float3){px[id], py[id], pz[id]} - (float3){lx[id], ly[id], lz[id]};
+
+    mypos += clamp(dp/1.f, -40.f, 40.f);
+
     //mypos += dp;
 
     float timestep = 0.3f;
