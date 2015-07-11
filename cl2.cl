@@ -3463,11 +3463,21 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
     ly[id] = mypos.y;
     lz[id] = mypos.z;
 
-    int2 pos = convert_int2(round(mypos.xy));
+    /*int2 pos = convert_int2(round(mypos.xy));
 
     pos = clamp(pos, 1.f, (int2){SCREENWIDTH, SCREENHEIGHT} - 1);
 
-    write_imagef(screen, pos, 1.f);
+    write_imagef(screen, pos, 1.f);*/
+
+    float3 pos = rot(mypos, c_pos.xyz, c_rot.xyz);
+
+    float3 proj = depth_project_singular(pos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    int2 scr = convert_int2(proj.xy);
+
+    scr = clamp(scr, 0, (int2){SCREENWIDTH, SCREENHEIGHT} - 1);
+
+    write_imagef(screen, scr, 1.f);
 }
 
 
