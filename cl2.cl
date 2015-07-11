@@ -3376,7 +3376,7 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
         positions[3] = (float3){px[pid], py[pid], pz[pid]};
     }
 
-    /*if(z != 0)
+    if(z != 0)
     {
         int pid = get_id(x, y, z-1, width, height);
 
@@ -3388,11 +3388,11 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
         int pid = get_id(x, y, z+1, width, height);
 
         positions[5] = (float3){px[pid], py[pid], pz[pid]};
-    }*/
+    }
 
     const float rest_dist = 10.f;
 
-    for(int i=0; i<4; i++)
+    for(int i=0; i<6; i++)
     {
         /*int li = i;// % 4;
 
@@ -3421,6 +3421,19 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
             continue;
         if(y == height-1 && i == 3)
             continue;
+
+        if(depth > 1)
+        {
+            if(z == 0 && i == 4)
+                continue;
+            if(z == depth-1 && i == 5)
+                continue;
+        }
+        else if (i == 4 || i == 5)
+        {
+            continue;
+        }
+
 
         float mf = 2.f;
 
