@@ -3318,11 +3318,166 @@ int get_id(int x, int y, int z, int width, int height)
     return z*width*height + y*width + x;
 }
 
+struct cloth_pos
+{
+    float x, y, z;
+};
+
+float3 c2v(struct cloth_pos p)
+{
+    return (float3){p.x, p.y, p.z};
+}
+
+__kernel
+void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
+                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
+                    , __write_only image2d_t screen)
+{
+    ///per-vertex
+    int id = get_global_id(0);
+
+    if(id >= width*height*depth)
+        return;
+
+
+    int z = id / (width * height);
+    int y = (id - z*width*height) / width;
+    int x = (id - z*width*height - y*width);
+
+    //printf("%i %i %i\n", x, y, z);
+
+    float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
+
+    float3 positions[4];
+
+    if(x != 0)
+    {
+        int pid = get_id(x-1, y, z, width, height);
+
+        positions[0] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    if(x != width-1)
+    {
+        int pid = get_id(x+1, y, z, width, height);
+
+        positions[1] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    if(y != 0)
+    {
+        int pid = get_id(x, y-1, z, width, height);
+
+        positions[2] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    if(y != height-1)
+    {
+        int pid = get_id(x, y+1, z, width, height);
+
+        positions[3] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    const float rest_dist = 10.f;
+
+    for(int i=0; i<4; i++)
+    {
+        if(x == 0 && i == 0)
+            continue;
+        if(x == width-1 && i == 1)
+            continue;
+        if(y == 0 && i == 2)
+            continue;
+        if(y == height-1 && i == 3)
+            continue;
+
+        float mf = 2.f;
+
+        float3 their_pos = positions[i];
+
+        float dist = length(their_pos - mypos);
+
+        float3 to_them = (their_pos - mypos);
+
+        if(dist > rest_dist)
+        {
+            float excess = dist - rest_dist;
+
+            mypos += normalize(to_them) * excess/mf;
+
+        }
+        if(dist < rest_dist)
+        {
+            float excess = rest_dist - dist;
+
+            mypos -= normalize(to_them) * excess/mf;
+        }
+
+
+    }
+
+    ///do vertlet bit, not sure if it is correct to do it here
+    ///mypos is now my NEW positions, whereas px/y/z are old
+    ///I think vertlet is broken because of how I'm doing this on a gpu (ie full transform)
+    ///use euler?
+
+    //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
+
+    //float3 dp = (float3){px[id], py[id], pz[id]} - (float3){lx[id], ly[id], lz[id]};
+
+    //mypos += clamp(dp/1.6f, -40.f, 40.f);
+
+    //mypos += dp;
+
+    float timestep = 0.9f;
+
+    mypos.y -= timestep * 0.98f;
+
+    if(y == height-1)
+        mypos = c2v(fixed[x]);
+
+    out[id] = (struct cloth_pos){mypos.x, mypos.y, mypos.z};
+
+
+
+    int2 pos = convert_int2(mypos.xy + (float2){100, 400});
+
+    write_imagef(screen, pos, 1.f);
+
+
+    if(y == height-1 || x == width-1)
+        return;
+
+
+    ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
+    ///the count of missed values so far is y, so we subtract y
+    int tid = id * 2 - y + tri_start;
+
+    tris[tid].vertices[0].pos.xyz = c2v(in[y*width + x]);
+    tris[tid].vertices[1].pos.xyz = c2v(in[y*width + x + 1]);
+    tris[tid].vertices[2].pos.xyz = c2v(in[(y + 1)*width + x]);
+
+
+    tris[tid + 1].vertices[0].pos.xyz = c2v(in[y*width + x + 1]);
+    tris[tid + 1].vertices[1].pos.xyz = c2v(in[(y + 1)*width + x + 1]);
+    tris[tid + 1].vertices[2].pos.xyz = c2v(in[(y + 1)*width + x]);
+
+//    printf("%i %i\n", pos.x, pos.y);
+
+    ///retriangulate
+
+    //lx[id] = mypos.x;
+    //ly[id] = mypos.y;
+    //lz[id] = mypos.z;
+
+    ///need to modify tris now
+}
+
 #define AOS(t, a, b, c) t a, t b, t c
 
 ///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
 __kernel
-void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, ly, lz), AOS(__global float*, defx, defy, defz), int width, int height, int depth, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+void cloth_simulate_old(AOS(__global float*, px, py, pz), AOS(__global float*, lx, ly, lz), AOS(__global float*, defx, defy, defz), int width, int height, int depth, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
 {
     int id = get_global_id(0);
 
@@ -3338,15 +3493,7 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
 
     float3 mypos = (float3){px[id], py[id], pz[id]};
 
-    float3 positions[6] =
-    {
-        mypos,
-        mypos,
-        mypos,
-        mypos,
-        mypos,
-        mypos
-    };
+    float3 positions[4];
 
     if(x != 0)
     {
@@ -3376,7 +3523,7 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
         positions[3] = (float3){px[pid], py[pid], pz[pid]};
     }
 
-    if(z != 0)
+    /*if(z != 0)
     {
         int pid = get_id(x, y, z-1, width, height);
 
@@ -3388,11 +3535,11 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
         int pid = get_id(x, y, z+1, width, height);
 
         positions[5] = (float3){px[pid], py[pid], pz[pid]};
-    }
+    }*/
 
     const float rest_dist = 10.f;
 
-    for(int i=0; i<6; i++)
+    for(int i=0; i<4; i++)
     {
         /*int li = i;// % 4;
 
@@ -3422,7 +3569,7 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
         if(y == height-1 && i == 3)
             continue;
 
-        if(depth > 1)
+        /*if(depth > 1)
         {
             if(z == 0 && i == 4)
                 continue;
@@ -3432,7 +3579,7 @@ void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, l
         else if (i == 4 || i == 5)
         {
             continue;
-        }
+        }*/
 
 
         float mf = 2.f;

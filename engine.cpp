@@ -58,6 +58,8 @@ cl_float  rift::distortion_scale = {0};
 cl_float4 rift::abberation_constants = {1};
 
 
+compute::opengl_renderbuffer engine::g_screen;
+
 ///this needs changing
 
 ///opengl ids
