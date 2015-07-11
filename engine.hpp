@@ -153,6 +153,7 @@ struct engine
     void draw_raytrace();
     void draw_smoke(smoke& s, cl_int solid);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
+    void draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, int w, int h, int d); ///why has nobody fixed this
 
     void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
 

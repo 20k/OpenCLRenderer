@@ -47,6 +47,7 @@ namespace cl
     extern kernel kernel2_oculus;
     extern kernel kernel3_oculus;
     extern kernel prearrange_oculus;
+    extern kernel cloth_simulate;
     extern kernel point_cloud_depth;
     extern kernel point_cloud_recover;
     extern kernel space_dust;

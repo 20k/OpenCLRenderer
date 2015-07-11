@@ -1880,6 +1880,29 @@ void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
     run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
 }
 
+void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, int w, int h, int d)
+{
+    arg_list cloth_args;
+
+    cloth_args.push_back(&bx);
+    cloth_args.push_back(&by);
+    cloth_args.push_back(&bz);
+    cloth_args.push_back(&lx);
+    cloth_args.push_back(&ly);
+    cloth_args.push_back(&lz);
+    cloth_args.push_back(&w);
+    cloth_args.push_back(&h);
+    cloth_args.push_back(&d);
+    cloth_args.push_back(&c_pos);
+    cloth_args.push_back(&c_rot);
+    cloth_args.push_back(&g_screen);
+
+    cl_uint global_ws[1] = {w*h*d};
+    cl_uint local_ws[1] = {256}; ///I believe these days I calculate this automagically
+
+    run_kernel_with_string("cloth_simulate", global_ws, local_ws, 1, cloth_args);
+}
+
 void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w, int h)
 {
     compute::opengl_enqueue_release_gl_objects(1, &buf.get(), cl::cqueue);

@@ -281,6 +281,7 @@ static void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::kernel2_oculus= load_kernel(program, "kernel2_oculus");
     cl::kernel3_oculus = load_kernel(program, "kernel3_oculus");
     cl::prearrange_oculus = load_kernel(program, "prearrange_oculus");
+    cl::cloth_simulate = load_kernel(program, "cloth_simulate");
 
     if(!only_3d)
     {

@@ -3313,6 +3313,165 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
     write_imagef(output, (int2){x, y}, val);
 }
 
+int get_id(int x, int y, int z, int width, int height)
+{
+    return z*width*height + y*width + x;
+}
+
+#define AOS(t, a, b, c) t a, t b, t c
+
+///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
+__kernel
+void cloth_simulate(AOS(__global float*, px, py, pz), AOS(__global float*, lx, ly, lz), int width, int height, int depth, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+{
+    int id = get_global_id(0);
+
+    if(id >= width*height*depth)
+        return;
+
+    ///x, y and z
+    int z = id / (width * height);
+    int y = (id - z*width*height) / width;
+    int x = (id - z*width*height - y*width);
+
+    //printf("%i %i %i\n", x, y, z);
+
+    float3 mypos = (float3){px[id], py[id], pz[id]};
+
+    float3 positions[6] =
+    {
+        mypos,
+        mypos,
+        mypos,
+        mypos,
+        mypos,
+        mypos
+    };
+
+    if(x != 0)
+    {
+        int pid = get_id(x-1, y, z, width, height);
+
+        positions[0] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(x != width-1)
+    {
+        int pid = get_id(x+1, y, z, width, height);
+
+        positions[1] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(y != 0)
+    {
+        int pid = get_id(x, y-1, z, width, height);
+
+        positions[2] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(y != height-1)
+    {
+        int pid = get_id(x, y+1, z, width, height);
+
+        positions[3] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    /*if(z != 0)
+    {
+        int pid = get_id(x, y, z-1, width, height);
+
+        positions[4] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(z != depth-1)
+    {
+        int pid = get_id(x, y, z+1, width, height);
+
+        positions[5] = (float3){px[pid], py[pid], pz[pid]};
+    }*/
+
+    const float rest_dist = 10.f;
+
+    for(int i=0; i<4; i++)
+    {
+        /*int li = i;// % 4;
+
+        float3 their_pos = positions[li];
+
+        float3 dp = (their_pos - mypos);
+
+        if(all(their_pos == mypos))
+            continue;
+
+        float dist = length(dp);
+
+        //if(dist < 0.1f)
+        //    continue;
+
+        ///of the total length, because we want to move along some fraction of this
+        float excess_frac = (rest_dist - dist) / 20.f;// / dist;
+
+        mypos -= dp * 0.25f * excess_frac;*/
+
+        if(x == 0 && i == 0)
+            continue;
+        if(x == width-1 && i == 1)
+            continue;
+        if(y == 0 && i == 2)
+            continue;
+        if(y == height-1 && i == 3)
+            continue;
+
+        float mf = 2.f;
+
+        float3 their_pos = positions[i];
+
+        float dist = length(their_pos - mypos);
+
+        float3 to_them = (their_pos - mypos);
+
+        if(dist > rest_dist)
+        {
+            float excess = dist - rest_dist;
+
+            mypos += normalize(to_them) * excess/mf;
+        }
+        if(dist < rest_dist)
+        {
+            float excess = rest_dist - dist;
+
+            mypos -= normalize(to_them) * excess/mf;
+        }
+
+    }
+
+    ///do vertlet bit, not sure if it is correct to do it here
+    ///mypos is now my NEW positions, whereas px/y/z are old
+
+    //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
+
+    //mypos += dp;
+
+    float timestep = 0.3f;
+
+    mypos.y += timestep * - 0.98f;
+
+    if(y == height-1)
+        mypos = (float3){x * rest_dist, (height-1) * rest_dist, 0};
+
+    lx[id] = mypos.x;
+    ly[id] = mypos.y;
+    lz[id] = mypos.z;
+
+    int2 pos = convert_int2(round(mypos.xy));
+
+    pos = clamp(pos, 1.f, (int2){SCREENWIDTH, SCREENHEIGHT} - 1);
+
+    write_imagef(screen, pos, 1.f);
+}
+
+
+
 #ifndef ONLY_3D
 
 //detect step edges, then blur gaussian and mask with object ids?
