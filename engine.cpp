@@ -2040,7 +2040,7 @@ void engine::render_buffers()
         }
     }
 
-    glFinish();
+    //glFinish();
 
     //window.setActive(false);
 
