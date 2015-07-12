@@ -455,7 +455,7 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
 
     for(int i=0; i<3; i++)
     {
-        if(points[i].z <= depth_icutoff)
+        if(points[i].z <= depth_icutoff || points[i].z > depth_far)
         {
             ids_behind[n_behind] = i;
             n_behind++;
@@ -3439,10 +3439,11 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     out[id] = (struct cloth_pos){mypos.x, mypos.y, mypos.z};
 
 
+    /*float2 new_pos = mypos.xy + (float2){100.f, 400.f};
 
     int2 pos = convert_int2(mypos.xy + (float2){100, 400});
 
-    write_imagef(screen, pos, 1.f);
+    write_imagef(screen, pos, 1.f);*/
 
 
     if(y == height-1 || x == width-1)

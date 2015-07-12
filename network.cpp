@@ -7,7 +7,7 @@
 #include <memory>
 #include <cstdio>
 
-sf::Clock network::timeout_clock;
+//sf::Clock network::timeout_clock;
 
 //addrinfo* network::host_p;
 
@@ -1011,7 +1011,7 @@ bool network::tick()
     if(network_state == 0)
         return false;
 
-    static sf::Clock t;
+    //static sf::Clock t;
 
     //float update_time = 16.f;
 
@@ -1083,7 +1083,7 @@ bool network::tick()
             }
         }
 
-        t.restart();
+        //t.restart();
     }
 
     bool need_realloc = false;

@@ -694,7 +694,6 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
         window.setMouseCursorVisible(false);
     }
 
-
     cmx = mx;
     cmy = my;
 }
@@ -981,7 +980,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
 ///reduce arguments to what we actually need now
 void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
-    sf::Clock c;
+    //sf::Clock c;
 
     cl_uint zero = 0;
 
@@ -1045,7 +1044,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     //std::cout << "ptime " << c.getElapsedTime().asMicroseconds() << std::endl;
 
-    sf::Clock p1;
+    //sf::Clock p1;
 
 
     local = 256;
@@ -1070,7 +1069,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
-    sf::Clock p2;
+    //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
     cl_uint p2global_ws = id_num * 1.1;
@@ -1094,7 +1093,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
 
-    sf::Clock c3;
+    //sf::Clock c3;
 
     //cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
@@ -1931,7 +1930,7 @@ void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w,
 {
     compute::opengl_enqueue_release_gl_objects(1, &buf.get(), cl::cqueue);
 
-    cl::cqueue.finish();
+    //cl::cqueue.finish();
 
     ///reinstate this without the sleep 0
     /*cl_event event;
@@ -1981,7 +1980,7 @@ void engine::render_buffers()
         compute::opengl_enqueue_release_gl_objects(2, bufs, cl::cqueue);
     }
 
-    cl::cqueue.finish();
+    //cl::cqueue.finish();
 
     ///reinstate this without the sleep 0
     /*cl_event event;
@@ -2040,11 +2039,13 @@ void engine::render_buffers()
         }
     }
 
-    ///going to be incorrect on rift
-    interact::deplete_stack();
-    interact::clear();
+    //glFinish();
 
-    text_handler::render();
+    ///going to be incorrect on rift
+    //interact::deplete_stack();
+    //interact::clear();
+
+    //text_handler::render();
 
     #ifdef RIFT
     if(rift::enabled)

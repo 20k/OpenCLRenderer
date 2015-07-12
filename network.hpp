@@ -24,7 +24,7 @@ struct network
     ///currently inoperable, pending review
     static int network_update_rate;
 
-    static sf::Clock timeout_clock;
+    //static sf::Clock timeout_clock;
 
     //static addrinfo* host_p;
 
