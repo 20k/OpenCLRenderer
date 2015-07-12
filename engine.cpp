@@ -666,17 +666,34 @@ int engine::get_mouse_delta_y()
 }
 
 
-void engine::update_mouse()
+void engine::update_mouse(float from_x, float from_y, bool use_from_position, bool reset_to_from_position)
 {
     int mx, my;
 
     mx = get_mouse_x();
     my = get_mouse_y();
 
-    mdx = mx - cmx;
-    mdy = my - cmy;
+    if(!use_from_position)
+    {
+        mdx = mx - cmx;
+        mdy = my - cmy;
+    }
+    else
+    {
+        mdx = mx - from_x;
+        mdy = my - from_y;
+    }
 
-    cmx = mx;;
+
+    if(reset_to_from_position)
+    {
+        sf::Mouse mouse;
+
+        mouse.setPosition({from_x, from_y}, window);
+    }
+
+
+    cmx = mx;
     cmy = my;
 }
 

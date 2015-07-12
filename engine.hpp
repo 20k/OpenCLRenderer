@@ -168,7 +168,7 @@ struct engine
 
     void ui_interaction();
     void input();
-    void update_mouse();
+    void update_mouse(float from_x = 0.f, float from_y = 0.f, bool use_from_position = false, bool reset_to_from_position = false);
     int get_mouse_x();
     int get_mouse_y();
     int get_mouse_delta_x();
