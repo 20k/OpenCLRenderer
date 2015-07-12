@@ -252,6 +252,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     window.create(sf::VideoMode(videowidth, height), name);
     #endif
 
+    window.setActive(true);
+
     ///passed in as compilation parameter to opencl
     l_size = 2048;
 
@@ -1999,7 +2001,6 @@ void engine::render_buffers()
         ///Sleep(0);
     }*/
 
-
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
@@ -2040,6 +2041,8 @@ void engine::render_buffers()
     }
 
     glFinish();
+
+    //window.setActive(false);
 
     ///going to be incorrect on rift
     interact::deplete_stack();
