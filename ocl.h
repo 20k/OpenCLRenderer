@@ -80,8 +80,8 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
             // default to zeroeth platform if NVIDIA not found
             if(*clSelectedPlatformID == NULL)
             {
-                printf("selected platform: %d\n", 0);
-                *clSelectedPlatformID = clPlatformIDs[0];
+                printf("selected platform: %d\n", num_platforms-1);
+                *clSelectedPlatformID = clPlatformIDs[num_platforms-1];
             }
 
             free(clPlatformIDs);
