@@ -1980,7 +1980,7 @@ void engine::render_buffers()
         compute::opengl_enqueue_release_gl_objects(2, bufs, cl::cqueue);
     }
 
-    //cl::cqueue.finish();
+    cl::cqueue.finish();
 
     ///reinstate this without the sleep 0
     /*cl_event event;
@@ -2039,13 +2039,13 @@ void engine::render_buffers()
         }
     }
 
-    //glFinish();
+    glFinish();
 
     ///going to be incorrect on rift
-    //interact::deplete_stack();
-    //interact::clear();
+    interact::deplete_stack();
+    interact::clear();
 
-    //text_handler::render();
+    text_handler::render();
 
     #ifdef RIFT
     if(rift::enabled)
