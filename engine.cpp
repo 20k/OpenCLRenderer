@@ -690,6 +690,8 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
         sf::Mouse mouse;
 
         mouse.setPosition({from_x, from_y}, window);
+
+        window.setMouseCursorVisible(false);
     }
 
 
