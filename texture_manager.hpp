@@ -49,6 +49,8 @@ struct texture_manager
     static int id_by_location(const std::string&);
 
     static texture* texture_by_id(int);
+
+    static bool dirty;
 };
 
 

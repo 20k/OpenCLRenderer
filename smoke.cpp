@@ -7,16 +7,11 @@
 ///scrap this macro, its causing issues
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
 
-///fix this stupidity
-///need to do b-spline trilinear? What?
 cl_float3 get_wavelet(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3)
 {
     x = x % width;
     y = y % height;
     z = z % depth;
-
-    //if(x == 0 || y == 0 || z == 0)
-    //    return {0,0,0};
 
     int x1, y1, z1;
 
@@ -81,12 +76,9 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
     {
         cl_float3 new_pos = (cl_float3){x, y, z};
 
-        //new_pos *= pow(2.0f, (float)i);
-
         new_pos = mult(new_pos, powf(2.0f, (float)i));
 
         cl_float3 w_val = get_wavelet_interpolated(new_pos.x, new_pos.y, new_pos.z, width, height, depth, w1, w2, w3);
-        //w_val *= pow(2.0f, (-5.0f/6.0f)*(i - imin));
 
         w_val = mult(w_val, pow(2.0f, (-5.0f/6.0f)*(i - imin)));
 
@@ -96,11 +88,6 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
     return accum;
 }
 
-
-///collapse memory
-///figured it out
-///the noise is fractal at different frequencies
-///ie it has coherence at all scales
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
 {
     n_dens = 0;
@@ -131,9 +118,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     for(int i=0; i<2; i++)
     {
-        //g_voxel[i] = compute::buffer(cl::context, sizeof(cl_float)*width*height*depth, CL_MEM_READ_WRITE, NULL);
-
-
         g_voxel[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
         g_velocity_x[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
         g_velocity_y[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
@@ -145,20 +129,15 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         size_t origin[3] = {0,0,0};
         size_t region[3] = {width, height, depth};
 
-        //cl_float* buf = (cl_float*) clEnqueueMapImage(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, CL_MEM_WRITE, origin, region, &image_row_pitch, &image_slice, 0, NULL, NULL, NULL);
         cl_float* buf = new cl_float[width*height*depth]();
         cl_float* buf1 = new cl_float[width*height*depth]();
         cl_float* buf2 = new cl_float[width*height*depth]();
         cl_float* buf3 = new cl_float[width*height*depth]();
 
-        //cl_float* buf1 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_x[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-        //cl_float* buf2 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_y[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-        //cl_float* buf3 = (cl_float*) clEnqueueMapBuffer(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float)*width*height*depth, 0, NULL, NULL, NULL);
-
         ///init some stuff in the centre of the array
-        for(int k=-5; k<=5; k++)
+        for(int k=-10/scale; k<=10/scale; k++)
         {
-            for(int j=-10; j<=10; j++)
+            for(int j=-20/scale; j<=20/scale; j++)
             {
                 int lpos = width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height;
 
@@ -168,9 +147,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
                 if(lpos < 0)
                     continue;
 
-                //buf1[lpos] = 10 + ((rand() % 5) - 2);
                 buf[lpos] = 1000.0f;
-                //buf2[width/2 + j + k*width*height + width*height/2 + (depth/2)*width*height] = 100000.0f;
 
                 buf2[lpos] = 10;
             }
@@ -185,11 +162,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         delete [] buf1;
         delete [] buf2;
         delete [] buf3;
-
-        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_voxel[i].get(), buf, 0, NULL, NULL);
-        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_x[i].get(), buf1, 0, NULL, NULL);
-        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_y[i].get(), buf2, 0, NULL, NULL);
-        //clEnqueueUnmapMemObject(cl::cqueue.get(), g_velocity_z[i].get(), buf3, 0, NULL, NULL);
     }
 
     float* tw1, *tw2, *tw3;
@@ -225,12 +197,11 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         ///figured it out finally
         ///energy bands correspond to frequencies
         ///which correspond to spacial coherence
-        ///negative frequencies? Sure bro, why not
-        int imin = -2;
+        ///negative frequencies?
+        int imin = -4;
         int imax = 2;
 
-        ///need to interpolate, desperately
-        ///nobody cares about being band limited
+        ///tinker with this
         cl_float3 val = y_of(x, y, z, uwidth, uheight, udepth, tw1, tw2, tw3, imin, imax);
 
         bw1[upscaled_pos] = (val.x);
@@ -242,13 +213,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w1.get(), bw1, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w2.get(), bw2, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w3.get(), bw3, 0, NULL, NULL);
-
-    //g_postprocess_storage_x = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    //g_postprocess_storage_y = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    //g_postprocess_storage_z = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-
-    //g_voxel_upscale[0] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    //g_voxel_upscale[1] = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
     g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, NULL, NULL);
 
@@ -292,9 +256,6 @@ void smoke::tick(float dt)
     dens_diffuse.push_back(&zero); ///unused
     dens_diffuse.push_back(&g_voxel[next_dens]); ///out
     dens_diffuse.push_back(&g_voxel[n_dens]); ///in
-    //dens_diffuse.push_back(g_velocity_x[n]);
-    //dens_diffuse.push_back(g_velocity_y[n]);
-    //dens_diffuse.push_back(g_velocity_z[n]);
     dens_diffuse.push_back(&diffuse_const); ///temp
     dens_diffuse.push_back(&dt_const); ///temp
     dens_diffuse.push_back(&type_density); ///temp
@@ -308,7 +269,7 @@ void smoke::tick(float dt)
     dens_advect.push_back(&zero); ///unused
     dens_advect.push_back(&g_voxel[n_dens]); ///out
     dens_advect.push_back(&g_voxel[next_dens]); ///in
-    dens_advect.push_back(&g_velocity_x[n_vel]); ///make float3
+    dens_advect.push_back(&g_velocity_x[n_vel]);
     dens_advect.push_back(&g_velocity_y[n_vel]);
     dens_advect.push_back(&g_velocity_z[n_vel]);
     dens_advect.push_back(&dt_const); ///temp
@@ -349,12 +310,6 @@ void smoke::tick(float dt)
     dens_advect.args[5] = &g_velocity_z[next_vel];
 
     run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
-
-    //n_dens = next_dens;
-
-
-    //displace({width/2, height/2, depth/2, 0}, {0, 1, 0, 0}, 0.1f);
-
 }
 
 void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box_size, cl_float add_amount)
@@ -384,6 +339,4 @@ void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box
     displace_args.push_back(&g_voxel[n_dens]);
 
     run_kernel_with_string("advect_at_position", {box_size, box_size, box_size}, {16, 16, 1}, 3, displace_args);
-
-    //n_vel = next_vel;
 }

@@ -34,6 +34,20 @@
 					<Add option="-s" />
 				</Linker>
 			</Target>
+			<Target title="Profile">
+				<Option output="bin/Profile/Mech_game" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Profile/" />
+				<Option type="1" />
+				<Option compiler="mingw64" />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-Ofast" />
+					<Add option="-DPROFILING" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-O3" />

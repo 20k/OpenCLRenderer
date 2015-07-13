@@ -21,6 +21,8 @@ compute::buffer texture_manager::g_texture_sizes;
 
 int texture_manager::mipmap_start;
 
+bool texture_manager::dirty = false;
+
 ///this file provides texture gpu allocation functionality, its essentially a gigantic hack around the lack of texture array support in opencl 1.1
 
 texture* texture_manager::texture_by_id(int id)
@@ -407,6 +409,8 @@ void texture_manager::allocate_textures()
     allocate_cpu_texture_array(unique_sizes);
 
     generate_textures_and_mipmaps();
+
+    dirty = true;
 
 
     ///need to allocate memory for textures and build the texture structures?

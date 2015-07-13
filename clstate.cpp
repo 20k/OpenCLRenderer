@@ -35,6 +35,7 @@ kernel cl::kernel1_oculus;
 kernel cl::kernel2_oculus;
 kernel cl::kernel3_oculus;
 kernel cl::prearrange_oculus;
+kernel cl::cloth_simulate;
 kernel cl::point_cloud_depth;
 kernel cl::point_cloud_recover;
 kernel cl::space_dust;

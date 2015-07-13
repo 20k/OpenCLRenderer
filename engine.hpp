@@ -76,7 +76,10 @@ struct engine
     static cl_float4 old_pos;
     static cl_float4 old_rot;
 
-    compute::opengl_renderbuffer g_screen;
+    ///move towards making this not a god class
+    ///allow other classes to access important parts
+    ///so they can manage one off opencl commands
+    static compute::opengl_renderbuffer g_screen;
     compute::opengl_renderbuffer g_rift_screen[2]; ///eye-ist to have two eyes?
     compute::opengl_renderbuffer g_screen_reprojected;
     compute::opengl_renderbuffer g_screen_edge_smoothed;
@@ -126,7 +129,7 @@ struct engine
 
 
 
-    void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&);
+    void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
 
     static cl_float4 rot_about(cl_float4, cl_float4, cl_float4);
     static cl_float4 rot_about_camera(cl_float4);
@@ -153,6 +156,8 @@ struct engine
     void draw_raytrace();
     void draw_smoke(smoke& s, cl_int solid);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
+    ///i hate this function
+    void draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, compute::buffer defx, compute::buffer defy, compute::buffer defz, int w, int h, int d); ///why has nobody fixed this
 
     void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
 
@@ -163,10 +168,12 @@ struct engine
 
     void ui_interaction();
     void input();
+    void update_mouse(float from_x = 0.f, float from_y = 0.f, bool use_from_position = false, bool reset_to_from_position = false);
     int get_mouse_x();
     int get_mouse_y();
     int get_mouse_delta_x();
     int get_mouse_delta_y();
+    float get_frametime();
 
     int get_width();
     int get_height();
@@ -180,6 +187,11 @@ struct engine
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);
 
     static int nbuf;
+
+private:
+    sf::Clock ftime;
+    size_t old_time;
+    size_t current_time;
 };
 
 struct arg_list

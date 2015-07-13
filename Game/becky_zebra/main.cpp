@@ -448,8 +448,6 @@ const std::vector<int> group_sizes =
 const std::vector<float> protean =
 {
     0.049, 0.069, 0.098, 0.139, 0.196, 0.278, 0.393
-    ///PILOT
-    //0.049, 0.098, 0.138, 0.278, 0.393
 };
 
 ///currently rand, parallel, perp
@@ -458,16 +456,6 @@ const std::vector<float> protean =
 
 const std::vector<std::string> stripe_names =
 {
-    /*///1.0
-    "../Res/tex_cube.obj",
-    ///0.8
-    "../Res/tex_cube_2.obj",
-    ///0.6
-    "../Res/tex_cube_3.obj",
-    ///0.4
-    "../Res/tex_cube_2_low.obj",
-    ///0.2
-    "../Res/tex_cube_3_low.obj"*/
     ///1.0
     "../Res/tex_cube.obj",
     ///0.25
@@ -623,12 +611,12 @@ const cl_float4 angle_to_rotation(float angle)
 
 const float height_distance = 9000.f;
 
-const cl_float4 angle_to_position(float angle, float dist = height_distance)
+const cl_float4 angle_to_position(float angle)
 {
     angle = (angle / 360.f) * M_PI * 2;
 
-    float zpos = -dist * cos(angle);
-    float ypos = dist * sin(angle);
+    float zpos = -height_distance * cos(angle);
+    float ypos = height_distance * sin(angle);
     float xpos = (zebra::minx + zebra::maxx) / 2.f;
 
     cl_float4 cpos = (cl_float4){xpos, ypos, zpos};
@@ -666,7 +654,7 @@ int main(int argc, char *argv[])
     window.c_rot.x = 0.24;
     window.c_rot.y = -0.06;
 
-    //window.window.setVerticalSyncEnabled(true);
+    window.window.setVerticalSyncEnabled(true);
 
     obj_mem_manager::load_active_objects();
 
@@ -786,38 +774,46 @@ int main(int argc, char *argv[])
 
     atexit(save_all_runs);
 
-
-
-
-
-
-
-    for(float f = 20; f <= 90.f; f += 17.5)
+    for(int i=0; i<viewing_angles.size(); i++)
     {
-        cl_float4 c_pos = angle_to_position(f);
-        cl_float4 c_rot = angle_to_rotation(f);
+        float viewing_angle = viewing_angles[i];
+
+        //viewing_angle = 0;
+
+        printf("VIEWING ANGLE: %f\n", viewing_angle);
+
+        cl_float4 c_pos = angle_to_position(viewing_angle);
+        cl_float4 c_rot = angle_to_rotation(viewing_angle);
 
         window.set_camera_pos(c_pos);
         window.set_camera_rot(c_rot);
 
-        float z_w = 400;
+        cl_float4 p1 = {(zebra::minx + zebra::maxx)/2, height, zebra::maxy + 50};
+        cl_float4 p2 = {(zebra::minx + zebra::maxx)/2, 0, zebra::maxy + 50};
 
-        cl_float4 val = window.project({zebra::maxx, 0, zebra::maxy});
-        cl_float4 val2 = window.project({zebra::minx, 0, zebra::miny});
-
-        printf("%f %f %f\n", val.x - val2.x, val.y - val2.y, val.z);
-
-        //float dist = (16750/3.5);
+        p1 = engine::project(p1);
+        p2 = engine::project(p2);
 
 
-        //val = window.project({(zebra::minx + zebra::maxx)/2.f + 200, 0, dist});
+        printf("%f\n", p2.y - p1.y);
 
-        //printf("%f %f %f\n", val.x - window.width/2.f, val.y - window.height/2.f, val.z);
+        /*float vel = info.zebra_velocity;
+
+        cl_float4 p1c = {(zebra::minx + zebra::maxx)/2, 0, zebra::miny};
+        cl_float4 p1f = {(zebra::minx + zebra::maxx)/2, 0, zebra::maxy};
+
+        cl_float4 p2c = {vel + (zebra::minx + zebra::maxx)/2, 0, zebra::miny + vel};
+        cl_float4 p2f = {vel + (zebra::minx + zebra::maxx)/2, 0, zebra::maxy - vel};
+
+        p1c = engine::project(p1c);
+        p1f = engine::project(p1f);
+
+        p2c = engine::project(p2c);
+        p2f = engine::project(p2f);
+
+
+        printf("%f %f %f %f\n", (p2c.x - p1c.x)*2.5, (p2c.y - p1c.y)*2.5, (p2f.x - p1f.x)*2.5, (p2f.y - p1f.y)*2.5);*/
     }
-
-    //return 0;
-
-
 
     while(window.window.isOpen())
     {

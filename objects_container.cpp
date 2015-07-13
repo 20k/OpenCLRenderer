@@ -192,7 +192,7 @@ void objects_container::g_flush_objects()
     }
     else
     {
-        std::cout << "Warning " __FILE__ << ": " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
+        //std::cout << "Warning " __FILE__ << ": " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
     }
 }
 
@@ -253,6 +253,20 @@ cl_float4 objects_container::get_centre()
     }
 }
 
+void objects_container::unload()
+{
+    isloaded = false;
+
+    for(auto& o : objs)
+    {
+        o.isloaded = false;
+    }
+
+    set_active(false);
+
+    objs.clear();
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)
@@ -264,6 +278,13 @@ int objects_container::get_object_by_id(int in)
     }
 
     return -1;
+}
+
+objects_container* objects_container::get_remote()
+{
+    int r_id = get_object_by_id(id);
+
+    return objects_container::obj_container_list[r_id];
 }
 
 objects_container::~objects_container()

@@ -28,6 +28,9 @@ object::object() : tri_list(0)
     isloaded = false;
     obj_vis = obj_null_vis;
     obj_load_func = obj_null_load;
+
+    gpu_tri_start = 0;
+    gpu_tri_end = 0;
 }
 
 ///activate the textures in an object

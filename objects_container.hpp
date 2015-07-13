@@ -52,6 +52,10 @@ struct objects_container
     void    stretch(int dim, float amount);
     void    scale(float);
 
+    void    unload();
+
+    objects_container* get_remote();
+
     ///currently uncached
     ///local centre, not world
     cl_float4 get_centre();

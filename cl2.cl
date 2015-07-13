@@ -1,3 +1,5 @@
+#pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
+
 #define MIP_LEVELS 4
 
 #define FOV_CONST 500.0f
@@ -10,7 +12,7 @@
 
 #define mulint UINT_MAX
 
-#define depth_icutoff 75
+#define depth_icutoff 10
 
 #define depth_no_clear (mulint-1)
 
@@ -112,7 +114,6 @@ float calc_third_areas(struct interp_container *C, float x, float y)
 ///rotates point about camera
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
-
     float3 c = native_cos(c_rot);
     float3 s = native_sin(c_rot);
 
@@ -123,6 +124,38 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
     ret.x = c.y * (s.z * rel.y + c.z*rel.x) - s.y*rel.z;
     ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
     ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);
+
+      /*cl_float4 cos_rot;
+    cos_rot.x = cos(c_rot.x);
+    cos_rot.y = cos(c_rot.y);
+    cos_rot.z = cos(c_rot.z);
+
+    cl_float4 sin_rot;
+    sin_rot.x = sin(c_rot.x);
+    sin_rot.y = sin(c_rot.y);
+    sin_rot.z = sin(c_rot.z);
+
+    cl_float4 ret;
+    ret.x=      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
+    ret.y=      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    ret.z=      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    ret.w = 0;*/
+
+    //float3 ret;
+    //ret.x =      cos_rot.y*(sin_rot.z+cos_rot.z*(point.x-c_pos.x))-sin_rot.y*(point.z-c_pos.z);
+    //ret.y =      sin_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))+cos_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+    //ret.z =      cos_rot.x*(cos_rot.y*(point.z-c_pos.z)+sin_rot.y*(sin_rot.z*(point.y-c_pos.y)+cos_rot.z*(point.x-c_pos.x)))-sin_rot.x*(cos_rot.z*(point.y-c_pos.y)-sin_rot.z*(point.x-c_pos.x));
+
+    ///? this seems correct, though backwards
+    /*float3 r1 = {cos_rot.y*cos_rot.z, -cos_rot.y*sin_rot.z, sin_rot.y};
+    float3 r2 = {cos_rot.x*sin_rot.z + cos_rot.z*sin_rot.x*sin_rot.y, cos_rot.x*cos_rot.z - sin_rot.x*sin_rot.y*sin_rot.z, -cos_rot.y*sin_rot.x};
+    float3 r3 = {sin_rot.x*sin_rot.z - cos_rot.x*cos_rot.z*sin_rot.y, cos_rot.z*sin_rot.x + cos_rot.x*sin_rot.y*sin_rot.z, cos_rot.y*cos_rot.x};
+    */
+
+    /*ret.x = c.y * (s.z * rel.y + c.z*rel.x) - s.y*rel.z;
+    ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
+    ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);*/
+
 
     return ret;
 }
@@ -422,7 +455,7 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
 
     for(int i=0; i<3; i++)
     {
-        if(points[i].z <= depth_icutoff)
+        if(points[i].z <= depth_icutoff || points[i].z > depth_far)
         {
             ids_behind[n_behind] = i;
             n_behind++;
@@ -1251,7 +1284,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
     ///off by one error hack, yes this is appallingly bad
-    postrotate_pos.xy = clamp(postrotate_pos.xy, 1, LIGHTBUFFERDIM-2);
+    postrotate_pos.xy = clamp(postrotate_pos.xy, 1.f, LIGHTBUFFERDIM-2.f);
 
 
     float ldp = idcalc(native_divide((float)ldepth_map[(int)round(postrotate_pos.y)*LIGHTBUFFERDIM + (int)round(postrotate_pos.x)], mulint));
@@ -1594,6 +1627,11 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         return;
     }
 
+    __local int a_mem;
+
+    if(get_local_id(0) == 0)
+        a_mem = 0;
+
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
@@ -1922,9 +1960,10 @@ bool side(float2 p1, float2 p2, float2 p3)
 #define ERR_COMP -4.f
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
+///lets do something cleverer with this
 __kernel
 void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer)
+           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer, __write_only image2d_t id_buffer)
 {
     uint id = get_global_id(0);
 
@@ -1989,6 +2028,11 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     if(area < 50)
     {
         mod = 1;
+    }
+
+    if(area < 25)
+    {
+        mod = 0.1;
     }
 
     if(area > 60000)
@@ -2212,6 +2256,7 @@ void kernel1_oculus(__global struct triangle* triangles, __global uint* fragment
 #define BUF_ERROR 20
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
+///nvidia finally... finally 64 bit atomics
 __kernel
 void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
@@ -2274,6 +2319,13 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     {
         mod = 1;
     }
+
+
+    if(area < 25)
+    {
+        mod = 0.1;
+    }
+
 
     if(area > 60000)
     {
@@ -2617,6 +2669,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     normal = fast_normalize(normal);
 
+    normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
     float3 ambient_sum = 0;
 
@@ -2736,7 +2789,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         diffuse_sum += diffuse*l.col.xyz;
 
-        #define COOK_TORRENCE
+        //#define COOK_TORRENCE
         #ifdef COOK_TORRENCE
         float3 H = fast_normalize(l2p + l2c);
 
@@ -3259,6 +3312,347 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
 
     write_imagef(output, (int2){x, y}, val);
 }
+
+int get_id(int x, int y, int z, int width, int height)
+{
+    return z*width*height + y*width + x;
+}
+
+struct cloth_pos
+{
+    float x, y, z;
+};
+
+float3 c2v(struct cloth_pos p)
+{
+    return (float3){p.x, p.y, p.z};
+}
+
+__kernel
+void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
+                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
+                    , __write_only image2d_t screen)
+{
+    ///per-vertex
+    int id = get_global_id(0);
+
+    if(id >= width*height*depth)
+        return;
+
+
+    int z = id / (width * height);
+    int y = (id - z*width*height) / width;
+    int x = (id - z*width*height - y*width);
+
+    //printf("%i %i %i\n", x, y, z);
+
+    float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
+
+    float3 positions[4];
+
+    if(x != 0)
+    {
+        int pid = get_id(x-1, y, z, width, height);
+
+        positions[0] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    if(x != width-1)
+    {
+        int pid = get_id(x+1, y, z, width, height);
+
+        positions[1] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    if(y != 0)
+    {
+        int pid = get_id(x, y-1, z, width, height);
+
+        positions[2] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    if(y != height-1)
+    {
+        int pid = get_id(x, y+1, z, width, height);
+
+        positions[3] = (float3){in[pid].x, in[pid].y, in[pid].z};
+    }
+
+    const float rest_dist = 10.f;
+
+    for(int i=0; i<4; i++)
+    {
+        if(x == 0 && i == 0)
+            continue;
+        if(x == width-1 && i == 1)
+            continue;
+        if(y == 0 && i == 2)
+            continue;
+        if(y == height-1 && i == 3)
+            continue;
+
+        float mf = 2.f;
+
+        float3 their_pos = positions[i];
+
+        float dist = length(their_pos - mypos);
+
+        float3 to_them = (their_pos - mypos);
+
+        if(dist > rest_dist)
+        {
+            float excess = dist - rest_dist;
+
+            mypos += normalize(to_them) * excess/mf;
+
+        }
+        if(dist < rest_dist)
+        {
+            float excess = rest_dist - dist;
+
+            mypos -= normalize(to_them) * excess/mf;
+        }
+
+
+    }
+
+    ///do vertlet bit, not sure if it is correct to do it here
+    ///mypos is now my NEW positions, whereas px/y/z are old
+    ///I think vertlet is broken because of how I'm doing this on a gpu (ie full transform)
+    ///use euler?
+
+    //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
+
+    //float3 dp = (float3){px[id], py[id], pz[id]} - (float3){lx[id], ly[id], lz[id]};
+
+    //mypos += clamp(dp/1.6f, -40.f, 40.f);
+
+    //mypos += dp;
+
+    float timestep = 0.9f;
+
+    mypos.y -= timestep * 0.98f;
+
+    if(y == height-1)
+        mypos = c2v(fixed[x]);
+
+    out[id] = (struct cloth_pos){mypos.x, mypos.y, mypos.z};
+
+
+    /*float2 new_pos = mypos.xy + (float2){100.f, 400.f};
+
+    int2 pos = convert_int2(mypos.xy + (float2){100, 400});
+
+    write_imagef(screen, pos, 1.f);*/
+
+
+    if(y == height-1 || x == width-1)
+        return;
+
+
+    ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
+    ///the count of missed values so far is y, so we subtract y
+    int tid = id * 2 - y + tri_start;
+
+    tris[tid].vertices[0].pos.xyz = c2v(in[y*width + x]);
+    tris[tid].vertices[1].pos.xyz = c2v(in[y*width + x + 1]);
+    tris[tid].vertices[2].pos.xyz = c2v(in[(y + 1)*width + x]);
+
+
+    tris[tid + 1].vertices[0].pos.xyz = c2v(in[y*width + x + 1]);
+    tris[tid + 1].vertices[1].pos.xyz = c2v(in[(y + 1)*width + x + 1]);
+    tris[tid + 1].vertices[2].pos.xyz = c2v(in[(y + 1)*width + x]);
+
+//    printf("%i %i\n", pos.x, pos.y);
+
+    ///retriangulate
+
+    //lx[id] = mypos.x;
+    //ly[id] = mypos.y;
+    //lz[id] = mypos.z;
+
+    ///need to modify tris now
+}
+
+#define AOS(t, a, b, c) t a, t b, t c
+
+///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
+__kernel
+void cloth_simulate_old(AOS(__global float*, px, py, pz), AOS(__global float*, lx, ly, lz), AOS(__global float*, defx, defy, defz), int width, int height, int depth, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+{
+    int id = get_global_id(0);
+
+    if(id >= width*height*depth)
+        return;
+
+    ///x, y and z
+    int z = id / (width * height);
+    int y = (id - z*width*height) / width;
+    int x = (id - z*width*height - y*width);
+
+    //printf("%i %i %i\n", x, y, z);
+
+    float3 mypos = (float3){px[id], py[id], pz[id]};
+
+    float3 positions[4];
+
+    if(x != 0)
+    {
+        int pid = get_id(x-1, y, z, width, height);
+
+        positions[0] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(x != width-1)
+    {
+        int pid = get_id(x+1, y, z, width, height);
+
+        positions[1] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(y != 0)
+    {
+        int pid = get_id(x, y-1, z, width, height);
+
+        positions[2] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(y != height-1)
+    {
+        int pid = get_id(x, y+1, z, width, height);
+
+        positions[3] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    /*if(z != 0)
+    {
+        int pid = get_id(x, y, z-1, width, height);
+
+        positions[4] = (float3){px[pid], py[pid], pz[pid]};
+    }
+
+    if(z != depth-1)
+    {
+        int pid = get_id(x, y, z+1, width, height);
+
+        positions[5] = (float3){px[pid], py[pid], pz[pid]};
+    }*/
+
+    const float rest_dist = 10.f;
+
+    for(int i=0; i<4; i++)
+    {
+        /*int li = i;// % 4;
+
+        float3 their_pos = positions[li];
+
+        float3 dp = (their_pos - mypos);
+
+        if(all(their_pos == mypos))
+            continue;
+
+        float dist = length(dp);
+
+        //if(dist < 0.1f)
+        //    continue;
+
+        ///of the total length, because we want to move along some fraction of this
+        float excess_frac = (rest_dist - dist) / 20.f;// / dist;
+
+        mypos -= dp * 0.25f * excess_frac;*/
+
+        if(x == 0 && i == 0)
+            continue;
+        if(x == width-1 && i == 1)
+            continue;
+        if(y == 0 && i == 2)
+            continue;
+        if(y == height-1 && i == 3)
+            continue;
+
+        /*if(depth > 1)
+        {
+            if(z == 0 && i == 4)
+                continue;
+            if(z == depth-1 && i == 5)
+                continue;
+        }
+        else if (i == 4 || i == 5)
+        {
+            continue;
+        }*/
+
+
+        float mf = 2.f;
+
+        float3 their_pos = positions[i];
+
+        float dist = length(their_pos - mypos);
+
+        float3 to_them = (their_pos - mypos);
+
+        if(dist > rest_dist)
+        {
+            float excess = dist - rest_dist;
+
+            mypos += normalize(to_them) * excess/mf;
+        }
+        if(dist < rest_dist)
+        {
+            float excess = rest_dist - dist;
+
+            mypos -= normalize(to_them) * excess/mf;
+        }
+
+    }
+
+    ///do vertlet bit, not sure if it is correct to do it here
+    ///mypos is now my NEW positions, whereas px/y/z are old
+    ///I think vertlet is broken because of how I'm doing this on a gpu (ie full transform)
+    ///use euler?
+
+    //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
+
+    float3 dp = (float3){px[id], py[id], pz[id]} - (float3){lx[id], ly[id], lz[id]};
+
+    mypos += clamp(dp/1.6f, -40.f, 40.f);
+
+    //mypos += dp;
+
+    float timestep = 0.9f;
+
+    mypos.y -= timestep * 0.98f;
+
+    if(y == height-1)
+        mypos = (float3){defx[x], defy[x], defz[x]};
+
+    lx[id] = mypos.x;
+    ly[id] = mypos.y;
+    lz[id] = mypos.z;
+
+    /*int2 pos = convert_int2(round(mypos.xy));
+
+    pos = clamp(pos, 1.f, (int2){SCREENWIDTH, SCREENHEIGHT} - 1);
+
+    write_imagef(screen, pos, 1.f);*/
+
+    float3 pos = rot(mypos, c_pos.xyz, c_rot.xyz);
+
+    float3 proj = depth_project_singular(pos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(proj.z < 0)
+        return;
+
+    int2 scr = convert_int2(proj.xy);
+
+    scr = clamp(scr, 0, (int2){SCREENWIDTH, SCREENHEIGHT} - 1);
+
+    write_imagef(screen, scr, 1.f);
+}
+
+
+
+#ifndef ONLY_3D
 
 //detect step edges, then blur gaussian and mask with object ids?
 
@@ -6031,6 +6425,8 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
 
+    //voxel_accumulate *= 1.2;
+
     write_imagef(screen, (int2){x, y}, voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
 
     //write_imagef(screen, (int2){x, y}, 0);
@@ -6095,7 +6491,6 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
     int y = get_global_id(1);
     int z = get_global_id(2);
 
-    ///lazy for < 1
     if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
     {
         return;
@@ -6107,11 +6502,8 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     float4 pos = (float4){x, y, z, 0};
 
-    //pos += 0.5f;
 
     float val = 0;
-
-    //if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
 
     val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
         + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
@@ -6122,35 +6514,17 @@ __kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __wr
 
     int div = 6;
 
-    /*if(x == 0 || x == width-1)
-        div--;
-
-    if(y == 0 || y == height-1)
-        div--;
-
-    if(z == 0 || z == depth-1)
-        div--;*/
-
-    //val = read_imagef(x_in, sam, pos).x;
-
     float myval = read_imagef(x_in, sam, pos).x;
 
     float weight = 100.f;
 
-    //val /= div;
-
     val = (val + weight*myval) / (div + weight);
-
-        //(x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
-
-    //x_out[IX(x,y,z)] = max(val, 0.0f);
 
     if(type == density)
     {
         val = max(val, 0.f);
     }
 
-    ///im SURE i fixed this before, I remember it! What happend? Investigate!!
     write_imagef(x_out, convert_int4(pos), val);
 }
 
@@ -6207,7 +6581,6 @@ float advect_func_vel(float x, float y, float z,
 float advect_func_vel_tex(float x, float y, float z,
                   int width, int height, int depth,
                   __read_only image3d_t d_in,
-                  //__global float* xvel, __global float* yvel, __global float* zvel,
                   float pvx, float pvy, float pvz,
                   float dt)
 {
@@ -6215,34 +6588,11 @@ float advect_func_vel_tex(float x, float y, float z,
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_LINEAR;
 
-
-    /*float dt0x = dt*width;
-    float dt0y = dt*height;
-    float dt0z = dt*depth;*/
-
     float3 dtd = dt * (float3){width, height, depth};
 
     float3 distance = dtd * (float3){pvx, pvy, pvz};
 
-    ///?
-    //distance = clamp(distance, -1.f, 1.f);
-
     float3 vvec = (float3){x, y, z} - distance;
-
-    /*float vx = x - dt0x * pvx;
-    float vy = y - dt0y * pvy;
-    float vz = z - dt0z * pvz;
-
-    float3 vvec = (float3)(vx, vy, vz);*/
-
-    if(any(vvec < 0) || any(vvec >= (float3)(width, height, depth)))
-    {
-        //return read_imagef(d_in, sam, (float4)(x, y, z, 0) + 0.5f).x;
-    }
-
-    //vx = clamp(vx, 0.5f, width - 1.5f);
-    //vy = clamp(vy, 0.5f, height - 1.5f);
-    //vz = clamp(vz, 0.5f, depth - 1.5f);
 
     float val = read_imagef(d_in, sam, vvec.xyzz + 0.5f).x;
 
@@ -7205,8 +7555,9 @@ void process_skins(__global float* in_cells_0, __global uchar* obstacles, __glob
     skin_x[id] = nx;
     skin_y[id] = ny;
 
+    float2 lpos = (float2){x, y};
 
-    write_imagef(screen, convert_int2((float2){x, y}), (float4)(1, 0, 0, 0));
+    write_imagef(screen, convert_int2(lpos), (float4)(1, 0, 0, 0));
 }
 
 ///make it not obstruct if its near a control vertex?
@@ -8258,13 +8609,6 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     int pos = z*uw*uh + y*uw + x;
 
-    ///the generation of this is a bit incorrect
-    ///we're accessing low res noise
-    ///this causes it to be broke
-    ///interpolate? or use high res?
-    //val.x = w1[IX((int)rx, (int)ry, (int)rz)];
-    //val.y = w2[IX((int)rx, (int)ry, (int)rz)];
-    //val.z = w3[IX((int)rx, (int)ry, (int)rz)];
 
     ///would be beneficial to be able to use lower res smoke
     ///ALMOST CERTAINLY NEED TO INTERPOLATE
@@ -8282,41 +8626,13 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_LINEAR;
 
-
-
-    ///if i do interpolation, it means i dont need to use more memory
-    ///IE MUCH FASTER
-    //val.x = do_trilinear(w1, rx, ry, rz, width, height, depth);
-    //val.y = do_trilinear(w2, rx, ry, rz, width, height, depth);
-    //val.z = do_trilinear(w3, rx, ry, rz, width, height, depth);
-
-    /*val.x += w1[IX((int)rx, (int)ry, (int)rz)];
-    val.x += w1[IX((int)rx-1, (int)ry, (int)rz)];
-    val.x += w1[IX((int)rx+1, (int)ry, (int)rz)];
-    val.x += w1[IX((int)rx, (int)ry-1, (int)rz)];
-    val.x += w1[IX((int)rx, (int)ry+1, (int)rz)];
-    val.x += w1[IX((int)rx, (int)ry, (int)rz+1)];
-    val.x += w1[IX((int)rx, (int)ry, (int)rz-1)];
-
-    val.x /= 7;*/
-
-    //float mag = length(val);
-
     ///et is length(vx, vy, vz?)
-    float et = 1;
 
     float vx, vy, vz;
     ///do trilinear beforehand
     ///or do averaging like a sensible human being
     ///or use a 3d texture and get this for FREELOY JENKINS
     ///do i need smooth vx....????
-    //vx = do_trilinear(xvel, rx, ry, rz, width, height, depth);
-    //vy = do_trilinear(yvel, rx, ry, rz, width, height, depth);
-    //vz = do_trilinear(zvel, rx, ry, rz, width, height, depth);
-
-    //vx = xvel[IX((int)rx, (int)ry, (int)rz)];
-    //vy = yvel[IX((int)rx, (int)ry, (int)rz)];
-    //vz = zvel[IX((int)rx, (int)ry, (int)rz)];
 
     vx = read_imagef(xvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
     vy = read_imagef(yvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
@@ -8371,6 +8687,8 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
+    val += val * length(vval);
+
     ///this disables upscaling
     //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
 
@@ -8424,9 +8742,6 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     ///apply within-box offset
     pos += convert_int3(force_pos.xyz);
 
-
-
-    ///above is basically integer coordinates, only floats because floats are 'better'
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
@@ -8448,10 +8763,11 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
 
     vel += force_dir_amount;
 
-    ///temp, may fix black hole
     vel = clamp(vel, -3.f, 3.f);
 
     write_imagef(x_out, pos.xyzz, vel.x);
     write_imagef(y_out, pos.xyzz, vel.y);
     write_imagef(z_out, pos.xyzz, vel.z);
 }
+
+#endif

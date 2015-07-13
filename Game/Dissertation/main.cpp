@@ -99,16 +99,18 @@ int main(int argc, char *argv[])
     c1.set_active(true);
 
     engine window;
-    window.load(1680,1050,1000, "turtles", "../../cl2.cl");
+    window.load(1680,1050,1000, "James Berrow", "../../cl2.cl");
 
     window.set_camera_pos({0,100,-300,0});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
+    int upscale = 2;
+    int res = 100;
 
     smoke gloop;
-    gloop.init(100, 100, 100, 2, 300, false, 80.f, 1.f);
+    gloop.init(res, res, res, upscale, 300, false, 80.f, 1.f);
 
 
     obj_mem_manager::load_active_objects();
@@ -146,11 +148,14 @@ int main(int argc, char *argv[])
     int fc = 0;
 
 
-    float box_size = 2.f;
+    float box_size = 12.f/upscale;
     float force = 0.4f;
     float displace_amount = 0.f;
 
     cl_float4 last_c_pos = window.c_pos;
+
+    float avg_time = 0.f;
+    int avg_count = 0;
 
     while(window.window.isOpen())
     {
@@ -240,7 +245,7 @@ int main(int argc, char *argv[])
 
             cl_float4 rel = sub(c_pos, gloop.pos);
 
-            rel = div(rel, 2.f);
+            rel = div(rel, gloop.scale);
 
             rel = add(rel, {gloop.width/2, gloop.height/2, gloop.depth/2});
 
@@ -253,16 +258,24 @@ int main(int argc, char *argv[])
 
                 diff = div(diff, biggest);
 
-                gloop.displace(rel, diff, 2.f, box_size, 0.f);
+                ///at the moment i'm just constantly spawning advection
+                ///do I want advection to be modulated by current smoke density?
+                //gloop.displace(rel, diff, 2.f, box_size*2, 0.f);
             }
 
             if(key.isKeyPressed(sf::Keyboard::Space))
             {
-                gloop.displace(rel, {0}, {0}, box_size*2, 1.f);
+                //gloop.displace(rel, {0}, {0}, box_size*2, 1.f);
+
+                cl_float4 forw = {0, 0, 1, 0};
+
+                forw = engine::back_rotate(forw, window.c_rot);
+
+                gloop.displace(rel, forw, 0.5f, box_size*1, 0.f);
             }
         }
 
-        ///do camera gloop displace!!
+        ///do camera gloopdisplace!!
 
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
@@ -273,6 +286,11 @@ int main(int argc, char *argv[])
 
         window.display();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+
+        avg_time += c.getElapsedTime().asMicroseconds();
+        avg_count ++;
+
+        printf("%f\n", avg_time / avg_count);
     }
 }

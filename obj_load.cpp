@@ -10,7 +10,6 @@
 #include "texture.hpp"
 #include <math.h>
 #include <list>
-#include <boost/bind.hpp>
 
 std::map<std::string, objects_container> cache_map;
 
@@ -129,7 +128,7 @@ void obj_load(objects_container* pobj)
         exit(0xDEAD);
     }
 
-    sf::Clock clk;
+    //sf::Clock clk;
 
     std::string filename = pobj->file;
     std::string mtlname;
@@ -385,5 +384,5 @@ void obj_load(objects_container* pobj)
 
     c->isloaded = true;
 
-    std::cout << "Object load time " <<  clk.getElapsedTime().asSeconds() << std::endl;
+    //std::cout << "Object load time " <<  clk.getElapsedTime().asSeconds() << std::endl;
 }

@@ -58,6 +58,8 @@ cl_float  rift::distortion_scale = {0};
 cl_float4 rift::abberation_constants = {1};
 
 
+compute::opengl_renderbuffer engine::g_screen;
+
 ///this needs changing
 
 ///opengl ids
@@ -101,7 +103,7 @@ Timer::Timer(const std::string& n) : name(n), stopped(false){clk.restart();}
 
 void Timer::stop()
 {
-    float time = clk.getElapsedTime().asMicroseconds();
+    float time = clk.getElapsedTime().asMicroseconds() / 1000.f;
 
     std::cout << name << " " << time << std::endl;
 
@@ -146,7 +148,7 @@ compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* 
     return buf;
 }
 
-void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc)
+void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d)
 {
     #ifdef RIFT
     ovr_Initialize();
@@ -155,6 +157,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     width = pwidth;
     height = pheight;
     depth = pdepth;
+
+    old_time = 0;
+    current_time = 0;
 
     #ifdef RIFT
     {
@@ -247,11 +252,13 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     window.create(sf::VideoMode(videowidth, height), name);
     #endif
 
+    window.setActive(true);
+
     ///passed in as compilation parameter to opencl
     l_size = 2048;
 
     ///including opencl compilation parameters
-    oclstuff(loc.c_str(), width, height, l_size);
+    oclstuff(loc.c_str(), width, height, l_size, only_3d);
 
     mdx = 0;
     mdy = 0;
@@ -660,20 +667,42 @@ int engine::get_mouse_delta_y()
     return mdy;
 }
 
-void engine::input()
+
+void engine::update_mouse(float from_x, float from_y, bool use_from_position, bool reset_to_from_position)
 {
     int mx, my;
 
     mx = get_mouse_x();
     my = get_mouse_y();
 
-    mdx = mx - cmx;
-    mdy = my - cmy;
+    if(!use_from_position)
+    {
+        mdx = mx - cmx;
+        mdy = my - cmy;
+    }
+    else
+    {
+        mdx = mx - from_x;
+        mdy = my - from_y;
+    }
+
+
+    if(reset_to_from_position)
+    {
+        sf::Mouse mouse;
+
+        mouse.setPosition({from_x, from_y}, window);
+
+        window.setMouseCursorVisible(false);
+    }
 
     cmx = mx;
     cmy = my;
+}
 
 
+void engine::input()
+{
     sf::Keyboard keyboard;
 
     static int distance_multiplier=1;
@@ -689,7 +718,7 @@ void engine::input()
         distance_multiplier=1;
     }
 
-    double distance=0.04*distance_multiplier*30;
+    float distance=0.04f*distance_multiplier*30 * get_frametime() / 8000.f;
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {
@@ -737,24 +766,26 @@ void engine::input()
         c_pos.y+=0.04*distance_multiplier*30;
     }
 
+    float camera_mult = get_frametime() / 8000.f;
+
     if(keyboard.isKeyPressed(sf::Keyboard::Left))
     {
-        c_rot.y-=0.001*30;
+        c_rot.y-=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Right))
     {
-        c_rot.y+=0.001*30;
+        c_rot.y+=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Up))
     {
-        c_rot.x-=0.001*30;
+        c_rot.x-=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Down))
     {
-        c_rot.x+=0.001*30;
+        c_rot.x+=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
@@ -820,6 +851,11 @@ void engine::input()
         }
     }
     #endif
+}
+
+float engine::get_frametime()
+{
+    return current_time - old_time;
 }
 
 void engine::construct_shadowmaps()
@@ -916,7 +952,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
                 p1arg_list.push_back(&juan);
                 p1arg_list.push_back(&g_distortion_buffer);
-                //p1arg_list.push_back(&g_id_screen_tex);
+                p1arg_list.push_back(&g_id_screen_tex);
 
                 run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
@@ -946,7 +982,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
 ///reduce arguments to what we actually need now
 void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
-    sf::Clock c;
+    //sf::Clock c;
 
     cl_uint zero = 0;
 
@@ -1010,7 +1046,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     //std::cout << "ptime " << c.getElapsedTime().asMicroseconds() << std::endl;
 
-    sf::Clock p1;
+    //sf::Clock p1;
 
 
     local = 256;
@@ -1031,11 +1067,11 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p1arg_list.push_back(&zero);
     p1arg_list.push_back(&eng.g_distortion_buffer);
-    //p1arg_list.push_back(&eng.g_id_screen_tex);
+    p1arg_list.push_back(&eng.g_id_screen_tex);
 
     run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
-    sf::Clock p2;
+    //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
     cl_uint p2global_ws = id_num * 1.1;
@@ -1044,6 +1080,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 
+    ///hmmm. Using second kernel seems to have better depth complexity
     arg_list p2arg_list;
     p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);
@@ -1058,7 +1095,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
 
-    sf::Clock c3;
+    //sf::Clock c3;
 
     //cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
@@ -1865,11 +1902,37 @@ void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
     run_kernel_with_list(cl::render_voxels, naive_ws, naive_lws, 3, naive_args);
 }
 
+void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, compute::buffer defx, compute::buffer defy, compute::buffer defz, int w, int h, int d)
+{
+    arg_list cloth_args;
+
+    cloth_args.push_back(&bx);
+    cloth_args.push_back(&by);
+    cloth_args.push_back(&bz);
+    cloth_args.push_back(&lx);
+    cloth_args.push_back(&ly);
+    cloth_args.push_back(&lz);
+    cloth_args.push_back(&defx);
+    cloth_args.push_back(&defy);
+    cloth_args.push_back(&defz);
+    cloth_args.push_back(&w);
+    cloth_args.push_back(&h);
+    cloth_args.push_back(&d);
+    cloth_args.push_back(&c_pos);
+    cloth_args.push_back(&c_rot);
+    cloth_args.push_back(&g_screen);
+
+    cl_uint global_ws[1] = {w*h*d};
+    cl_uint local_ws[1] = {256}; ///I believe these days I calculate this automagically
+
+    run_kernel_with_string("cloth_simulate", global_ws, local_ws, 1, cloth_args);
+}
+
 void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w, int h)
 {
     compute::opengl_enqueue_release_gl_objects(1, &buf.get(), cl::cqueue);
 
-    cl::cqueue.finish();
+    //cl::cqueue.finish();
 
     ///reinstate this without the sleep 0
     /*cl_event event;
@@ -1938,7 +2001,6 @@ void engine::render_buffers()
         ///Sleep(0);
     }*/
 
-
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
@@ -1978,6 +2040,10 @@ void engine::render_buffers()
         }
     }
 
+    glFinish();
+
+    //window.setActive(false);
+
     ///going to be incorrect on rift
     interact::deplete_stack();
     interact::clear();
@@ -2015,8 +2081,12 @@ void engine::render_buffers()
     g_screen_edge_smoothed = temp;*/
 }
 
+///also updates frametime
 void engine::display()
 {
+    old_time = current_time;
+    current_time = ftime.getElapsedTime().asMicroseconds();
+
     window.display();
 }
 

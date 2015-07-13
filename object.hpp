@@ -8,8 +8,13 @@
 
 #include <functional>
 
+#include "obj_g_descriptor.hpp"
+
 struct object
 {
+    int gpu_tri_start;
+    int gpu_tri_end;
+
     cl_float4 pos;
     cl_float4 rot;
 
