@@ -36,7 +36,7 @@ int network::network_update_rate = 60;
 std::vector<sockaddr_storage*> network::connections;
 std::vector<int> network::connection_length;
 
-std::vector<std::pair<int, int>> network::signals;
+std::vector<audio_packet> network::signals;
 
 int network::join_id = -1;
 bool network::loaded = false;
@@ -915,6 +915,34 @@ int network::find_signal(int type)
     }
 }*/
 
+void network::send_audio(int type, float x, float y, float z)
+{
+    byte_vector vec;
+
+    vec.push_back(canary);
+    vec.push_back(AUDIO);
+    vec.push_back(type);
+    vec.push_back(x);
+    vec.push_back(y);
+    vec.push_back(z);
+    vec.push_back(end_canary);
+
+    broadcast(vec.data());
+}
+
+bool network::pop_audio(audio_packet& packet)
+{
+    if(signals.size() != 0)
+    {
+        packet = signals.back();
+        signals.pop_back();
+
+        return true;
+    }
+
+    return false;
+}
+
 
 void network::send_joinresponse(int id)
 {
@@ -1030,6 +1058,21 @@ bool network::process_var(byte_fetch& fetch)
     //*slaved_var[network_id] = val;
 
     return true;
+}
+
+bool network::process_audio(byte_fetch& fetch)
+{
+    int type = fetch.get<int>();
+    float x = fetch.get<float>();
+    float y = fetch.get<float>();
+    float z = fetch.get<float>();
+
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    signals.push_back({type, x, y, z});
 }
 
 /*bool network::process_signal(byte_fetch& fetch)
@@ -1180,7 +1223,7 @@ bool network::tick()
             }
             if(t == AUDIO)
             {
-                //success = process_signal(fetch);
+                success = process_audio(fetch);
             }
 
             if(!success)

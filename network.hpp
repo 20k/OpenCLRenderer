@@ -22,7 +22,7 @@ struct networked_variable
 struct audio_packet
 {
     int type;
-    float x, y, z;
+    float x, y, z; ///the absolute position
 };
 
 struct network
@@ -54,7 +54,7 @@ struct network
     static std::vector<sockaddr_storage*> connections;
     static std::vector<int> connection_length;
 
-    static std::vector<std::pair<int, int>> signals;
+    static std::vector<audio_packet> signals;
 
     static int global_network_id;
 
@@ -93,7 +93,7 @@ struct network
     //static int find_signal(int type);
 
     static void send_audio(int type, float x, float y, float z);
-    static void get_audio(audio_packet* a);
+    static bool pop_audio(audio_packet& a); ///returns true if one is present, false otherwise
 
     static void set_update_rate(int);
 
