@@ -248,7 +248,7 @@ static std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 
 ///runs a kernel with a particular set of arguments
-static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
+inline void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
 {
     size_t g_ws[dimensions];
     size_t l_ws[dimensions];
@@ -313,7 +313,7 @@ static void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
     #endif
 }
 
-static void run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
+inline void run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
 {
     kernel k = cl::kernels[name];
 
@@ -326,7 +326,7 @@ static void run_kernel_with_string(const std::string& name, cl_uint global_ws[],
     run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, args);
 }
 
-static void run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv)
+inline void run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv)
 {
     run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv);
 }

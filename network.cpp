@@ -949,6 +949,8 @@ void network::send_joinresponse(int id)
     byte_vector vec;
     vec.push_back(canary);
     vec.push_back(JOINRESPONSE);
+    ///this is the clients id number, from the clients perspective it is 0 (the servers id from the client), + the connection'th number (the clients id). So the 1st client has an ID of 1
+    ///even though it might logically seem like it should be 0
     vec.push_back((int)connections.size());
     vec.push_back(end_canary);
 

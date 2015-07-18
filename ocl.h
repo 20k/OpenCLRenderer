@@ -131,7 +131,7 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     return k;
 }
 
-static void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
+inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
 {
     ///need to initialise context and the like
     ///cant use boost::compute as it does not support opengl context sharing on windows
