@@ -24,8 +24,8 @@ std::map<objects_container*, bool> network::active_status;
 
 std::map<int, bool> network::disconnected_sockets;
 
-int network::global_network_id;
-int network::network_state;
+int network::global_network_id = 0;
+int network::network_state = 0;
 
 int network::network_update_rate = 60;
 
