@@ -252,8 +252,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     window.create(sf::VideoMode(videowidth, height), name);
     #endif
 
-    window.setActive(true);
-
     ///passed in as compilation parameter to opencl
     l_size = 2048;
 
@@ -2001,6 +1999,10 @@ void engine::render_buffers()
         ///Sleep(0);
     }*/
 
+
+    window.setActive(true);
+
+
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
@@ -2040,7 +2042,7 @@ void engine::render_buffers()
         }
     }
 
-    glFinish();
+    //glFinish();
 
     //window.setActive(false);
 

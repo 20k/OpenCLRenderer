@@ -36,6 +36,8 @@ int network::network_update_rate = 60;
 std::vector<sockaddr_storage*> network::connections;
 std::vector<int> network::connection_length;
 
+std::vector<audio_packet> network::signals;
+
 int network::join_id = -1;
 bool network::loaded = false;
 
@@ -743,6 +745,7 @@ void network::host_update(void* var)
     broadcast(*v);
 }
 
+
 void network::set_update_rate(int rate)
 {
     network_update_rate = rate;
@@ -853,7 +856,8 @@ enum comm_type : unsigned int
     POSROT = 0,
     ISACTIVE = 1,
     VAR = 2,
-    JOINRESPONSE = 3
+    JOINRESPONSE = 3,
+    AUDIO = 4
 };
 
 void network::broadcast(networked_variable& v)
@@ -881,6 +885,62 @@ void network::broadcast(networked_variable& v)
     vec.push_back(end_canary);
 
     broadcast(vec.data());
+}
+
+
+/*void network::send_signal(int type, int data)
+{
+    byte_vector vec;
+    vec.push_back(canary);
+    vec.push_back(SIGNAL);
+    vec.push_back(type);
+    vec.push_back(data);
+    vec.push_back(end_canary);
+
+    broadcast(vec.data());
+}
+
+int network::find_signal(int type)
+{
+    for(int i=0; i<signals.size(); i++)
+    {
+        if(signals[i].first == type)
+        {
+            int dat = signals[i].second;
+
+            signals.erase(signals.begin() + i);
+
+            return dat;
+        }
+    }
+}*/
+
+void network::send_audio(int type, float x, float y, float z)
+{
+    byte_vector vec;
+
+    vec.push_back(canary);
+    vec.push_back(AUDIO);
+    vec.push_back(type);
+    vec.push_back(x);
+    vec.push_back(y);
+    vec.push_back(z);
+    vec.push_back(end_canary);
+
+    broadcast(vec.data());
+}
+
+bool network::pop_audio(audio_packet& packet)
+{
+    if(signals.size() != 0)
+    {
+        packet = signals.back();
+        signals.pop_back();
+
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -1000,6 +1060,34 @@ bool network::process_var(byte_fetch& fetch)
     return true;
 }
 
+bool network::process_audio(byte_fetch& fetch)
+{
+    int type = fetch.get<int>();
+    float x = fetch.get<float>();
+    float y = fetch.get<float>();
+    float z = fetch.get<float>();
+
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    signals.push_back({type, x, y, z});
+}
+
+/*bool network::process_signal(byte_fetch& fetch)
+{
+    int type = fetch.get<int>();
+    int data = fetch.get<int>();
+
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    signals.push_back({type, data});
+}*/
+
 
 ///this function is literally hitler
 ///we're gunna need to send different events like is_active ONLY IF THEY CHANGE
@@ -1010,6 +1098,9 @@ bool network::tick()
     ///enum?
     if(network_state == 0)
         return false;
+
+    ///remove everything since the last network tick
+    signals.clear();
 
     //static sf::Clock t;
 
@@ -1129,6 +1220,10 @@ bool network::tick()
             if(t == JOINRESPONSE)
             {
                 success = process_joinresponse(fetch);
+            }
+            if(t == AUDIO)
+            {
+                success = process_audio(fetch);
             }
 
             if(!success)

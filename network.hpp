@@ -19,6 +19,12 @@ struct networked_variable
     size_t size = 0;
 };
 
+struct audio_packet
+{
+    int type;
+    float x, y, z; ///the absolute position
+};
+
 struct network
 {
     ///currently inoperable, pending review
@@ -47,6 +53,8 @@ struct network
 
     static std::vector<sockaddr_storage*> connections;
     static std::vector<int> connection_length;
+
+    static std::vector<audio_packet> signals;
 
     static int global_network_id;
 
@@ -81,6 +89,12 @@ struct network
     ///send an update about var as if i am host... maybe this could entirely replace the host/slave system
     static void host_update(void* var);
 
+    //static void send_signal(int type, int data);
+    //static int find_signal(int type);
+
+    static void send_audio(int type, float x, float y, float z);
+    static bool pop_audio(audio_packet& a); ///returns true if one is present, false otherwise
+
     static void set_update_rate(int);
 
     ///broadcast has a 'skip', this is to avoid broadcasting data
@@ -113,6 +127,7 @@ private:
     static bool process_isactive(byte_fetch& fetch);
     static bool process_var(byte_fetch& fetch);
     static bool process_joinresponse(byte_fetch& fetch);
+    static bool process_audio(byte_fetch& fetch);
 
     static void send_joinresponse(int id);
 };
