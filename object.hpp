@@ -67,6 +67,9 @@ struct object
     ///for writing to gpu, need the memory to stick around
     private:
     cl_float8 posrot;
+
+    cl_float4 last_pos;
+    cl_float4 last_rot;
 };
 
 
