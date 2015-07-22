@@ -1627,11 +1627,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         return;
     }
 
-    __local int a_mem;
-
-    if(get_local_id(0) == 0)
-        a_mem = 0;
-
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
