@@ -1662,6 +1662,10 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     __global struct obj_g_descriptor *G =  &gobj[o_id];
 
+    ///optimisation for very far away objects, useful for hiding stuff
+    if(fast_length(G->world_pos.xyz - c_pos.xyz) > depth_far)
+        return;
+
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
     full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
