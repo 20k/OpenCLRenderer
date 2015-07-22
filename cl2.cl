@@ -112,6 +112,7 @@ float calc_third_areas(struct interp_container *C, float x, float y)
 
 ///intrinsic xyz (extrinsic zyx)
 ///rotates point about camera
+///no, extrinsic xyz
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
     float3 c = native_cos(c_rot);
@@ -1707,7 +1708,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 int xc = round(tris_proj[i][j].x);
                 int yc = round(tris_proj[i][j].y);
 
-                if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
+                if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
                     continue;
 
                 tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
