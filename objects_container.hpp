@@ -54,7 +54,7 @@ struct objects_container
 
     void    unload();
 
-    objects_container* get_remote();
+    //objects_container* get_remote();
 
     ///currently uncached
     ///local centre, not world

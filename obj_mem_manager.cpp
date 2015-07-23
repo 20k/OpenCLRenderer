@@ -40,6 +40,7 @@ std::map<std::string, objects_container> object_cache;
 ///loads every active object in the scene
 void obj_mem_manager::load_active_objects()
 {
+    ///we need to do a lazy check as an optimisation, so we can basically freely call this and not have to worry
     ///process loaded objects
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {

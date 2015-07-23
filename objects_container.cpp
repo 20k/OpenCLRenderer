@@ -280,12 +280,12 @@ int objects_container::get_object_by_id(int in)
     return -1;
 }
 
-objects_container* objects_container::get_remote()
+/*objects_container* objects_container::get_remote()
 {
     int r_id = get_object_by_id(id);
 
     return objects_container::obj_container_list[r_id];
-}
+}*/
 
 objects_container::~objects_container()
 {
