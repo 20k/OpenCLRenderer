@@ -38,7 +38,10 @@ struct object
 
     cl_uint has_bump; ///does this object have a bumpmap
 
+    std::vector<cl_event> write_events;
+
     object();
+    ~object();
 
     void set_active(bool param);
     void set_pos(cl_float4);

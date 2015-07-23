@@ -165,6 +165,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};
 
+        ///need to pin c_texture_array to pcie mem
         cl::cqueue.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
 
         cl::cqueue.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
@@ -174,7 +175,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     {
         t.g_texture_sizes = texture_manager::g_texture_sizes;
         t.g_texture_nums  = texture_manager::g_texture_numbers;
-        t.g_texture_array  = texture_manager::g_texture_array;
+        t.g_texture_array = texture_manager::g_texture_array;
     }
 
     //delete [] texture_manager::c_texture_array;
@@ -237,6 +238,8 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
             obj_id++;
         }
     }
+
+    clFinish(cl::cqueue.get());
 
     t.tri_num = trianglecount;
 }

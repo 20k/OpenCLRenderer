@@ -36,6 +36,11 @@ object::object() : tri_list(0)
     gpu_tri_end = 0;
 }
 
+object::~object()
+{
+    clWaitForEvents(write_events.size(), write_events.data());
+}
+
 ///activate the textures in an object
 void object::set_active(bool param)
 {
@@ -307,12 +312,27 @@ void object::g_flush()
     ///I believe it should be fine, because posrot will only be updated when g_flush will get called... however it may possibly lead to odd behaviour
     ///possibly use the event callback system to fix this
 
+    if(!dirty_pos && !dirty_rot)
+        return;
+
+    clWaitForEvents(write_events.size(), write_events.data());
+    write_events.clear();
+
+    cl_int ret = -1;
+
+    cl_event event;
+
     if(dirty_pos && dirty_rot)
-        clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, NULL); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
     else if(dirty_pos)
-        clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, NULL); ///only position
+        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
     else if(dirty_rot)
-        clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, NULL); ///only rotation
+        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
+
+    if(ret == CL_SUCCESS)
+    {
+        write_events.push_back(event);
+    }
 
     last_pos = pos;
     last_rot = rot;
