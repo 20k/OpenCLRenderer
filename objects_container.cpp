@@ -290,5 +290,5 @@ int objects_container::get_object_by_id(int in)
 objects_container::~objects_container()
 {
     ///std::cout << "object removed: " << id << std::endl;
-    set_active(false); ///cache_map object will get removed
+    //set_active(false); ///cache_map object will get removed
 }

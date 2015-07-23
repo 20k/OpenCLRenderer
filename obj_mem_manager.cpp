@@ -192,13 +192,15 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
 
     t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
     t.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
-    cl::cqueue.enqueue_write_buffer(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
-    cl::cqueue.enqueue_write_buffer(t.g_obj_num, 0, t.g_obj_num.size(), &obj_descriptor_size);
+
+    ///done care if data arrives late
+    cl::cqueue.enqueue_write_buffer_async(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
+    cl::cqueue.enqueue_write_buffer_async(t.g_obj_num, 0, t.g_obj_num.size(), &obj_descriptor_size);
 
     int zero = 0;
 
-    cl::cqueue.enqueue_write_buffer(t.g_tri_num, 0, t.g_tri_num.size(), &trianglecount);
-    cl::cqueue.enqueue_write_buffer(t.g_cut_tri_num, 0, t.g_cut_tri_num.size(), &zero);
+    cl::cqueue.enqueue_write_buffer_async(t.g_tri_num, 0, t.g_tri_num.size(), &trianglecount);
+    cl::cqueue.enqueue_write_buffer_async(t.g_cut_tri_num, 0, t.g_cut_tri_num.size(), &zero);
 
 
     cl_uint running=0;
@@ -224,8 +226,9 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
             it->gpu_tri_start = running;
 
             ///boost::compute fails an assertion if tri_num == 0
+            ///we dont care if the data arrives late
             if((*it).tri_num>0)
-                cl::cqueue.enqueue_write_buffer(t.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_num, (*it).tri_list.data());
+                cl::cqueue.enqueue_write_buffer_async(t.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_num, (*it).tri_list.data());
 
             running += (*it).tri_num;
 
