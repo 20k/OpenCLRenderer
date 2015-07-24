@@ -2756,13 +2756,27 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         const float3 lpos = l.pos.xyz;
 
-        ambient_sum += ambient * l.col.xyz;
 
+
+        float3 l2c = lpos - global_position; ///light to pixel positio
+
+        float distance = fast_length(l2c);
+
+        float distance_modifier = 1.0f - native_divide(distance, l.radius);
+
+        distance_modifier = max(0.f, distance_modifier);
+
+        distance_modifier *= distance_modifier;
+
+
+
+        ambient_sum += ambient * l.col.xyz;
 
         bool occluded = 0;
 
         int which_cubeface;
 
+        ///ambient wont work correctly in shadows atm
         if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
         {
             ///gets pixel occlusion. Is not smooth
@@ -2777,18 +2791,12 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
                 continue;
         }
 
-
         ///begin lambert
-
-
-        float3 l2c = lpos - global_position; ///light to pixel positio
-
-        float distance = fast_length(l2c);
-
         l2c = fast_normalize(l2c);
 
-
         float light = dot(l2c, normal); ///diffuse
+
+
 
         ///end lambert
 
@@ -2824,9 +2832,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
             skip = 1;
         }*/
 
-        float distance_modifier = 1.0f - native_divide(distance, l.radius);
-
-        distance_modifier *= distance_modifier;
+        ambient_sum *= distance_modifier;
 
         light *= distance_modifier;
 
@@ -2853,7 +2859,11 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float spec = mdot(H, N);
         spec = pow(spec, 20.f);
-        diffuse_sum += spec * l.col.xyz * 0.2f;
+        diffuse_sum += spec * l.col.xyz * 0.2f * l.brightness * distance_modifier;
+
+
+        ambient_sum *= l.brightness;
+        diffuse_sum *= l.brightness;
 
 
         //#define COOK_TORRENCE

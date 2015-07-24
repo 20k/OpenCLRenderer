@@ -38,10 +38,11 @@ void light::set_radius(cl_float r)
 
 light::light()
 {
-    shadow=0;
-    col = (cl_float4){1.0, 1.0, 1.0, 0.0};
-    pos = (cl_float4){0.0,0.0,0.0,0.0};
+    shadow = 0;
+    col = {1.f, 1.f, 1.f, 0.f};
+    pos = {0.f, 0.f, 0.f, 0.f};
     radius = FLT_MAX/100000.0f;
+    brightness = 1.f;
 }
 
 int light::get_light_id(light* l)
@@ -54,7 +55,7 @@ int light::get_light_id(light* l)
     return -1;
 }
 
-light* light::add_light(light* l)
+light* light::add_light(const light* l)
 {
     light* new_light = new light(*l);
     lightlist.push_back(new_light);

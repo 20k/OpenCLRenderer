@@ -4,6 +4,7 @@
 #include <cl/cl.h>
 #include <vector>
 
+///lights need to be able to be activated and deactivated
 struct light
 {
     cl_float4 pos;
@@ -24,7 +25,7 @@ struct light
     static std::vector<light*> lightlist;
 
     static int get_light_id(light*);
-    static light* add_light(light* l); ///to global light list
+    static light* add_light(const light* l); ///to global light list
     static void remove_light(light* l);
 };
 
