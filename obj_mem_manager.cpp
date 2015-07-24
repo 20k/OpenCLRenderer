@@ -144,7 +144,6 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
 
 void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start, cl_uint trianglecount)
 {
-
     cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
     cl_uint obj_descriptor_size = object_descriptors.size();
 
@@ -159,6 +158,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     {
         t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices, CL_MEM_READ_ONLY);
         t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size(), CL_MEM_READ_ONLY);
+
         ///3d texture array
         t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, number_of_texture_slices, 0, 0, NULL);
 
@@ -239,7 +239,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
         }
     }
 
-    clFinish(cl::cqueue.get());
+    //clFinish(cl::cqueue.get());
 
     t.tri_num = trianglecount;
 }

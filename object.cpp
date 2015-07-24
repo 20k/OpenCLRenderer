@@ -38,7 +38,8 @@ object::object() : tri_list(0)
 
 object::~object()
 {
-    clWaitForEvents(write_events.size(), write_events.data());
+    if(write_events.size() > 0)
+        clWaitForEvents(write_events.size(), write_events.data());
 }
 
 ///activate the textures in an object
