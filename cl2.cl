@@ -2770,7 +2770,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
 
 
-        ambient_sum += ambient * l.col.xyz;
+        ambient_sum += ambient * l.col.xyz * distance_modifier * l.brightness;
 
         bool occluded = 0;
 
@@ -2832,8 +2832,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
             skip = 1;
         }*/
 
-        ambient_sum *= distance_modifier;
-
         light *= distance_modifier;
 
         #ifdef BECKY_HACK
@@ -2848,11 +2846,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
             continue;
         }
 
-        float diffuse = (1.0f-ambient)*light*l.brightness;
+        float diffuse = (1.0f-ambient)*light;
 
-        diffuse_sum += diffuse*l.col.xyz;
-
-
+        diffuse_sum += diffuse*l.col.xyz*l.brightness;
 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
@@ -2861,9 +2857,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         spec = pow(spec, 20.f);
         diffuse_sum += spec * l.col.xyz * 0.2f * l.brightness * distance_modifier;
 
-
-        ambient_sum *= l.brightness;
-        diffuse_sum *= l.brightness;
 
 
         //#define COOK_TORRENCE
