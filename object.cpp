@@ -315,7 +315,7 @@ void object::g_flush()
     if(!dirty_pos && !dirty_rot)
         return;
 
-    clWaitForEvents(write_events.size(), write_events.data());
+    //clWaitForEvents(write_events.size(), write_events.data());
     write_events.clear();
 
     cl_int ret = -1;
