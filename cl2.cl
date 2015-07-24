@@ -2572,6 +2572,13 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
     *u = 1.0f - *v - *w;
 }
 
+float mdot(float3 v1, float3 v2)
+{
+    v1 = fast_normalize(v1);
+    v2 = fast_normalize(v2);
+
+    return max(0.f, dot(v1, v2));
+}
 
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
@@ -2682,8 +2689,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     int num_lights = *lnum;
 
-    //float occlusion = 0;
-
     float3 diffuse_sum = 0;
 
     float3 l2p = camera_pos - global_position;
@@ -2789,11 +2794,21 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         diffuse_sum += diffuse*l.col.xyz;
 
+        float3 H = fast_normalize(l2p + l2c);
+        float3 N = normal;
+
+        float spec = mdot(H, N);
+
+        spec = pow(spec, 100.f);
+
+        diffuse_sum += spec * l.col.xyz * 0.2f;
+
+
         //#define COOK_TORRENCE
         #ifdef COOK_TORRENCE
         float3 H = fast_normalize(l2p + l2c);
 
-        float a = acos(dot(normal, H));
+        float a = acos(mdot(normal, H));
 
 
         float m = 0.8f;
@@ -2812,13 +2827,13 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         r0 *= r0;
 
-        float fres = r0 + (1 - r0) * (1 - dot(H, l2c));
+        float fres = r0 + (1 - r0) * (1 - mdot(H, l2c));
 
-        float G = min(min(1.f, 2*dot(H, normal)*dot(l2p, normal) / dot(l2p, H)), 2*dot(H, normal)*dot(l2c, normal) / dot(l2p, H));
+        float G = min(min(1.f, 2*mdot(H, normal)*mdot(l2p, normal) / mdot(l2p, H)), 2*mdot(H, normal)*mdot(l2c, normal) / mdot(l2p, H));
 
-        float cook_spec = beckmann * fres * G / (4 * dot(l2p, normal) * dot(normal, l2c));
+        float cook_spec = beckmann * fres * G / (4 * mdot(l2p, normal) * mdot(normal, l2c));
 
-        //float spec = pow(dot(normal, H), 5.f);
+        //float spec = pow(mdot(normal, H), 5.f);
 
         float spec = cook_spec;
 
@@ -2883,8 +2898,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
-
-    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
 
     diffuse_sum += ambient_sum;
 
