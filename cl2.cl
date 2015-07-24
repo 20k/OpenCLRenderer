@@ -2657,15 +2657,18 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     global_position += camera_pos;
 
 
-    global_position -= G->world_pos.xyz;
+    float3 object_local = global_position - G->world_pos.xyz;
+    object_local = back_rot(object_local, 0, G->world_rot.xyz);
 
-    global_position = back_rot(global_position, 0, G->world_rot.xyz);
+    //global_position -= G->world_pos.xyz;
+
+    //global_position = back_rot(global_position, 0, G->world_rot.xyz);
 
 
 
     float l1,l2,l3;
 
-    get_barycentric(global_position, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
+    get_barycentric(object_local, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
 
     float2 vt;
     vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
@@ -2794,13 +2797,13 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         diffuse_sum += diffuse*l.col.xyz;
 
+
+
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
         float spec = mdot(H, N);
-
-        spec = pow(spec, 100.f);
-
+        spec = pow(spec, 20.f);
         diffuse_sum += spec * l.col.xyz * 0.2f;
 
 
