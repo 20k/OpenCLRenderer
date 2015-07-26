@@ -2695,11 +2695,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     __global struct triangle* T = &triangles[tri_global];
 
 
-
     int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
-
 
 
     float ldepth = idcalc((float)*ft/mulint);
@@ -2894,44 +2892,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         diffuse_sum += spec * l.col.xyz;
         #endif
-
-
-
-
-        ///game shader effect, creates 2d screespace 'light'
-        /*if(l.pos.w == 1.0f) ///check light within screen
-        {
-            float3 light_rotated = rot(lpos, camera_pos, camera_rot);
-
-            ///maybe do this cpu side or something?
-            float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
-
-            if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
-            {
-                float radius = 14000.0f / projected_out.z; /// obviously temporary, arbitrary radius defined
-
-                ///this is actually a solid light
-                float dist = fast_distance(projected_out.xy, (float2){x, y});
-
-                dist *= dist;
-
-                float radius_frac = native_divide((radius - dist), radius);
-
-                radius_frac = clamp(radius_frac, 0.0f, 1.0f);
-
-                radius_frac *= radius_frac;
-
-                float3 actual_light = radius_frac*l.col.xyz*l.brightness;
-
-                if(fast_distance(lpos, camera_pos) < fast_distance(global_position, camera_pos) || *ft == mulint)
-                {
-                    mandatory_light += actual_light;
-                }
-            }
-
-            ambient = 0;
-        }*/
-
 
         //light = max(0.0f, light);
     }
