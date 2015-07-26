@@ -317,6 +317,12 @@ void object::g_flush()
         return;
 
     //clWaitForEvents(write_events.size(), write_events.data());
+
+    for(auto& i : write_events)
+    {
+        clReleaseEvent(i);
+    }
+
     write_events.clear();
 
     cl_int ret = -1;
