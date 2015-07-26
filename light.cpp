@@ -36,6 +36,11 @@ void light::set_radius(cl_float r)
     radius = r;
 }
 
+void light::set_diffuse(cl_float d)
+{
+    diffuse = d;
+}
+
 light::light()
 {
     shadow = 0;
@@ -43,6 +48,7 @@ light::light()
     pos = {0.f, 0.f, 0.f, 0.f};
     radius = FLT_MAX/100000.0f;
     brightness = 1.f;
+    diffuse = 1.f;
 }
 
 int light::get_light_id(light* l)

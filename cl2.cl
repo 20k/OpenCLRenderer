@@ -54,6 +54,7 @@ struct light
     uint shadow;
     float brightness;
     float radius;
+    float diffuse;
 };
 
 
@@ -2846,14 +2847,16 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float diffuse = (1.0f-ambient)*light;
 
-        diffuse_sum += diffuse*l.col.xyz*l.brightness;
+        diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse;
 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
+        const float kS = 0.3f;
+
         float spec = mdot(H, N);
-        spec = pow(spec, 20.f);
-        diffuse_sum += spec * l.col.xyz * 0.2f * l.brightness * distance_modifier;
+        spec = pow(spec, 30.f);
+        diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
 
 
