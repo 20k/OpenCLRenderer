@@ -65,7 +65,7 @@ struct obj_g_descriptor
     uint start;         ///where the triangles start in the triangle buffer
     uint tri_num;       ///number of triangles
     uint tid;           ///texture id
-    uint rid;
+    uint rid;           ///roughmap id
     uint mip_level_ids[MIP_LEVELS];
     uint has_bump;
     uint cumulative_bump;
