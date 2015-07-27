@@ -1688,11 +1688,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
-    if(num == 0)
-    {
-        return;
-    }
-
     int ooany[2];
 
     for(int i=0; i<num; i++)
@@ -2134,7 +2129,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     mod = area / 5000.f;
 
-    mod = max(1.f, mod);
+    //mod = max(1.f, mod);
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
@@ -2412,7 +2407,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     mod = area / 5000.f;
 
-    mod = max(1.f, mod);
+    //mod = max(1.f, mod);
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
@@ -2479,6 +2474,8 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
                 uint4 d = {ctri, tri_id, 0, 0};
                 write_imageui(id_buffer, coord, d);
             }
+
+            //prefetch(&depth_buffer[(int)y*SCREENWIDTH + (int)x + 1], 1);
         }
     }
 }
@@ -2715,7 +2712,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     float actual_depth = ldepth;
 
     ///unprojected pixel coordinate
-    float3 local_position= {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
 
     ///backrotate pixel coordinate into globalspace
     float3 global_position = back_rot(local_position, 0, camera_rot);

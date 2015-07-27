@@ -12,6 +12,7 @@ struct objects_container
     cl_uint arrange_id; ///ie position in desc
 
     std::string file;
+    std::string normal_map;
 
     std::function<void (objects_container*)> fp;
     //boost::function<void (object*)>            obj_visibility;
@@ -55,6 +56,7 @@ struct objects_container
     void    unload();
 
     void    set_specular(float);
+    void    set_normal(const std::string&);
 
     //objects_container* get_remote();
 

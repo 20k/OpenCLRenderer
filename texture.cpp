@@ -15,6 +15,8 @@ texture::texture()
     has_mipmaps = false;
 
     set_load_func(func);
+
+    id = -1;
 }
 
 cl_uint texture::get_largest_dimension() const

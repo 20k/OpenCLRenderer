@@ -451,6 +451,8 @@ int texture_manager::id_by_location(const std::string& loc)
             return i;
         }
     }
+
+    ///why is this a fatal error?
     std::cout << "could not find texture" << std::endl;
     exit(123232);
 }
