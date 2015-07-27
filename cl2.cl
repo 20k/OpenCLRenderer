@@ -66,7 +66,7 @@ struct obj_g_descriptor
     uint tri_num;       ///number of triangles
     uint tid;           ///texture id
     uint rid;           ///roughmap id
-    uint mip_level_ids[MIP_LEVELS];
+    uint mip_start;
     uint has_bump;
     uint cumulative_bump;
     float specular;
@@ -759,6 +759,8 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 }*/
 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
+///fixme
+///this should under no circumstances have to index two global arrays just to have to read from a damn texture
 float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
@@ -794,7 +796,8 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     y = clamp(y, 0.001f, width - 0.001f);
 
     ///width - fixes bug
-    float4 coord = {tx + x, ty + y, slice, 0};
+    ///remember to add 0.5f to this
+    float4 coord = {tx + x, ty + y, slice , 0};
 
     uint4 col;
     col = read_imageui(array, sam, coord);
@@ -819,7 +822,7 @@ float return_bilinear_shadf(float2 coord, float values[4])
     return result;
 }*/
 
-
+///fixme
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
 {
     int which=nums[tid];
@@ -864,7 +867,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, global uint* mipd, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -956,8 +959,8 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
         fractional_mipmap_distance = 0.0f;
     }
 
-    int tid_lower = mip_lower == 0 ? tid2 : mipd[mip_lower-1];
-    int tid_higher = mip_higher == 0 ? tid2 : mipd[mip_higher-1];
+    int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
+    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;
 
 
     float fmd = fractional_mipmap_distance;
@@ -2907,7 +2910,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     int2 scoord = {x, y};
 
-    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
 
     diffuse_sum += ambient_sum;
@@ -3129,7 +3132,7 @@ void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct
 
     int2 scoord = {x, y};
 
-    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
+    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
 

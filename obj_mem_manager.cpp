@@ -127,10 +127,12 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             object_descriptors[n].tid = tid;
             object_descriptors[n].rid = rid;
 
-            for(int i=0; i<MIP_LEVELS; i++)
+            /*for(int i=0; i<MIP_LEVELS; i++)
             {
                 object_descriptors[n].mip_level_ids[i]=mipmap_start + object_descriptors[n].tid*MIP_LEVELS + i;
-            }
+            }*/
+
+            object_descriptors[n].mip_start = mipmap_start;
 
             ///fill other information in
             object_descriptors[n].world_pos=(it)->pos;
