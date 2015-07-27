@@ -2982,6 +2982,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
+
+#if 0
 __kernel
 void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
@@ -8757,4 +8759,5 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     write_imagef(z_out, pos.xyzz, vel.z);
 }
 
+#endif
 #endif
