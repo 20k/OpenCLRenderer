@@ -2744,6 +2744,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     int num_lights = *lnum;
 
     float3 diffuse_sum = 0;
+    float3 specular_sum = 0;
 
     float3 l2p = camera_pos - global_position;
     l2p = fast_normalize(l2p);
@@ -2885,7 +2886,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float spec = fresnel * microfacet * geometric / (M_PI * ndl * ndv);
 
-        diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
+        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
         //light = max(0.0f, light);
     }
@@ -2911,6 +2912,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     diffuse_sum += ambient_sum;
 
     diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+    specular_sum = clamp(specular_sum, 0.0f, 1.0f);
 
 
     ///tmp
@@ -2929,11 +2931,15 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     //float hbao = 0;
 
-    float3 colclamp = col + mandatory_light;
+    float reflected_surface_colour = 0.7;
+
+    float3 colclamp = col + mandatory_light + specular_sum * reflected_surface_colour;
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
-    float3 final_col = colclamp * diffuse_sum;
+    float3 final_col = colclamp * diffuse_sum + specular_sum * (1.f - reflected_surface_colour);
+
+    final_col = clamp(final_col, 0.f, 1.f);
 
     //final_col = pow(final_col, 2.2f);
 
