@@ -33,12 +33,16 @@ struct object
     ///remember to make this a generic vector of texture ids? Or can't due to opencl retardation?
     cl_uint tid; ///texture id ///on load
     cl_uint bid; ///bumpmap_id
+    cl_uint rid;
 
     cl_uint object_g_id; ///obj_g_descriptor id ///assigned
 
     cl_uint has_bump; ///does this object have a bumpmap
 
+    ///despite being named similarly, these two are very different
+    ///specular = 1.f - rough, diffuse = kD
     float specular;
+    float diffuse;
 
     std::vector<cl_event> write_events;
 

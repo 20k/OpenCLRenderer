@@ -275,6 +275,19 @@ void objects_container::set_specular(float spec)
     }
 }
 
+void objects_container::set_diffuse(float diffuse)
+{
+    for(auto& i : objs)
+    {
+        i.diffuse = diffuse;
+    }
+}
+
+void objects_container::set_normal(const std::string& normal)
+{
+    normal_map = normal;
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)

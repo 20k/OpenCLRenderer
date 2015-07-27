@@ -26,6 +26,8 @@ object::object() : tri_list(0)
     rot.x=0, rot.y=0, rot.z=0;
     centre.x = 0, centre.y = 0, centre.z = 0, centre.w = 0;
     tid = 0;
+    bid = -1;
+    rid = -1;
     isactive = false;
     has_bump = 0;
     isloaded = false;
@@ -36,6 +38,7 @@ object::object() : tri_list(0)
     gpu_tri_end = 0;
 
     specular = 0.9f;
+    diffuse = 1.f;
 }
 
 object::~object()
@@ -62,6 +65,12 @@ void object::set_active(bool param)
             isactive = param;
             texture_manager::all_textures[tid].type = 0;
             texture_manager::all_textures[tid].activate();
+
+            if(rid != -1)
+            {
+                texture_manager::all_textures[rid].type = 0;
+                texture_manager::all_textures[rid].activate();
+            }
 
             if(has_bump)
             {
