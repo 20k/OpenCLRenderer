@@ -2939,7 +2939,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     diffuse_sum += ambient_sum;
 
-    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+    //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
     specular_sum = clamp(specular_sum, 0.0f, 1.0f);
 
 
