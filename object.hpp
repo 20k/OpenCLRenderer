@@ -33,6 +33,7 @@ struct object
     ///remember to make this a generic vector of texture ids? Or can't due to opencl retardation?
     cl_uint tid; ///texture id ///on load
     cl_uint bid; ///bumpmap_id
+    cl_uint rid;
 
     cl_uint object_g_id; ///obj_g_descriptor id ///assigned
 

@@ -74,6 +74,21 @@ void obj_mem_manager::load_active_objects()
     }
 }
 
+int get_texture_by_id(int id)
+{
+    cl_uint num_id = -1;
+
+    for(unsigned int i=0; i<texture_manager::texture_active_id.size(); i++)
+    {
+        if(texture_manager::texture_active_id[i] == id && texture_manager::all_textures[id].type == 0)
+        {
+            num_id = texture_manager::texture_nums_id[i]; ///break?
+        }
+    }
+
+    return num_id;
+}
+
 ///fills the object descriptors for the objects contained within object_containers
 int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start)
 {
@@ -105,18 +120,12 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             object_descriptors[n].tri_num=(it)->tri_num;
             object_descriptors[n].start=trianglecount;
 
-            cl_uint num_id = 0;
-
-            for(unsigned int i=0; i<texture_manager::texture_active_id.size(); i++)
-            {
-                if(texture_manager::texture_active_id[i] == it->tid && texture_manager::all_textures[it->tid].type == 0)
-                {
-                    num_id = texture_manager::texture_nums_id[i]; ///break?
-                }
-            }
+            int tid = get_texture_by_id(it->tid);
+            int rid = get_texture_by_id(it->rid);
 
             ///fill texture and mipmap ids
-            object_descriptors[n].tid = num_id;
+            object_descriptors[n].tid = tid;
+            object_descriptors[n].rid = rid;
 
             for(int i=0; i<MIP_LEVELS; i++)
             {
