@@ -2887,45 +2887,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
-
-
-
-        //#define COOK_TORRENCE
-        #ifdef COOK_TORRENCE
-        float3 H = fast_normalize(l2p + l2c);
-
-        float a = acos(mdot(normal, H));
-
-
-        float m = 0.8f;
-
-        float ca = cos(a);
-
-        float beckmann = exp(-tan(a)*tan(a)/m*m) / (M_PI * m*m + ca*ca*ca*ca);
-
-
-        float n1, n2;
-
-        n1 = 1;
-        n2 = 1.5f; ///?
-
-        float r0 = (n1 - n2) / (n1 + n2);
-
-        r0 *= r0;
-
-        float fres = r0 + (1 - r0) * (1 - mdot(H, l2c));
-
-        float G = min(min(1.f, 2*mdot(H, normal)*mdot(l2p, normal) / mdot(l2p, H)), 2*mdot(H, normal)*mdot(l2c, normal) / mdot(l2p, H));
-
-        float cook_spec = beckmann * fres * G / (4 * mdot(l2p, normal) * mdot(normal, l2c));
-
-        //float spec = pow(mdot(normal, H), 5.f);
-
-        float spec = cook_spec;
-
-        diffuse_sum += spec * l.col.xyz;
-        #endif
-
         //light = max(0.0f, light);
     }
 
