@@ -39,7 +39,10 @@ struct object
 
     cl_uint has_bump; ///does this object have a bumpmap
 
+    ///despite being named similarly, these two are very different
+    ///specular = 1.f - rough, diffuse = kD
     float specular;
+    float diffuse;
 
     std::vector<cl_event> write_events;
 

@@ -55,7 +55,8 @@ struct objects_container
 
     void    unload();
 
-    void    set_specular(float);
+    void    set_specular(float); ///1.f - roughness
+    void    set_diffuse(float); ///kD
     void    set_normal(const std::string&);
 
     //objects_container* get_remote();

@@ -17,6 +17,8 @@ texture::texture()
     set_load_func(func);
 
     id = -1;
+
+    type = 0;
 }
 
 cl_uint texture::get_largest_dimension() const

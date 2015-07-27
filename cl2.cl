@@ -65,11 +65,12 @@ struct obj_g_descriptor
     uint start;         ///where the triangles start in the triangle buffer
     uint tri_num;       ///number of triangles
     uint tid;           ///texture id
-    uint rid;           ///roughmap id
+    uint rid;           ///normal map id
     uint mip_start;
     uint has_bump;
     uint cumulative_bump;
     float specular;
+    float diffuse;
 };
 
 
@@ -2737,6 +2738,34 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
+
+    float3 tris_proj[3];
+
+    tris_proj[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+    if(gobj[o_id].rid != -1)
+    {
+        normal = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+
+        normal.xyz -= 0.5f;
+
+        ///?
+        normal = -normal;
+
+        /*normal = rot(normal, 0, camera_rot);
+
+        if(normal.z > 0)
+            normal.z = -normal.z;
+
+        normal = back_rot(normal, 0, camera_rot);*/
+
+        normal = rot(normal, 0, G->world_rot.xyz);
+
+        normal = fast_normalize(normal);
+    }
+
     float3 ambient_sum = 0;
 
     int shnum = 0;
@@ -2774,9 +2803,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         distance_modifier *= distance_modifier;
 
-
-
-        ambient_sum += ambient * l.col.xyz * distance_modifier * l.brightness;
+        ///for the moment, im abusing diffuse to mean both ambient and diffuse
+        ///yes it is bad
+        ambient_sum += ambient * l.col.xyz * distance_modifier * l.brightness * l.diffuse * G->diffuse;
 
         bool occluded = 0;
 
@@ -2854,7 +2883,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float diffuse = (1.0f-ambient)*light;
 
-        diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse;
+        diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse * G->diffuse;
 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
@@ -2898,18 +2927,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     //int num = 0;
 
-
-
-    float3 tris_proj[3];
-
-    tris_proj[0] = cutdown_tris[ctri*3 + 0].xyz;
-    tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
-    tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
-
-
     //diffuse + ambient colour is written to a separate buffer so I can abuse it for smooth shadow blurring
 
-    int2 scoord = {x, y};
 
     float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
@@ -2946,7 +2965,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     final_col = clamp(final_col, 0.f, 1.f);
 
-    //final_col = pow(final_col, 2.2f);
+    int2 scoord = {x, y};
 
     write_imagef(screen, scoord, final_col.xyzz);
 
