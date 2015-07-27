@@ -797,7 +797,7 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     ///width - fixes bug
     ///remember to add 0.5f to this
-    float4 coord = {tx + x, ty + y, slice , 0};
+    float4 coord = {tx + x, ty + y, slice, 0};
 
     uint4 col;
     col = read_imageui(array, sam, coord);
@@ -859,6 +859,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
 
     ///if using hardware linear interpolation
+    ///can't while we're still using integers
     //float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
 
     return result;
@@ -966,6 +967,9 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
     float fmd = fractional_mipmap_distance;
 
     float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+
+    if(tid_lower == tid_higher)
+        return native_divide(col1, 255.f);
 
     float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
