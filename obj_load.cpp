@@ -374,6 +374,18 @@ void obj_load(objects_container* pobj)
         obj.bid = b_id;
         obj.has_bump = isbump;
 
+
+        texture normal;
+
+        if(pobj->normal_map != "")
+        {
+            normal.type = 0;
+            normal.set_texture_location(pobj->normal_map.c_str());
+            normal.push();
+        }
+
+        obj.rid = normal.id;
+
         obj.pos = c->pos;
         obj.rot = c->rot;
 
