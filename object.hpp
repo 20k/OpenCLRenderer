@@ -38,6 +38,8 @@ struct object
 
     cl_uint has_bump; ///does this object have a bumpmap
 
+    float specular;
+
     std::vector<cl_event> write_events;
 
     object();

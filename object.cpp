@@ -34,6 +34,8 @@ object::object() : tri_list(0)
 
     gpu_tri_start = 0;
     gpu_tri_end = 0;
+
+    specular = 0.9f;
 }
 
 object::~object()

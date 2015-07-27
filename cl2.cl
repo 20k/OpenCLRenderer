@@ -68,6 +68,7 @@ struct obj_g_descriptor
     uint mip_level_ids[MIP_LEVELS];
     uint has_bump;
     uint cumulative_bump;
+    float specular;
 };
 
 
@@ -2852,11 +2853,40 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
-        const float kS = 0.3f;
+        /*const float kS = 0.3f;
 
         float spec = mdot(H, N);
         spec = pow(spec, 30.f);
+        diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;*/
+
+        const float kS = 1.f;
+
+        float ndh = mdot(N, H);
+
+        float ndv = mdot(N, l2p);
+        float vdh = mdot(l2p, H);
+        float ndl = mdot(normal, l2c);
+        float ldh = mdot(l2c, H);
+
+        const float F0 = 0.8f;
+
+        float fresnel = F0 + (1 - F0) * pow((1.f - vdh), 5.f);
+
+
+        float rough = clamp(1.f - G->specular, 0.001f, 10.f);
+
+        float microfacet = (1.f / (M_PI * rough * rough * pow(ndh, 4.f))) *
+                            exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
+
+        float c1 = 2 * ndh * ndv / vdh;
+        float c2 = 2 * ndh * ndl / ldh;
+
+        float geometric = min3(1.f, c1, c2);
+
+        float spec = fresnel * microfacet * geometric / (M_PI * ndl * ndv);
+
         diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
+
 
 
 

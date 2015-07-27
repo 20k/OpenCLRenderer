@@ -102,7 +102,6 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             obj_g_descriptor g;
             object_descriptors.push_back(g);
 
-
             object_descriptors[n].tri_num=(it)->tri_num;
             object_descriptors[n].start=trianglecount;
 
@@ -129,6 +128,7 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             object_descriptors[n].world_rot=(it)->rot;
             object_descriptors[n].has_bump = it->has_bump;
             object_descriptors[n].cumulative_bump = cumulative_bump;
+            object_descriptors[n].specular = it->specular;
 
             cumulative_bump+=it->has_bump;
 

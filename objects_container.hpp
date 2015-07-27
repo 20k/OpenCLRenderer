@@ -54,6 +54,8 @@ struct objects_container
 
     void    unload();
 
+    void    set_specular(float);
+
     //objects_container* get_remote();
 
     ///currently uncached

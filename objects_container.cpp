@@ -267,6 +267,14 @@ void objects_container::unload()
     objs.clear();
 }
 
+void objects_container::set_specular(float spec)
+{
+    for(auto& i : objs)
+    {
+        i.specular = spec;
+    }
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)
