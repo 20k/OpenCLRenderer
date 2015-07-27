@@ -38,7 +38,12 @@ struct object
 
     cl_uint has_bump; ///does this object have a bumpmap
 
+    float specular;
+
+    std::vector<cl_event> write_events;
+
     object();
+    ~object();
 
     void set_active(bool param);
     void set_pos(cl_float4);
@@ -67,6 +72,9 @@ struct object
     ///for writing to gpu, need the memory to stick around
     private:
     cl_float8 posrot;
+
+    cl_float4 last_pos;
+    cl_float4 last_rot;
 };
 
 

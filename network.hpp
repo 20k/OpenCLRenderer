@@ -53,6 +53,7 @@ struct network
 
     static std::vector<sockaddr_storage*> connections;
     static std::vector<int> connection_length;
+    static std::vector<bool> client_joined_status;
 
     static std::vector<audio_packet> signals;
 
@@ -124,12 +125,14 @@ struct network
 
 private:
     static bool process_posrot(byte_fetch& fetch);
+    static bool process_joinack(byte_fetch& fetch, int from);
     static bool process_isactive(byte_fetch& fetch);
     static bool process_var(byte_fetch& fetch);
     static bool process_joinresponse(byte_fetch& fetch);
     static bool process_audio(byte_fetch& fetch);
 
     static void send_joinresponse(int id);
+    static void send_joinack();
 };
 
 #endif // NETWORKING_HPP

@@ -4,6 +4,7 @@
 #include <cl/cl.h>
 #include <vector>
 
+///lights need to be able to be activated and deactivated
 struct light
 {
     cl_float4 pos;
@@ -11,6 +12,7 @@ struct light
     cl_uint shadow;
     cl_float brightness;
     cl_float radius;
+    cl_float diffuse;
 
     light();
 
@@ -20,11 +22,12 @@ struct light
     void set_brightness(cl_float intensity);
     void set_type(cl_float); ///ie do we want the shader effect? 0 = no, 1 = yes. Useful only for the game, eventually extensible into more light shader effects
     void set_radius(cl_float);
+    void set_diffuse(cl_float);
 
     static std::vector<light*> lightlist;
 
     static int get_light_id(light*);
-    static light* add_light(light* l); ///to global light list
+    static light* add_light(const light* l); ///to global light list
     static void remove_light(light* l);
 };
 

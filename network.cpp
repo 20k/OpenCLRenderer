@@ -24,8 +24,8 @@ std::map<objects_container*, bool> network::active_status;
 
 std::map<int, bool> network::disconnected_sockets;
 
-int network::global_network_id;
-int network::network_state;
+int network::global_network_id = 0;
+int network::network_state = 0;
 
 int network::network_update_rate = 60;
 
@@ -35,6 +35,7 @@ int network::network_update_rate = 60;
 
 std::vector<sockaddr_storage*> network::connections;
 std::vector<int> network::connection_length;
+std::vector<bool> network::client_joined_status;
 
 std::vector<audio_packet> network::signals;
 
@@ -269,6 +270,7 @@ void network::join(std::string ip)
 
     connections.push_back((sockaddr_storage*)p->ai_addr);
     connection_length.push_back(p->ai_addrlen);
+    ///prefer a crash rather than update client_joined_status
 
     socket_descriptor = sockfd;
 
@@ -388,6 +390,7 @@ void network::add_new_connection(sockaddr_storage* their_addr, int len)
 {
     connections.push_back(their_addr);
     connection_length.push_back(len);
+    client_joined_status.push_back(false);
 
     send_joinresponse(connections.size()-1);
 }
@@ -857,7 +860,8 @@ enum comm_type : unsigned int
     ISACTIVE = 1,
     VAR = 2,
     JOINRESPONSE = 3,
-    AUDIO = 4
+    AUDIO = 4,
+    JOINACK = 5 ///uh oh. TCP might have been helpful here
 };
 
 void network::broadcast(networked_variable& v)
@@ -943,12 +947,33 @@ bool network::pop_audio(audio_packet& packet)
     return false;
 }
 
+///only the client will send a joinack
+void network::send_joinack()
+{
+    if(network_state == 1)
+    {
+        printf("Trying to send a joinack as server, continue\n");
+        return;
+    }
+
+    byte_vector vec;
+    vec.push_back(canary);
+    vec.push_back(JOINACK);
+    vec.push_back(end_canary);
+
+    printf("Sending join_ack\n");
+
+    ///can use a broadcast because i AM the client
+    broadcast(vec.data());
+}
 
 void network::send_joinresponse(int id)
 {
     byte_vector vec;
     vec.push_back(canary);
     vec.push_back(JOINRESPONSE);
+    ///this is the clients id number, from the clients perspective it is 0 (the servers id from the client), + the connection'th number (the clients id). So the 1st client has an ID of 1
+    ///even though it might logically seem like it should be 0
     vec.push_back((int)connections.size());
     vec.push_back(end_canary);
 
@@ -957,9 +982,40 @@ void network::send_joinresponse(int id)
     send(id, vec.data());
 }
 
+bool network::process_joinack(byte_fetch& fetch, int from)
+{
+    if(network_state == 2)
+    {
+        printf("Received a joinack as client, ignoring\n");
+        return false;
+    }
+
+    if(from >= client_joined_status.size() || from < 0)
+    {
+        printf("err, no client with this fromid found %i\n", from);
+
+        return false;
+    }
+
+    int found_end = fetch.get<int>();
+
+    if(found_end != end_canary)
+        return false;
+
+    client_joined_status[from] = true;
+}
+
 ///if server, do nothing
 bool network::process_joinresponse(byte_fetch& fetch)
 {
+    printf("Looks like a joinresponse\n");
+
+    if(network_state == 1)
+    {
+        printf("Received a joinresponse as the server, ignoring\n");
+        return false;
+    }
+
     int connection_num = fetch.get<int>();
 
     int found_end = fetch.get<int>();
@@ -970,6 +1026,13 @@ bool network::process_joinresponse(byte_fetch& fetch)
     printf("From server: %i\n", connection_num);
 
     join_id = connection_num;
+
+    byte_vector vec;
+    vec.push_back(canary);
+    vec.push_back(JOINACK);
+    vec.push_back(end_canary);
+
+    broadcast(vec.data());
 
     return true;
 }
@@ -1203,7 +1266,7 @@ bool network::tick()
 
             bool success = false;
 
-            if(t == POSROT && fetch.ptr.size() >= sizeof(int)*4 + sizeof(cl_float4)*2)
+            if(t == POSROT)
             {
                 success = process_posrot(fetch);
             }
@@ -1225,6 +1288,10 @@ bool network::tick()
             {
                 success = process_audio(fetch);
             }
+            if(t == JOINACK)
+            {
+                success = process_joinack(fetch, received_from);
+            }
 
             if(!success)
             {
@@ -1232,6 +1299,18 @@ bool network::tick()
             }
         }
     }
+
+    if(network::network_state == 1)
+    {
+        for(int i=0; i<connections.size(); i++)
+        {
+            if(client_joined_status[i] == false)
+            {
+                send_joinresponse(i);
+            }
+        }
+    }
+
 
     for(auto& i : host_networked_objects)
     {

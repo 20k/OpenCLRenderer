@@ -12,7 +12,7 @@
 
 #define mulint UINT_MAX
 
-#define depth_icutoff 10
+#define depth_icutoff 50
 
 #define depth_no_clear (mulint-1)
 
@@ -54,6 +54,7 @@ struct light
     uint shadow;
     float brightness;
     float radius;
+    float diffuse;
 };
 
 
@@ -67,6 +68,7 @@ struct obj_g_descriptor
     uint mip_level_ids[MIP_LEVELS];
     uint has_bump;
     uint cumulative_bump;
+    float specular;
 };
 
 
@@ -98,6 +100,13 @@ float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
 }
 
+float get_third_areas(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* a1, float* a2, float* a3)
+{
+    *a1 = x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y;
+    *a2 = x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1;
+    *a3 = x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1;
+}
+
 /*float calc_third_areas_get(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* A, float* B, float* C)
 {
     *A = fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) * 0.5f;
@@ -112,6 +121,7 @@ float calc_third_areas(struct interp_container *C, float x, float y)
 
 ///intrinsic xyz (extrinsic zyx)
 ///rotates point about camera
+///no, extrinsic xyz
 float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
     float3 c = native_cos(c_rot);
@@ -447,14 +457,15 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
 
 ///this clips with the near plane, but do we want to clip with the screen instead?
 ///could be generating huge triangles that fragment massively
-void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2][3])
+void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
 {
     int id_valid;
-    int ids_behind[2];
+    int ids_behind[3];
     int n_behind = 0;
 
     for(int i=0; i<3; i++)
     {
+        ///will cause odd effects as tri crosses far clipping plane
         if(points[i].z <= depth_icutoff || points[i].z > depth_far)
         {
             ids_behind[n_behind] = i;
@@ -502,11 +513,6 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
         g1 = id_valid;
     }
 
-    ids[0] = g1;
-    ids[1] = g2;
-    ids[2] = g3;
-
-
     ///this is substituted in rather than calculated then used, may help with numerical accuracy
     //float l1 = native_divide((depth_icutoff - points[g2].z), (points[g1].z - points[g2].z));
     //float l2 = native_divide((depth_icutoff - points[g3].z), (points[g1].z - points[g3].z));
@@ -515,9 +521,20 @@ void generate_new_triangles(float3 points[3], int ids[3], int *num, float3 ret[2
     p1 = points[g2] + native_divide((depth_icutoff - points[g2].z)*(points[g1] - points[g2]), points[g1].z - points[g2].z);
     p2 = points[g3] + native_divide((depth_icutoff - points[g3].z)*(points[g1] - points[g3]), points[g1].z - points[g3].z);
 
-    float r1 = native_divide(fast_length(p1 - points[g1]), fast_length(points[g2] - points[g1]));
-    float r2 = native_divide(fast_length(p2 - points[g1]), fast_length(points[g3] - points[g1]));
 
+    //p1 = points[g2] + (depth_icutoff - points[g2].z)*(points[g1] - points[g2]) / (points[g1].z - points[g2].z);
+    //p2 = points[g3] + (depth_icutoff - points[g3].z)*(points[g1] - points[g3]) / (points[g1].z - points[g3].z);
+
+
+    ///g2 behind, g3 behind
+    ///g1 valid
+
+    /*float g2z = points[g2].z - depth_icutoff;
+    p1 = points[g1] + (points[g2] - points[g1]) * (g2z / points[g2].z);
+
+
+    float g3z = points[g3].z - depth_icutoff;
+    p2 = points[g1] + (points[g3] - points[g1]) * (g3z / points[g3].z);*/
     if(n_behind==1)
     {
         c1 = points[g2];
@@ -552,13 +569,11 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 
     float3 pr[3];
 
-    int ids[3];
-
     rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
 
     int n = 0;
 
-    generate_new_triangles(pr, ids, &n, tris);
+    generate_new_triangles(pr, &n, tris);
 
     *num = n;
 
@@ -596,7 +611,7 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 }*/
 
 ///change width/height to be defines by compiler
-bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped)
+/*bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped)
 {
     __global struct triangle *T=triangle;
 
@@ -740,7 +755,7 @@ bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int 
     }
 
     return false;
-}
+}*/
 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
@@ -1627,11 +1642,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         return;
     }
 
-    __local int a_mem;
-
-    if(get_local_id(0) == 0)
-        a_mem = 0;
-
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
@@ -1661,6 +1671,10 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     ///needs to be changed for lights
 
     __global struct obj_g_descriptor *G =  &gobj[o_id];
+
+    ///optimisation for very far away objects, useful for hiding stuff
+    if(fast_length(G->world_pos.xyz - c_pos.xyz) > depth_far)
+        return;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
     full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
@@ -1708,7 +1722,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 int xc = round(tris_proj[i][j].x);
                 int yc = round(tris_proj[i][j].y);
 
-                if(xc < 0 || xc >= ewidth || yc < 0 || yc >= eheight)
+                if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
                     continue;
 
                 tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
@@ -1957,6 +1971,88 @@ bool side(float2 p1, float2 p2, float2 p3)
 ///do double skip so that I skip more things outside of a triangle?
 
 
+void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v, float* w)
+{
+    float3 v0 = b - a, v1 = c - a, v2 = p - a;
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    *v = (d11 * d20 - d01 * d21) / denom;
+    *w = (d00 * d21 - d01 * d20) / denom;
+    *u = 1.0f - *v - *w;
+}
+
+
+
+
+#define EPSILON 0.001f
+
+void triangle_intersection(const float3   V1,  // Triangle vertices
+                           const float3   V2,
+                           const float3   V3,
+                           const float3    O,  //Ray origin
+                           const float3    D,  //Ray direction
+                                 float* out,
+                                 float* uout,
+                                 float* vout)
+{
+    float3 e1, e2;  //Edge1, Edge2
+    float3 P, Q, T;
+
+    float det, inv_det, u, v;
+    float t;
+
+    //Find vectors for two edges sharing V1
+    e1 = V2 - V1;
+    e2 = V3 - V1;
+
+    //Begin calculating determinant - also used to calculate u parameter
+    P = cross(D, e2);
+    //if determinant is near zero, ray lies in plane of triangle
+    det = dot(e1, P);
+
+    //NOT CULLING
+    if(det > -EPSILON && det < EPSILON)
+        return;
+
+    inv_det = native_recip(det);
+
+    //calculate distance from V1 to ray origin
+    T = O - V1;
+
+    //Calculate u parameter and test bound
+    u = dot(T, P) * inv_det;
+    //The intersection lies outside of the triangle
+    if(u < 0.0f || u > 1.0f)
+        return;
+
+    //Prepare to test v parameter
+    Q = cross(T, e1);
+
+    //Calculate V parameter and test bound
+    v = dot(D, Q) * inv_det;
+    //The intersection lies outside of the triangle
+    if(v < 0.0f || u + v  > 1.0f)
+        return;
+
+    t = dot(e2, Q) * inv_det;
+
+    //ray intersection
+    if(t > EPSILON)
+    {
+        *out = t;
+
+        *uout = u;
+        *vout = v;
+    }
+
+    // No hit, no win
+}
+
+
 #define ERR_COMP -4.f
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
@@ -2016,6 +2112,9 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     xpv = round(xpv);
     ypv = round(ypv);
 
+    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
+    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
+
     ///have to interpolate inverse to be perspective correct
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
@@ -2025,24 +2124,12 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     float mod = 2;
 
-    if(area < 50)
-    {
-        mod = 1;
-    }
+    mod = area / 5000.f;
 
-    if(area < 25)
-    {
-        mod = 0.1;
-    }
-
-    if(area > 60000)
-    {
-        mod = 2500;
-    }
+    mod = max(1.f, mod);
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
 
     float A, B, C;
 
@@ -2084,7 +2171,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        bool cond = s1 >= area - mod && s1 <= area + mod;
+        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
@@ -2304,6 +2391,8 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     xpv = round(xpv);
     ypv = round(ypv);
 
+    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
+    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
 
     ///have to interpolate inverse to be perspective correct
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
@@ -2311,26 +2400,11 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     int pcount = -1;
 
-    //float rconst = calc_rconstant_v(xpv.xyz, ypv.xyz);
+    float mod = 1;
 
-    float mod = 2;
+    mod = area / 5000.f;
 
-    if(area < 50)
-    {
-        mod = 1;
-    }
-
-
-    if(area < 25)
-    {
-        mod = 0.1;
-    }
-
-
-    if(area > 60000)
-    {
-        mod = 2500;
-    }
+    mod = max(1.f, mod);
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
 
@@ -2371,7 +2445,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        bool cond = s1 >= area - mod && s1 <= area + mod;
+        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
 
         if(cond)
         {
@@ -2558,20 +2632,13 @@ void kernel2_oculus(__global struct triangle* triangles, __global uint* fragment
 }
 
 
-void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v, float* w)
+float mdot(float3 v1, float3 v2)
 {
-    float3 v0 = b - a, v1 = c - a, v2 = p - a;
-    float d00 = dot(v0, v0);
-    float d01 = dot(v0, v1);
-    float d11 = dot(v1, v1);
-    float d20 = dot(v2, v0);
-    float d21 = dot(v2, v1);
-    float denom = d00 * d11 - d01 * d01;
-    *v = (d11 * d20 - d01 * d21) / denom;
-    *w = (d00 * d21 - d01 * d20) / denom;
-    *u = 1.0f - *v - *w;
-}
+    v1 = fast_normalize(v1);
+    v2 = fast_normalize(v2);
 
+    return max(0.f, dot(v1, v2));
+}
 
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
@@ -2630,11 +2697,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     __global struct triangle* T = &triangles[tri_global];
 
 
-
     int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
-
 
 
     float ldepth = idcalc((float)*ft/mulint);
@@ -2649,16 +2714,12 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     global_position += camera_pos;
 
-
-    global_position -= G->world_pos.xyz;
-
-    global_position = back_rot(global_position, 0, G->world_rot.xyz);
-
-
+    float3 object_local = global_position - G->world_pos.xyz;
+    object_local = back_rot(object_local, 0, G->world_rot.xyz);
 
     float l1,l2,l3;
 
-    get_barycentric(global_position, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
+    get_barycentric(object_local, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
 
     float2 vt;
     vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
@@ -2682,9 +2743,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     int num_lights = *lnum;
 
-    //float occlusion = 0;
-
     float3 diffuse_sum = 0;
+    float3 specular_sum = 0;
 
     float3 l2p = camera_pos - global_position;
     l2p = fast_normalize(l2p);
@@ -2697,13 +2757,27 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         const float3 lpos = l.pos.xyz;
 
-        ambient_sum += ambient * l.col.xyz;
 
+
+        float3 l2c = lpos - global_position; ///light to pixel positio
+
+        float distance = fast_length(l2c);
+
+        float distance_modifier = 1.0f - native_divide(distance, l.radius);
+
+        distance_modifier = max(0.f, distance_modifier);
+
+        distance_modifier *= distance_modifier;
+
+
+
+        ambient_sum += ambient * l.col.xyz * distance_modifier * l.brightness;
 
         bool occluded = 0;
 
         int which_cubeface;
 
+        ///ambient wont work correctly in shadows atm
         if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
         {
             ///gets pixel occlusion. Is not smooth
@@ -2718,20 +2792,12 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
                 continue;
         }
 
-
-
-
         ///begin lambert
-
-
-        float3 l2c = lpos - global_position; ///light to pixel positio
-
-        float distance = fast_length(l2c);
-
         l2c = fast_normalize(l2c);
 
-
         float light = dot(l2c, normal); ///diffuse
+
+
 
         ///end lambert
 
@@ -2767,10 +2833,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
             skip = 1;
         }*/
 
-        float distance_modifier = 1.0f - native_divide(distance, l.radius);
-
-        distance_modifier *= distance_modifier;
-
         light *= distance_modifier;
 
         #ifdef BECKY_HACK
@@ -2785,83 +2847,46 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
             continue;
         }
 
-        float diffuse = (1.0f-ambient)*light*l.brightness;
+        float diffuse = (1.0f-ambient)*light;
 
-        diffuse_sum += diffuse*l.col.xyz;
+        diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse;
 
-        //#define COOK_TORRENCE
-        #ifdef COOK_TORRENCE
         float3 H = fast_normalize(l2p + l2c);
+        float3 N = normal;
 
-        float a = acos(dot(normal, H));
+        /*const float kS = 0.3f;
 
+        float spec = mdot(H, N);
+        spec = pow(spec, 30.f);
+        diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;*/
 
-        float m = 0.8f;
+        const float kS = 1.f;
 
-        float ca = cos(a);
+        float ndh = mdot(N, H);
 
-        float beckmann = exp(-tan(a)*tan(a)/m*m) / (M_PI * m*m + ca*ca*ca*ca);
+        float ndv = mdot(N, l2p);
+        float vdh = mdot(l2p, H);
+        float ndl = mdot(normal, l2c);
+        float ldh = mdot(l2c, H);
 
+        const float F0 = 0.8f;
 
-        float n1, n2;
-
-        n1 = 1;
-        n2 = 1.5f; ///?
-
-        float r0 = (n1 - n2) / (n1 + n2);
-
-        r0 *= r0;
-
-        float fres = r0 + (1 - r0) * (1 - dot(H, l2c));
-
-        float G = min(min(1.f, 2*dot(H, normal)*dot(l2p, normal) / dot(l2p, H)), 2*dot(H, normal)*dot(l2c, normal) / dot(l2p, H));
-
-        float cook_spec = beckmann * fres * G / (4 * dot(l2p, normal) * dot(normal, l2c));
-
-        //float spec = pow(dot(normal, H), 5.f);
-
-        float spec = cook_spec;
-
-        diffuse_sum += spec * l.col.xyz;
-        #endif
+        float fresnel = F0 + (1 - F0) * pow((1.f - vdh), 5.f);
 
 
+        float rough = clamp(1.f - G->specular, 0.001f, 10.f);
 
+        float microfacet = (1.f / (M_PI * rough * rough * pow(ndh, 4.f))) *
+                            exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
 
-        ///game shader effect, creates 2d screespace 'light'
-        /*if(l.pos.w == 1.0f) ///check light within screen
-        {
-            float3 light_rotated = rot(lpos, camera_pos, camera_rot);
+        float c1 = 2 * ndh * ndv / vdh;
+        float c2 = 2 * ndh * ndl / ldh;
 
-            ///maybe do this cpu side or something?
-            float3 projected_out = depth_project_singular(light_rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+        float geometric = min3(1.f, c1, c2);
 
-            if(!(projected_out.x < 0 || projected_out.x >= SCREENWIDTH || projected_out.y < 0 || projected_out.y >= SCREENHEIGHT || projected_out.z < depth_icutoff))
-            {
-                float radius = 14000.0f / projected_out.z; /// obviously temporary, arbitrary radius defined
+        float spec = fresnel * microfacet * geometric / (M_PI * ndl * ndv);
 
-                ///this is actually a solid light
-                float dist = fast_distance(projected_out.xy, (float2){x, y});
-
-                dist *= dist;
-
-                float radius_frac = native_divide((radius - dist), radius);
-
-                radius_frac = clamp(radius_frac, 0.0f, 1.0f);
-
-                radius_frac *= radius_frac;
-
-                float3 actual_light = radius_frac*l.col.xyz*l.brightness;
-
-                if(fast_distance(lpos, camera_pos) < fast_distance(global_position, camera_pos) || *ft == mulint)
-                {
-                    mandatory_light += actual_light;
-                }
-            }
-
-            ambient = 0;
-        }*/
-
+        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
         //light = max(0.0f, light);
     }
@@ -2884,11 +2909,10 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_level_ids, nums, sizes, array);
 
 
-    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
-
     diffuse_sum += ambient_sum;
 
     diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+    specular_sum = clamp(specular_sum, 0.0f, 1.0f);
 
 
     ///tmp
@@ -2907,11 +2931,15 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     //float hbao = 0;
 
-    float3 colclamp = col + mandatory_light;
+    float reflected_surface_colour = 0.7;
+
+    float3 colclamp = col + mandatory_light + specular_sum * reflected_surface_colour;
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
-    float3 final_col = colclamp * diffuse_sum;
+    float3 final_col = colclamp * diffuse_sum + specular_sum * (1.f - reflected_surface_colour);
+
+    final_col = clamp(final_col, 0.f, 1.f);
 
     //final_col = pow(final_col, 2.2f);
 
@@ -5520,71 +5548,6 @@ __kernel void draw_voxel_octree(__write_only image2d_t screen, __global struct v
     }
 
     ///the plane which we intersected with is where the axis is == min(tx1y1z1) thing
-}
-
-
-#define EPSILON 0.001f
-
-void triangle_intersection(const float3   V1,  // Triangle vertices
-                           const float3   V2,
-                           const float3   V3,
-                           const float3    O,  //Ray origin
-                           const float3    D,  //Ray direction
-                                 float* out,
-                                 float* uout,
-                                 float* vout)
-{
-    float3 e1, e2;  //Edge1, Edge2
-    float3 P, Q, T;
-
-    float det, inv_det, u, v;
-    float t;
-
-    //Find vectors for two edges sharing V1
-    e1 = V2 - V1;
-    e2 = V3 - V1;
-
-    //Begin calculating determinant - also used to calculate u parameter
-    P = cross(D, e2);
-    //if determinant is near zero, ray lies in plane of triangle
-    det = dot(e1, P);
-
-    //NOT CULLING
-    if(det > -EPSILON && det < EPSILON)
-        return;
-
-    inv_det = native_recip(det);
-
-    //calculate distance from V1 to ray origin
-    T = O - V1;
-
-    //Calculate u parameter and test bound
-    u = dot(T, P) * inv_det;
-    //The intersection lies outside of the triangle
-    if(u < 0.0f || u > 1.0f)
-        return;
-
-    //Prepare to test v parameter
-    Q = cross(T, e1);
-
-    //Calculate V parameter and test bound
-    v = dot(D, Q) * inv_det;
-    //The intersection lies outside of the triangle
-    if(v < 0.0f || u + v  > 1.0f)
-        return;
-
-    t = dot(e2, Q) * inv_det;
-
-    //ray intersection
-    if(t > EPSILON)
-    {
-        *out = t;
-
-        *uout = u;
-        *vout = v;
-    }
-
-    // No hit, no win
 }
 
 

@@ -131,7 +131,7 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     return k;
 }
 
-static void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
+inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
 {
     ///need to initialise context and the like
     ///cant use boost::compute as it does not support opengl context sharing on windows
@@ -277,10 +277,14 @@ static void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::kernel2 = load_kernel(program, "kernel2");
     cl::kernel3 = load_kernel(program, "kernel3");
     cl::prearrange = load_kernel(program, "prearrange");
+
+    #ifdef OCULUS
     cl::kernel1_oculus = load_kernel(program, "kernel1_oculus");
     cl::kernel2_oculus= load_kernel(program, "kernel2_oculus");
     cl::kernel3_oculus = load_kernel(program, "kernel3_oculus");
     cl::prearrange_oculus = load_kernel(program, "prearrange_oculus");
+    #endif
+
     cl::cloth_simulate = load_kernel(program, "cloth_simulate");
 
     if(!only_3d)

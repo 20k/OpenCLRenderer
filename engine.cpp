@@ -396,8 +396,9 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
     }
 
     ///gpu light memory
-    obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, light_straight.data());
+    obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY);
 
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, 0, sizeof(light)*lnum, light_straight.data());
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &lnum);
 
     ///sacrifice soul to chaos gods, allocate light buffers here

@@ -267,6 +267,14 @@ void objects_container::unload()
     objs.clear();
 }
 
+void objects_container::set_specular(float spec)
+{
+    for(auto& i : objs)
+    {
+        i.specular = spec;
+    }
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)
@@ -280,15 +288,15 @@ int objects_container::get_object_by_id(int in)
     return -1;
 }
 
-objects_container* objects_container::get_remote()
+/*objects_container* objects_container::get_remote()
 {
     int r_id = get_object_by_id(id);
 
     return objects_container::obj_container_list[r_id];
-}
+}*/
 
 objects_container::~objects_container()
 {
     ///std::cout << "object removed: " << id << std::endl;
-    set_active(false); ///cache_map object will get removed
+    //set_active(false); ///cache_map object will get removed
 }

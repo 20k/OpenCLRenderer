@@ -19,6 +19,9 @@ void obj_null_load(object* obj)
 
 object::object() : tri_list(0)
 {
+    last_pos = {0,0,0};
+    last_rot = {0,0,0};
+
     pos.x=0, pos.y=0, pos.z=0;
     rot.x=0, rot.y=0, rot.z=0;
     centre.x = 0, centre.y = 0, centre.z = 0, centre.w = 0;
@@ -31,6 +34,21 @@ object::object() : tri_list(0)
 
     gpu_tri_start = 0;
     gpu_tri_end = 0;
+
+    specular = 0.9f;
+}
+
+object::~object()
+{
+    if(write_events.size() > 0)
+    {
+        clWaitForEvents(write_events.size(), write_events.data());
+    }
+
+    for(auto& i : write_events)
+    {
+        clReleaseEvent(i);
+    }
 }
 
 ///activate the textures in an object
@@ -284,6 +302,18 @@ void object::try_load(cl_float4 pos)
 ///if scene updated behind objects back will not work
 void object::g_flush()
 {
+    bool dirty_pos = false;
+    bool dirty_rot = false;
+
+    for(int i=0; i<4; i++)
+    {
+        if(last_pos.s[i] != pos.s[i])
+            dirty_pos = true;
+
+        if(last_rot.s[i] != rot.s[i])
+            dirty_rot = true;
+    }
+
     posrot.lo = pos;
     posrot.hi = rot;
 
@@ -291,5 +321,35 @@ void object::g_flush()
     ///there is a race condition if posrot gets updated which is undefined
     ///I believe it should be fine, because posrot will only be updated when g_flush will get called... however it may possibly lead to odd behaviour
     ///possibly use the event callback system to fix this
-    clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, NULL);
+
+    if(!dirty_pos && !dirty_rot)
+        return;
+
+    //clWaitForEvents(write_events.size(), write_events.data());
+
+    for(auto& i : write_events)
+    {
+        clReleaseEvent(i);
+    }
+
+    write_events.clear();
+
+    cl_int ret = -1;
+
+    cl_event event;
+
+    if(dirty_pos && dirty_rot)
+        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
+    else if(dirty_pos)
+        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
+    else if(dirty_rot)
+        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
+
+    if(ret == CL_SUCCESS)
+    {
+        write_events.push_back(event);
+    }
+
+    last_pos = pos;
+    last_rot = rot;
 }
