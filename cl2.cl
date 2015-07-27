@@ -2792,7 +2792,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         const float3 lpos = l.pos.xyz;
 
 
-
         float3 l2c = lpos - global_position; ///light to pixel positio
 
         float distance = fast_length(l2c);
