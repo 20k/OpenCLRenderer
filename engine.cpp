@@ -387,19 +387,28 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 {
     cl_uint lnum = light::lightlist.size();
 
+    cl_uint found_num = 0;
+
     ///turn pointer list into block of memory for writing to gpu
     std::vector<light> light_straight;
 
     for(int i=0; i<light::lightlist.size(); i++)
     {
+        if(light::active[i] == false)
+        {
+            continue;
+        }
+
+        found_num++;
+
         light_straight.push_back(*light::lightlist[i]);
     }
 
     ///gpu light memory
-    obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*lnum, CL_MEM_READ_ONLY);
+    obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*found_num, CL_MEM_READ_ONLY);
 
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, 0, sizeof(light)*lnum, light_straight.data());
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &lnum);
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
+    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &found_num);
 
     ///sacrifice soul to chaos gods, allocate light buffers here
 

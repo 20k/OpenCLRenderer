@@ -2888,12 +2888,15 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
-        /*const float kS = 0.3f;
+        #ifndef HIGH_GRAPHICS
+
+        const float kS = 1.f;
 
         float spec = mdot(H, N);
         spec = pow(spec, 30.f);
-        diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;*/
+        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
+        #else
         const float kS = 1.f;
 
         float ndh = mdot(N, H);
@@ -2921,6 +2924,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float spec = fresnel * microfacet * geometric / (M_PI * ndl * ndv);
 
         specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
+        #endif
 
         //light = max(0.0f, light);
     }

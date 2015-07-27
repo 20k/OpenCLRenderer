@@ -23,8 +23,10 @@ struct light
     void set_type(cl_float); ///ie do we want the shader effect? 0 = no, 1 = yes. Useful only for the game, eventually extensible into more light shader effects
     void set_radius(cl_float);
     void set_diffuse(cl_float);
+    void set_active(bool);
 
     static std::vector<light*> lightlist;
+    static std::vector<bool> active;
 
     static int get_light_id(light*);
     static light* add_light(const light* l); ///to global light list

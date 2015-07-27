@@ -3,6 +3,7 @@
 #include <float.h>
 
 std::vector<light*> light::lightlist;
+std::vector<bool> light::active;
 
 void light::set_pos(cl_float4 p)
 {
@@ -41,6 +42,16 @@ void light::set_diffuse(cl_float d)
     diffuse = d;
 }
 
+void light::set_active(bool s)
+{
+    int id = get_light_id(this);
+
+    if(id == -1)
+        return;
+
+    light::active[id] = s;
+}
+
 light::light()
 {
     shadow = 0;
@@ -58,6 +69,7 @@ int light::get_light_id(light* l)
         if(lightlist[i] == l)
             return i;
     }
+
     return -1;
 }
 
@@ -65,14 +77,19 @@ light* light::add_light(const light* l)
 {
     light* new_light = new light(*l);
     lightlist.push_back(new_light);
+    active.push_back(true);
     return new_light;
 }
 
 void light::remove_light(light* l)
 {
     int lid = get_light_id(l);
-    std::vector<light*>::iterator it = lightlist.begin();
-    std::advance(it, lid);
-    lightlist.erase(it);
+
+    if(lid == -1)
+        return;
+
+    lightlist.erase(lightlist.begin() + lid);
+    active.erase(active.begin() + lid);
+
     delete l;
 }
