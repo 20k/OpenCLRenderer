@@ -2792,7 +2792,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         const float3 lpos = l.pos.xyz;
 
 
-
         float3 l2c = lpos - global_position; ///light to pixel positio
 
         float distance = fast_length(l2c);
@@ -2888,12 +2887,15 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
-        /*const float kS = 0.3f;
+        #ifndef HIGH_GRAPHICS
+
+        const float kS = 1.f;
 
         float spec = mdot(H, N);
         spec = pow(spec, 30.f);
-        diffuse_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;*/
+        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
+        #else
         const float kS = 1.f;
 
         float ndh = mdot(N, H);
@@ -2921,6 +2923,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float spec = fresnel * microfacet * geometric / (M_PI * ndl * ndv);
 
         specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
+        #endif
 
         //light = max(0.0f, light);
     }
@@ -2982,6 +2985,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
+
+#if 0
 __kernel
 void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
@@ -8757,4 +8762,5 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
     write_imagef(z_out, pos.xyzz, vel.z);
 }
 
+#endif
 #endif

@@ -122,7 +122,7 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     k.name = name;
     k.loaded = true;
 
-    size_t ret;
+    size_t ret = 128;
 
     clGetKernelWorkGroupInfo(k.kernel.get(), cl::device.id(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &ret, NULL);
 
@@ -285,7 +285,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::prearrange_oculus = load_kernel(program, "prearrange_oculus");
     #endif
 
-    cl::cloth_simulate = load_kernel(program, "cloth_simulate");
+    //cl::cloth_simulate = load_kernel(program, "cloth_simulate");
 
     if(!only_3d)
     {

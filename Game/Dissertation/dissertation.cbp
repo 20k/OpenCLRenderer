@@ -10,10 +10,11 @@
 				<Option output="bin/Debug/Mech_game" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
-				<Option compiler="mingw64" />
+				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-pg" />
 					<Add option="-g" />
+					<Add option="-std=gnu++11" />
 				</Compiler>
 				<Linker>
 					<Add option="-pg -lgmon" />
@@ -23,10 +24,11 @@
 				<Option output="bin/Release/Mech_game" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
-				<Option compiler="mingw64" />
+				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-Ofast" />
+					<Add option="-std=gnu++11" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -48,33 +50,12 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-Wall" />
-			<Add option="-fexceptions" />
+			<Add option="-O3" />
+			<Add option="-Ofast" />
 			<Add option="-std=gnu++11" />
-			<Add option="-Wno-unknown-pragmas" />
-			<Add option="-Wno-narrowing" />
-			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 		</Compiler>
 		<Linker>
-			<Add option="-lmingw32" />
-			<Add option="-lsfml-graphics" />
-			<Add option="-lsfml-audio" />
-			<Add option="-lsfml-network" />
-			<Add option="-lsfml-window" />
-			<Add option="-lsfml-system" />
-			<Add option="-luser32" />
-			<Add option="-lopengl32" />
-			<Add option="-lopencl" />
-			<Add option="-lglew64.dll" />
-			<Add option="-lwinmm" />
-			<Add option="-ldbghelp" />
-			<Add option="-lgdi32" />
-			<Add option="-ldxguid" />
-			<Add option="-lsetupapi" />
-			<Add option="-lws2_32" />
-			<Add option="-lole32" />
-			<Add option="-ladvapi32" />
-			<Add option="-lversion" />
+			<Add option="-s" />
 		</Linker>
 		<Unit filename="../../cl2.cl" />
 		<Unit filename="../../clstate.cpp" />

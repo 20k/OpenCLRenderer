@@ -221,7 +221,7 @@ float smoothnoise(float fx, float fy, float fz, float fw)
 
     float I3l=interpolate(I1l, I2l, fy-int(fy));
 
-    float I4=interpolate(I3l, I3, fz-int(fz)); ///
+    float I4=interpolate(I3l, I3, fz-int(fz)); ///should be 1.f - (fz - int(fz)) methinks
 
     return I4;
 }
