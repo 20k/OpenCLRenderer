@@ -2745,6 +2745,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
+    ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
         float3 t_normal = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
@@ -2774,20 +2775,29 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         else
             normal -= t_normal;*/
 
-        float angle = (dot(t_normal, normal));
+        float cangle = dot((float3){0, 1, 0}, normal);
 
-        normal += t_normal;
+        float angle2 = acos(cangle);
+
+        float y = atan2(normal.z, normal.x);
+
+        float3 rotation = {0, y, angle2};
+
+        t_normal = rot(t_normal, 0, rotation);
+
+
+        //float angle = (dot(t_normal, normal));
+
+        normal = t_normal/1.f;
+
+
+
+        /*if(fabs(angle) > 0)
+            normal += t_normal;
+        else
+            normal -= t_normal;*/
 
         normal = fast_normalize(normal);
-
-        //if(fabs(angle) > 0)
-        //    normal += t_normal;
-        //else
-        //    normal -= t_normal;
-
-        //normal = fast_normalize(normal);
-
-        //normal = rot(t_normal, 0, camera_rot.xyz);
     }
 
     float3 ambient_sum = 0;
