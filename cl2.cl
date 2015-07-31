@@ -2734,9 +2734,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     float3 normal;
     normal = T->vertices[0].normal.xyz * l1 + T->vertices[1].normal.xyz * l2 + T->vertices[2].normal.xyz * l3;
 
-    normal = fast_normalize(normal);
-
     normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
+
+    normal = fast_normalize(normal);
 
 
     float3 tris_proj[3];
@@ -2747,12 +2747,16 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     if(gobj[o_id].rid != -1)
     {
-        normal = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+        float3 t_normal = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
 
-        normal.xyz -= 0.5f;
+        t_normal.xyz -= 0.5f;
+
+        ///normals respresent a pertubation from 0, 1, 0
+
+        //t_normal = fast_normalize(t_normal.xyz);// - (float3){0, 1, 0};
 
         ///?
-        normal = -normal;
+        //t_normal = -t_normal;
 
         /*normal = rot(normal, 0, camera_rot);
 
@@ -2761,9 +2765,29 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         normal = back_rot(normal, 0, camera_rot);*/
 
-        normal = rot(normal, 0, G->world_rot.xyz);
+        //t_normal = rot(t_normal, 0, G->world_rot.xyz);
+
+        //t_normal = fast_normalize(t_normal);
+
+        /*if(dot(t_normal, normal) >= 0)
+            normal += t_normal;
+        else
+            normal -= t_normal;*/
+
+        float angle = (dot(t_normal, normal));
+
+        normal += t_normal;
 
         normal = fast_normalize(normal);
+
+        //if(fabs(angle) > 0)
+        //    normal += t_normal;
+        //else
+        //    normal -= t_normal;
+
+        //normal = fast_normalize(normal);
+
+        //normal = rot(t_normal, 0, camera_rot.xyz);
     }
 
     float3 ambient_sum = 0;
@@ -2830,8 +2854,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float light = dot(l2c, normal); ///diffuse
 
-
-
         ///end lambert
 
         ///oren-nayar
@@ -2887,6 +2909,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
+        #define HIGH_GRAPHICS
         #ifndef HIGH_GRAPHICS
 
         const float kS = 1.f;
@@ -2971,6 +2994,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     int2 scoord = {x, y};
 
     write_imagef(screen, scoord, final_col.xyzz);
+    //write_imagef(screen, scoord, fabs(normal.xyzz));
 
 
     ///debugging
