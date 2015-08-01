@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
     objects_container sponza;
 
-    sponza.set_file("sp2/sp2.obj");
+    sponza.set_file("sp2/sp3obj.obj");
     //sponza.set_file("sp2/cornellfixed.obj");
     sponza.set_active(true);
     sponza.cache = false;
@@ -36,6 +36,8 @@ int main(int argc, char *argv[])
     #endif
 
     obj_mem_manager::load_active_objects();
+
+    sponza.scale(10.f);
 
     texture_manager::allocate_textures();
 

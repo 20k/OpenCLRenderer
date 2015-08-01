@@ -212,7 +212,8 @@ void obj_load(objects_container* pobj)
 
     std::vector<int> usemtl_pos;
     std::vector<std::string> usemtl_name;
-    std::vector<cl_float4> vl, vnl, vtl;
+    std::vector<cl_float4> vl, vnl;
+    std::vector<cl_float2> vtl;
     std::vector<indices> fl;
 
     vl.reserve(vc);
@@ -260,8 +261,7 @@ void obj_load(objects_container* pobj)
             float vt[3];
             decompose_attribute(file_contents[i], vt, 2);
 
-            cl_float4 t;
-            t = {vt[0], vt[1], 0, 0};
+            cl_float2 t = {vt[0], vt[1]};
 
             vtl.push_back(t);
             continue;
@@ -293,8 +293,6 @@ void obj_load(objects_container* pobj)
     ///now, resolve
 
     std::vector<triangle> tris;
-    std::vector<vertex> fr;
-    fr.reserve(fc);
 
     tris.reserve(fc);
 
@@ -305,13 +303,14 @@ void obj_load(objects_container* pobj)
         index = fl[i];
         for(int j=0; j<3; j++)
         {
-            cl_float4 v, vt, vn;
+            cl_float4 v, vn;
+            cl_float2 vt;
             v  = vl [index.v [j]];
             vt = vtl[index.vt[j]];
             vn = vnl[index.vn[j]];
 
             vert[j].set_pos(v);
-            vert[j].set_vt({vt.x, vt.y});
+            vert[j].set_vt(vt);
             vert[j].set_normal(vn);
         }
 
