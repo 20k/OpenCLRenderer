@@ -32,7 +32,8 @@ namespace cl
 namespace cl
 {
     extern compute::device device;
-    extern compute::command_queue cqueue;
+    extern compute::command_queue cqueue; ///rendering
+    extern compute::command_queue cqueue2; ///async objects
     extern compute::context context;
     extern compute::program program;
 

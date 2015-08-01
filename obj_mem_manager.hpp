@@ -6,6 +6,7 @@
 
 #include "object.hpp"
 #include <vector>
+#include <SFML/Graphics.hpp>
 
 namespace compute = boost::compute;
 
@@ -58,9 +59,12 @@ struct obj_mem_manager
     static bool dirty;
 
     static void g_arrange_mem();
-    static void g_changeover();
+    static void g_changeover(bool force = false);
 
     static void load_active_objects();
+
+    static sf::Clock event_clock; ///unfortunately, polling an event status is expensive
+    ///using a non exact solution like timer is unfortunately better
 };
 
 

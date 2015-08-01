@@ -21,6 +21,7 @@ void cl::unmap(compute::buffer& v, void* ptr)
 
 compute::device cl::device;
 compute::command_queue cl::cqueue;
+compute::command_queue cl::cqueue2;
 compute::context cl::context;
 compute::program cl::program;
 

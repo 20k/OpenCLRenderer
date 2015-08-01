@@ -32,6 +32,7 @@ compute::buffer obj_mem_manager::g_light_num;
 
 bool obj_mem_manager::ready = false;
 bool obj_mem_manager::dirty = true;
+sf::Clock obj_mem_manager::event_clock;
 
 temporaries obj_mem_manager::temporary_objects;
 
@@ -145,17 +146,29 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
     return trianglecount;
 }
 
-void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start, cl_uint trianglecount)
+void alloc_object_descriptors(temporaries& t, const std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start)
+{
+    t.obj_num = object_descriptors.size();
+
+    t.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*t.obj_num, CL_MEM_READ_ONLY);
+    t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
+
+    ///done care if data arrives late
+    cl::cqueue2.enqueue_write_buffer_async(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
+    cl::cqueue2.enqueue_write_buffer_async(t.g_obj_num, 0, t.g_obj_num.size(), &t.obj_num);
+
+}
+
+void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 {
     cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
-    cl_uint obj_descriptor_size = object_descriptors.size();
+    //cl_uint obj_descriptor_size = object_descriptors.size();
 
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
-    compute::image_format triformat(CL_RGB, CL_FLOAT);
+    //compute::image_format triformat(CL_RGB, CL_FLOAT);
 
     temporaries& t = obj_mem_manager::temporary_objects;
 
-    t.obj_num = obj_descriptor_size;
 
     if(texture_manager::dirty)
     {
@@ -169,10 +182,10 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
         size_t region[3] = {2048, 2048, number_of_texture_slices};
 
         ///need to pin c_texture_array to pcie mem
-        cl::cqueue.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+        cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
 
-        cl::cqueue.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
-        cl::cqueue.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
+        cl::cqueue2.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
+        cl::cqueue2.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
     }
     else
     {
@@ -184,9 +197,6 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     //delete [] texture_manager::c_texture_array;
     //texture_manager::c_texture_array = NULL;
 
-    t.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*obj_descriptor_size, CL_MEM_READ_ONLY);
-    t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
-
     t.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*trianglecount, CL_MEM_READ_WRITE);
     t.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*trianglecount*3*2);
 
@@ -197,15 +207,9 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     t.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
     t.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
 
-    ///done care if data arrives late
-    cl::cqueue.enqueue_write_buffer_async(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
-    cl::cqueue.enqueue_write_buffer_async(t.g_obj_num, 0, t.g_obj_num.size(), &obj_descriptor_size);
-
     int zero = 0;
 
-    cl::cqueue.enqueue_write_buffer_async(t.g_tri_num, 0, t.g_tri_num.size(), &trianglecount);
-    //cl::cqueue.enqueue_write_buffer_async(t.g_cut_tri_num, 0, t.g_cut_tri_num.size(), &zero);
-
+    cl::cqueue2.enqueue_write_buffer_async(t.g_tri_num, 0, t.g_tri_num.size(), &trianglecount);
 
     cl_uint running=0;
 
@@ -232,7 +236,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
             ///boost::compute fails an assertion if tri_num == 0
             ///we dont care if the data arrives late
             if((*it).tri_num>0)
-                cl::cqueue.enqueue_write_buffer_async(t.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_num, (*it).tri_list.data());
+                cl::cqueue2.enqueue_write_buffer_async(t.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_num, (*it).tri_list.data());
 
             running += (*it).tri_num;
 
@@ -242,38 +246,59 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
         }
     }
 
-    //clFinish(cl::cqueue.get());
-
     t.tri_num = trianglecount;
 }
 
 
 void obj_mem_manager::g_arrange_mem()
 {
+    event_clock.restart();
+
     std::vector<int>().swap(obj_mem_manager::obj_sub_nums);
 
     cl_uint triangle_count = 0;
 
-    std::vector<obj_g_descriptor> object_descriptors;
-
     load_active_objects();
+
+
+    std::vector<obj_g_descriptor> object_descriptors;
 
     triangle_count = fill_subobject_descriptors(object_descriptors, texture_manager::mipmap_start);
 
-    allocate_gpu(object_descriptors, texture_manager::mipmap_start, triangle_count);
+
+    allocate_gpu(texture_manager::mipmap_start, triangle_count);
 
     //obj_mem_manager::ready = true; ///unnecessary at the moment, more useful when concurrency comes into play
 
     dirty = true;
+
+    ///object data can change while allocate_gpu happening
+    ///going to need to blockingly write that
 }
 
 
-void obj_mem_manager::g_changeover()
+void obj_mem_manager::g_changeover(bool force)
 {
     ///changeover is accomplished as a swapping of variables so that it can be done in parallel
 
-    if(!dirty)
+    const float refresh_time = 10.f;
+
+    const float clk = event_clock.getElapsedTime().asMicroseconds() / 1000.f;
+
+    if((!dirty || clk < refresh_time) && !force)
         return;
+
+    //if(!dirty)
+    //    return;
+
+    printf("alloc\n");
+    ///object descriptors cannot be done async
+    std::vector<obj_g_descriptor> object_descriptors;
+
+    cl_uint triangle_count = fill_subobject_descriptors(object_descriptors, texture_manager::mipmap_start);
+    alloc_object_descriptors(temporary_objects, object_descriptors, texture_manager::mipmap_start);
+
+    clFinish(cl::cqueue2);
 
     temporaries *T = &temporary_objects;
 

@@ -2226,7 +2226,6 @@ void engine::check_obj_visibility()
                 ///fire g_arrange_mem asynchronously in the future
                 std::cout << "hi" << std::endl;
                 obj_mem_manager::g_arrange_mem();
-                obj_mem_manager::g_changeover();
                 return;
             }
         }
