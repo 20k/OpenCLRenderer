@@ -272,6 +272,8 @@ void obj_mem_manager::g_arrange_mem()
 
     dirty = true;
 
+
+    g_changeover();
     ///object data can change while allocate_gpu happening
     ///going to need to blockingly write that
 }
@@ -285,11 +287,11 @@ void obj_mem_manager::g_changeover(bool force)
 
     const float clk = event_clock.getElapsedTime().asMicroseconds() / 1000.f;
 
-    if((!dirty || clk < refresh_time) && !force)
-        return;
-
-    //if(!dirty)
+    //if((!dirty || clk < refresh_time) && !force)
     //    return;
+
+    if(!dirty)
+        return;
 
     printf("alloc\n");
     ///object descriptors cannot be done async
