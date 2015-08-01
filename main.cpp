@@ -20,14 +20,14 @@ int main(int argc, char *argv[])
 
     objects_container sponza;
 
-    sponza.set_file("sp2/sp3obj.obj");
+    sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("sp2/cornellfixed.obj");
     sponza.set_active(true);
     sponza.cache = false;
 
     engine window;
 
-    window.load(1680,1050,1000, "turtles", "cl2.cl");
+    window.load(1680,1050,1000, "turtles", "cl2.cl", true);
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
@@ -36,8 +36,6 @@ int main(int argc, char *argv[])
     #endif
 
     obj_mem_manager::load_active_objects();
-
-    sponza.scale(10.f);
 
     texture_manager::allocate_textures();
 

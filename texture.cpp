@@ -121,21 +121,50 @@ void gen_miplevel(texture& tex, int level)
 
     mip.create(newsize, newsize);
 
+    const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
+
     for(int j=0; j<newsize; j++)
     {
         for(int i=0; i<newsize; i++)
         {
-            sf::Color p4[4];
+            /*sf::Color p4[4];
 
             p4[0]=base.getPixel(i*2, j*2);
             p4[1]=base.getPixel(i*2+1, j*2);
             p4[2]=base.getPixel(i*2, j*2+1);
-            p4[3]=base.getPixel(i*2+1, j*2+1);
+            p4[3]=base.getPixel(i*2+1, j*2+1);*/
 
-            sf::Color ret;
+
+            float xa = 0, ya = 0, za = 0;
+
+            int num = 0;
+
+            for(int y=-1; y<2; y++)
+            for(int x=-1; x<2; x++)
+            {
+                if(x + i*2 < 0 || x + i*2 >= size || y + j*2 < 0 || y + j*2 >= size)
+                    continue;
+
+                sf::Color c = base.getPixel(i*2 + x, j*2 + y);
+
+                xa += c.r * gauss[y+1][x+1];
+                ya += c.g * gauss[y+1][x+1];
+                za += c.b * gauss[y+1][x+1];
+
+                num += gauss[y+1][x+1];
+            }
+
+            xa /= num;
+            ya /= num;
+            za /= num;
+
+
+            /*sf::Color ret;
             ret.r=(p4[0].r + p4[1].r + p4[2].r + p4[3].r)/4.0f;
             ret.g=(p4[0].g + p4[1].g + p4[2].g + p4[3].g)/4.0f;
-            ret.b=(p4[0].b + p4[1].b + p4[2].b + p4[3].b)/4.0f;
+            ret.b=(p4[0].b + p4[1].b + p4[2].b + p4[3].b)/4.0f;*/
+
+            sf::Color ret(xa, ya, za);
 
             mip.setPixel(i, j, ret);
         }

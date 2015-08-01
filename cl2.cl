@@ -911,11 +911,13 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     float2 vdiff = {fabs(maxvx - minvx), fabs(maxvy - minvy)};
 
-    float tex_per_pix = native_divide(tdiff.x*tdiff.y, vdiff.x*vdiff.y);
+    //float tex_per_pix = native_divide(tdiff.x*tdiff.y, vdiff.x*vdiff.y);
 
-    float worst = native_sqrt(tex_per_pix);
+    float2 tex_per_pix = tdiff / vdiff;
 
-    //float worst = min(tex_per_pix.x, tex_per_pix.y);
+    //float worst = native_sqrt(tex_per_pix);
+
+    float worst = max(tex_per_pix.x, tex_per_pix.y);
     ///max seems to break spaceships but is apparently correct. What do? Need to actually solve texture filtering because it works pretty shit
     ///filter in 2d?
     ///Wants to be based purely on texel density
@@ -942,9 +944,7 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     mip_higher = min(mip_higher, MIP_LEVELS);
 
-
-
-    invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS) ? true : false;
+    invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS);
 
     int lower_size  = native_exp2((float)mip_lower);
     int higher_size = native_exp2((float)mip_higher);
@@ -953,23 +953,14 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     fractional_mipmap_distance = invalid_mipmap ? 0 : fractional_mipmap_distance;
 
-    ///If the texel to pixel ratio is < 1, use highest res texture
-    if(worst < 1)
-    {
-        mip_lower = 0;
-        mip_higher = 0;
-        fractional_mipmap_distance = 0.0f;
-    }
-
     int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
     int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;
-
 
     float fmd = fractional_mipmap_distance;
 
     float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
-    if(tid_lower == tid_higher)
+    if(tid_lower == tid_higher || fmd == 0)
         return native_divide(col1, 255.f);
 
     float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
