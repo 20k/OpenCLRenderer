@@ -76,31 +76,17 @@ struct obj_g_descriptor
 
 struct vertex
 {
-    float x, y, z;
-    float nx, ny, nz;
-    float vx, vy;
+    float4 pos;
+    float4 normal;
+    float2 vt;
+    uint object_id;
+    uint pad2;
 };
 
 struct triangle
 {
     struct vertex vertices[3];
-    uint o_id;
 };
-
-float3 get_pos(struct vertex v)
-{
-    return (float3){v.x, v.y, v.z};
-}
-
-float3 get_normal(struct vertex v)
-{
-    return (float3){v.nx, v.ny, v.nz};
-}
-
-float2 get_vt(struct vertex v)
-{
-    return (float2){v.vx, v.vy};
-}
 
 struct interp_container
 {
@@ -116,7 +102,7 @@ float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
 }
 
-void get_third_areas(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* a1, float* a2, float* a3)
+float get_third_areas(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* a1, float* a2, float* a3)
 {
     *a1 = x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y;
     *a2 = x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1;
@@ -332,13 +318,13 @@ void calc_min_max_oc(float3 points[3], float mx, float my, float width, float he
 
 void construct_interpolation(struct triangle* tri, struct interp_container* C, float width, float height)
 {
-    float y1 = round(tri->vertices[0].y);
-    float y2 = round(tri->vertices[1].y);
-    float y3 = round(tri->vertices[2].y);
+    float y1 = round(tri->vertices[0].pos.y);
+    float y2 = round(tri->vertices[1].pos.y);
+    float y3 = round(tri->vertices[2].pos.y);
 
-    float x1 = round(tri->vertices[0].x);
-    float x2 = round(tri->vertices[1].x);
-    float x3 = round(tri->vertices[2].x);
+    float x1 = round(tri->vertices[0].pos.x);
+    float x2 = round(tri->vertices[1].pos.x);
+    float x3 = round(tri->vertices[2].pos.x);
 
     float miny=min3(y1, y2, y3)-1; ///oh, wow
     float maxy=max3(y1, y2, y3);
@@ -377,14 +363,7 @@ float backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 
 float backface_cull(struct triangle *tri)
 {
-    float3 p[3];
-
-    for(int i=0; i<3; i++)
-    {
-        p[i] = (float3){tri->vertices[i].x, tri->vertices[i].y, tri->vertices[i].z};
-    }
-
-    return backface_cull_expanded(p[0], p[1], p[2]);
+    return backface_cull_expanded(tri->vertices[0].pos.xyz, tri->vertices[1].pos.xyz, tri->vertices[2].pos.xyz);
 }
 
 
@@ -408,9 +387,9 @@ void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 
         ret[2]=rot(ret[2] + offset, c_pos, c_rot);
     }*/
 
-    ret[0] = rot(get_pos(triangle->vertices[0]), 0, rotation_offset);
-    ret[1] = rot(get_pos(triangle->vertices[1]), 0, rotation_offset);
-    ret[2] = rot(get_pos(triangle->vertices[2]), 0, rotation_offset);
+    ret[0] = rot(triangle->vertices[0].pos.xyz, 0, rotation_offset);
+    ret[1] = rot(triangle->vertices[1].pos.xyz, 0, rotation_offset);
+    ret[2] = rot(triangle->vertices[2].pos.xyz, 0, rotation_offset);
 
     ret[0] = rot(ret[0] + offset, c_pos, c_rot);
     ret[1] = rot(ret[1] + offset, c_pos, c_rot);
@@ -419,9 +398,10 @@ void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 
 
 void rot_3_normal(__global struct triangle *triangle, float3 c_rot, float3 ret[3])
 {
-    ret[0]=rot(get_normal(triangle->vertices[0]), 0, c_rot);
-    ret[1]=rot(get_normal(triangle->vertices[1]), 0, c_rot);
-    ret[2]=rot(get_normal(triangle->vertices[2]), 0, c_rot);
+    float3 centre = 0;
+    ret[0]=rot(triangle->vertices[0].normal.xyz, centre, c_rot);
+    ret[1]=rot(triangle->vertices[1].normal.xyz, centre, c_rot);
+    ret[2]=rot(triangle->vertices[2].normal.xyz, centre, c_rot);
 }
 
 void rot_3_raw(const float3 raw[3], const float3 rotation, float3 ret[3])
@@ -906,19 +886,12 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
     float minvy=min3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
     float maxvy=max3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
 
-    float2 vts[3];
 
-    for(int i=0; i<3; i++)
-    {
-        vts[i] = get_vt(tri->vertices[i]);
-    }
+    float mintx=min3(tri->vertices[0].vt.x, tri->vertices[1].vt.x, tri->vertices[2].vt.x);
+    float maxtx=max3(tri->vertices[0].vt.x, tri->vertices[1].vt.x, tri->vertices[2].vt.x);
 
-
-    float mintx=min3(vts[0].x, vts[1].x, vts[2].x);
-    float maxtx=max3(vts[0].x, vts[1].x, vts[2].x);
-
-    float minty=min3(vts[0].y, vts[1].y, vts[2].y);
-    float maxty=max3(vts[0].y, vts[1].y, vts[2].y);
+    float minty=min3(tri->vertices[0].vt.y, tri->vertices[1].vt.y, tri->vertices[2].vt.y);
+    float maxty=max3(tri->vertices[0].vt.y, tri->vertices[1].vt.y, tri->vertices[2].vt.y);
 
     float2 vtm = vt;
 
@@ -1680,7 +1653,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     __global struct triangle *T = &triangles[id];
 
-    int o_id = T->o_id;
+    int o_id = T->vertices[0].object_id;
 
     ///this is the 3d projection 'pipeline'
 
@@ -1830,7 +1803,7 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
 
     __global struct triangle *T = &triangles[id];
 
-    int o_id = T->o_id;
+    int o_id = T->vertices[0].object_id;
 
     ///this is the 3d projection 'pipeline'
 
@@ -2730,7 +2703,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     __global struct triangle* T = &triangles[tri_global];
 
 
-    int o_id = T->o_id;
+    int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
 
@@ -2752,16 +2725,16 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     float l1,l2,l3;
 
-    get_barycentric(object_local, get_pos(T->vertices[0]), get_pos(T->vertices[1]), get_pos(T->vertices[2]), &l1, &l2, &l3);
+    get_barycentric(object_local, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
 
     float2 vt;
-    vt = get_vt(T->vertices[0]) * l1 + get_vt(T->vertices[1]) * l2 + get_vt(T->vertices[2]) * l3;
+    vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
 
     ///interpolated normal
     float3 normal;
-    normal = get_normal(T->vertices[0]) * l1 + get_normal(T->vertices[1]) * l2 + get_normal(T->vertices[2]) * l3;
+    normal = T->vertices[0].normal.xyz * l1 + T->vertices[1].normal.xyz * l2 + T->vertices[2].normal.xyz * l3;
 
-    normal = rot(normal, 0, G->world_rot.xyz);
+    normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
     normal = fast_normalize(normal);
 
@@ -2779,6 +2752,29 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         t_normal.xyz -= 0.5f;
 
+        ///normals respresent a pertubation from 0, 1, 0
+
+        //t_normal = fast_normalize(t_normal.xyz);// - (float3){0, 1, 0};
+
+        ///?
+        //t_normal = -t_normal;
+
+        /*normal = rot(normal, 0, camera_rot);
+
+        if(normal.z > 0)
+            normal.z = -normal.z;
+
+        normal = back_rot(normal, 0, camera_rot);*/
+
+        //t_normal = rot(t_normal, 0, G->world_rot.xyz);
+
+        //t_normal = fast_normalize(t_normal);
+
+        /*if(dot(t_normal, normal) >= 0)
+            normal += t_normal;
+        else
+            normal -= t_normal;*/
+
         float cangle = dot((float3){0, 1, 0}, normal);
 
         float angle2 = acos(cangle);
@@ -2789,7 +2785,17 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         t_normal = rot(t_normal, 0, rotation);
 
-        normal = t_normal;
+
+        //float angle = (dot(t_normal, normal));
+
+        normal = t_normal/1.f;
+
+
+
+        /*if(fabs(angle) > 0)
+            normal += t_normal;
+        else
+            normal -= t_normal;*/
 
         normal = fast_normalize(normal);
     }
@@ -2940,7 +2946,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float rough = clamp(1.f - G->specular, 0.001f, 10.f);
 
         float microfacet = (1.f / (M_PI * rough * rough * pow(ndh, 4.f))) *
-                            native_exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
+                            exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
 
         float c1 = 2 * ndh * ndv / vdh;
         float c2 = 2 * ndh * ndl / ldh;

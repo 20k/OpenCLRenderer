@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     engine window;
 
-    window.load(1680,1050,1000, "turtles", "cl2.cl", true);
+    window.load(1680,1050,1000, "turtles", "cl2.cl");
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
