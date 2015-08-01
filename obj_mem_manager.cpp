@@ -31,6 +31,7 @@ compute::buffer obj_mem_manager::g_light_mem;
 compute::buffer obj_mem_manager::g_light_num;
 
 bool obj_mem_manager::ready = false;
+bool obj_mem_manager::dirty = true;
 
 temporaries obj_mem_manager::temporary_objects;
 
@@ -92,8 +93,6 @@ int get_texture_by_id(int id)
 ///fills the object descriptors for the objects contained within object_containers
 int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start)
 {
-    cl_uint cumulative_bump = 0;
-
     int n=0;
 
     ///cumulative triangle count
@@ -127,22 +126,14 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             object_descriptors[n].tid = tid;
             object_descriptors[n].rid = rid;
 
-            /*for(int i=0; i<MIP_LEVELS; i++)
-            {
-                object_descriptors[n].mip_level_ids[i]=mipmap_start + object_descriptors[n].tid*MIP_LEVELS + i;
-            }*/
-
             object_descriptors[n].mip_start = mipmap_start;
 
             ///fill other information in
             object_descriptors[n].world_pos=(it)->pos;
             object_descriptors[n].world_rot=(it)->rot;
             object_descriptors[n].has_bump = it->has_bump;
-            object_descriptors[n].cumulative_bump = cumulative_bump;
             object_descriptors[n].specular = it->specular;
             object_descriptors[n].diffuse = it->diffuse;
-
-            cumulative_bump+=it->has_bump;
 
             trianglecount+=(it)->tri_num;
             n++;
@@ -213,7 +204,7 @@ void allocate_gpu(std::vector<obj_g_descriptor> &object_descriptors, int mipmap_
     int zero = 0;
 
     cl::cqueue.enqueue_write_buffer_async(t.g_tri_num, 0, t.g_tri_num.size(), &trianglecount);
-    cl::cqueue.enqueue_write_buffer_async(t.g_cut_tri_num, 0, t.g_cut_tri_num.size(), &zero);
+    //cl::cqueue.enqueue_write_buffer_async(t.g_cut_tri_num, 0, t.g_cut_tri_num.size(), &zero);
 
 
     cl_uint running=0;
@@ -261,7 +252,6 @@ void obj_mem_manager::g_arrange_mem()
 {
     std::vector<int>().swap(obj_mem_manager::obj_sub_nums);
 
-
     cl_uint triangle_count = 0;
 
     std::vector<obj_g_descriptor> object_descriptors;
@@ -270,17 +260,20 @@ void obj_mem_manager::g_arrange_mem()
 
     triangle_count = fill_subobject_descriptors(object_descriptors, texture_manager::mipmap_start);
 
-
     allocate_gpu(object_descriptors, texture_manager::mipmap_start, triangle_count);
 
-    //texture_manager::c_texture_array = NULL;
-    obj_mem_manager::ready = true; ///unnecessary at the moment, more useful when concurrency comes into play
+    //obj_mem_manager::ready = true; ///unnecessary at the moment, more useful when concurrency comes into play
+
+    dirty = true;
 }
 
 
 void obj_mem_manager::g_changeover()
 {
     ///changeover is accomplished as a swapping of variables so that it can be done in parallel
+
+    if(!dirty)
+        return;
 
     temporaries *T = &temporary_objects;
 
@@ -296,7 +289,9 @@ void obj_mem_manager::g_changeover()
     tri_num         = T->tri_num;
     obj_num         = T->obj_num;
 
-    obj_mem_manager::ready = false;
+    //ready = false;
 
     texture_manager::dirty = false;
+
+    dirty = false;
 }

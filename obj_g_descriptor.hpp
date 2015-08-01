@@ -15,7 +15,6 @@ struct obj_g_descriptor
     cl_uint rid;
     cl_uint mip_start;
     cl_uint has_bump;
-    cl_uint cumulative_bump;
     cl_float specular;
     cl_float diffuse;
     ///add in a type here for shaders?

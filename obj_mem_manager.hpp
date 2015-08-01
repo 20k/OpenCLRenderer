@@ -55,6 +55,7 @@ struct obj_mem_manager
     static compute::buffer g_cut_tri_num;
 
     static bool ready;
+    static bool dirty;
 
     static void g_arrange_mem();
     static void g_changeover();

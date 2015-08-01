@@ -68,7 +68,6 @@ struct obj_g_descriptor
     uint rid;           ///normal map id
     uint mip_start;
     uint has_bump;
-    uint cumulative_bump;
     float specular;
     float diffuse;
 };
@@ -911,16 +910,10 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     float2 vdiff = {fabs(maxvx - minvx), fabs(maxvy - minvy)};
 
-    //float tex_per_pix = native_divide(tdiff.x*tdiff.y, vdiff.x*vdiff.y);
-
     float2 tex_per_pix = tdiff / vdiff;
 
-    //float worst = native_sqrt(tex_per_pix);
-
     float worst = max(tex_per_pix.x, tex_per_pix.y);
-    ///max seems to break spaceships but is apparently correct. What do? Need to actually solve texture filtering because it works pretty shit
-    ///filter in 2d?
-    ///Wants to be based purely on texel density
+
     //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
 
     int mip_lower=0;
@@ -929,14 +922,7 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     bool invalid_mipmap = false;
 
-    //float lod_bias = 0.0f;
-
-    //float val = native_log2(worst) + lod_bias;
-
-    //worst = native_exp2(val);
-
     mip_lower = native_log2(worst);
-
 
     mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
 
@@ -2959,7 +2945,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
-
     diffuse_sum += ambient_sum;
 
     //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
@@ -2971,8 +2956,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //write_imagef(diffuse_buffer, (int2){x, y}, (float4){diffuse_sum.x, diffuse_sum.y, diffuse_sum.z, 0.0f});
     //write_imagei(object_ids, (int2){x, y}, (int4){T->vertices[0].object_id, 0, 0, 0});
 
-
-    //ambient_sum = clamp(ambient_sum, 0.0f, 1.0f);//native_recip(col));
 
     //float3 rot_normal;
 
