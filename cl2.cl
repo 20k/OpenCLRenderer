@@ -2324,7 +2324,6 @@ void kernel1_oculus(__global struct triangle* triangles, __global uint* fragment
 #define BUF_ERROR 20
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
-///nvidia finally... finally 64 bit atomics
 __kernel
 void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
@@ -2449,7 +2448,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
             if(cond)
             {
                 int2 coord = {x, y};
-                uint4 d = {ctri, tri_id, 0, 0};
+                uint4 d = {id, 0, 0, 0};
                 write_imageui(id_buffer, coord, d);
             }
 
@@ -2660,8 +2659,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
-    uint ctri = id_val4.x;
-    uint tri_global = id_val4.y;
+    uint tri_global = fragment_id_buffer[id_val4.x * 5 + 0];
+    uint ctri = fragment_id_buffer[id_val4.x * 5 + 2];
 
     float3 camera_pos;
     float3 camera_rot;

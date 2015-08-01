@@ -272,7 +272,6 @@ void obj_mem_manager::g_arrange_mem()
 
     dirty = true;
 
-
     g_changeover();
     ///object data can change while allocate_gpu happening
     ///going to need to blockingly write that
