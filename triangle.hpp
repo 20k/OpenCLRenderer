@@ -5,6 +5,7 @@
 struct triangle
 {
     vertex vertices[3];
+    cl_uint o_id;
 };
 
 
