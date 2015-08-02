@@ -2992,8 +2992,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
-
-#if 0
 __kernel
 void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct p2 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
@@ -3411,6 +3409,8 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     //printf("%i %i %i\n", x, y, z);
 
     float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
+    float3 original_pos = (float3){in[id].x, in[id].y, in[id].z};
+    float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
 
     float3 positions[4];
 
@@ -3441,6 +3441,16 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
         positions[3] = (float3){in[pid].x, in[pid].y, in[pid].z};
     }
+
+
+
+    float timestep = 0.9f;
+
+    mypos.y -= timestep * 4;
+
+    if(y == height-1)
+        mypos = c2v(fixed[x]);
+
 
     const float rest_dist = 10.f;
 
@@ -3476,9 +3486,8 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
             mypos -= normalize(to_them) * excess/mf;
         }
-
-
     }
+
 
     ///do vertlet bit, not sure if it is correct to do it here
     ///mypos is now my NEW positions, whereas px/y/z are old
@@ -3493,26 +3502,54 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     //mypos += dp;
 
-    float timestep = 0.9f;
 
-    mypos.y -= timestep * 0.98f;
+    float3 diff = (original_pos - super_old) * 0.3f;
 
-    if(y == height-1)
-        mypos = c2v(fixed[x]);
+    //diff = clamp(diff/1.2f, -3, 3);
+
+    mypos += diff;
+
+
+    for(int i=0; i<4; i++)
+    {
+        if(x == 0 && i == 0)
+            continue;
+        if(x == width-1 && i == 1)
+            continue;
+        if(y == 0 && i == 2)
+            continue;
+        if(y == height-1 && i == 3)
+            continue;
+
+        float mf = 8.f;
+
+        float3 their_pos = positions[i];
+
+        float dist = length(their_pos - mypos);
+
+        float3 to_them = (their_pos - mypos);
+
+        if(dist > rest_dist)
+        {
+            float excess = dist - rest_dist;
+
+            mypos += normalize(to_them) * excess/mf;
+
+        }
+        if(dist < rest_dist)
+        {
+            float excess = rest_dist - dist;
+
+            mypos -= normalize(to_them) * excess/mf;
+        }
+    }
+
 
     out[id] = (struct cloth_pos){mypos.x, mypos.y, mypos.z};
 
 
-    /*float2 new_pos = mypos.xy + (float2){100.f, 400.f};
-
-    int2 pos = convert_int2(mypos.xy + (float2){100, 400});
-
-    write_imagef(screen, pos, 1.f);*/
-
-
     if(y == height-1 || x == width-1)
         return;
-
 
     ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
     ///the count of missed values so far is y, so we subtract y
@@ -3538,6 +3575,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     ///need to modify tris now
 }
 
+#if 0
 #define AOS(t, a, b, c) t a, t b, t c
 
 ///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
