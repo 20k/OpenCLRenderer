@@ -914,21 +914,18 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     float worst = max(tex_per_pix.x, tex_per_pix.y);
 
-    //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.0f;
-
     int mip_lower=0;
     int mip_higher=0;
     float fractional_mipmap_distance = 0;
 
     bool invalid_mipmap = false;
 
-    mip_lower = native_log2(worst);
-
-    mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
+    mip_lower = floor(native_log2(worst));
 
     mip_higher = mip_lower + 1;
 
-    mip_higher = min(mip_higher, MIP_LEVELS);
+    mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
+    mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
 
     invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS);
 
@@ -948,6 +945,8 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     if(tid_lower == tid_higher || fmd == 0)
         return native_divide(col1, 255.f);
+
+    //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;
 
     float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
