@@ -3458,7 +3458,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     float3 acc = 0;
 
-    float timestep = 0.02f;
+    float timestep = 0.03f;
 
     acc.y -= timestep * 4;
 
