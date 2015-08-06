@@ -2844,7 +2844,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float light = dot(l2c, normal); ///diffuse
 
-        float l2 = dot(l2c, -normal);
+        /*float l2 = dot(l2c, -normal);
 
         int cond = light < 0 && G->two_sided == 1;
 
@@ -2852,6 +2852,17 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         {
             normal = -normal;
             light = l2;
+        }*/
+
+        int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
+
+        int cond = !is_front && G->two_sided == 1;
+
+        if(cond)
+        {
+            normal = -normal;
+
+            light = dot(l2c, normal);
         }
 
         ///end lambert
@@ -3422,7 +3433,6 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     //printf("%i %i %i\n", x, y, z);
 
     float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
-    //float3 original_pos = (float3){in[id].x, in[id].y, in[id].z};
     float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
 
     float3 positions[4];
@@ -3462,7 +3472,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     acc.y -= timestep * 4;
 
-    const float rest_dist = 15.f;
+    const float rest_dist = 25.f;
 
     for(int i=0; i<4; i++)
     {
@@ -3517,13 +3527,6 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         acc += (1.f - (len/rad)) * dist_left * fast_normalize(diff);
     }
 
-    /*if(mypos.y < -630)
-    {
-        float dist = -630 - mypos.y;
-
-        acc += dist/400.f;
-    }*/
-
     if(y == height-1)
     {
         acc = 0;
@@ -3537,23 +3540,96 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     diff = clamp(diff, -10.f, 10.f);
 
-    float3 new_pos = mypos + diff * 0.99f + acc;
+    float3 new_pos = mypos + diff * 0.98f + acc;
 
 
     out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
 
+    ///separate this out into a new kernel, accumulate normals for smooth lighting
+
     if(y == height-1 || x == width-1)
         return;
+
+    ///
+    /*__local float3 normals[10*30*2];
+
+    int lid = get_local_id(0);
+
+    int lx = lid % width;
+    int ly = lid / width;
+
+    normals[lid] = 0;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float3 p0, p1, p2;
+    p0 = c2v(in[y*width + x]);
+    p1 = c2v(in[y*width + x + 1]);
+    p2 = c2v(in[(y + 1)*width + x]);
+
+    float3 flat_normal = cross(p1-p0, p2-p0);
+
+
+    p0 = c2v(in[y*width + x + 1]);
+    p1 = c2v(in[(y + 1)*width + x + 1]);
+    p2 = c2v(in[(y + 1)*width + x]);
+
+    flat_normal += cross(p1-p0, p2-p0);
+
+
+    flat_normal = fast_normalize(flat_normal);
+
+    ///square normal
+    normals[lid] = flat_normal;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float3 accum = flat_normal;
+
+    for(int y=-1; y<2; y++)
+    {
+        for(int x=-1; x<2; x++)
+        {
+            int px = lx + x;
+            int py = ly + y;
+
+            int nid = py*width + px;
+
+            if(py < 0 || px < 0 || py >= height || px >= width)
+                continue;
+
+            if(x == 0 && y == 0)
+                continue;
+
+            accum += normals[py*width + px];
+        }
+    }
+
+    accum = fast_normalize(accum);
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    normals[lid] = accum;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float3 n0, n1, n2, n3;
+
+    n0 = normals[ly*width + lx];
+    n1 = normals[ly*width + lx + 1];
+    n2 = normals[(ly + 1) * width + lx];
+    n3 = normals[(ly + 1) * width + lx + 1];*/
+
 
     ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
     ///the count of missed values so far is y, so we subtract y
     int tid = id * 2 - y + tri_start;
 
     float3 p0, p1, p2;
-    p0 = c2v(out[y*width + x]);
-    p1 = c2v(out[y*width + x + 1]);
-    p2 = c2v(out[(y + 1)*width + x]);
+    p0 = c2v(in[y*width + x]);
+    p1 = c2v(in[y*width + x + 1]);
+    p2 = c2v(in[(y + 1)*width + x]);
 
     tris[tid].vertices[0].pos.xyz = p0;
     tris[tid].vertices[1].pos.xyz = p1;
@@ -3567,9 +3643,9 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid].vertices[1].normal.xyz = flat_normal;
     tris[tid].vertices[2].normal.xyz = flat_normal;
 
-    p0 = c2v(out[y*width + x + 1]);
-    p1 = c2v(out[(y + 1)*width + x + 1]);
-    p2 = c2v(out[(y + 1)*width + x]);
+    p0 = c2v(in[y*width + x + 1]);
+    p1 = c2v(in[(y + 1)*width + x + 1]);
+    p2 = c2v(in[(y + 1)*width + x]);
 
     flat_normal = cross(p1-p0, p2-p0);
 
