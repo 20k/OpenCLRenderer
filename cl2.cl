@@ -3405,14 +3405,13 @@ float3 c2v(struct cloth_pos p)
 __kernel
 void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
-                    , __write_only image2d_t screen)
+                    , __write_only image2d_t screen, __global float4* body_positions, int body_num)
 {
     ///per-vertex
     int id = get_global_id(0);
 
     if(id >= width*height*depth)
         return;
-
 
     int z = id / (width * height);
     int y = (id - z*width*height) / width;
@@ -3497,6 +3496,25 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         }
     }
 
+    for(int i=0; i<body_num; i++)
+    {
+        float3 pos = body_positions[i].xyz;
+
+        const float rad = 70.f;
+
+        float3 diff = mypos - pos;
+
+        float len = fast_length(diff);
+
+        float dist_left = rad - len;
+
+        if(len > rad)
+            continue;
+
+        acc += dist_left * fast_normalize(diff);
+    }
+
+
     if(y == height-1)
     {
         acc = 0;
@@ -3504,6 +3522,9 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         mypos = c2v(fixed[x]);
         super_old = c2v(fixed[x]);
     }
+
+
+
 
     float3 diff = (mypos - super_old);
 
