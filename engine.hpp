@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 #include <chrono>
+#include <array>
 
 #include "smoke.hpp"
 
@@ -185,6 +186,8 @@ struct engine
 
     ///?
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);
+    static compute::buffer make_screen_buffer(int element_size);
+    static compute::buffer make_read_write(int size, void* data = nullptr);
 
     static int nbuf;
 

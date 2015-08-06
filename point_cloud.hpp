@@ -21,6 +21,7 @@ struct point_cloud_info
     int len;
 };
 
+///I do not need a manager class whatsoever
 struct point_cloud_manager
 {
     static point_cloud_info alloc_point_cloud(point_cloud& pcloud);

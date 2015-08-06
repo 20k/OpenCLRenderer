@@ -148,6 +148,25 @@ compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* 
     return buf;
 }
 
+compute::buffer engine::make_screen_buffer(int element_size)
+{
+    return compute::buffer(cl::context, element_size*width*height, CL_MEM_READ_WRITE, nullptr);
+}
+
+///this method basically exists because my ide does not autocomplete the compute::buffer calls
+///making it extremely tedious to remember how to create them
+compute::buffer engine::make_read_write(int size, void* data)
+{
+    auto buf = compute::buffer(cl::context, size, CL_MEM_READ_WRITE, nullptr);
+
+    if(data)
+    {
+        cl::cqueue.enqueue_write_buffer(buf, 0, size, data);
+    }
+
+    return buf;
+}
+
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d)
 {
     #ifdef RIFT

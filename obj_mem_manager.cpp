@@ -154,14 +154,16 @@ void alloc_object_descriptors(temporaries& t, const std::vector<obj_g_descriptor
     t.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
 
     ///done care if data arrives late
-    cl::cqueue2.enqueue_write_buffer_async(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
-    cl::cqueue2.enqueue_write_buffer_async(t.g_obj_num, 0, t.g_obj_num.size(), &t.obj_num);
+    if(t.obj_num > 0)
+        cl::cqueue2.enqueue_write_buffer_async(t.g_obj_desc, 0, t.g_obj_desc.size(), object_descriptors.data());
 
+    cl::cqueue2.enqueue_write_buffer_async(t.g_obj_num, 0, t.g_obj_num.size(), &t.obj_num);
 }
 
 void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 {
     cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
+
     //cl_uint obj_descriptor_size = object_descriptors.size();
 
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
@@ -172,20 +174,27 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 
     if(texture_manager::dirty)
     {
-        t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*number_of_texture_slices, CL_MEM_READ_ONLY);
-        t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*texture_manager::new_texture_id.size(), CL_MEM_READ_ONLY);
+        cl_uint clamped_tex_slice = number_of_texture_slices <= 1 ? 2 : number_of_texture_slices;
+        cl_uint clamped_ids = texture_manager::new_texture_id.size() == 0 ? 1 : texture_manager::new_texture_id.size();
+
+        t.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*clamped_tex_slice, CL_MEM_READ_ONLY);
+        t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
 
         ///3d texture array
-        t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, number_of_texture_slices, 0, 0, NULL);
+        t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
 
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};
 
-        ///need to pin c_texture_array to pcie mem
-        cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+        ///if the number of texture slices is 0, we'll still have some memory itll just be full of crap
+        if(number_of_texture_slices != 0)
+        {
+            ///need to pin c_texture_array to pcie mem
+            cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
 
-        cl::cqueue2.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
-        cl::cqueue2.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
+            cl::cqueue2.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
+            cl::cqueue2.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
+        }
     }
     else
     {
