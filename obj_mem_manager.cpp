@@ -135,6 +135,7 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             object_descriptors[n].has_bump = it->has_bump;
             object_descriptors[n].specular = it->specular;
             object_descriptors[n].diffuse = it->diffuse;
+            object_descriptors[n].two_sided = it->two_sided;
 
             trianglecount+=(it)->tri_num;
             n++;

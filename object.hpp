@@ -43,6 +43,7 @@ struct object
     ///specular = 1.f - rough, diffuse = kD
     float specular;
     float diffuse;
+    cl_uint two_sided;
 
     std::vector<cl_event> write_events;
 

@@ -288,6 +288,14 @@ void objects_container::set_normal(const std::string& normal)
     normal_map = normal;
 }
 
+void objects_container::set_two_sided(bool two_sided)
+{
+    for(auto& i : objs)
+    {
+        i.two_sided = two_sided;
+    }
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)

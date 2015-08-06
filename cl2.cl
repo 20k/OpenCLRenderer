@@ -70,6 +70,7 @@ struct obj_g_descriptor
     uint has_bump;
     float specular;
     float diffuse;
+    uint two_sided;
 };
 
 
@@ -1669,7 +1670,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     for(int i=0; i<num; i++)
     {
-        ooany[i] = backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+
+        ooany[i] = valid;
     }
 
     ///out of bounds checking for triangles
@@ -1834,7 +1837,9 @@ void prearrange_oculus(__global struct triangle* triangles, __global uint* tri_n
 
     for(int i=0; i<num; i++)
     {
-        ooany[i] = ooany[i] && (int)backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+
+        ooany[i] = ooany[i] && valid;
     }
 
     float4 bounds[4] = {{0, ewidth/2, 0, eheight}, {0, ewidth/2, 0, eheight}, {ewidth/2, ewidth, 0, eheight}, {ewidth/2, ewidth, 0, eheight}};
@@ -3408,7 +3413,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     //printf("%i %i %i\n", x, y, z);
 
     float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
-    float3 original_pos = (float3){in[id].x, in[id].y, in[id].z};
+    //float3 original_pos = (float3){in[id].x, in[id].y, in[id].z};
     float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
 
     float3 positions[4];
@@ -3442,109 +3447,64 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     }
 
 
+    float3 acc = 0;
 
-    float timestep = 0.9f;
+    float timestep = 0.009f;
 
-    mypos.y -= timestep * 4;
+    acc.y -= timestep * 4;
+
+    const float rest_dist = 15.f;
+
+    for(int i=0; i<4; i++)
+    {
+        if(x == 0 && i == 0)
+            continue;
+        if(x == width-1 && i == 1)
+            continue;
+        if(y == 0 && i == 2)
+            continue;
+        if(y == height-1 && i == 3)
+            continue;
+
+        float mf = 4.f;
+
+        float3 their_pos = positions[i];
+
+        float dist = length(their_pos - mypos);
+
+        float3 to_them = (their_pos - mypos);
+
+        if(dist > rest_dist)
+        {
+            float excess = dist - rest_dist;
+
+            acc += normalize(to_them) * excess/mf;
+
+        }
+        if(dist < rest_dist)
+        {
+            float excess = rest_dist - dist;
+
+            acc -= normalize(to_them) * excess/mf;
+        }
+    }
 
     if(y == height-1)
+    {
+        acc = 0;
+
         mypos = c2v(fixed[x]);
-
-
-    const float rest_dist = 10.f;
-
-    for(int i=0; i<4; i++)
-    {
-        if(x == 0 && i == 0)
-            continue;
-        if(x == width-1 && i == 1)
-            continue;
-        if(y == 0 && i == 2)
-            continue;
-        if(y == height-1 && i == 3)
-            continue;
-
-        float mf = 2.f;
-
-        float3 their_pos = positions[i];
-
-        float dist = length(their_pos - mypos);
-
-        float3 to_them = (their_pos - mypos);
-
-        if(dist > rest_dist)
-        {
-            float excess = dist - rest_dist;
-
-            mypos += normalize(to_them) * excess/mf;
-
-        }
-        if(dist < rest_dist)
-        {
-            float excess = rest_dist - dist;
-
-            mypos -= normalize(to_them) * excess/mf;
-        }
+        super_old = c2v(fixed[x]);
     }
 
+    float3 diff = (mypos - super_old);
 
-    ///do vertlet bit, not sure if it is correct to do it here
-    ///mypos is now my NEW positions, whereas px/y/z are old
-    ///I think vertlet is broken because of how I'm doing this on a gpu (ie full transform)
-    ///use euler?
+    diff = clamp(diff, -10.f, 10.f);
 
-    //float3 dp = mypos - (float3){px[id], py[id], pz[id]};
-
-    //float3 dp = (float3){px[id], py[id], pz[id]} - (float3){lx[id], ly[id], lz[id]};
-
-    //mypos += clamp(dp/1.6f, -40.f, 40.f);
-
-    //mypos += dp;
+    float3 new_pos = mypos + diff * 0.99f + acc;
 
 
-    float3 diff = (original_pos - super_old) * 0.3f;
-
-    //diff = clamp(diff/1.2f, -3, 3);
-
-    mypos += diff;
-
-
-    for(int i=0; i<4; i++)
-    {
-        if(x == 0 && i == 0)
-            continue;
-        if(x == width-1 && i == 1)
-            continue;
-        if(y == 0 && i == 2)
-            continue;
-        if(y == height-1 && i == 3)
-            continue;
-
-        float mf = 8.f;
-
-        float3 their_pos = positions[i];
-
-        float dist = length(their_pos - mypos);
-
-        float3 to_them = (their_pos - mypos);
-
-        if(dist > rest_dist)
-        {
-            float excess = dist - rest_dist;
-
-            mypos += normalize(to_them) * excess/mf;
-
-        }
-        if(dist < rest_dist)
-        {
-            float excess = rest_dist - dist;
-
-            mypos -= normalize(to_them) * excess/mf;
-        }
-    }
-
-
-    out[id] = (struct cloth_pos){mypos.x, mypos.y, mypos.z};
+    out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
 
     if(y == height-1 || x == width-1)
@@ -3554,24 +3514,34 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     ///the count of missed values so far is y, so we subtract y
     int tid = id * 2 - y + tri_start;
 
-    tris[tid].vertices[0].pos.xyz = c2v(in[y*width + x]);
-    tris[tid].vertices[1].pos.xyz = c2v(in[y*width + x + 1]);
-    tris[tid].vertices[2].pos.xyz = c2v(in[(y + 1)*width + x]);
+    float3 p0, p1, p2;
+    p0 = c2v(out[y*width + x]);
+    p1 = c2v(out[y*width + x + 1]);
+    p2 = c2v(out[(y + 1)*width + x]);
 
+    tris[tid].vertices[0].pos.xyz = p0;
+    tris[tid].vertices[1].pos.xyz = p1;
+    tris[tid].vertices[2].pos.xyz = p2;
 
-    tris[tid + 1].vertices[0].pos.xyz = c2v(in[y*width + x + 1]);
-    tris[tid + 1].vertices[1].pos.xyz = c2v(in[(y + 1)*width + x + 1]);
-    tris[tid + 1].vertices[2].pos.xyz = c2v(in[(y + 1)*width + x]);
+    float3 flat_normal = cross(p1-p0, p2-p0);
 
-//    printf("%i %i\n", pos.x, pos.y);
+    tris[tid].vertices[0].normal.xyz = flat_normal;
+    tris[tid].vertices[1].normal.xyz = flat_normal;
+    tris[tid].vertices[2].normal.xyz = flat_normal;
 
-    ///retriangulate
+    p0 = c2v(out[y*width + x + 1]);
+    p1 = c2v(out[(y + 1)*width + x + 1]);
+    p2 = c2v(out[(y + 1)*width + x]);
 
-    //lx[id] = mypos.x;
-    //ly[id] = mypos.y;
-    //lz[id] = mypos.z;
+    flat_normal = cross(p1-p0, p2-p0);
 
-    ///need to modify tris now
+    tris[tid + 1].vertices[0].pos.xyz = p0;
+    tris[tid + 1].vertices[1].pos.xyz = p1;
+    tris[tid + 1].vertices[2].pos.xyz = p2;
+
+    tris[tid + 1].vertices[0].normal.xyz = flat_normal;
+    tris[tid + 1].vertices[1].normal.xyz = flat_normal;
+    tris[tid + 1].vertices[2].normal.xyz = flat_normal;
 }
 
 /*
@@ -3950,13 +3920,10 @@ void gravity_attract(int num, __global float4* in_p, __global float4* out_p)
         float G = 0.001f;
 
         cumulative_acc += (G * to_them) / (len*len*len);
-
-        //float3 my_old = out_p[id].xyz;
-
-        //float3 my_new_pos = my_pos + their_pos;
     }
 
 
+    ///hooray! I finally understand vertlets!
     float3 my_new = my_pos + cumulative_acc + (my_pos - my_old);
 
     out_p[id] = my_new.xyzz;

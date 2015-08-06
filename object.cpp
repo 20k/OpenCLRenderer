@@ -39,6 +39,8 @@ object::object() : tri_list(0)
 
     specular = 0.9f;
     diffuse = 1.f;
+
+    two_sided = 0;
 }
 
 object::~object()

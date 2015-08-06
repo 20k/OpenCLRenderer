@@ -17,6 +17,7 @@ struct obj_g_descriptor
     cl_uint has_bump;
     cl_float specular;
     cl_float diffuse;
+    cl_uint two_sided;
     ///add in a type here for shaders?
 };
 
