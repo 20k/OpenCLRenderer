@@ -1027,9 +1027,6 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
     cl::cqueue.enqueue_write_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
-    cl_uint p3global_ws[] = {eng.width, eng.height};
-    cl_uint p3local_ws[] = {8, 8};
-
     ///convert between oculus format and curr. Rotation may not be correct
 
     /*static int first;
@@ -1160,6 +1157,11 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
     p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
     //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
+
+
+    cl_uint p3global_ws[] = {eng.width, eng.height};
+    cl_uint p3local_ws[] = {8, 8};
+
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);

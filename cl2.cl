@@ -1656,7 +1656,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     ///needs to be changed for lights
 
-    __global struct obj_g_descriptor *G =  &gobj[o_id];
+    __global struct obj_g_descriptor *G = &gobj[o_id];
 
     ///optimisation for very far away objects, useful for hiding stuff
     if(fast_length(G->world_pos.xyz - c_pos.xyz) > depth_far)
@@ -2844,6 +2844,14 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float light = dot(l2c, normal); ///diffuse
 
+        float l2 = dot(l2c, -normal);
+
+        if(light < 0)
+        {
+            normal = -normal;
+            light = l2;
+        }
+
         ///end lambert
 
         ///oren-nayar
@@ -3525,6 +3533,8 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     float3 flat_normal = cross(p1-p0, p2-p0);
 
+    flat_normal = fast_normalize(flat_normal);
+
     tris[tid].vertices[0].normal.xyz = flat_normal;
     tris[tid].vertices[1].normal.xyz = flat_normal;
     tris[tid].vertices[2].normal.xyz = flat_normal;
@@ -3534,6 +3544,8 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     p2 = c2v(out[(y + 1)*width + x]);
 
     flat_normal = cross(p1-p0, p2-p0);
+
+    flat_normal = fast_normalize(flat_normal);
 
     tris[tid + 1].vertices[0].pos.xyz = p0;
     tris[tid + 1].vertices[1].pos.xyz = p1;
