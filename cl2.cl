@@ -2846,7 +2846,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float l2 = dot(l2c, -normal);
 
-        if(light < 0 && G->two_sided)
+        int cond = light < 0 && G->two_sided == 1;
+
+        if(cond)
         {
             normal = -normal;
             light = l2;
