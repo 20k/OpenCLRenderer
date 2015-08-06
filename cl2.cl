@@ -3456,7 +3456,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     float3 acc = 0;
 
-    float timestep = 0.009f;
+    float timestep = 0.02f;
 
     acc.y -= timestep * 4;
 
@@ -3477,7 +3477,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
         float3 their_pos = positions[i];
 
-        float dist = length(their_pos - mypos);
+        float dist = fast_length(their_pos - mypos);
 
         float3 to_them = (their_pos - mypos);
 
@@ -3500,7 +3500,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     {
         float3 pos = body_positions[i].xyz;
 
-        const float rad = 70.f;
+        const float rad = 80.f;
 
         float3 diff = mypos - pos;
 
@@ -3511,9 +3511,16 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         if(len > rad)
             continue;
 
-        acc += dist_left * fast_normalize(diff);
+        //acc += dist_left * fast_normalize(diff);
+        acc += (1.f - (len/rad)) * dist_left * fast_normalize(diff);
     }
 
+    /*if(mypos.y < -630)
+    {
+        float dist = -630 - mypos.y;
+
+        acc += dist/400.f;
+    }*/
 
     if(y == height-1)
     {
@@ -3522,8 +3529,6 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         mypos = c2v(fixed[x]);
         super_old = c2v(fixed[x]);
     }
-
-
 
 
     float3 diff = (mypos - super_old);
