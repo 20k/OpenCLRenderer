@@ -3429,7 +3429,8 @@ float3 vertex_to_normal(int x, int y, __global struct cloth_pos* buf, int width,
 __kernel
 void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
-                    , __write_only image2d_t screen, __global float4* body_positions, int body_num)
+                    , __write_only image2d_t screen, __global float4* body_positions, int body_num,
+                    float4 wind_dir, float wind_str, __global float4* wind_buf)
 {
     ///per-vertex
     int id = get_global_id(0);
@@ -3538,6 +3539,31 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         acc += (1.f - (len/rad)) * dist_left * fast_normalize(diff);
     }
 
+    //acc += wind_dir.xyz * wind_str * (1.f - (float)y/height);// + wind_dir.xyz * wind_str * wind_side * (float)x/width;
+
+    float xcentre = width/2.f;
+
+    float d_x = fabs(x - xcentre) / width;
+    d_x *= d_x;
+
+    //acc += ((x - xcentre) / width) * wind_side * 1.f * (1.f - (float)y/height);
+
+    //if(y == 0)
+    {
+        //if(wind_side > 0)
+        {
+            //acc += 5;
+        }
+
+        float yfrac = 1.f - (float)y/height;
+
+        acc += yfrac * yfrac * yfrac * wind_buf[x].xyz / 5.f;
+        //acc += wind_dir.xyz * wind_str * yfrac * yfrac / 10.f;
+        //acc += yfrac * wind_buf[x].xyz / 10.f;
+    }
+
+
+
     if(y == height-1)
     {
         acc = 0;
@@ -3562,77 +3588,6 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     if(y == height-1 || x == width-1)
         return;
 
-    ///
-    __local float3 normals[10*30*2];
-
-    int lid = get_local_id(0);
-
-    int lx = lid % width;
-    int ly = lid / width;
-
-    normals[lid] = 0;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    /*float3 p0, p1, p2;
-    p0 = c2v(in[y*width + x]);
-    p1 = c2v(in[y*width + x + 1]);
-    p2 = c2v(in[(y + 1)*width + x]);
-
-    float3 flat_normal = cross(p1-p0, p2-p0);
-
-
-    p0 = c2v(in[y*width + x + 1]);
-    p1 = c2v(in[(y + 1)*width + x + 1]);
-    p2 = c2v(in[(y + 1)*width + x]);
-
-    flat_normal += cross(p1-p0, p2-p0);
-
-
-    flat_normal = fast_normalize(flat_normal);*/
-
-    /*float3 flat_normal = pos_to_normal(x, y, in, width, height);
-
-    ///square normal
-    normals[lid] = flat_normal;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    float3 accum = flat_normal;
-
-    for(int y=-1; y<2; y++)
-    {
-        for(int x=-1; x<2; x++)
-        {
-            int px = lx + x;
-            int py = ly + y;
-
-            int nid = py*width + px;
-
-            if(py < 0 || px < 0 || py >= height || px >= width)
-                continue;
-
-            if(x == 0 && y == 0)
-                continue;
-
-            accum += normals[py*width + px];
-        }
-    }
-
-    accum = fast_normalize(accum);
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    normals[lid] = accum;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    float3 n0, n1, n2, n3;
-
-    n0 = normals[ly*width + lx];
-    n1 = normals[ly*width + lx + 1];
-    n2 = normals[(ly + 1) * width + lx];
-    n3 = normals[(ly + 1) * width + lx + 1];*/
 
     float3 n0, n1, n2, n3;
 
