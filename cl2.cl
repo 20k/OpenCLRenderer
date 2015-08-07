@@ -3442,8 +3442,6 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     int y = (id - z*width*height) / width;
     int x = (id - z*width*height - y*width);
 
-    //printf("%i %i %i\n", x, y, z);
-
     float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
     float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
 
@@ -3484,6 +3482,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     acc.y -= timestep * 4;
 
+    ///25
     const float rest_dist = 25.f;
 
     for(int i=0; i<4; i++)
@@ -3535,34 +3534,14 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         if(len > rad)
             continue;
 
-        //acc += dist_left * fast_normalize(diff);
         acc += (1.f - (len/rad)) * dist_left * fast_normalize(diff);
     }
 
-    //acc += wind_dir.xyz * wind_str * (1.f - (float)y/height);// + wind_dir.xyz * wind_str * wind_side * (float)x/width;
-
-    float xcentre = width/2.f;
-
-    float d_x = fabs(x - xcentre) / width;
-    d_x *= d_x;
-
-    //acc += ((x - xcentre) / width) * wind_side * 1.f * (1.f - (float)y/height);
-
-    //if(y == 0)
     {
-        //if(wind_side > 0)
-        {
-            //acc += 5;
-        }
-
         float yfrac = 1.f - (float)y/height;
 
         acc += yfrac * yfrac * yfrac * wind_buf[x].xyz / 5.f;
-        //acc += wind_dir.xyz * wind_str * yfrac * yfrac / 10.f;
-        //acc += yfrac * wind_buf[x].xyz / 10.f;
     }
-
-
 
     if(y == height-1)
     {
@@ -3577,17 +3556,13 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     diff = clamp(diff, -10.f, 10.f);
 
-    float3 new_pos = mypos + diff * 0.98f + acc;
-
+    float3 new_pos = mypos + diff * 0.985f + acc;
 
     out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
-
     ///separate this out into a new kernel, accumulate normals for smooth lighting
-
     if(y == height-1 || x == width-1)
         return;
-
 
     float3 n0, n1, n2, n3;
 

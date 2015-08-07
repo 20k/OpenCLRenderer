@@ -55,29 +55,26 @@
 			<Add option="-std=gnu++11" />
 			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 			<Add option="-DGLEW_BUILD" />
-			<Add option="-DRIFT" />
+			<Add option="-DSFML_STATIC" />
 		</Compiler>
 		<Linker>
-			<Add option="-lport" />
 			<Add option="-lmingw32" />
-			<Add option="-lsfml-graphics" />
+			<Add option="-lsfml-graphics-s" />
 			<Add option="-lsfml-audio" />
-			<Add option="-lsfml-network" />
-			<Add option="-lsfml-window" />
-			<Add option="-lsfml-system" />
-			<Add option="-luser32" />
+			<Add option="-lsfml-network-s" />
+			<Add option="-lsfml-window-s" />
+			<Add option="-lsfml-system-s" />
+			<Add option="-lfreetype" />
+			<Add option="-ljpeg" />
 			<Add option="-lopengl32" />
 			<Add option="-lopencl" />
 			<Add option="-lglew64.dll" />
-			<Add option="-ldbghelp" />
+			<Add option="-lws2_32" />
 			<Add option="-lwinmm" />
 			<Add option="-lgdi32" />
-			<Add option="-ldxguid" />
-			<Add option="-lsetupapi" />
-			<Add option="-lws2_32" />
-			<Add option="-lole32" />
-			<Add option="-ladvapi32" />
-			<Add option="-lversion" />
+			<Add option="-lflac" />
+			<Add option="-lopenal32" />
+			<Add option="-logg" />
 		</Linker>
 		<Unit filename="../cl2.cl" />
 		<Unit filename="../cloud_gen/cloud_gen.cpp" />

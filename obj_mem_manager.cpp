@@ -225,7 +225,6 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 
     int obj_id=0;
 
-
     ///write triangle data to gpu
     for(std::vector<objects_container*>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); it2++)
     {
