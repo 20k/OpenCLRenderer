@@ -2732,29 +2732,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         t_normal.xyz -= 0.5f;
 
-        ///normals respresent a pertubation from 0, 1, 0
-
-        //t_normal = fast_normalize(t_normal.xyz);// - (float3){0, 1, 0};
-
-        ///?
-        //t_normal = -t_normal;
-
-        /*normal = rot(normal, 0, camera_rot);
-
-        if(normal.z > 0)
-            normal.z = -normal.z;
-
-        normal = back_rot(normal, 0, camera_rot);*/
-
-        //t_normal = rot(t_normal, 0, G->world_rot.xyz);
-
-        //t_normal = fast_normalize(t_normal);
-
-        /*if(dot(t_normal, normal) >= 0)
-            normal += t_normal;
-        else
-            normal -= t_normal;*/
-
         float cangle = dot((float3){0, 1, 0}, normal);
 
         float angle2 = acos(cangle);
@@ -2765,17 +2742,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         t_normal = rot(t_normal, 0, rotation);
 
-
-        //float angle = (dot(t_normal, normal));
-
-        normal = t_normal/1.f;
-
-
-
-        /*if(fabs(angle) > 0)
-            normal += t_normal;
-        else
-            normal -= t_normal;*/
+        normal = t_normal;
 
         normal = fast_normalize(normal);
     }
@@ -2843,16 +2810,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         l2c = fast_normalize(l2c);
 
         float light = dot(l2c, normal); ///diffuse
-
-        /*float l2 = dot(l2c, -normal);
-
-        int cond = light < 0 && G->two_sided == 1;
-
-        if(cond)
-        {
-            normal = -normal;
-            light = l2;
-        }*/
 
         int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
 
@@ -3414,6 +3371,60 @@ float3 c2v(struct cloth_pos p)
 {
     return (float3){p.x, p.y, p.z};
 }
+///0 1
+///3 2
+float3 rect_to_normal(float3 p0, float3 p1, float3 p2, float3 p3)
+{
+    float3 n1 = -(cross(p3 - p0, p1 - p0));
+    float3 n2 = -(cross(p3 - p1, p2 - p1));
+
+    return fast_normalize(n1 + n2);
+}
+
+float3 pos_to_normal(int x, int y, __global struct cloth_pos* buf, int width, int height)
+{
+    if(x < 0 || y < 0 || x >= width || y >= height)
+        return 0;
+
+    int2 p = {x, y};
+
+    int2 l1, l2, l3, l4;
+
+    l1 = p;
+    l2 = p + (int2){1, 0};
+    l3 = p + (int2){1, 1};
+    l4 = p + (int2){0, 1};
+
+    int2 bound = (int2){width, height};
+
+    l2 = min(l2, bound-1);
+    l3 = min(l3, bound-1);
+    l4 = min(l4, bound-1);
+
+    float3 p0, p1, p2, p3;
+
+    p0 = c2v(buf[l1.y*width + l1.x]);
+    p1 = c2v(buf[l2.y*width + l2.x]);
+    p2 = c2v(buf[l3.y*width + l3.x]);
+    p3 = c2v(buf[l4.y*width + l4.x]);
+
+    return rect_to_normal(p0, p1, p2, p3);
+}
+
+float3 vertex_to_normal(int x, int y, __global struct cloth_pos* buf, int width, int height)
+{
+    float3 accum = 0;
+
+    for(int j=-1; j<2; j++)
+    {
+        for(int i=-1; i<2; i++)
+        {
+            accum += pos_to_normal(x + i, y + j, buf, width, height);
+        }
+    }
+
+    return fast_normalize(accum);
+}
 
 __kernel
 void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
@@ -3552,7 +3563,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         return;
 
     ///
-    /*__local float3 normals[10*30*2];
+    __local float3 normals[10*30*2];
 
     int lid = get_local_id(0);
 
@@ -3563,7 +3574,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    float3 p0, p1, p2;
+    /*float3 p0, p1, p2;
     p0 = c2v(in[y*width + x]);
     p1 = c2v(in[y*width + x + 1]);
     p2 = c2v(in[(y + 1)*width + x]);
@@ -3578,7 +3589,9 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     flat_normal += cross(p1-p0, p2-p0);
 
 
-    flat_normal = fast_normalize(flat_normal);
+    flat_normal = fast_normalize(flat_normal);*/
+
+    /*float3 flat_normal = pos_to_normal(x, y, in, width, height);
 
     ///square normal
     normals[lid] = flat_normal;
@@ -3621,43 +3634,42 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     n2 = normals[(ly + 1) * width + lx];
     n3 = normals[(ly + 1) * width + lx + 1];*/
 
+    float3 n0, n1, n2, n3;
+
+    n0 = vertex_to_normal(x, y, in, width, height);
+    n1 = vertex_to_normal(x+1, y, in, width, height);
+    n2 = vertex_to_normal(x+1, y+1, in, width, height);
+    n3 = vertex_to_normal(x, y+1, in, width, height);
+
 
     ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
     ///the count of missed values so far is y, so we subtract y
     int tid = id * 2 - y + tri_start;
 
-    float3 p0, p1, p2;
+    float3 p0, p1, p2, p3;
     p0 = c2v(in[y*width + x]);
     p1 = c2v(in[y*width + x + 1]);
-    p2 = c2v(in[(y + 1)*width + x]);
+    p2 = c2v(in[(y+1)*width + x + 1]);
+    p3 = c2v(in[(y+1)*width + x]);
+
+    float3 flat_normal = pos_to_normal(x, y, in, width, height);
 
     tris[tid].vertices[0].pos.xyz = p0;
     tris[tid].vertices[1].pos.xyz = p1;
-    tris[tid].vertices[2].pos.xyz = p2;
+    tris[tid].vertices[2].pos.xyz = p3;
 
-    float3 flat_normal = cross(p1-p0, p2-p0);
+    tris[tid].vertices[0].normal.xyz = n0;
+    tris[tid].vertices[1].normal.xyz = n1;
+    tris[tid].vertices[2].normal.xyz = n3;
 
-    flat_normal = fast_normalize(flat_normal);
 
-    tris[tid].vertices[0].normal.xyz = flat_normal;
-    tris[tid].vertices[1].normal.xyz = flat_normal;
-    tris[tid].vertices[2].normal.xyz = flat_normal;
+    tris[tid + 1].vertices[0].pos.xyz = p1;
+    tris[tid + 1].vertices[1].pos.xyz = p2;
+    tris[tid + 1].vertices[2].pos.xyz = p3;
 
-    p0 = c2v(in[y*width + x + 1]);
-    p1 = c2v(in[(y + 1)*width + x + 1]);
-    p2 = c2v(in[(y + 1)*width + x]);
-
-    flat_normal = cross(p1-p0, p2-p0);
-
-    flat_normal = fast_normalize(flat_normal);
-
-    tris[tid + 1].vertices[0].pos.xyz = p0;
-    tris[tid + 1].vertices[1].pos.xyz = p1;
-    tris[tid + 1].vertices[2].pos.xyz = p2;
-
-    tris[tid + 1].vertices[0].normal.xyz = flat_normal;
-    tris[tid + 1].vertices[1].normal.xyz = flat_normal;
-    tris[tid + 1].vertices[2].normal.xyz = flat_normal;
+    tris[tid + 1].vertices[0].normal.xyz = n1;
+    tris[tid + 1].vertices[1].normal.xyz = n2;
+    tris[tid + 1].vertices[2].normal.xyz = n3;
 }
 
 /*
