@@ -1143,7 +1143,7 @@ float get_horizon_direction_depth(const int2 start, const float2 dir, const int 
 
 
 ///bad ambient occlusion, not actually hbao whatsoever, disabled for the moment
-float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer, float3 normal)
+/*float generate_hbao(int2 spos, __global uint *depth_buffer, float3 normal)
 {
 
     float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
@@ -1153,10 +1153,6 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
     //now, instead of taking the horizon because i'm not entirely sure how to calc that, going to use highest point in filtering
 
     float radius = 4.0f; //AO radius
-
-    //radius = radius / (dcalc(depth); ///err?
-    //radius = radius / (idcalc(depth));
-    //radius = radius * FOV_CONST / (depth);
 
     if(radius < 1)
     {
@@ -1171,7 +1167,6 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
     float2 directions[8] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}, {0, 1}, {0, -1}, {-1, 0}, {1, 0}};
 
-    //float distance = radius;
 
 
     ///get face normalf
@@ -1245,6 +1240,76 @@ float generate_hbao(struct triangle* tri, int2 spos, __global uint *depth_buffer
 
     //return sin(tangle);
 
+}*/
+
+float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
+{
+    float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
+
+    depth = idcalc(depth);
+
+
+    float furthest = depth;
+    int2 fpos = spos;
+
+    int rad = 1;
+
+    for(int x=-rad; x<=rad; x++)
+    {
+        int2 pos = spos + (int2){x, 0};
+
+        if(pos.x < 0 || pos.x >= SCREENWIDTH || pos.y < 0 || pos.y >= SCREENHEIGHT)
+            continue;
+
+        float new_depth = (float)depth_buffer[pos.y * SCREENWIDTH + pos.x] / mulint;
+        new_depth = idcalc(new_depth);
+
+        if(new_depth > furthest)
+        {
+            furthest = new_depth;
+            fpos = pos;
+        }
+    }
+
+    for(int y=-rad; y<=rad; y++)
+    {
+        int2 pos = spos + (int2){0, y};
+
+        if(pos.x < 0 || pos.x >= SCREENWIDTH || pos.y < 0 || pos.y >= SCREENHEIGHT)
+            continue;
+
+        uint d = depth_buffer[pos.y * SCREENWIDTH + pos.x];
+
+        float new_depth = (float) d/ mulint;
+        new_depth = idcalc(new_depth);
+
+        if(fabs(new_depth - depth) > fabs(furthest - depth) && new_depth > depth_icutoff && d != 0)
+        {
+            furthest = new_depth;
+            fpos = pos;
+        }
+    }
+
+    float diff = fabs(furthest - depth);
+
+    return min(diff / 100.f, 1.f);
+
+
+    /*if(furthest == depth)
+        return 1;
+
+    float2 fspos = {((fpos.x - SCREENWIDTH/2.0f)*furthest/FOV_CONST), ((fpos.y - SCREENHEIGHT/2.0f)*furthest/FOV_CONST)};
+    float2 sspos = {((spos.x - SCREENWIDTH/2.0f)*depth/FOV_CONST), ((spos.y - SCREENHEIGHT/2.0f)*depth/FOV_CONST)};
+
+
+    float3 tangent = 1.f / normal;
+
+    float hangle = atan2(furthest, length(convert_float2(fspos - sspos)));
+    float tangle = atan2(tangent.z, length(tangent.xy));
+
+    float ao = sin(hangle);// - sin(tangle);
+
+    return fabs(ao) / 10.f;*/
 }
 
 ///ONLY HARD SHADOWS ONLY ONLY___
@@ -2989,9 +3054,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     //rot_normal = rot(normal, zero, *c_rot);
 
-    //float hbao = generate_hbao(c_tri, scoord, depth_buffer, rot_normal);
-
-    //float hbao = 0;
+    int2 scoord = {x, y};
 
     float reflected_surface_colour = 0.7;
 
@@ -3001,11 +3064,18 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     float3 final_col = colclamp * diffuse_sum + specular_sum * (1.f - reflected_surface_colour);
 
+    //#define OUTLINE
+    #ifdef OUTLINE
+    float hbao = generate_hbao(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
+    final_col += hbao;
+    #endif // OUTLINE
+
     final_col = clamp(final_col, 0.f, 1.f);
 
-    int2 scoord = {x, y};
 
     write_imagef(screen, scoord, final_col.xyzz);
+
+    //write_imagef(screen, scoord, final_col.xyzz);
     //write_imagef(screen, scoord, fabs(normal.xyzz));
 
 
