@@ -2031,9 +2031,6 @@ void engine::render_buffers()
     }*/
 
 
-    window.setActive(true);
-
-
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
     PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
@@ -2073,7 +2070,7 @@ void engine::render_buffers()
         }
     }
 
-    //glFinish();
+    glFinish();
 
     //window.setActive(false);
 

@@ -292,6 +292,24 @@ void calc_min_max(float3 points[3], float width, float height, float ret[4])
     ret[3] = clamp(ret[3], 0.0f, height-1);
 }
 
+float4 calc_min_max_p(float3 p0, float3 p1, float3 p2, float2 s)
+{
+    p0 = round(p0);
+    p1 = round(p1);
+    p2 = round(p2);
+
+    float4 ret;
+
+    ret.x = min3(p0.x, p1.x, p2.x) - 1.f;
+    ret.y = max3(p0.x, p1.x, p2.x);
+    ret.z = min3(p0.y, p1.y, p2.y) - 1.f;
+    ret.w = max3(p0.y, p1.y, p2.y);
+
+    ret = clamp(ret, 0.f, s.xxyy - 1.f);
+
+    return ret;
+}
+
 void calc_min_max_oc(float3 points[3], float mx, float my, float width, float height, float ret[4])
 {
     float x[3];
@@ -2334,7 +2352,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
             __global float2* distort_buffer)
 {
 
-    uint id = get_global_id(0);
+    int id = get_global_id(0);
 
     int len = *f_len;
 
@@ -2361,10 +2379,12 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
 
-    float min_max[4];
-    calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
+    //float min_max[4];
+    //calc_min_max(tris_proj_n, SCREENWIDTH, SCREENHEIGHT, min_max);
 
-    int width = min_max[1] - min_max[0];
+    float4 min_max = calc_min_max_p(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2], (float2){SCREENWIDTH, SCREENHEIGHT});
+
+    int width = min_max.y - min_max.x;
 
     int pixel_along = op_size*distance;
 
@@ -2375,8 +2395,8 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     xpv = round(xpv);
     ypv = round(ypv);
 
-    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
-    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
+    //float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
+    //float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
 
     ///have to interpolate inverse to be perspective correct
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
@@ -2384,15 +2404,15 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     int pcount = -1;
 
-    float mod = 1;
+    //float mod = 1;
 
-    mod = area / 5000.f;
+    float mod = area / 5000.f;
 
     //mod = max(1.f, mod);
 
-    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+    float x = (pixel_along  % width) + min_max.x - 1;
 
-    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max.z;
 
 
     float A, B, C;
@@ -2411,16 +2431,16 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         ///finally going to have to fix this to get optimal performance
 
-        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max.z;
 
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+        x = y != ty ? ((pixel_along + pcount) % width) + min_max.x : x;
 
-        if(y >= min_max[3])
+        if(y >= min_max.w)
         {
             break;
         }
 
-        bool oob = x >= min_max[1] || x < min_max[0] || y < min_max[2];
+        bool oob = x >= min_max.y || x < min_max.x || y < min_max.z;
 
         if(oob)
         {
@@ -2429,12 +2449,10 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+        bool cond = s1 < area + mod;//s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
 
         if(cond)
         {
-            //float fmydepth = interpolate_p(depths, x, y, xpv, ypv, rconst);
-
             float fmydepth = A * x + B * y + C;
 
             uint mydepth = native_divide((float)mulint, fmydepth);
@@ -2446,14 +2464,13 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
             uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
 
-            int cond = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
+            int c2 = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
 
             ///found depth buffer value, write the triangle id
-            if(cond)
+            if(c2)
             {
-                int2 coord = {x, y};
                 uint4 d = {id, 0, 0, 0};
-                write_imageui(id_buffer, coord, d);
+                write_imageui(id_buffer, (int2){x, y}, d);
             }
 
             //prefetch(&depth_buffer[(int)y*SCREENWIDTH + (int)x + 1], 1);
@@ -2825,13 +2842,13 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         ///end lambert
 
         ///oren-nayar
-        /*float albedo = 1.0f;
+        /*float albedo = 0.3f;
 
-        float rough = 0.1f;
+        float r2 = 0.1f;
 
-        float A = 1.0f - 0.5f * (native_divide(rough*rough, rough*rough + 0.33f));
+        float A = 1.0f - 0.5f * (native_divide(r2*r2, r2*r2 + 0.33f));
 
-        float B = 0.45f * (native_divide(rough*rough, rough*rough + 0.09f));
+        float B = 0.45f * (native_divide(r2*r2, r2*r2 + 0.09f));
 
 
         float2 cos_theta = clamp((float2)(dot(normal,l2c),dot(normal,l2p)), 0.0f, 1.0f);
@@ -2845,16 +2862,46 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float diffuse_oren_nayar = cos_phi * sin_theta / max(cos_theta.x, cos_theta.y);
 
-        float diffuse = cos_theta.x * (A + B * diffuse_oren_nayar);
-        float light;
-        light = albedo * (diffuse);
+        float diffuse = cos_theta.x * (A + B * diffuse_oren_nayar) * albedo;
+        //float light;
+        light = albedo * (diffuse);*/
 
-        light = max(light, -ambient);*/
+        //light = max(light, -ambient);
 
         /*if((dot(normal, fast_normalize(global_position - lpos))) > 0) ///backface
         {
             skip = 1;
         }*/
+
+        /*
+        float3 n = normal;
+        float3 r = l2c;
+        float3 v = l2p;
+
+        float alpha = max(acos(dot(v, n)), acos(dot(r, n)));
+        float beta = min(acos(dot(v, n)), acos(dot(r, n)));
+        float gamma = dot(v - n * dot(v, n), r - n * dot(r, n));
+
+        float oren_rough = 0.4;
+        float r2 = oren_rough * oren_rough;
+
+        float C1 = 1.f - 0.5f * (r2 / (r2 + 0.33f));
+        float C2 = 0.45 * (r2 / (r2 + 0.09f));
+
+        if(gamma >= 0.f)
+            C2 *= sin(alpha);
+        else
+            C2 *= sin(alpha) - pow(2 * beta / M_PI, 3.f);
+
+        float C3 = (1.f / 8.f);
+        C3 *= (r2 / (r2 + 0.09f));
+        C3 *= pow(4.f * alpha * beta / (M_PI * M_PI), 2.f);
+
+        float A = gamma * C2 * tan(beta);
+        float B = (1.f - fabs(gamma)) * C3 * tan((alpha + beta) / 2.f);
+
+        light = max(0.f, dot(n, r)) * (C1 + A + B);*/
+
 
         light *= distance_modifier;
 

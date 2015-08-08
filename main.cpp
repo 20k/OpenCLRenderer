@@ -37,6 +37,8 @@ int main(int argc, char *argv[])
 
     obj_mem_manager::load_active_objects();
 
+    sponza.set_specular(0.f);
+
     texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
