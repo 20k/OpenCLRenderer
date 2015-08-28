@@ -5,6 +5,17 @@
 #include <boost/bind.hpp>
 #include "texture_manager.hpp"
 
+template<typename T>
+static std::string to_str(T i)
+{
+    std::ostringstream convert;
+
+    convert << i;
+
+    return convert.str();
+}
+
+
 texture::texture()
 {
     std::function<void (texture*)> func;
@@ -179,7 +190,33 @@ void texture::generate_mipmaps()
         has_mipmaps = true;
 
         for(int i=0; i<MIP_LEVELS; i++)
-            gen_miplevel(*this, i);
+        {
+            std::string mip_loc = texture_location + to_str(i) + ".png";
+
+            FILE* pFile = fopen(mip_loc.c_str(), "r");
+
+            fclose(pFile);
+
+            ///file does not exist, generate and cache
+            if(pFile == nullptr)
+            {
+                printf("generated mipmap\n");
+
+                gen_miplevel(*this, i);
+
+                const sf::Image& img = mipmaps[i];
+
+                img.saveToFile(mip_loc);
+            }
+            else
+            {
+                printf("loaded cached mipmap\n");
+
+                sf::Image& img = mipmaps[i];
+
+                img.loadFromFile(mip_loc);
+            }
+        }
     }
 }
 

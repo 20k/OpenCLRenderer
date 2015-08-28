@@ -253,7 +253,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         pure_3d = " -D ONLY_3D";
 
     ///does not compile properly without (breaks texture filtering), investigate this at some point
-    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d + " -O5";// + " -D BECKY_HACK=" + sbecky;
+    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
 
     #ifdef BECKY_HACK
     buildoptions = buildoptions + std::string(" -D BECKY_HACK=1");
