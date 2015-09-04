@@ -3056,7 +3056,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     int2 scoord = {x, y};
 
-    float reflected_surface_colour = 0.7;
+    float reflected_surface_colour = 0.7f;
 
     float3 colclamp = col + mandatory_light + specular_sum * reflected_surface_colour;
 
@@ -4064,13 +4064,21 @@ void blit_unconditional(__write_only image2d_t screen, __global uint4* colour_bu
     write_imagef(screen, (int2){x, y}, col);
 }
 
+struct particle_info
+{
+    float density;
+    float temp;
+};
+
 __kernel
-void gravity_attract(int num, __global float4* in_p, __global float4* out_p)
+void gravity_attract(int num, __global float4* in_p, __global float4* out_p, __global struct particle_info* in_i, __global struct particle_info* out_i, __global uint* col)
 {
     int id = get_global_id(0);
 
     if(id >= num)
         return;
+
+    struct particle_info mi = in_i[id];
 
     float3 cumulative_acc = 0;
 
@@ -4078,10 +4086,18 @@ void gravity_attract(int num, __global float4* in_p, __global float4* out_p)
 
     float3 my_old = out_p[id].xyz;
 
+    float friction = 1.f;
+
+    int nearnum = 0;
+
+    float cumulative_temp = 0.f;
+
     for(int i=0; i<num; i++)
     {
         if(i == id)
             continue;
+
+        struct particle_info ti = in_i[i];
 
         float3 their_pos = in_p[i].xyz;
 
@@ -4089,20 +4105,93 @@ void gravity_attract(int num, __global float4* in_p, __global float4* out_p)
 
         float len = fast_length(to_them);
 
-        if(len < 10)
-            len = 10;
+        float max_dens = max(mi.density, ti.density);
+        float max_temp = max(mi.temp, ti.temp);
 
-        float G = 0.001f;
+        const float surface = (1.f + max_temp * 1.f) * 10 * 1.f / (max_dens);
 
-        cumulative_acc += (G * to_them) / (len*len*len);
+        float gravity_distance = len;
+        float subsurface_distance = len;
+
+        if(gravity_distance < surface)
+            gravity_distance = surface;
+
+        float G = 0.01f;
+
+        cumulative_acc += (G * to_them * mi.density * ti.density) / (gravity_distance*gravity_distance*gravity_distance);
+
+        if(subsurface_distance < surface)
+        {
+            float R = 0.1f * (1.f + max_temp);
+
+            float extra = surface - subsurface_distance;
+
+            cumulative_acc -= R * to_them / (subsurface_distance*subsurface_distance*subsurface_distance);
+
+            nearnum += 1;
+
+            ///advect temperature
+            cumulative_temp += ti.temp;
+        }
     }
 
+    float resistance = nearnum * 0.0001f;
+
+    friction -= resistance;
+
+    friction = clamp(friction, 0.98f, 1.f);
 
     ///hooray! I finally understand vertlets!
-    float3 my_new = my_pos + cumulative_acc + (my_pos - my_old);
+    float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
+
+    float loss = length((my_pos - my_old) * (1.f - friction)) * 1.f;
+
+    float my_temp = out_i[id].temp;
+
+    my_temp = (my_temp * 10000.f + cumulative_temp) / (10000.f + nearnum);
+
+    my_temp += loss;
+    my_temp -= my_temp * 0.0001f;
+
+    out_i[id].temp = my_temp;
 
     out_p[id] = my_new.xyzz;
 
+    float r, g, b;
+
+    r = my_temp;
+
+    r = 0;
+    g = 0;
+    b = 0;
+
+    if(mi.density > 1.05f)
+    {
+        b = 1.f, r = 1.f;
+    }
+    if(mi.density > 0.95f)
+        r = 1.f;
+    else if(mi.density > 0.0f)
+        g = 1.f;
+    else
+    {
+        b = 1.f;
+        r = 1.f;
+    }
+
+    //r *= my_temp;
+    //g *= my_temp;
+    //b *= my_temp;
+
+    r = clamp(r, 0.f, 1.f);
+    g = clamp(g, 0.f, 1.f);
+    b = clamp(b, 0.f, 1.f);
+
+    col[id] = 0;
+
+    col[id] |= (uint)(r * 255) << 24;
+    col[id] |= (uint)(g * 255) << 16;
+    col[id] |= (uint)(b * 255) << 8;
 }
 
 
