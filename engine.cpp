@@ -1017,14 +1017,14 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint p1global_ws = obj_mem_manager::tri_num;
     cl_uint local = 128;
 
-    cl_uint id_num = 0;
+    static cl_uint id_num = 0;
 
     ///do this async
 
     ///clear the number of triangles that are generated after first kernel run
     ///do this after they're needed async then use a waitfor event
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
-    cl::cqueue.enqueue_write_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+    //cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+    //cl::cqueue.enqueue_write_buffer(eng.g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
     ///convert between oculus format and curr. Rotation may not be correct
 
@@ -1049,6 +1049,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_list(cl::reproject_depth, p3global_ws, p3local_ws, 2, reprojection_arg_list, true);*/
 
+    clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
+
 
     arg_list prearg_list;
 
@@ -1067,12 +1069,10 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
-    clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
-
     local = 256;
 
     ///infernal satanic magic
-    cl_uint p1global_ws_new = id_num;
+    cl_uint p1global_ws_new = id_num * 1.1;
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -1094,7 +1094,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
-    cl_uint p2global_ws = id_num;
+    cl_uint p2global_ws = id_num * 1.1;
 
     cl_uint local2 = 256;
 

@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
+    window.window.setPosition({-20, -20});
+
     #ifdef OCULUS
     window.window.setVerticalSyncEnabled(true);
     #endif

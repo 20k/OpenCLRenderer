@@ -1716,6 +1716,14 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         return;
     }
 
+    if(id == 0)
+    {
+        *id_cutdown_tris = 0;
+        *id_buffer_atomc = 0;
+    }
+
+    barrier(CLK_GLOBAL_MEM_FENCE);
+
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
@@ -2142,7 +2150,6 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     {
         return;
     }
-
 
     float ewidth = SCREENWIDTH;
     float eheight = SCREENHEIGHT;

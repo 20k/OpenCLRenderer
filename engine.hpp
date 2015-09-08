@@ -257,6 +257,10 @@ inline void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
     size_t l_ws[dimensions];
 
     for(int i=0; i<dimensions; i++)
+        if(g_ws[i] <= 0)
+            return;
+
+    for(int i=0; i<dimensions; i++)
     {
         g_ws[i] = global_ws[i];
         l_ws[i] = local_ws[i];
