@@ -2027,9 +2027,9 @@ void engine::render_buffers()
     }*/
 
 
-    PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+    static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 
-    PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
+    static PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
 
     if(!rift::enabled)
@@ -2066,7 +2066,8 @@ void engine::render_buffers()
         }
     }
 
-    glFinish();
+    ///turns out, we don't really care if opengl has finished or not!
+    //glFinish();
 
     //window.setActive(false);
 
