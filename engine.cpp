@@ -2028,15 +2028,20 @@ void engine::render_buffers()
 
 
     static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
-
     static PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
+    static bool once = true;
 
     if(!rift::enabled)
     {
-        glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
+        if(once)
+        {
+            glBindFramebufferEXT(GL_READ_FRAMEBUFFER, gl_framebuffer_id);
 
-        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+            glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+            once = false;
+        }
 
         ///blit buffer to screen
         glBlitFramebufferEXT(0 , 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
