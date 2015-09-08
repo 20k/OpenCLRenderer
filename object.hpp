@@ -12,8 +12,8 @@
 
 struct object
 {
-    int gpu_tri_start;
-    int gpu_tri_end;
+    cl_uint gpu_tri_start;
+    cl_uint gpu_tri_end;
 
     cl_float4 pos;
     cl_float4 rot;

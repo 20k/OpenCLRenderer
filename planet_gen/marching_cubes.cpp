@@ -183,7 +183,7 @@ inline float noise(int x, int y, int z, int w)
 }
 
 
-
+inline
 float smoothnoise(float fx, float fy, float fz, float fw)
 {
     int x, y, z, w;

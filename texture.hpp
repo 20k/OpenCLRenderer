@@ -25,7 +25,7 @@ struct texture
 
     bool has_mipmaps;
 
-    //bool cache;
+    bool cacheable;
 
     int id;
 

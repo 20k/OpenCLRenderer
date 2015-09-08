@@ -24,6 +24,7 @@ texture::texture()
     is_active = false;
     is_loaded = false;
     has_mipmaps = false;
+    cacheable = true;
 
     set_load_func(func);
 
@@ -198,7 +199,7 @@ void texture::generate_mipmaps()
             fclose(pFile);
 
             ///file does not exist, generate and cache
-            if(pFile == nullptr)
+            if(pFile == nullptr || !cacheable)
             {
                 printf("generated mipmap\n");
 
@@ -206,7 +207,8 @@ void texture::generate_mipmaps()
 
                 const sf::Image& img = mipmaps[i];
 
-                img.saveToFile(mip_loc);
+                if(cacheable)
+                    img.saveToFile(mip_loc);
             }
             else
             {

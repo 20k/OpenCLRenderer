@@ -52,13 +52,12 @@
 			<Add option="-DGLEW_STATIC" />
 		</Compiler>
 		<Linker>
-			<Add option="-pg -lgmon" />
 			<Add option="-lmingw32" />
-			<Add option="-lsfml-graphics" />
+			<Add option="-lsfml-graphics-s" />
 			<Add option="-lsfml-audio" />
-			<Add option="-lsfml-network" />
-			<Add option="-lsfml-window" />
-			<Add option="-lsfml-system" />
+			<Add option="-lsfml-network-s" />
+			<Add option="-lsfml-window-s" />
+			<Add option="-lsfml-system-s" />
 			<Add option="-lfreetype" />
 			<Add option="-ljpeg" />
 			<Add option="-lopengl32" />

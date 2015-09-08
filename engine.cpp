@@ -1020,7 +1020,6 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint id_num = 0;
 
     ///do this async
-    clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
     ///clear the number of triangles that are generated after first kernel run
     ///do this after they're needed async then use a waitfor event
@@ -1068,15 +1067,12 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
-    //std::cout << "ptime " << c.getElapsedTime().asMicroseconds() << std::endl;
-
-    //sf::Clock p1;
-
+    clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
     local = 256;
 
     ///infernal satanic magic
-    cl_uint p1global_ws_new = id_num * 1.1;
+    cl_uint p1global_ws_new = id_num;
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -1098,7 +1094,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
-    cl_uint p2global_ws = id_num * 1.1;
+    cl_uint p2global_ws = id_num;
 
     cl_uint local2 = 256;
 

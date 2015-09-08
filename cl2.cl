@@ -379,6 +379,11 @@ float backface_cull_expanded(float3 p0, float3 p1, float3 p2)
     return cross(p1-p0, p2-p0).z < 0;
 }
 
+float3 tri_to_normal(struct triangle* tri)
+{
+    return cross(tri->vertices[1].pos.xyz - tri->vertices[0].pos.xyz, tri->vertices[2].pos.xyz - tri->vertices[0].pos.xyz);
+}
+
 float backface_cull(struct triangle *tri)
 {
     return backface_cull_expanded(tri->vertices[0].pos.xyz, tri->vertices[1].pos.xyz, tri->vertices[2].pos.xyz);
@@ -3717,6 +3722,199 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid + 1].vertices[0].normal.xyz = n1;
     tris[tid + 1].vertices[1].normal.xyz = n2;
     tris[tid + 1].vertices[2].normal.xyz = n3;
+}
+
+///width+1 x height+1
+__kernel
+void generate_heightmap(int width, int height, __global float* heightmap, __global float4* y_func, __global float* sm_noise, float4 c_pos, float4 c_rot)
+{
+    int idx = get_global_id(0);
+    int idy = get_global_id(1);
+
+    if(idx > width || idy > height)
+        return;
+
+    float x = (idx - width/2.f) / (width/2.f);
+    float y = (idy - height/2.f) / (height/2.f);
+
+    float spr = 2.f;
+
+    float xgauss = 60.f * exp(- x * x / (2.f * spr * spr));
+
+    float centre_height = sm_noise[idx] * 5.f + xgauss;
+
+    float yfrac = 1.f - fabs(y);
+
+    float4 rval = y_func[idy*width + idx];
+
+    float random = rval.z;
+
+    float h = centre_height * yfrac * yfrac + random;
+
+    heightmap[idy*width + idx] = h * 10.f;
+}
+
+
+float3 terrain_pos_to_normal(int x, int y, __global float* buf, int width, int height)
+{
+    if(x < 0 || y < 0 || x >= width || y >= height)
+        return 0;
+
+    int2 p = {x, y};
+
+    int2 l1, l2, l3, l4;
+
+    l1 = p;
+    l2 = p + (int2){1, 0};
+    l3 = p + (int2){1, 1};
+    l4 = p + (int2){0, 1};
+
+    int2 bound = (int2){width, height};
+
+    l2 = min(l2, bound-1);
+    l3 = min(l3, bound-1);
+    l4 = min(l4, bound-1);
+
+    float3 p0, p1, p2, p3;
+
+    p0.y = buf[l1.y*width + l1.x];
+    p1.y = buf[l2.y*width + l2.x];
+    p2.y = buf[l3.y*width + l3.x];
+    p3.y = buf[l4.y*width + l4.x];
+
+
+    float2 wh = (float2){width, height}/2.f;
+
+    float2 e1 = {x, y};
+    float2 e2 = {x+1, y};
+    float2 e3 = {x+1, y+1};
+    float2 e4 = {x, y+1};
+
+    float2 r1 = (e1 - wh) / wh;
+    float2 r2 = (e2 - wh) / wh;
+    float2 r3 = (e3 - wh) / wh;
+    float2 r4 = (e4 - wh) / wh;
+
+    const int size = 500;
+
+    p0.xz = r1 * size;
+    p1.xz = r2 * size;
+    p2.xz = r3 * size;
+    p3.xz = r4 * size;
+
+    return -rect_to_normal(p0, p1, p2, p3);
+}
+
+float3 terrain_vertex_to_normal(int x, int y, __global float* buf, int width, int height)
+{
+    float3 accum = 0;
+
+    for(int j=-1; j<2; j++)
+    {
+        for(int i=-1; i<2; i++)
+        {
+            if(abs(i) == 1 && abs(i) == abs(j))
+                continue;
+
+            accum += terrain_pos_to_normal(x + i, y + j, buf, width, height);
+        }
+    }
+
+    return fast_normalize(accum);
+}
+
+///now make this adaptive
+__kernel
+void triangleize_grid(int width, int height, __global float* heightmap, __global float4* y_func, __global float* sm_noise, float4 c_pos, float4 c_rot,
+                      int tri_start, int tri_end, __global struct triangle* tris)
+{
+    const int size = 500;
+    const int w = 1000;
+    const int h = 1000;
+
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+
+    if(i >= w-1 || j >= h-1)
+        return;
+    if(i == 0 || j == 0)
+        return;
+
+    float2 wh = (float2){w, h}/2.f;
+
+    float2 l1 = {i, j};
+    float2 l2 = {i+1, j};
+    float2 l3 = {i, j+1};
+    float2 l4 = {i+1, j+1};
+
+    float2 p1 = size * (l1 - wh) / wh;
+    float2 p2 = size * (l2 - wh) / wh;
+    float2 p3 = size * (l3 - wh) / wh;
+    float2 p4 = size * (l4 - wh) / wh;
+
+    float3 tl, tr, bl, br;
+
+    tl = (float3){p1.x, heightmap[j*w + i], p1.y};
+    tr = (float3){p2.x, heightmap[(j)*w + i+1], p2.y};
+    bl = (float3){p3.x, heightmap[(j+1)*w + i], p3.y};
+    br = (float3){p4.x, heightmap[(j+1)*w + i + 1], p4.y};
+
+    struct triangle t1, t2;
+
+    t1.vertices[0].pos.xyz = tl;
+    t1.vertices[1].pos.xyz = bl;
+    t1.vertices[2].pos.xyz = tr;
+
+    t2.vertices[0].pos.xyz = tr;
+    t2.vertices[1].pos.xyz = bl;
+    t2.vertices[2].pos.xyz = br;
+
+    t1.vertices[0].normal.xyz = terrain_vertex_to_normal(i, j, heightmap, w, h);
+    t1.vertices[1].normal.xyz = terrain_vertex_to_normal(i, j+1, heightmap, w, h);
+    t1.vertices[2].normal.xyz = terrain_vertex_to_normal(i+1, j, heightmap, w, h);
+
+    t2.vertices[0].normal.xyz = terrain_vertex_to_normal(i+1, j, heightmap, w, h);
+    t2.vertices[1].normal.xyz = terrain_vertex_to_normal(i, j+1, heightmap, w, h);
+    t2.vertices[2].normal.xyz = terrain_vertex_to_normal(i+1, j+1, heightmap, w, h);
+
+    int id = tri_start + (j*w + i)*2;
+
+    tris[id] = t1;
+    tris[id + 1] = t2;
+
+    /*txo[(j*width + i)*6 + 0 ] = tl.x;
+    tyo[(j*width + i)*6 + 0 ] = tl.y;
+    tzo[(j*width + i)*6 + 0 ] = tl.z;
+
+    txo[(j*width + i)*6 + 1 ] = bl.x;
+    tyo[(j*width + i)*6 + 1 ] = bl.y;
+    tzo[(j*width + i)*6 + 1 ] = bl.z;
+
+    txo[(j*width + i)*6 + 2 ] = tr.x;
+    tyo[(j*width + i)*6 + 2 ] = tr.y;
+    tzo[(j*width + i)*6 + 2 ] = tr.z;
+
+    txo[(j*width + i)*6 + 3 ] = tr.x;
+    tyo[(j*width + i)*6 + 3 ] = tr.y;
+    tzo[(j*width + i)*6 + 3 ] = tr.z;
+
+    txo[(j*width + i)*6 + 4 ] = bl.x;
+    tyo[(j*width + i)*6 + 4 ] = bl.y;
+    tzo[(j*width + i)*6 + 4 ] = bl.z;
+
+    txo[(j*width + i)*6 + 5 ] = br.x;
+    tyo[(j*width + i)*6 + 5 ] = br.y;
+    tzo[(j*width + i)*6 + 5 ] = br.z;*/
+
+
+
+
+    /*tyo[(j*width + i)*2 ] = bl;
+    tzo[(j*width + i)*2 ] = tr;
+
+    txo[(j*width + i)*2 + 1] = tr;
+    tyo[(j*width + i)*2 + 1] = bl;
+    tzo[(j*width + i)*2 + 1] = br;*/
 }
 
 /*
