@@ -451,8 +451,8 @@ void depth_project(float3 rotated[3], float width, float height, float fovc, flo
         float ry;
         ry=(rotated[i].y) * (fovc/rotated[i].z);
 
-        rx+=width/2;
-        ry+=height/2;
+        rx+=width/2.f;
+        ry+=height/2.f;
 
         ret[i].x = rx;
         ret[i].y = ry;
@@ -468,8 +468,8 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
     float ry;
     ry=(rotated.y) * (fovc/rotated.z);
 
-    rx+=width/2;
-    ry+=height/2;
+    rx+=width/2.f;
+    ry+=height/2.f;
 
     float3 ret;
 
@@ -831,20 +831,7 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     return t;
 }
 
-/*
-float return_bilinear_shadf(float2 coord, float values[4])
-{
-    float mx, my;
-    mx = coord.x - 0.5f;
-    my = coord.y - 0.5f;
-    float2 uvratio = {mx - floor(mx), my - floor(my)};
-    float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
 
-    float result;
-    result=(values[0]*buvr.x + values[1]*uvratio.x)*buvr.y + (values[2]*buvr.x + values[3]*uvratio.x)*uvratio.y;
-
-    return result;
-}*/
 
 ///fixme
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
@@ -2215,6 +2202,8 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
+    float iwidth = 1.f / width;
+
     ///while more pixels to write
     while(pcount < op_size)
     {
@@ -2226,7 +2215,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         float ty = y;
 
-        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+        y = floor((float)(pixel_along + pcount) * iwidth) + min_max[2];
 
         x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
 
@@ -2262,7 +2251,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
             if(mydepth == 0)
             {
-                continue;
+                //continue;
             }
 
             __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
@@ -2496,6 +2485,8 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
 
+    float iwidth = 1.f / width;
+
     ///while more pixels to write
     ///write to local memory, then flush to texture?
     while(pcount < op_size)
@@ -2508,7 +2499,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         ///finally going to have to fix this to get optimal performance
 
-        y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max.z;
+        y = floor((float)(pixel_along + pcount) * iwidth) + min_max.z;
 
         x = y != ty ? ((pixel_along + pcount) % width) + min_max.x : x;
 
@@ -2536,7 +2527,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
             if(mydepth==0)
             {
-                continue;
+                //continue;
             }
 
             uint val = depth_buffer[(int)y*SCREENWIDTH + (int)x];
@@ -3762,7 +3753,8 @@ void generate_heightmap(int width, int height, __global float* heightmap, __glob
 }
 
 
-float3 terrain_pos_to_normal(int x, int y, __global float* buf, int width, int height)
+///unfortunately this is no longer adequate
+float3 terrain_pos_to_normal(int x, int y, __global float* buf, int width, int height, int res)
 {
     if(x < 0 || y < 0 || x >= width || y >= height)
         return 0;
@@ -3772,9 +3764,9 @@ float3 terrain_pos_to_normal(int x, int y, __global float* buf, int width, int h
     int2 l1, l2, l3, l4;
 
     l1 = p;
-    l2 = p + (int2){1, 0};
-    l3 = p + (int2){1, 1};
-    l4 = p + (int2){0, 1};
+    l2 = p + (int2){res, 0};
+    l3 = p + (int2){res, res};
+    l4 = p + (int2){0, res};
 
     int2 bound = (int2){width, height};
 
@@ -3792,15 +3784,10 @@ float3 terrain_pos_to_normal(int x, int y, __global float* buf, int width, int h
 
     float2 wh = (float2){width, height}/2.f;
 
-    float2 e1 = {x, y};
-    float2 e2 = {x+1, y};
-    float2 e3 = {x+1, y+1};
-    float2 e4 = {x, y+1};
-
-    float2 r1 = (e1 - wh) / wh;
-    float2 r2 = (e2 - wh) / wh;
-    float2 r3 = (e3 - wh) / wh;
-    float2 r4 = (e4 - wh) / wh;
+    float2 r1 = (convert_float2(l1) - wh) / wh;
+    float2 r2 = (convert_float2(l2) - wh) / wh;
+    float2 r3 = (convert_float2(l3) - wh) / wh;
+    float2 r4 = (convert_float2(l4) - wh) / wh;
 
     const int size = 500;
 
@@ -3812,11 +3799,11 @@ float3 terrain_pos_to_normal(int x, int y, __global float* buf, int width, int h
     return -rect_to_normal(p0, p1, p2, p3);
 }
 
-float3 terrain_vertex_to_normal(int x, int y, __global float* buf, int width, int height)
+float3 terrain_vertex_to_normal(int x, int y, __global float* buf, int width, int height, int step)
 {
     float3 accum = 0;
 
-    for(int j=-1; j<2; j++)
+    /*for(int j=-1; j<2; j++)
     {
         for(int i=-1; i<2; i++)
         {
@@ -3825,7 +3812,13 @@ float3 terrain_vertex_to_normal(int x, int y, __global float* buf, int width, in
 
             accum += terrain_pos_to_normal(x + i, y + j, buf, width, height);
         }
-    }
+    }*/
+
+    accum += terrain_pos_to_normal(x - step, y, buf, width, height, step);
+    accum += terrain_pos_to_normal(x + step, y, buf, width, height, step);
+    accum += terrain_pos_to_normal(x, y - step, buf, width, height, step);
+    accum += terrain_pos_to_normal(x, y + step, buf, width, height, step);
+    accum += terrain_pos_to_normal(x, y, buf, width, height, step);
 
     return fast_normalize(accum);
 }
@@ -3842,17 +3835,32 @@ void triangleize_grid(int width, int height, __global float* heightmap, __global
     int i = get_global_id(0);
     int j = get_global_id(1);
 
-    if(i >= w-1 || j >= h-1)
+    if(i >= w-5 || j >= h-5)
         return;
     if(i == 0 || j == 0)
         return;
 
+    int resolution = 1;
+
+    if(i % resolution != 0 || j % resolution != 0)
+    {
+        /*int id = tri_start + (j*w + i)*2;
+
+        for(int k=0; k<3; k++)
+        {
+            tris[id].vertices[k].pos.z = -1000000000;
+            tris[id + 1].vertices[k].pos.z = -1000000000;
+        }*/
+
+        return;
+    }
+
     float2 wh = (float2){w, h}/2.f;
 
     float2 l1 = {i, j};
-    float2 l2 = {i+1, j};
-    float2 l3 = {i, j+1};
-    float2 l4 = {i+1, j+1};
+    float2 l2 = {i+resolution, j};
+    float2 l3 = {i, j+resolution};
+    float2 l4 = {i+resolution, j+resolution};
 
     float2 p1 = size * (l1 - wh) / wh;
     float2 p2 = size * (l2 - wh) / wh;
@@ -3862,9 +3870,9 @@ void triangleize_grid(int width, int height, __global float* heightmap, __global
     float3 tl, tr, bl, br;
 
     tl = (float3){p1.x, heightmap[j*w + i], p1.y};
-    tr = (float3){p2.x, heightmap[(j)*w + i+1], p2.y};
-    bl = (float3){p3.x, heightmap[(j+1)*w + i], p3.y};
-    br = (float3){p4.x, heightmap[(j+1)*w + i + 1], p4.y};
+    tr = (float3){p2.x, heightmap[(j)*w + i+resolution], p2.y};
+    bl = (float3){p3.x, heightmap[(j+resolution)*w + i], p3.y};
+    br = (float3){p4.x, heightmap[(j+resolution)*w + i + resolution], p4.y};
 
     struct triangle t1, t2;
 
@@ -3876,13 +3884,13 @@ void triangleize_grid(int width, int height, __global float* heightmap, __global
     t2.vertices[1].pos.xyz = bl;
     t2.vertices[2].pos.xyz = br;
 
-    t1.vertices[0].normal.xyz = terrain_vertex_to_normal(i, j, heightmap, w, h);
-    t1.vertices[1].normal.xyz = terrain_vertex_to_normal(i, j+1, heightmap, w, h);
-    t1.vertices[2].normal.xyz = terrain_vertex_to_normal(i+1, j, heightmap, w, h);
+    t1.vertices[0].normal.xyz = terrain_vertex_to_normal(i, j, heightmap, w, h, resolution);
+    t1.vertices[1].normal.xyz = terrain_vertex_to_normal(i, j+resolution, heightmap, w, h, resolution);
+    t1.vertices[2].normal.xyz = terrain_vertex_to_normal(i+resolution, j, heightmap, w, h, resolution);
 
-    t2.vertices[0].normal.xyz = terrain_vertex_to_normal(i+1, j, heightmap, w, h);
-    t2.vertices[1].normal.xyz = terrain_vertex_to_normal(i, j+1, heightmap, w, h);
-    t2.vertices[2].normal.xyz = terrain_vertex_to_normal(i+1, j+1, heightmap, w, h);
+    t2.vertices[0].normal.xyz = terrain_vertex_to_normal(i+resolution, j, heightmap, w, h, resolution);
+    t2.vertices[1].normal.xyz = terrain_vertex_to_normal(i, j+resolution, heightmap, w, h, resolution);
+    t2.vertices[2].normal.xyz = terrain_vertex_to_normal(i+resolution, j+resolution, heightmap, w, h, resolution);
 
     int id = tri_start + (j*w + i)*2;
 
@@ -3922,6 +3930,211 @@ void triangleize_grid(int width, int height, __global float* heightmap, __global
     txo[(j*width + i)*2 + 1] = tr;
     tyo[(j*width + i)*2 + 1] = bl;
     tzo[(j*width + i)*2 + 1] = br;*/
+}
+
+__kernel
+void render_heightmap(int width, int height, __global float* heightmap, __global uint* depthmap, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= width-1 || y >= height-1 || x == 0 || y == 0)
+        return;
+
+    float height_val = heightmap[y*width + x];
+
+    const int size = 500.f;
+
+    float2 wh = (float2){width, height} / 2.f;
+    float2 lp = size * ((float2){x, y} - wh) / wh;
+
+    float3 pos = (float3){lp.x, height_val, lp.y};
+
+    float3 rotated = rot(pos, c_pos.xyz, c_rot.xyz);
+    float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT || projected.z < 0)
+        return;
+
+    float effective_depth = (projected.z / 1000.f);
+
+    int dim = 1 / effective_depth;
+
+    dim = clamp(dim, 1, 12);
+
+    if(projected.z < depth_icutoff)
+        return;
+
+    uint depth = dcalc(projected.z) * mulint;
+
+    if(depth == 0)
+        return;
+
+    for(int j=-dim*2; j<=0; j++)
+    {
+        for(int i=-dim; i<=dim; i++)
+        {
+            if(j + projected.y < 0 || j + projected.y >= SCREENHEIGHT || i + projected.x < 0 || i + projected.x >= SCREENWIDTH)
+                continue;
+
+            int iv = i + projected.x;
+            int jv = j + projected.y;
+
+            uint found_depth = atomic_min(&depthmap[jv*SCREENWIDTH + iv], depth);
+
+            //float dval = idcalc((float)found_depth / mulint);
+
+            //if(dval - 100.f > projected.z && found_depth != UINT_MAX)
+            //    return;
+
+            //write_imagef(screen, (int2){iv, jv}, projected.z / 1000.f);
+
+        }
+    }
+
+    //write_imagef(screen, (int2){projected.x, projected.y}, 1.f);
+}
+
+__kernel
+void blur_depthmap(__global uint* in, __global uint* out, int width, int height)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    float accum = 0.f;
+    int num = 0;
+
+    int dim = 1;
+
+    for(int j=-dim; j<=dim; j++)
+    {
+        for(int i=-dim; i<=dim; i++)
+        {
+            int ix = i + x;
+            int jy = j + y;
+
+            if(ix < 0 || ix >= width || jy < 0 || jy >= height)
+                continue;
+
+            uint depth = in[jy*width + ix];
+
+            ///also detect depth discontinuities
+            if(depth == UINT_MAX)
+                continue;
+
+            accum += idcalc((float)depth/mulint);
+
+            num++;
+        }
+    }
+
+    if(num == 0)
+        return;
+
+    accum = accum / num;
+
+    out[y*width + x] = dcalc(accum)*mulint;
+}
+
+/*float bilinear_interpolate(float2 coord, float values[4])
+{
+    float mx, my;
+    mx = coord.x - 0.5f;
+    my = coord.y - 0.5f;
+    float2 uvratio = {mx - floor(mx), my - floor(my)};
+    float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
+
+    float result;
+    result=(values[0]*buvr.x + values[1]*uvratio.x)*buvr.y + (values[2]*buvr.x + values[3]*uvratio.x)*uvratio.y;
+
+    return result;
+}*/
+
+float get_interpolated_from(float2 coord, __global float* buf, int width, int height)
+{
+    int2 ic = convert_int2(coord);
+
+    if(ic.x < 0 || ic.y < 0 || ic.x >= width-1 || ic.y >= height-1)
+        return 0.f;
+
+    float v1 = buf[ic.y*width + ic.x];
+    float v2 = buf[ic.y*width + ic.x + 1];
+    float v3 = buf[(ic.y+1)*width + ic.x];
+    float v4 = buf[(ic.y+1)*width + ic.x + 1];
+
+    float xfrac = coord.x - ic.x;
+    float yfrac = coord.y - ic.y;
+
+    float y1 = v1 * (1.f - xfrac) + v2 * xfrac;
+    float y2 = v3 * (1.f - xfrac) + v4 * xfrac;
+
+    float res = y1 * (1.f - yfrac) + y2 * yfrac;
+
+    return res;
+}
+
+__kernel
+void render_heightmap_p2(int width, int height, __global float* heightmap, __global uint* depthmap, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    uint depth = depthmap[y*SCREENWIDTH + x];
+
+    if(depth == UINT_MAX)
+        return;
+
+    float actual_depth = idcalc((float)depth/mulint);
+
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, c_rot.xyz);
+
+    global_position += c_pos.xyz;
+
+    //write_imagef(screen, (int2){x, y}, actual_depth/1000.f);
+
+    float2 pos = global_position.xz;
+
+    const int size = 500;
+
+    float2 wh = (float2){width, height} / 2.f;
+
+    float2 bpos = (wh * pos / size) + wh;
+
+    int2 ipos = convert_int2(bpos);
+
+    if(ipos.x <= 1 || ipos.x >= width-1 || ipos.y <= 1 || ipos.y >= height-1)
+        return;
+
+    float ip1 = get_interpolated_from(bpos - (float2){1.f, 0.f}, heightmap, width, height);
+    float ip2 = get_interpolated_from(bpos + (float2){1.f, 0.f}, heightmap, width, height);
+    float ip3 = get_interpolated_from(bpos - (float2){0.f, 1.f}, heightmap, width, height);
+    float ip4 = get_interpolated_from(bpos + (float2){0.f, 1.f}, heightmap, width, height);
+
+    float3 v2 = (float3){ip1 - ip2, 2.f, ip3 - ip4};
+
+    /*float3 v2 = (float3){heightmap[ipos.y*width + ipos.x - 1] - heightmap[ipos.y*width + ipos.x + 1],
+    2.f, heightmap[(ipos.y-1)*width + ipos.x] - heightmap[(ipos.y+1)*width + ipos.x]
+    };*/
+
+    float3 normal = fast_normalize(v2);
+
+    float3 lpos = (float3){0, 400.f, -500};
+
+    float light = dot(fast_normalize(lpos - global_position), normal);
+
+    light = clamp(light, 0.1f, 1.f);
+
+    ///do flat normals for the moment?
+
+    write_imagef(screen, (int2){x, y}, light);
+    //write_imagef(screen, (int2){x, y}, normal.xyzz);
+    //write_imagef(screen, (int2){x, y}, (float)bpos.x/width);
 }
 
 /*
@@ -4208,6 +4421,30 @@ void clear_screen_buffer(__global uint4* buf)
     buf[id].y = 0;
     buf[id].z = 0;
     buf[id].w = 0;
+}
+
+__kernel
+void clear_screen_tex(__write_only image2d_t screen)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    write_imagef(screen, (int2){x, y}, 0.f);
+}
+
+__kernel
+void clear_depth_buffer(__global uint* dbuf)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    dbuf[y*SCREENWIDTH + x] = UINT_MAX;
 }
 
 __kernel

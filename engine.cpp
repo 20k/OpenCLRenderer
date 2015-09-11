@@ -1993,6 +1993,7 @@ void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w,
     compute::opengl_enqueue_acquire_gl_objects(1, &buf.get(), cl::cqueue);
 }
 
+///we can now try and do one frame ahead stuff!
 void engine::render_buffers()
 {
     ///any way to avoid this?
@@ -2056,15 +2057,9 @@ void engine::render_buffers()
 
             int x, y, dx, dy;
 
-            /*x = width*i;
-            y = 0;
-            dx = width + width*i;
-            dy = height;*/
-
             x = 0, y = 0;
             dx = width;
             dy = height;
-
 
             ///blit buffer to screen
             glBlitFramebufferEXT(0, 0, width, height, x, y, dx, dy, GL_COLOR_BUFFER_BIT, GL_NEAREST);
