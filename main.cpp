@@ -12,6 +12,7 @@
 
 
 ///gamma correct mipmap filtering
+///7ish pre tile deferred
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
