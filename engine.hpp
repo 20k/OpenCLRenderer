@@ -98,6 +98,8 @@ struct engine
     compute::buffer g_normals_screen; ///unused 2d normal buffer
     compute::buffer g_texture_screen; ///unused 2d texture coordinate buffer
     static compute::buffer g_shadow_light_buffer; ///buffer for light cubemaps for shadows
+    compute::buffer g_tile_information;
+    compute::buffer g_tile_count;
 
     compute::buffer g_tid_buf; ///triangle id buffer for fragments
     compute::buffer g_tid_buf_max_len; ///max length
@@ -251,7 +253,7 @@ static std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 
 ///runs a kernel with a particular set of arguments
-inline void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
+inline void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true)
 {
     size_t g_ws[dimensions];
     size_t l_ws[dimensions];
