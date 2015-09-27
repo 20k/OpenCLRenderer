@@ -1765,6 +1765,11 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     uint b_id = atomic_add(id_cutdown_tris, num);
 
+    #define tile_size 32
+
+    int tilew = ceil((float)ewidth/tile_size) + 1;
+    int tileh = ceil((float)eheight/tile_size) + 1;
+
     ///If the triangle intersects with the near clipping plane, there are two
     ///otherwise 1
     for(int i=0; i<num; i++)
@@ -1833,18 +1838,15 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             }
         }
 
-        float mod = 2;
+        //float mod = 2;
 
-        mod = true_area / 5000.f;
-
+        //mod = true_area / 5000.f;
 
         ///make sure we use true area
 
-        #define tile_size 16
+        ///this step is the slow part in the entire operation
+        ///if we can turn this into an almost constant time step, then I'm scott free
         int tile_depth = 5000/3;
-
-        int tilew = ceil((float)ewidth/tile_size) + 1;
-        int tileh = ceil((float)eheight/tile_size) + 1;
 
         ///tile deferred
         ///if we did this more efficiently, itd be much less shit
@@ -1855,38 +1857,35 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         min_max[3] = ceil(min_max[3] / tile_size);
 
         ///dont need to worry about screen borders
+        ///ideally would sort the nearest 100 tris
+        ///the problem with this step is that its expensive after a horribly irregular step
+        ///maybe we need to do this the good old fashioned way
+        ///easier because its just a rectangle
         for(int y=min_max[2]; y<min_max[3]; y++)
         {
             for(int x=min_max[0]; x<min_max[1]; x++)
             {
-                if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)
+                if(x >= tilew || y >= tileh || x < 0 || y < 0)
                     continue;
 
-                float fx = x * tile_size;
+                /*float fx = x * tile_size;
                 float fy = y * tile_size;
 
-                float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx, fy);
-                float s2 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx + tile_size, fy);
-                float s3 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx, fy + tile_size);
-                float s4 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx + tile_size, fy + tile_size);
+                float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx + tile_size/2, fy + tile_size/2);
 
-                bool cond = s1 < true_area + mod &&
-                            s2 < true_area + mod &&
-                            s3 < true_area + mod &&
-                            s4 < true_area + mod;
+                bool cond = (s1 < true_area + mod * 10000);
 
                 ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-                if(!cond)
-                    continue;
+                if(cond)*/
+                {
+                    int tid = atomic_inc(&tile_count[y*tilew + x]);
 
+                    tid = clamp(tid, 0, tile_depth);
 
-                int tid = atomic_inc(&tile_count[y*tilew + x]);
-
-                tid = clamp(tid, 0, tile_depth);
-
-                tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 0] = (float4)(tris_proj[i][0], first);
-                tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 1] = (float4)(tris_proj[i][1], 0);
-                tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 2] = (float4)(tris_proj[i][2], 0);
+                    tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 0] = (float4)(tris_proj[i][0], first);
+                    tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 1] = (float4)(tris_proj[i][1], 0);
+                    tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 2] = (float4)(tris_proj[i][2], 0);
+                }
             }
         }
     }
@@ -1926,8 +1925,8 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     int tile_depth = 5000/3;
 
-    int ewidth = SCREENWIDTH;
-    int eheight = SCREENHEIGHT;
+    const int ewidth = SCREENWIDTH;
+    const int eheight = SCREENHEIGHT;
 
     int tilew = ceil((float)ewidth/tile_size) + 1;
     int tileh = ceil((float)eheight/tile_size) + 1;
@@ -1936,7 +1935,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     int l_z = get_local_id(2);
 
-    int sf = 2;
+    int sf = 8;
 
     for(int i=l_z*sf; i<l_z*sf + sf; i++)
     {
@@ -2003,7 +2002,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
             float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-            bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+            bool cond = s1 < area + mod;
 
             if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)
                 continue;
@@ -2017,12 +2016,12 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
                 //__global uint* ft = &depth_buffer[y*ewidth + x];
 
-                atomic_min(&local_depth[ly*tile_size + lx], mydepth);
+                uint val = atomic_min(&local_depth[ly*tile_size + lx], mydepth);
 
                 ///temp hack
-                barrier(CLK_LOCAL_MEM_FENCE);
+                //barrier(CLK_LOCAL_MEM_FENCE);
 
-                uint val = local_depth[ly*tile_size + lx];
+                //uint val = local_depth[ly*tile_size + lx];
                 //uint gd = depth_buffer[y*ewidth + x];
 
                 int c2 = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;

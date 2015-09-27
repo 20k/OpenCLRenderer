@@ -364,12 +364,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
-    #define tile_size 16
+    #define tile_size 32
 
     int tile_depth = 5000;
 
     int tilew = ceil((float)width/tile_size);
     int tileh = ceil((float)height/tile_size);
+
+    ///53 33
+    printf("TileDim: %i %i\n", tilew, tileh);
 
     g_tile_information     = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_float4)*tile_depth, CL_MEM_READ_WRITE, nullptr);
     g_tile_count           = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
@@ -1189,7 +1192,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
-    run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
+    //run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
 
 
     /*arg_list smooth_arg_list;
