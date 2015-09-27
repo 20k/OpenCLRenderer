@@ -1810,19 +1810,21 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
         cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
 
-        uint base = atomic_add(id_buffer_atomc, thread_num);
+        //uint base = atomic_add(id_buffer_atomc, thread_num);
+        uint base = atomic_add(id_buffer_atomc, 1);
 
         uint f = base*5;
+        uint first = f;
 
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
-            for(uint a = 0; a < thread_num; a++)
+            //for(uint a = 0; a < thread_num; a++)
             {
                 ///work out if is valid, if not do c++ then continue;
 
                 ///make texture?
                 fragment_id_buffer[f++] = id;
-                fragment_id_buffer[f++] = a;
+                fragment_id_buffer[f++] = 0;
                 fragment_id_buffer[f++] = c_id;
 
                 fragment_id_buffer[f++] = as_int(true_area);
@@ -1830,38 +1832,31 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
             }
         }
-    }
 
-    int tile_size = 32;
-    int tile_depth = 100;
+        #define tile_size 16
+        int tile_depth = 5000/3;
 
-    int tilew = ceil((float)ewidth/tile_size) + 1;
-    int tileh = ceil((float)eheight/tile_size) + 1;
+        int tilew = ceil((float)ewidth/tile_size) + 1;
+        int tileh = ceil((float)eheight/tile_size) + 1;
 
-    ///tile deferred
-    for(int i=0; i<num; i++)
-    {
-        ///minx, maxx, miny, maxy
-        float min_max[4];
-        calc_min_max(tris_proj[i], ewidth, eheight, min_max);
+        ///tile deferred
+        ///if we did this more efficiently, itd be much less shit
 
         min_max[0] = floor(min_max[0] / tile_size); ///round down
         min_max[1] = ceil(min_max[1] / tile_size); ///round up
         min_max[2] = floor(min_max[2] / tile_size);
         min_max[3] = ceil(min_max[3] / tile_size);
 
-        //printf("%f %f %f %f\n", min_max[0], min_max[1], min_max[2], min_max[3]);
-
-
         ///dont need to worry about screen borders
-        for(int y=min_max[2]; y<=min_max[3]; y++)
+        for(int y=min_max[2]; y<min_max[3]; y++)
         {
-            for(int x=min_max[0]; x<=min_max[1]; x++)
+            for(int x=min_max[0]; x<min_max[1]; x++)
             {
                 int tid = atomic_inc(&tile_count[y*tilew + x]);
 
+                tid = clamp(tid, 0, tile_depth);
 
-                tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 0] = (float4)(tris_proj[i][0], 0);
+                tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 0] = (float4)(tris_proj[i][0], first);
                 tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 1] = (float4)(tris_proj[i][1], 0);
                 tile_info[(y*tilew*tile_depth + x*tile_depth + tid)*3 + 2] = (float4)(tris_proj[i][2], 0);
             }
@@ -1874,8 +1869,6 @@ __kernel void tile_clear(__global uint* tile_count)
     int x = get_global_id(0);
     int y = get_global_id(1);
 
-    int tile_size = 32;
-
     int tilew = ceil((float)SCREENWIDTH/tile_size) + 1;
     int tileh = ceil((float)SCREENHEIGHT/tile_size) + 1;
 
@@ -1884,6 +1877,188 @@ __kernel void tile_clear(__global uint* tile_count)
 
     tile_count[y*tilew + x] = 0;
 }
+
+#define ERR_COMP -4.f
+#define BUF_ERROR 20
+
+
+///rotates and projects triangles into screenspace, writes their depth atomically
+///lets do something cleverer with this
+
+///i could actually shade the pixel in here too..........
+///I need to restrict the number of tris in one tri list to the size of a workgroup...?
+__kernel
+void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer, __write_only image2d_t id_buffer,
+           __global float4* tile_info, __global uint* tile_count)
+{
+    uint tile_x = get_global_id(0);
+    uint tile_y = get_global_id(1);
+    uint tile_tid = get_global_id(2);
+
+    int tile_depth = 5000/3;
+
+    int ewidth = SCREENWIDTH;
+    int eheight = SCREENHEIGHT;
+
+    int tilew = ceil((float)ewidth/tile_size) + 1;
+    int tileh = ceil((float)eheight/tile_size) + 1;
+
+    __local uint local_depth[tile_size*tile_size];
+
+    int l_z = get_local_id(2);
+
+    int sf = 2;
+
+    for(int i=l_z*sf; i<l_z*sf + sf; i++)
+    {
+        local_depth[i] = UINT_MAX;
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if(tile_tid >= tile_depth || tile_x >= tilew || tile_y >= tileh)
+        return;
+
+    int real_depth = tile_count[tile_y*tilew + tile_x];
+
+    if(tile_tid >= real_depth)
+        return;
+
+    float3 tris_proj_n[3];
+
+    tris_proj_n[0] = tile_info[(tile_y*tilew*tile_depth + tile_x*tile_depth + tile_tid)*3 + 0].xyz;
+    tris_proj_n[1] = tile_info[(tile_y*tilew*tile_depth + tile_x*tile_depth + tile_tid)*3 + 1].xyz;
+    tris_proj_n[2] = tile_info[(tile_y*tilew*tile_depth + tile_x*tile_depth + tile_tid)*3 + 2].xyz;
+
+    uint id = tile_info[(tile_y*tilew*tile_depth + tile_x*tile_depth + tile_tid)*3 + 0].w;
+
+    float xstart = tile_x*tile_size;
+    float xend = (tile_x+1)*tile_size;
+
+    float ystart = tile_y*tile_size;
+    float yend = (tile_y+1)*tile_size;
+
+    float min_max[4];
+    calc_min_max(tris_proj_n, ewidth, eheight, min_max);
+
+    int width = min_max[1] - min_max[0];
+
+    ///pixel to start at in triangle, ie distance is which fragment it is
+    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
+    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
+
+    ///have to interpolate inverse to be perspective correct
+    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+
+    ///calculate area by triangle 3rd area method
+    float area = calc_area(xpv, ypv);
+    float rconst = calc_rconstant_v(xpv, ypv);
+
+    float mod = 2;
+
+    mod = area / 5000.f;
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+    for(int y = ystart; y < yend; y++)
+    {
+        for(int x = xstart; x < xend; x++)
+        {
+            int lx = x - xstart;
+            int ly = y - ystart;
+
+            float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+            bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+
+            if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)
+                continue;
+
+            ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+            if(cond)
+            {
+                float fmydepth = A * x + B * y + C;
+
+                uint mydepth = native_divide((float)mulint, fmydepth);
+
+                //__global uint* ft = &depth_buffer[y*ewidth + x];
+
+                atomic_min(&local_depth[ly*tile_size + lx], mydepth);
+
+                ///temp hack
+                barrier(CLK_LOCAL_MEM_FENCE);
+
+                uint val = local_depth[ly*tile_size + lx];
+                //uint gd = depth_buffer[y*ewidth + x];
+
+                int c2 = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
+
+                ///found depth buffer value, write the triangle id
+                if(c2)
+                {
+                    uint4 d = {id, 0, 0, 0};
+                    write_imageui(id_buffer, (int2){x, y}, d);
+
+                    depth_buffer[y*ewidth + x] = val;
+                }
+
+                //atomic_min(ft, local_depth[ly*tile_size + lx]);
+            }
+        }
+    }
+
+    /*barrier(CLK_LOCAL_MEM_FENCE);
+
+    for(int y = ystart; y < yend; y++)
+    {
+        for(int x = xstart; x < xend; x++)
+        {
+            int lx = x - xstart;
+            int ly = y - ystart;
+
+            float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+            bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+
+            if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)
+                continue;
+
+            ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+            if(cond)
+            {
+                float fmydepth = A * x + B * y + C;
+
+                uint mydepth = native_divide((float)mulint, fmydepth);
+
+                uint val = local_depth[ly*tile_size + lx];
+
+                int c2 = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
+
+                ///found depth buffer value, write the triangle id
+                if(c2)
+                {
+                    uint4 d = {id, 0, 0, 0};
+                    write_imageui(id_buffer, (int2){x, y}, d);
+
+                    depth_buffer[y*ewidth + x] = val;
+                }
+
+                //depth_buffer[y*ewidth + x] = val;
+            }
+        }
+    }*/
+
+}
+
 
 __kernel
 void prearrange_light(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
@@ -2036,137 +2211,6 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
     }
 }
 
-#define ERR_COMP -4.f
-
-///rotates and projects triangles into screenspace, writes their depth atomically
-///lets do something cleverer with this
-__kernel
-void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer, __write_only image2d_t id_buffer,
-           __global float4* tile_info, __global uint* tile_count)
-{
-    uint id = get_global_id(0);
-
-    int len = *f_len;
-
-    if(id >= len)
-    {
-        return;
-    }
-
-    float ewidth = SCREENWIDTH;
-    float eheight = SCREENHEIGHT;
-
-    if(is_light == 1)
-    {
-        ewidth = LIGHTBUFFERDIM;
-        eheight = LIGHTBUFFERDIM;
-    }
-
-    //uint tri_id = fragment_id_buffer[id*5 + 0];
-
-    uint distance = fragment_id_buffer[id*5 + 1];
-
-    uint ctri = fragment_id_buffer[id*5 + 2];
-
-    float area = as_float(fragment_id_buffer[id*5 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
-
-    ///triangle retrieved from depth buffer
-    float3 tris_proj_n[3];
-
-    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
-    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
-    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
-
-
-    float min_max[4];
-    calc_min_max(tris_proj_n, ewidth, eheight, min_max);
-
-
-    int width = min_max[1] - min_max[0];
-
-    ///pixel to start at in triangle, ie distance is which fragment it is
-    int pixel_along = op_size*distance;
-
-    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
-    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
-
-    xpv = round(xpv);
-    ypv = round(ypv);
-
-    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
-    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
-
-    ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
-
-    ///calculate area by triangle 3rd area method
-
-    int pcount = -1;
-
-    float mod = 2;
-
-    mod = area / 5000.f;
-
-    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
-    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
-
-    float A, B, C;
-
-    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
-
-    float iwidth = 1.f / width;
-
-    ///while more pixels to write
-    while(pcount < op_size)
-    {
-        pcount++;
-
-        x+=1;
-
-        //investigate not doing any of this at all
-
-        float ty = y;
-
-        y = floor((float)(pixel_along + pcount) * iwidth) + min_max[2];
-
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
-
-        if(y >= min_max[3])
-        {
-            break;
-        }
-
-        bool oob = x >= min_max[1];
-
-        if(oob)
-        {
-            continue;
-        }
-
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
-
-        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
-
-        ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
-        if(cond)
-        {
-            float fmydepth = A * x + B * y + C;
-
-            uint mydepth = native_divide((float)mulint, fmydepth);
-
-            if(mydepth == 0)
-            {
-                //continue;
-            }
-
-            __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
-
-            uint sdepth = atomic_min(ft, mydepth);
-        }
-    }
-}
 
 __kernel
 void kernel1_light(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
@@ -2321,7 +2365,6 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
 }
 
 
-#define BUF_ERROR 20
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
@@ -2747,8 +2790,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     final_col = clamp(final_col, 0.f, 1.f);
 
+    write_imagef(screen, scoord, ldepth/1000);
 
-    write_imagef(screen, scoord, final_col.xyzz);
+    //write_imagef(screen, scoord, final_col.xyzz);
 
     //write_imagef(screen, scoord, final_col.xyzz);
     //write_imagef(screen, scoord, fabs(normal.xyzz));

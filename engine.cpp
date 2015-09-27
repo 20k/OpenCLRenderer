@@ -364,9 +364,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
+    #define tile_size 16
 
-    int tile_size = 32;
-    int tile_depth = 1000;
+    int tile_depth = 5000;
 
     int tilew = ceil((float)width/tile_size);
     int tileh = ceil((float)height/tile_size);
@@ -969,7 +969,6 @@ void engine::construct_shadowmaps()
                 prearg_list.push_back(&g_tile_information);
                 prearg_list.push_back(&g_tile_count);
 
-
                 run_kernel_with_string("prearrange_light", &p1global_ws, &local, 1, prearg_list, true);
 
 
@@ -995,12 +994,11 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_tile_information);
                 p1arg_list.push_back(&g_tile_count);
 
-
-                //run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
                 run_kernel_with_string("kernel1_light", &p1global_ws_new, &local, 1, p1arg_list);
 
                 clReleaseMemObject(temp_l_mem);
             }
+
             n++;
         }
     }
@@ -1067,8 +1065,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
-    int tile_size = 32;
-    int tile_depth = 1000;
+    int tile_depth = 5000/3;
 
     int tilew = ceil((float)eng.width/tile_size) + 1;
     int tileh = ceil((float)eng.height/tile_size) + 1;
@@ -1119,7 +1116,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&eng.g_tile_information);
     p1arg_list.push_back(&eng.g_tile_count);
 
-    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
+    run_kernel_with_string("kernel1", {tilew, tileh, tile_depth}, {1, 1, 128}, 3, p1arg_list);
 
     //sf::Clock p2;
 
@@ -1142,7 +1139,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
 
-    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
+    //run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
 
     //sf::Clock c3;
