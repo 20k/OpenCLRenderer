@@ -1797,9 +1797,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         float min_max[4];
         calc_min_max(tris_proj[i], ewidth, eheight, min_max);
 
-        float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
+        //float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
-        float thread_num = ceil(native_divide(area, op_size));
+        //float thread_num = ceil(native_divide(area, op_size));
         ///threads to renderone triangle based on its bounding-box area
 
         ///makes no apparently difference moving atomic out, presumably its a pretty rare case
@@ -1833,6 +1833,13 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             }
         }
 
+        float mod = 2;
+
+        mod = true_area / 5000.f;
+
+
+        ///make sure we use true area
+
         #define tile_size 16
         int tile_depth = 5000/3;
 
@@ -1852,6 +1859,27 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         {
             for(int x=min_max[0]; x<min_max[1]; x++)
             {
+                if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)
+                    continue;
+
+                float fx = x * tile_size;
+                float fy = y * tile_size;
+
+                float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx, fy);
+                float s2 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx + tile_size, fy);
+                float s3 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx, fy + tile_size);
+                float s4 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, fx + tile_size, fy + tile_size);
+
+                bool cond = s1 < true_area + mod &&
+                            s2 < true_area + mod &&
+                            s3 < true_area + mod &&
+                            s4 < true_area + mod;
+
+                ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+                if(!cond)
+                    continue;
+
+
                 int tid = atomic_inc(&tile_count[y*tilew + x]);
 
                 tid = clamp(tid, 0, tile_depth);
@@ -1950,9 +1978,6 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     xpv = round(xpv);
     ypv = round(ypv);
-
-    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
-    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
 
     ///have to interpolate inverse to be perspective correct
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
