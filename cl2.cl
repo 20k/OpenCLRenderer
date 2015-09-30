@@ -1908,7 +1908,6 @@ __kernel void tile_clear(__global uint* tile_count)
 #define ERR_COMP -4.f
 #define BUF_ERROR 20
 
-
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
 
@@ -2016,12 +2015,12 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
                 //__global uint* ft = &depth_buffer[y*ewidth + x];
 
-                uint val = atomic_min(&local_depth[ly*tile_size + lx], mydepth);
+                atomic_min(&local_depth[ly*tile_size + lx], mydepth);
 
                 ///temp hack
-                //barrier(CLK_LOCAL_MEM_FENCE);
+                barrier(CLK_LOCAL_MEM_FENCE);
 
-                //uint val = local_depth[ly*tile_size + lx];
+                uint val = local_depth[ly*tile_size + lx];
                 //uint gd = depth_buffer[y*ewidth + x];
 
                 int c2 = mydepth > val - BUF_ERROR && mydepth < val + BUF_ERROR;
