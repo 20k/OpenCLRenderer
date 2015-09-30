@@ -201,7 +201,7 @@ void texture::generate_mipmaps()
             ///file does not exist, generate and cache
             if(pFile == nullptr || !cacheable)
             {
-                //printf("generated mipmap\n");
+                printf("generated mipmap\n");
 
                 gen_miplevel(*this, i);
 
@@ -212,7 +212,7 @@ void texture::generate_mipmaps()
             }
             else
             {
-                //printf("loaded cached mipmap\n");
+                printf("loaded cached mipmap\n");
 
                 sf::Image& img = mipmaps[i];
 

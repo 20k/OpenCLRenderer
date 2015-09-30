@@ -13,10 +13,6 @@
 
 ///gamma correct mipmap filtering
 ///7ish pre tile deferred
-
-///find the advanced tiled deferred technique for lighting
-///with the variable sized tiles
-///and then apply it to geometry
 int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!

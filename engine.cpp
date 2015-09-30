@@ -364,18 +364,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
-    #define tile_size 32
 
-    int tile_depth = 5000;
+    /*int tile_size = 32;
+    int tile_depth = 1000;
 
     int tilew = ceil((float)width/tile_size);
     int tileh = ceil((float)height/tile_size);
 
-    ///53 33
-    printf("TileDim: %i %i\n", tilew, tileh);
-
     g_tile_information     = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_float4)*tile_depth, CL_MEM_READ_WRITE, nullptr);
-    g_tile_count           = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    g_tile_count           = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);*/
 
     ///length of the fragment buffer id thing, stored cpu side
     c_tid_buf_len = size_of_uid_buffer;
@@ -972,6 +969,7 @@ void engine::construct_shadowmaps()
                 prearg_list.push_back(&g_tile_information);
                 prearg_list.push_back(&g_tile_count);
 
+
                 run_kernel_with_string("prearrange_light", &p1global_ws, &local, 1, prearg_list, true);
 
 
@@ -997,11 +995,12 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&g_tile_information);
                 p1arg_list.push_back(&g_tile_count);
 
+
+                //run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
                 run_kernel_with_string("kernel1_light", &p1global_ws_new, &local, 1, p1arg_list);
 
                 clReleaseMemObject(temp_l_mem);
             }
-
             n++;
         }
     }
@@ -1068,7 +1067,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
-    int tile_depth = 5000/3;
+    int tile_size = 32;
+    int tile_depth = 1000;
 
     int tilew = ceil((float)eng.width/tile_size) + 1;
     int tileh = ceil((float)eng.height/tile_size) + 1;
@@ -1089,11 +1089,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     prearg_list.push_back(&eng.g_tid_buf_atomic_count);
     prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    prearg_list.push_back(&zero);
     prearg_list.push_back(&obj_mem_manager::g_obj_desc);
     prearg_list.push_back(&eng.g_distortion_buffer);
-    prearg_list.push_back(&eng.g_tile_information);
-    prearg_list.push_back(&eng.g_tile_count);
 
     run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
 
@@ -1113,13 +1110,10 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&eng.g_tid_buf_atomic_count);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
     p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    p1arg_list.push_back(&zero);
     p1arg_list.push_back(&eng.g_distortion_buffer);
     p1arg_list.push_back(&eng.g_id_screen_tex);
-    p1arg_list.push_back(&eng.g_tile_information);
-    p1arg_list.push_back(&eng.g_tile_count);
 
-    run_kernel_with_string("kernel1", {tilew, tileh, tile_depth}, {1, 1, 128}, 3, p1arg_list);
+    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
 
     //sf::Clock p2;
 
@@ -1142,7 +1136,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
 
-    //run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
+    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
 
     //sf::Clock c3;
@@ -1192,7 +1186,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
-    //run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
+    run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
 
 
     /*arg_list smooth_arg_list;
