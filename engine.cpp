@@ -1210,6 +1210,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_string("reproject_forward", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
 
+    run_kernel_with_string("reproject_forward_recovery", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
+
 
 
     arg_list p3again;

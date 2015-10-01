@@ -2740,6 +2740,60 @@ void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_
 
     __global uint *ft = &depth_in[y*SCREENWIDTH + x];
 
+    //uint id = read_imageui(ids_in, sam, (int2){x, y}).x;//ids_in[y*SCREENWIDTH + x];
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    ///temporarily ignore object positions
+
+    float ldepth = idcalc((float)*ft/mulint);
+
+    ///unprojected pixel coordinate
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, camera_rot);
+
+    global_position += camera_pos;
+
+
+    float3 post_rot = rot(global_position, new_pos.xyz, new_rot.xyz);
+
+    float3 projected = depth_project_singular(post_rot, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected.z < depth_icutoff)
+        return;
+
+    int2 loc = convert_int2(round(projected.xy));
+
+    if(any(loc < 0) || any(loc >= (int2){SCREENWIDTH, SCREENHEIGHT}))
+        return;
+
+    atomic_min(&depth_out[loc.y*SCREENWIDTH + loc.x], dcalc(projected.z)*mulint);
+
+    //write_imageui(ids_out, loc, id);
+
+    //write_imagef(screen, loc, (float)id / 1000000.f);
+}
+
+__kernel
+void reproject_forward_recovery(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    const uint x = get_global_id(0);
+    const uint y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    __global uint *ft = &depth_in[y*SCREENWIDTH + x];
+
+    uint idepth = *ft;
+
     uint id = read_imageui(ids_in, sam, (int2){x, y}).x;//ids_in[y*SCREENWIDTH + x];
 
     float3 camera_pos = c_pos.xyz;
@@ -2770,11 +2824,17 @@ void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_
     if(any(loc < 0) || any(loc >= (int2){SCREENWIDTH, SCREENHEIGHT}))
         return;
 
-    //ids_out[loc.y*SCREENWIDTH + loc.x] = id;
+    uint depth = dcalc(projected.z)*mulint;
 
-    //depth_out[loc.y*SCREENWIDTH + loc.x] = dcalc(projected.z)*mulint;
+    //atomic_min(&depth_out[loc.y*SCREENWIDTH + loc.x], dcalc(projected.z)*mulint);
 
-    atomic_min(&depth_out[loc.y*SCREENWIDTH + loc.x], dcalc(projected.z)*mulint);
+    uint found_depth = depth_out[loc.y*SCREENWIDTH + loc.x];
+
+    int c2 = depth > found_depth - BUF_ERROR && depth < found_depth + BUF_ERROR;
+
+    ///found depth buffer value, write the triangle id
+    if(!c2)
+        return;
 
     write_imageui(ids_out, loc, id);
 
