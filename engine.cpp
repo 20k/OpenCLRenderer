@@ -1067,7 +1067,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
-    int tile_size = 32;
+    /*int tile_size = 32;
     int tile_depth = 1000;
 
     int tilew = ceil((float)eng.width/tile_size) + 1;
@@ -1076,7 +1076,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     arg_list clear_args;
     clear_args.push_back(&eng.g_tile_count);
 
-    run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
+    run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);*/
 
     arg_list prearg_list;
 
@@ -1180,13 +1180,15 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
 
     cl_uint p3global_ws[] = {eng.width, eng.height};
-    cl_uint p3local_ws[] = {8, 8};
+    cl_uint p3local_ws[] = {16, 16};
 
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
-    run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
+
+
+    //run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
 
 
     /*arg_list smooth_arg_list;
