@@ -2910,36 +2910,19 @@ void fill_holes(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __
                     found_depth_disc = current_depth;
                     found_id_disc = current_id;
                 }
-
-                /*if((current_depth > idepth && current_depth != UINT_MAX) && (idepth != UINT_MAX && current_depth != UINT_MAX))
-                {
-                    sdepth += idcalc((float)current_depth/mulint);
-                    depth_discont++;
-                }*/
             }
         }
     }
 
     ///ie we havent either got an invalid id, or a big enough depth discontinuity
-    /*if(!(my_id == UINT_MAX || depth_discont >= 2))
-    {
-        write_imageui(ids_out, (int2){x, y}, my_id);
-        return;
-    }*/
-
     if(my_id != UINT_MAX && depth_discont < 1)
     {
         write_imageui(ids_out, (int2){x, y}, my_id);
         return;
     }
 
-    //sdepth /= depth_discont;
-
-    //sdepth = dcalc(sdepth) * mulint;
-
     depth_out[y*SCREENWIDTH + x] = found_depth;
     write_imageui(ids_out, (int2){x, y}, found_id);
-
 
     if(depth_discont >= 1)
     {
