@@ -364,7 +364,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
-    g_reprojected_ids      = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    //g_reprojected_ids      = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
 
     /*int tile_size = 32;
@@ -389,7 +389,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     compute::image_format format_occ(CL_R, CL_FLOAT);
     compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
-    g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
+    g_id_screen_tex             = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
+    g_reprojected_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
     g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
     g_occlusion_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
@@ -1187,21 +1188,18 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p3arg_list.push_back(&eng.g_object_id_tex);
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
     p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
-    //p3arg_list.push_back(&reprojected_depth_buffer[nbuf]);
-
 
     cl_uint p3global_ws[] = {eng.width, eng.height};
     cl_uint p3local_ws[] = {16, 16};
-
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
 
-
+    ///we're gunna have to do a projection pass, and a recovery pass
     arg_list reproject_args;
     reproject_args.push_back(&eng.g_id_screen_tex);
-    reproject_args.push_back(&eng.g_reprojected_ids);
+    reproject_args.push_back(&eng.g_reprojected_id_screen_tex);
     reproject_args.push_back(&eng.depth_buffer[eng.nbuf]);
     reproject_args.push_back(&eng.reprojected_depth_buffer[eng.nbuf]);
     reproject_args.push_back(&old_pos);
@@ -1213,6 +1211,33 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     run_kernel_with_string("reproject_forward", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
 
 
+
+    arg_list p3again;
+    p3again.push_back(&obj_mem_manager::g_tri_mem);
+    p3again.push_back(&obj_mem_manager::g_tri_num);
+    p3again.push_back(&b_pos);
+    p3again.push_back(&b_rot);
+    p3again.push_back(&eng.reprojected_depth_buffer[eng.nbuf]);
+    p3again.push_back(&eng.g_reprojected_id_screen_tex);
+    p3again.push_back(&texture_manager::g_texture_array);
+    p3again.push_back(&g_screen_out);
+    p3again.push_back(&texture_manager::g_texture_numbers);
+    p3again.push_back(&texture_manager::g_texture_sizes);
+    p3again.push_back(&obj_mem_manager::g_obj_desc);
+    p3again.push_back(&obj_mem_manager::g_obj_num);
+    p3again.push_back(&obj_mem_manager::g_light_num);
+    p3again.push_back(&obj_mem_manager::g_light_mem);
+    p3again.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
+    p3again.push_back(&eng.reprojected_depth_buffer[nnbuf]);
+    p3again.push_back(&eng.g_tid_buf);
+    p3again.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p3again.push_back(&eng.g_distortion_buffer);
+    p3again.push_back(&eng.g_object_id_tex);
+    p3again.push_back(&eng.g_occlusion_intermediate_tex);
+    p3again.push_back(&eng.g_diffuse_intermediate_tex);
+
+    ///this is the deferred screenspace pass
+    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3again);
 
     //run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
 

@@ -89,6 +89,7 @@ struct engine
     compute::buffer depth_buffer[2];
     compute::buffer reprojected_depth_buffer[2];
     compute::image2d g_id_screen_tex; ///2d screen id texture
+    compute::image2d g_reprojected_id_screen_tex; ///2d screen id texture
     compute::image2d g_object_id_tex; ///object level ids
     compute::image2d g_diffuse_intermediate_tex; ///diffuse information, intermediate for separableness
     compute::image2d g_diffuse_tex; ///diffuse information, intermediate for separableness
@@ -100,7 +101,6 @@ struct engine
     static compute::buffer g_shadow_light_buffer; ///buffer for light cubemaps for shadows
     compute::buffer g_tile_information;
     compute::buffer g_tile_count;
-    compute::buffer g_reprojected_ids;
 
     compute::buffer g_tid_buf; ///triangle id buffer for fragments
     compute::buffer g_tid_buf_max_len; ///max length

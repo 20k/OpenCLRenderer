@@ -2726,7 +2726,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 ///do we want to reproject 4 and then fill in the area?
 
 __kernel
-void reproject_forward(__read_only image2d_t ids_in, __global uint* ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
+void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE            |
@@ -2770,7 +2770,13 @@ void reproject_forward(__read_only image2d_t ids_in, __global uint* ids_out, __g
     if(any(loc < 0) || any(loc >= (int2){SCREENWIDTH, SCREENHEIGHT}))
         return;
 
-    ids_out[loc.y*SCREENWIDTH + loc.x] = id;
+    //ids_out[loc.y*SCREENWIDTH + loc.x] = id;
+
+    //depth_out[loc.y*SCREENWIDTH + loc.x] = dcalc(projected.z)*mulint;
+
+    atomic_min(&depth_out[loc.y*SCREENWIDTH + loc.x], dcalc(projected.z)*mulint);
+
+    write_imageui(ids_out, loc, id);
 
     write_imagef(screen, loc, (float)id / 1000000.f);
 }
