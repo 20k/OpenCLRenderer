@@ -2742,6 +2742,9 @@ void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_
 
     //uint id = read_imageui(ids_in, sam, (int2){x, y}).x;//ids_in[y*SCREENWIDTH + x];
 
+    //write_imageui(ids_in, (int2){x, y}, -1);
+    write_imageui(ids_out, (int2){x, y}, -1);
+
     float3 camera_pos = c_pos.xyz;
     float3 camera_rot = c_rot.xyz;
 
@@ -2771,12 +2774,14 @@ void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_
         return;
 
     atomic_min(&depth_out[loc.y*SCREENWIDTH + loc.x], dcalc(projected.z)*mulint);
-
-    //write_imageui(ids_out, loc, id);
-
-    //write_imagef(screen, loc, (float)id / 1000000.f);
 }
 
+///do 1 pixel wide lookaside
+///ie if im an invalid pixel, look at my neighbours, take any valid, and average
+///use minimum id as general rule
+///Oh dear. We're also gunna have to account for objects drawing through holes
+///if we're a 1 pixel thin line, and there's a depth discontinuity, or we're invalid
+///do the thing
 __kernel
 void reproject_forward_recovery(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
 {
@@ -2838,7 +2843,109 @@ void reproject_forward_recovery(__read_only image2d_t ids_in, __write_only image
 
     write_imageui(ids_out, loc, id);
 
-    write_imagef(screen, loc, (float)id / 1000000.f);
+    //write_imagef(screen, loc, (float)id / 1000000.f);
+}
+
+///eh, just stomp over depth for the moment
+///only building this to handle 1-wide errors, which can't race condition
+__kernel
+void fill_holes(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __global uint* depth, __global uint* depth_out)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    ///we need to check diagonals too
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    uint my_id = read_imageui(ids_in, sam, (int2){x, y}).x;
+    uint my_depth = depth[y*SCREENWIDTH + x];
+
+    depth_out[y*SCREENWIDTH + x] = my_depth;
+
+
+    uint found_id = UINT_MAX;
+    uint found_id_disc = UINT_MAX;
+    uint found_depth = UINT_MAX;
+    uint found_depth_disc = UINT_MAX;
+    int depth_discont = 0;
+
+    uint cutoff = dcalc(1) * mulint;
+
+    float sdepth = 0;
+
+    for(int ly = -1; ly <= 1; ly++)
+    {
+        for(int lx = -1; lx <= 1; lx++)
+        {
+            if(lx == 0 && ly == 0)
+                continue;
+
+            int px = x + lx;
+            int py = y + ly;
+
+            if(px < 0 || px >= SCREENWIDTH || py < 0 || py >= SCREENHEIGHT)
+                continue;
+
+            uint current_id = read_imageui(ids_in, sam, (int2){px, py}).x;
+            uint current_depth = depth[py*SCREENWIDTH + px];
+
+            //if(current_depth - cutoff > idepth && current_id != UINT_MAX)
+            ///swap back to using average
+            if(current_id != UINT_MAX)
+            {
+                if(current_depth < found_depth)
+                {
+                    found_id = current_id;
+                    found_depth = current_depth;
+                }
+
+                if(my_id != UINT_MAX && my_depth - 1 > current_depth)
+                {
+                    depth_discont++;
+                    found_depth_disc = current_depth;
+                    found_id_disc = current_id;
+                }
+
+                /*if((current_depth > idepth && current_depth != UINT_MAX) && (idepth != UINT_MAX && current_depth != UINT_MAX))
+                {
+                    sdepth += idcalc((float)current_depth/mulint);
+                    depth_discont++;
+                }*/
+            }
+        }
+    }
+
+    ///ie we havent either got an invalid id, or a big enough depth discontinuity
+    /*if(!(my_id == UINT_MAX || depth_discont >= 2))
+    {
+        write_imageui(ids_out, (int2){x, y}, my_id);
+        return;
+    }*/
+
+    if(my_id != UINT_MAX && depth_discont < 1)
+    {
+        write_imageui(ids_out, (int2){x, y}, my_id);
+        return;
+    }
+
+    //sdepth /= depth_discont;
+
+    //sdepth = dcalc(sdepth) * mulint;
+
+    depth_out[y*SCREENWIDTH + x] = found_depth;
+    write_imageui(ids_out, (int2){x, y}, found_id);
+
+
+    if(depth_discont >= 1)
+    {
+        write_imageui(ids_out, (int2){x, y}, found_id);
+        depth_out[y*SCREENWIDTH + x] = found_depth;
+    }
 }
 
 

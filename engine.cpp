@@ -1201,7 +1201,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     reproject_args.push_back(&eng.g_id_screen_tex);
     reproject_args.push_back(&eng.g_reprojected_id_screen_tex);
     reproject_args.push_back(&eng.depth_buffer[eng.nbuf]);
-    reproject_args.push_back(&eng.reprojected_depth_buffer[eng.nbuf]);
+    reproject_args.push_back(&eng.reprojected_depth_buffer[0]);
     reproject_args.push_back(&old_pos);
     reproject_args.push_back(&old_rot);
     reproject_args.push_back(&b_pos);
@@ -1212,6 +1212,13 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_string("reproject_forward_recovery", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
 
+    arg_list fillhole;
+    fillhole.push_back(&eng.g_reprojected_id_screen_tex);
+    fillhole.push_back(&eng.g_id_screen_tex);
+    fillhole.push_back(&eng.reprojected_depth_buffer[0]);
+    fillhole.push_back(&eng.reprojected_depth_buffer[1]);
+
+    run_kernel_with_string("fill_holes", {eng.width, eng.height}, {8, 8}, 2, fillhole);
 
 
     arg_list p3again;
@@ -1219,8 +1226,9 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p3again.push_back(&obj_mem_manager::g_tri_num);
     p3again.push_back(&b_pos);
     p3again.push_back(&b_rot);
-    p3again.push_back(&eng.reprojected_depth_buffer[eng.nbuf]);
-    p3again.push_back(&eng.g_reprojected_id_screen_tex);
+    p3again.push_back(&eng.reprojected_depth_buffer[1]);
+    p3again.push_back(&eng.g_id_screen_tex);
+    //p3again.push_back(&eng.g_reprojected_id_screen_tex);
     p3again.push_back(&texture_manager::g_texture_array);
     p3again.push_back(&g_screen_out);
     p3again.push_back(&texture_manager::g_texture_numbers);
@@ -1230,7 +1238,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p3again.push_back(&obj_mem_manager::g_light_num);
     p3again.push_back(&obj_mem_manager::g_light_mem);
     p3again.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
-    p3again.push_back(&eng.reprojected_depth_buffer[nnbuf]);
+    p3again.push_back(&eng.reprojected_depth_buffer[0]);
     p3again.push_back(&eng.g_tid_buf);
     p3again.push_back(&obj_mem_manager::g_cut_tri_mem);
     p3again.push_back(&eng.g_distortion_buffer);
