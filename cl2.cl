@@ -2722,6 +2722,59 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
+///use atomics to be able to reproject forwards, not backwards
+///do we want to reproject 4 and then fill in the area?
+
+__kernel
+void reproject_forward(__read_only image2d_t ids_in, __global uint* ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    const uint x = get_global_id(0);
+    const uint y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    __global uint *ft = &depth_in[y*SCREENWIDTH + x];
+
+    uint id = read_imageui(ids_in, sam, (int2){x, y}).x;//ids_in[y*SCREENWIDTH + x];
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    ///temporarily ignore object positions
+
+    float ldepth = idcalc((float)*ft/mulint);
+
+    ///unprojected pixel coordinate
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, camera_rot);
+
+    global_position += camera_pos;
+
+
+    float3 post_rot = rot(global_position, new_pos.xyz, new_rot.xyz);
+
+    float3 projected = depth_project_singular(post_rot, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected.z < depth_icutoff)
+        return;
+
+    int2 loc = convert_int2(round(projected.xy));
+
+    if(any(loc < 0) || any(loc >= (int2){SCREENWIDTH, SCREENHEIGHT}))
+        return;
+
+    ids_out[loc.y*SCREENWIDTH + loc.x] = id;
+
+    write_imagef(screen, loc, (float)id / 1000000.f);
+}
+
 
 #ifdef OCULUS
 

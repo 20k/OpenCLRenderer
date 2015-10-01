@@ -364,6 +364,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
+    g_reprojected_ids      = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+
 
     /*int tile_size = 32;
     int tile_depth = 1000;
@@ -1044,6 +1046,15 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     ///convert between oculus format and curr. Rotation may not be correct
 
+    static cl_float4 old_pos = position;
+    static cl_float4 old_rot = rotation;
+
+    cl_float4 b_pos = position;
+    cl_float4 b_rot = rotation;
+
+    position = old_pos;
+    rotation = old_rot;
+
     /*static int first;
 
     if(!first)
@@ -1185,6 +1196,21 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     ///this is the deferred screenspace pass
     run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+
+
+
+    arg_list reproject_args;
+    reproject_args.push_back(&eng.g_id_screen_tex);
+    reproject_args.push_back(&eng.g_reprojected_ids);
+    reproject_args.push_back(&eng.depth_buffer[eng.nbuf]);
+    reproject_args.push_back(&eng.reprojected_depth_buffer[eng.nbuf]);
+    reproject_args.push_back(&old_pos);
+    reproject_args.push_back(&old_rot);
+    reproject_args.push_back(&b_pos);
+    reproject_args.push_back(&b_rot);
+    reproject_args.push_back(&eng.g_screen);
+
+    run_kernel_with_string("reproject_forward", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
 
 
 

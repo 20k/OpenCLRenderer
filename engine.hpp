@@ -100,6 +100,7 @@ struct engine
     static compute::buffer g_shadow_light_buffer; ///buffer for light cubemaps for shadows
     compute::buffer g_tile_information;
     compute::buffer g_tile_count;
+    compute::buffer g_reprojected_ids;
 
     compute::buffer g_tid_buf; ///triangle id buffer for fragments
     compute::buffer g_tid_buf_max_len; ///max length
