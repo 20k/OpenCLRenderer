@@ -128,10 +128,10 @@ int main(int argc, char *argv[])
         ///do manual async on thread
         window.draw_bulk_objs_n();
 
-        ///doing this async would save 0.5ms
-        //window.render_buffers();
+        //window.render_block();
         window.display();
+        window.render_block();
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

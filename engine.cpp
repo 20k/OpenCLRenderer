@@ -295,7 +295,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_rot.z=0;
 
     ///frame lookahead
-    max_render_events = 3;
+    max_render_events = 2;
     render_events_num = 0;
     render_me = false;
     last_frametype = frametype::REPROJECT; ///so that the first frame is a triangle render
@@ -1568,7 +1568,7 @@ void engine::draw_bulk_objs_n()
     {
         render_events_num++;
 
-        #define USE_REPROJECTION
+        //#define USE_REPROJECTION
         #ifdef USE_REPROJECTION
         if(last_frametype == frametype::REPROJECT)
         {
@@ -2340,6 +2340,11 @@ void engine::render_buffers()
     g_screen_edge_smoothed = temp;*/
 }
 
+void engine::render_block()
+{
+    cl::cqueue.finish();
+}
+
 void render_screen(engine& eng)
 {
     compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
@@ -2367,6 +2372,8 @@ void render_screen(engine& eng)
 }
 
 ///also updates frametime
+///need to decouple input and display functions
+///frame pacing is still inaccurate
 void engine::display()
 {
     if(render_me)
@@ -2384,13 +2391,16 @@ void engine::display()
         static float reproject_total_time_acc = 0;
 
         ///if nvidia crashes, this code is why
+        ///what we really want to do is update the input just before rendering and use that
+        ///if we're doing reprojection, we want to update by our estimated smoothed frametime
+        ///otherwise use actual frametime
         if(current_frametype == frametype::RENDER)
         {
             render_screen(*this);
 
             input();
 
-            printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
 
             //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
@@ -2414,6 +2424,10 @@ void engine::display()
             //reproject_total_time_acc = (reproject_total_time_acc * 9 + reproject_total_time) / 10.f;
 
             wait = render_total_time/2.f - reproject_total_time;
+
+            ///ideally this wants to actually be input with deltatime
+            ///as the average frametime
+            input();
         }
 
         if(current_frametype == frametype::REPROJECT && ftime.getElapsedTime().asMicroseconds() >= reproject_time_end + wait)
@@ -2422,7 +2436,6 @@ void engine::display()
 
             render_screen(*this);
 
-            input();
 
             printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();

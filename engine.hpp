@@ -187,6 +187,8 @@ struct engine
 
     void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
 
+    ///wait until rendering is finished
+    void render_block();
     void render_buffers();
     void display();
 
