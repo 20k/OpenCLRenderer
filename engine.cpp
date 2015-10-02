@@ -294,6 +294,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_rot.y=0;
     c_rot.z=0;
 
+    ///frame lookahead
+    max_render_events = 1;
+    render_events_num = 0;
+    render_me = false;
+
     cl_float4 *blank = new cl_float4[width*height];
     memset(blank, 0, width*height*sizeof(cl_float4));
 
@@ -407,7 +412,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     old_pos = {0};
     old_rot = {0};
-
 
     ///rift
 
@@ -1024,10 +1028,36 @@ void engine::generate_distortion(compute::buffer& points, int num)
     run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true);
 }
 
+PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
+
+void render_async(cl_event event, cl_int event_command_exec_status, void *user_data)
+{
+    engine& eng = *(engine*)user_data;
+
+    eng.render_me = true;
+
+    eng.render_events_num--;
+
+    if(eng.render_events_num < 0)
+        printf("what\n");
+}
+
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
-void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
+compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
+    static bool once = true;
+
+    if(once)
+    {
+        glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
+
+        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+        once = false;
+    }
+
     //sf::Clock c;
 
     cl_uint zero = 0;
@@ -1064,18 +1094,6 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
         old_rot = c_rot;
         first = 1;
     }*/
-
-    //__global uint* old_depth, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot
-    /*arg_list reprojection_arg_list;
-    reprojection_arg_list.push_back(&depth_buffer[(nbuf + 1) % 2]);
-    reprojection_arg_list.push_back(&reprojected_depth_buffer[(nbuf + 1) % 2]);
-    reprojection_arg_list.push_back(&reprojected_depth_buffer[nbuf]);
-    reprojection_arg_list.push_back(&old_pos);
-    reprojection_arg_list.push_back(&old_rot);
-    reprojection_arg_list.push_back(&c_pos);
-    reprojection_arg_list.push_back(&c_rot);
-
-    run_kernel_with_list(cl::reproject_depth, p3global_ws, p3local_ws, 2, reprojection_arg_list, true);*/
 
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
@@ -1150,18 +1168,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
 
-
     //sf::Clock c3;
-
-    //cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
-
-
     int nnbuf = (eng.nbuf + 1) % 2;
-
-
-    //compute::buffer screen_wrapper(g_screen.get(), true);
-
-    //compute::buffer texture_wrapper(texture_manager::g_texture_array.get());
 
     /// many arguments later
 
@@ -1193,7 +1201,15 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint p3local_ws[] = {16, 16};
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+    auto event = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+
+    clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
+
+    //clFinish(cl::cqueue.get());
+
+    //render_async(event.get(), CL_COMPLETE, &eng);
+
+    return event;
 
 
     ///we're gunna have to do a projection pass, and a recovery pass
@@ -1438,9 +1454,18 @@ void engine::draw_bulk_objs_n()
     cl_float4 pos_offset = c_pos;
     cl_float4 rot_offset = c_rot;
 
+    if(render_events_num >= max_render_events)
+        return;
+
+    compute::event ret;
+
     if(!rift::enabled)
     {
+        render_events_num++;
+
         render_tris(*this, pos_offset, rot_offset, g_screen);
+
+        swap_depth_buffers(); ///this change is going to break lots of things
     }
     ///now we have both eye positions and rotations, need to render in 3d and apply distortion
     ///directly render barrel distortion @1080p
@@ -1477,6 +1502,9 @@ void engine::draw_bulk_objs_n()
         render_tris_oculus(*this, cameras, rotations, g_rift_screen);
     }
 
+    //static int num = 0;
+
+    //render_events.push_back({num++, ret});
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
@@ -2085,6 +2113,21 @@ void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w,
 ///we can now try and do one frame ahead stuff!
 void engine::render_buffers()
 {
+    //cl::cqueue.finish();
+
+    bool did_event = false;
+
+    /*while(render_events.size() >= max_render_events)
+    {
+        cl_event event = render_events.front().second.get();
+
+        clWaitForEvents(1, &event);
+
+        render_events.erase(render_events.begin());
+
+        did_event = true;
+    }*/
+
     ///any way to avoid this?
     if(!rift::enabled)
     {
@@ -2096,8 +2139,6 @@ void engine::render_buffers()
 
         compute::opengl_enqueue_release_gl_objects(2, bufs, cl::cqueue);
     }
-
-    cl::cqueue.finish();
 
     ///reinstate this without the sleep 0
     /*cl_event event;
@@ -2155,11 +2196,6 @@ void engine::render_buffers()
         }
     }
 
-    ///turns out, we don't really care if opengl has finished or not!
-    //glFinish();
-
-    //window.setActive(false);
-
     ///going to be incorrect on rift
     interact::deplete_stack();
     interact::clear();
@@ -2174,11 +2210,6 @@ void engine::render_buffers()
         ovrHmd_EndFrameTiming(HMD);
     }
     #endif
-
-    //rendering to wrong buffer?
-    //window.display();
-
-    swap_depth_buffers();
 
     if(!rift::enabled)
     {
@@ -2200,10 +2231,35 @@ void engine::render_buffers()
 ///also updates frametime
 void engine::display()
 {
-    old_time = current_time;
-    current_time = ftime.getElapsedTime().asMicroseconds();
+    if(render_me)
+    {
+        static sf::Clock clk;
 
-    window.display();
+        compute::opengl_enqueue_release_gl_objects(1, &g_screen.get(), cl::cqueue);
+
+        ///blit buffer to screen
+        glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        ///going to be incorrect on rift
+        interact::deplete_stack();
+        interact::clear();
+
+        text_handler::render();
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+
+        render_me = false;
+
+        old_time = current_time;
+        current_time = ftime.getElapsedTime().asMicroseconds();
+
+        window.display();
+
+        input();
+
+        printf("%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+        clk.restart();
+    }
 }
 
 void engine::swap_depth_buffers()

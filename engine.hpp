@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <array>
+#include <deque>
 
 #include "smoke.hpp"
 
@@ -131,7 +132,10 @@ struct engine
 
     std::vector<object*> objects; ///obsolete?
 
-
+    int max_render_events;
+    //std::vector<std::pair<int, compute::event>> render_events;
+    volatile int render_events_num;
+    volatile bool render_me;
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
 
@@ -254,14 +258,14 @@ static std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 
 ///runs a kernel with a particular set of arguments
-inline void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true)
+inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true)
 {
     size_t g_ws[dimensions];
     size_t l_ws[dimensions];
 
     for(int i=0; i<dimensions; i++)
         if(g_ws[i] <= 0)
-            return;
+            return compute::event();
 
     for(int i=0; i<dimensions; i++)
     {
@@ -321,9 +325,11 @@ inline void run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint lo
 
     std::cout << "T  " << kernel.name << " " << duration << std::endl;
     #endif
+
+    return event;
 }
 
-inline void run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
+inline compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, bool args = true)
 {
     kernel k = cl::kernels[name];
 
@@ -333,12 +339,12 @@ inline void run_kernel_with_string(const std::string& name, cl_uint global_ws[],
         cl::kernels[name] = k;
     }
 
-    run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, args);
+    return run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, args);
 }
 
-inline void run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv)
+inline compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv)
 {
-    run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv);
+    return run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv);
 }
 
 

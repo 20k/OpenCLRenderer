@@ -10,6 +10,14 @@
 
 ///rift head movement is wrong
 
+//compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out);
+
+void callback (cl_event event, cl_int event_command_exec_status, void *user_data)
+{
+    //printf("%s\n", user_data);
+
+    std::cout << (*(sf::Clock*)user_data).getElapsedTime().asMicroseconds()/1000.f << std::endl;
+}
 
 ///gamma correct mipmap filtering
 ///7ish pre tile deferred
@@ -67,6 +75,41 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
+    window.input();
+
+    /*std::string m1, m2, m3;
+    m1 = "one";
+    m2 = "two";
+    m3 = "three";
+
+    sf::Clock clk;
+
+    auto e1 = render_tris(window, window.c_pos, window.c_rot, window.g_screen);
+    window.swap_depth_buffers();
+
+    clSetEventCallback(e1.get(), CL_COMPLETE, callback, &clk);
+
+    auto e2 = render_tris(window, window.c_pos, window.c_rot, window.g_screen);
+    window.swap_depth_buffers();
+
+    clSetEventCallback(e2.get(), CL_COMPLETE, callback, &clk);
+
+    auto e3 = render_tris(window, window.c_pos, window.c_rot, window.g_screen);
+    window.swap_depth_buffers();
+
+    clSetEventCallback(e3.get(), CL_COMPLETE, callback, &clk);
+
+    //window.render_buffers();
+    //window.display();
+
+    cl::cqueue.finish();
+
+    //clWaitForEvents(1, &e1.get());
+
+    std::cout << clk.getElapsedTime().asMicroseconds()/1000.f << std::endl;
+
+    exit(1);*/
+
     ///use event callbacks for rendering to make blitting to the screen and refresh
     ///asynchronous to actual bits n bobs
     ///clSetEventCallback
@@ -80,15 +123,15 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        window.input();
+        //window.input();
 
         ///do manual async on thread
         window.draw_bulk_objs_n();
 
         ///doing this async would save 0.5ms
-        window.render_buffers();
+        //window.render_buffers();
         window.display();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }
