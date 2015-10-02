@@ -148,6 +148,11 @@ struct engine
     volatile int render_events_num;
     volatile bool render_me;
     volatile frametype_t last_frametype;
+    ///this is so that we can predict when to draw the next frame
+    ///when there are irregular frametime variations
+    ///everyone hates a microstutter
+    float running_frametime_smoothed;
+
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
 

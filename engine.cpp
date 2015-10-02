@@ -1107,15 +1107,10 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     rotation = old_rot;
     #endif
 
-    /*static int first;
 
-    if(!first)
-    {
-        old_pos = c_pos;
-        old_rot = c_rot;
-        first = 1;
-    }*/
+    float id_fudge = 1.2;
 
+    ///this is very undefined behaviour
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
 
     /*int tile_size = 32;
@@ -1148,7 +1143,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     local = 256;
 
     ///infernal satanic magic
-    cl_uint p1global_ws_new = id_num * 1.1;
+    cl_uint p1global_ws_new = id_num * id_fudge;
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -1169,7 +1164,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
-    cl_uint p2global_ws = id_num * 1.1;
+    cl_uint p2global_ws = id_num * id_fudge;
 
     cl_uint local2 = 256;
 

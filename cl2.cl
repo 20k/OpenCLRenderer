@@ -2639,6 +2639,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal;
 
+        ///sigh, the blinn-phong is broken
         #define HIGH_GRAPHICS
         #ifndef HIGH_GRAPHICS
 
