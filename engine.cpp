@@ -1047,14 +1047,14 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     ///convert between oculus format and curr. Rotation may not be correct
 
-    static cl_float4 old_pos = position;
+    /*static cl_float4 old_pos = position;
     static cl_float4 old_rot = rotation;
 
     cl_float4 b_pos = position;
     cl_float4 b_rot = rotation;
 
     position = old_pos;
-    rotation = old_rot;
+    rotation = old_rot;*/
 
     /*static int first;
 
@@ -1197,7 +1197,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
 
     ///we're gunna have to do a projection pass, and a recovery pass
-    arg_list reproject_args;
+    /*arg_list reproject_args;
     reproject_args.push_back(&eng.g_id_screen_tex);
     reproject_args.push_back(&eng.g_reprojected_id_screen_tex);
     reproject_args.push_back(&eng.depth_buffer[eng.nbuf]);
@@ -1248,7 +1248,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p3again.push_back(&eng.g_diffuse_intermediate_tex);
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3again);
+    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3again);*/
 
     //run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
 
