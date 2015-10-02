@@ -2831,8 +2831,6 @@ void reproject_forward_recovery(__read_only image2d_t ids_in, __write_only image
 
     uint depth = dcalc(projected.z)*mulint;
 
-    //atomic_min(&depth_out[loc.y*SCREENWIDTH + loc.x], dcalc(projected.z)*mulint);
-
     uint found_depth = depth_out[loc.y*SCREENWIDTH + loc.x];
 
     int c2 = depth > found_depth - BUF_ERROR && depth < found_depth + BUF_ERROR;

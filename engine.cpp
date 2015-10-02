@@ -1218,6 +1218,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     fillhole.push_back(&eng.reprojected_depth_buffer[0]);
     fillhole.push_back(&eng.reprojected_depth_buffer[1]);
 
+    ///I'm a plumber, but for pixels
     run_kernel_with_string("fill_holes", {eng.width, eng.height}, {8, 8}, 2, fillhole);
 
 
