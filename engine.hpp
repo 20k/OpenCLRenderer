@@ -64,6 +64,17 @@ namespace rift
     extern cl_float4 abberation_constants;
 };
 
+namespace frametype
+{
+    enum frametype : int32_t
+    {
+        RENDER,
+        REPROJECT
+    };
+}
+
+typedef frametype::frametype frametype_t;
+
 struct engine
 {
     sf::Mouse mouse;
@@ -136,6 +147,7 @@ struct engine
     //std::vector<std::pair<int, compute::event>> render_events;
     volatile int render_events_num;
     volatile bool render_me;
+    volatile frametype_t last_frametype;
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
 

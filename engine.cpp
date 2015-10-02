@@ -295,9 +295,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_rot.z=0;
 
     ///frame lookahead
-    max_render_events = 1;
+    max_render_events = 2;
     render_events_num = 0;
     render_me = false;
+    last_frametype = frametype::REPROJECT; ///so that the first frame is a triangle render
 
     cl_float4 *blank = new cl_float4[width*height];
     memset(blank, 0, width*height*sizeof(cl_float4));
@@ -1041,12 +1042,29 @@ void render_async(cl_event event, cl_int event_command_exec_status, void *user_d
 
     if(eng.render_events_num < 0)
         printf("what\n");
+
+    eng.old_pos = eng.c_pos;
+    eng.old_rot = eng.c_rot;
+}
+
+void render_async_reproject(cl_event event, cl_int event_command_exec_status, void *user_data)
+{
+    engine& eng = *(engine*)user_data;
+
+    eng.render_me = true;
+
+    eng.render_events_num--;
+
+    if(eng.render_events_num < 0)
+        printf("what\n");
 }
 
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
-compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
+void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
+    eng.last_frametype = frametype::RENDER;
+
     static bool once = true;
 
     if(once)
@@ -1077,14 +1095,17 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     ///convert between oculus format and curr. Rotation may not be correct
 
-    /*static cl_float4 old_pos = position;
+    static cl_float4 old_pos = position;
     static cl_float4 old_rot = rotation;
 
     cl_float4 b_pos = position;
     cl_float4 b_rot = rotation;
 
+    //#define REPROJECT_TEST
+    #ifdef REPROJECT_TEST
     position = old_pos;
-    rotation = old_rot;*/
+    rotation = old_rot;
+    #endif
 
     /*static int first;
 
@@ -1203,17 +1224,20 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     ///this is the deferred screenspace pass
     auto event = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
 
+    #ifndef REPROJECT_TEST
     clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
+    #endif // REPROJECT_TEST
+
 
     //clFinish(cl::cqueue.get());
 
     //render_async(event.get(), CL_COMPLETE, &eng);
 
-    return event;
-
 
     ///we're gunna have to do a projection pass, and a recovery pass
-    /*arg_list reproject_args;
+
+    #ifdef REPROJECT_TEST
+    arg_list reproject_args;
     reproject_args.push_back(&eng.g_id_screen_tex);
     reproject_args.push_back(&eng.g_reprojected_id_screen_tex);
     reproject_args.push_back(&eng.depth_buffer[eng.nbuf]);
@@ -1264,7 +1288,10 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3again.push_back(&eng.g_diffuse_intermediate_tex);
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3again);*/
+    auto e2 = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3again);
+
+    clSetEventCallback(e2.get(), CL_COMPLETE, render_async, &eng);
+    #endif
 
     //run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);
 
@@ -1326,6 +1353,65 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
+}
+
+void render_reproject(engine& eng, cl_float4 old_position, cl_float4 old_rotation, cl_float4 new_position, cl_float4 new_rotation, compute::opengl_renderbuffer& g_screen_out)
+{
+    eng.last_frametype = frametype::REPROJECT;
+
+    arg_list reproject_args;
+    reproject_args.push_back(&eng.g_id_screen_tex);
+    reproject_args.push_back(&eng.g_reprojected_id_screen_tex);
+    reproject_args.push_back(&eng.depth_buffer[(eng.nbuf + 1) % 2]); ///well, if nothing works this is why
+    reproject_args.push_back(&eng.reprojected_depth_buffer[0]);
+    reproject_args.push_back(&old_position);
+    reproject_args.push_back(&old_rotation);
+    reproject_args.push_back(&new_position);
+    reproject_args.push_back(&new_rotation);
+    reproject_args.push_back(&eng.g_screen);
+
+    run_kernel_with_string("reproject_forward", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
+
+    run_kernel_with_string("reproject_forward_recovery", {eng.width, eng.height}, {8, 8}, 2, reproject_args);
+
+    arg_list fillhole;
+    fillhole.push_back(&eng.g_reprojected_id_screen_tex);
+    fillhole.push_back(&eng.g_id_screen_tex);
+    fillhole.push_back(&eng.reprojected_depth_buffer[0]);
+    fillhole.push_back(&eng.reprojected_depth_buffer[1]);
+
+    ///I'm a plumber, but for pixels
+    run_kernel_with_string("fill_holes", {eng.width, eng.height}, {8, 8}, 2, fillhole);
+
+    arg_list p3again;
+    p3again.push_back(&obj_mem_manager::g_tri_mem);
+    p3again.push_back(&obj_mem_manager::g_tri_num);
+    p3again.push_back(&new_position);
+    p3again.push_back(&new_rotation);
+    p3again.push_back(&eng.reprojected_depth_buffer[1]);
+    p3again.push_back(&eng.g_id_screen_tex);
+    //p3again.push_back(&eng.g_reprojected_id_screen_tex);
+    p3again.push_back(&texture_manager::g_texture_array);
+    p3again.push_back(&g_screen_out);
+    p3again.push_back(&texture_manager::g_texture_numbers);
+    p3again.push_back(&texture_manager::g_texture_sizes);
+    p3again.push_back(&obj_mem_manager::g_obj_desc);
+    p3again.push_back(&obj_mem_manager::g_obj_num);
+    p3again.push_back(&obj_mem_manager::g_light_num);
+    p3again.push_back(&obj_mem_manager::g_light_mem);
+    p3again.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
+    p3again.push_back(&eng.reprojected_depth_buffer[0]);
+    p3again.push_back(&eng.g_tid_buf);
+    p3again.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p3again.push_back(&eng.g_distortion_buffer);
+    p3again.push_back(&eng.g_object_id_tex);
+    p3again.push_back(&eng.g_occlusion_intermediate_tex);
+    p3again.push_back(&eng.g_diffuse_intermediate_tex);
+
+    ///this is the deferred screenspace pass
+    auto event = run_kernel_with_string("kernel3", {eng.width, eng.height}, {8, 8}, 2, p3again);
+
+    clSetEventCallback(event.get(), CL_COMPLETE, render_async_reproject, &eng);
 }
 
 void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer g_screen_out[2])
@@ -1463,9 +1549,20 @@ void engine::draw_bulk_objs_n()
     {
         render_events_num++;
 
-        render_tris(*this, pos_offset, rot_offset, g_screen);
+        //#define USE_REPROJECTION
+        #ifdef USE_REPROJECTION
+        if(last_frametype == frametype::REPROJECT)
+        {
+        #endif // USE_REPROJECTION
 
-        swap_depth_buffers(); ///this change is going to break lots of things
+            render_tris(*this, pos_offset, rot_offset, g_screen);
+            swap_depth_buffers();
+
+        #ifdef USE_REPROJECTION
+        }
+        else
+            render_reproject(*this, old_pos, old_rot, c_pos, c_rot, g_screen);
+        #endif // USE_REPROJECTION
     }
     ///now we have both eye positions and rotations, need to render in 3d and apply distortion
     ///directly render barrel distortion @1080p
@@ -1501,10 +1598,6 @@ void engine::draw_bulk_objs_n()
 
         render_tris_oculus(*this, cameras, rotations, g_rift_screen);
     }
-
-    //static int num = 0;
-
-    //render_events.push_back({num++, ret});
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
