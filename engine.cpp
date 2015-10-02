@@ -1549,7 +1549,7 @@ void engine::draw_bulk_objs_n()
     {
         render_events_num++;
 
-        //#define USE_REPROJECTION
+        #define USE_REPROJECTION
         #ifdef USE_REPROJECTION
         if(last_frametype == frametype::REPROJECT)
         {
