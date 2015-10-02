@@ -2373,37 +2373,62 @@ void engine::display()
     {
         static sf::Clock clk;
         static float reproject_time_taken = 0;
-        float extra_time = 0;
 
-        static float last_frametime = 0;
+        static bool reproj_start = false;
+        static float render_time_end = 0;
+        static float reproject_time_end = 0;
+
+        static float wait = 0;
+
+        static float render_total_time_acc = 0;
+        static float reproject_total_time_acc = 0;
 
         ///if nvidia crashes, this code is why
         if(current_frametype == frametype::RENDER)
         {
             render_screen(*this);
 
-            float dt = get_frametime();
-
-            #ifdef USE_REPROJECTION
-            dt = running_frametime_smoothed;
-            #endif // USE_REPROJECTION
-
-            //input_delta delta = get_input_delta(dt, {c_pos, c_rot});
-
-            //c_pos = add(delta.c_pos, c_pos);
-            //c_rot = add(delta.c_rot, c_rot);
-
             input();
 
             printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
 
-            running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
+            //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
 
-            //running_frametime_smoothed = get_frametime();
+            render_time_end = ftime.getElapsedTime().asMicroseconds();
         }
 
-        if(current_frametype == frametype::REPROJECT && reproject_time_taken == 0)
+        if(current_frametype == frametype::REPROJECT && !reproj_start)
+        {
+            reproj_start = true;
+
+            float render_total_time = render_time_end - reproject_time_end;
+
+            //render_total_time_acc = (render_total_time_acc * 9 + render_total_time) / 10.f;
+
+            ///the time at which reproject ends
+            reproject_time_end = ftime.getElapsedTime().asMicroseconds();
+
+            float reproject_total_time = reproject_time_end - render_time_end;
+
+            //reproject_total_time_acc = (reproject_total_time_acc * 9 + reproject_total_time) / 10.f;
+
+            wait = render_total_time/2.f - reproject_total_time;
+        }
+
+        if(current_frametype == frametype::REPROJECT && ftime.getElapsedTime().asMicroseconds() >= reproject_time_end + wait)
+        {
+            reproj_start = false;
+
+            render_screen(*this);
+
+            input();
+
+            printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            clk.restart();
+        }
+
+        /*if(current_frametype == frametype::REPROJECT && reproject_time_taken == 0)
         {
             reproject_time_taken = get_time_since_frame_start();
 
@@ -2425,9 +2450,7 @@ void engine::display()
             reproject_time_taken = 0;
 
             //running_frametime_smoothed = (9 * running_frametime_smoothed + get_frametime()) / 10.f;
-
-            //running_frametime_smoothed -= extra_time;
-        }
+        }*/
     }
 }
 
