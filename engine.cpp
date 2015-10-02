@@ -295,10 +295,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_rot.z=0;
 
     ///frame lookahead
-    max_render_events = 2;
+    max_render_events = 3;
     render_events_num = 0;
     render_me = false;
     last_frametype = frametype::REPROJECT; ///so that the first frame is a triangle render
+    running_frametime_smoothed = 0;
 
     cl_float4 *blank = new cl_float4[width*height];
     memset(blank, 0, width*height*sizeof(cl_float4));
@@ -745,13 +746,26 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
     cmy = my;
 }
 
+struct input_delta
+{
+    cl_float4 c_pos;
+    cl_float4 c_rot;
+};
 
-void engine::input()
+///time in microseconds
+///should really template this and give it a tag
+///or stick it in a function map with an enum
+input_delta get_input_delta(float delta_time, const input_delta& input)
 {
     sf::Keyboard keyboard;
 
-    static int distance_multiplier=1;
+    int distance_multiplier=1;
 
+    cl_float4 in_pos = input.c_pos;
+    cl_float4 in_rot = input.c_rot;
+
+    cl_float4 delta_pos = {0,0,0};
+    cl_float4 delta_rot = {0,0,0};
     ///handle camera input. Update to be based off frametime
 
     if(keyboard.isKeyPressed(sf::Keyboard::LShift))
@@ -763,75 +777,76 @@ void engine::input()
         distance_multiplier=1;
     }
 
-    float distance=0.04f*distance_multiplier*30 * get_frametime() / 8000.f;
+    float distance=0.04f*distance_multiplier*30 * delta_time / 8000.f;
 
     if(keyboard.isKeyPressed(sf::Keyboard::W))
     {
-        cl_float4 t=rot(0, 0, distance, c_rot);
-        //cl_float4 t = rot_about({0, 0, distance}, {0,0,0}, sub({0,0,0}, c_rot));
-        c_pos.x+=t.x;
-        c_pos.y+=t.y;
-        c_pos.z+=t.z;
+        cl_float4 t=rot(0, 0, distance, in_rot);
+        delta_pos = add(delta_pos, t);
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::S))
     {
-        cl_float4 t=rot(0, 0, -distance, c_rot);
-        //cl_float4 t = rot_about({0, 0, -distance}, {0,0,0}, sub({0,0,0}, c_rot));
-        c_pos.x+=t.x;
-        c_pos.y+=t.y;
-        c_pos.z+=t.z;
+        cl_float4 t=rot(0, 0, -distance, in_rot);
+        delta_pos = add(delta_pos, t);
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::A))
     {
-        cl_float4 t=rot(-distance, 0, 0, c_rot);
-        //cl_float4 t = rot_about({-distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
-        c_pos.x+=t.x;
-        c_pos.y+=t.y;
-        c_pos.z+=t.z;
+        cl_float4 t=rot(-distance, 0, 0, in_rot);
+        delta_pos = add(delta_pos, t);
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::D))
     {
-        cl_float4 t=rot(distance, 0, 0, c_rot);
-        //cl_float4 t = rot_about({distance, 0,0}, {0,0,0}, sub({0,0,0}, c_rot));
-        c_pos.x+=t.x;
-        c_pos.y+=t.y;
-        c_pos.z+=t.z;
+        cl_float4 t=rot(distance, 0, 0, in_rot);
+        delta_pos = add(delta_pos, t);
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::E))
     {
-        c_pos.y-=0.04*distance_multiplier*30;
+        delta_pos.y-=distance;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Q))
     {
-        c_pos.y+=0.04*distance_multiplier*30;
+        delta_pos.y+=distance;
     }
 
-    float camera_mult = get_frametime() / 8000.f;
+    float camera_mult = delta_time / 8000.f;
 
     if(keyboard.isKeyPressed(sf::Keyboard::Left))
     {
-        c_rot.y-=0.001*30 * camera_mult;
+        delta_rot.y-=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Right))
     {
-        c_rot.y+=0.001*30 * camera_mult;
+        delta_rot.y+=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Up))
     {
-        c_rot.x-=0.001*30 * camera_mult;
+        delta_rot.x-=0.001*30 * camera_mult;
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::Down))
     {
-        c_rot.x+=0.001*30 * camera_mult;
+        delta_rot.x+=0.001*30 * camera_mult;
     }
+
+    return {delta_pos, delta_rot};
+}
+
+
+void engine::input()
+{
+    sf::Keyboard keyboard;
+
+    input_delta delta = get_input_delta(get_frametime(), {c_pos, c_rot});
+
+    c_pos = add(delta.c_pos, c_pos);
+    c_rot = add(delta.c_rot, c_rot);
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
     {
@@ -901,6 +916,11 @@ void engine::input()
 float engine::get_frametime()
 {
     return current_time - old_time;
+}
+
+float engine::get_time_since_frame_start()
+{
+    return ftime.getElapsedTime().asMicroseconds() - current_time;
 }
 
 void engine::construct_shadowmaps()
@@ -1045,6 +1065,8 @@ void render_async(cl_event event, cl_int event_command_exec_status, void *user_d
 
     eng.old_pos = eng.c_pos;
     eng.old_rot = eng.c_rot;
+
+    eng.current_frametype = frametype::RENDER;
 }
 
 void render_async_reproject(cl_event event, cl_int event_command_exec_status, void *user_data)
@@ -1057,6 +1079,8 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
     if(eng.render_events_num < 0)
         printf("what\n");
+
+    eng.current_frametype = frametype::REPROJECT;
 }
 
 ///the beginnings of making rendering more configurable
@@ -2316,37 +2340,94 @@ void engine::render_buffers()
     g_screen_edge_smoothed = temp;*/
 }
 
+void render_screen(engine& eng)
+{
+    compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
+
+    ///blit buffer to screen
+    glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+    ///going to be incorrect on rift
+    interact::deplete_stack();
+    interact::clear();
+
+    text_handler::render();
+
+    compute::opengl_enqueue_acquire_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
+
+    eng.render_me = false;
+
+    eng.old_time = eng.current_time;
+    eng.current_time = eng.ftime.getElapsedTime().asMicroseconds();
+
+    eng.window.display();
+
+    //eng.running_frametime_smoothed = (9 * eng.running_frametime_smoothed + eng.get_frametime()) / 10.f;
+    //eng.running_frametime_smoothed = eng.get_frametime();
+}
+
 ///also updates frametime
 void engine::display()
 {
     if(render_me)
     {
         static sf::Clock clk;
+        static float reproject_time_taken = 0;
+        float extra_time = 0;
 
-        compute::opengl_enqueue_release_gl_objects(1, &g_screen.get(), cl::cqueue);
+        static float last_frametime = 0;
 
-        ///blit buffer to screen
-        glBlitFramebufferEXT(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        ///if nvidia crashes, this code is why
+        if(current_frametype == frametype::RENDER)
+        {
+            render_screen(*this);
 
-        ///going to be incorrect on rift
-        interact::deplete_stack();
-        interact::clear();
+            float dt = get_frametime();
 
-        text_handler::render();
+            #ifdef USE_REPROJECTION
+            dt = running_frametime_smoothed;
+            #endif // USE_REPROJECTION
 
-        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+            //input_delta delta = get_input_delta(dt, {c_pos, c_rot});
 
-        render_me = false;
+            //c_pos = add(delta.c_pos, c_pos);
+            //c_rot = add(delta.c_rot, c_rot);
 
-        old_time = current_time;
-        current_time = ftime.getElapsedTime().asMicroseconds();
+            input();
 
-        window.display();
+            printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            clk.restart();
 
-        input();
+            running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
 
-        printf("%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
-        clk.restart();
+            //running_frametime_smoothed = get_frametime();
+        }
+
+        if(current_frametype == frametype::REPROJECT && reproject_time_taken == 0)
+        {
+            reproject_time_taken = get_time_since_frame_start();
+
+            extra_time = running_frametime_smoothed - reproject_time_taken;
+
+            extra_time = std::max(extra_time, 0.f);
+        }
+        if(current_frametype == frametype::REPROJECT && get_time_since_frame_start() >= running_frametime_smoothed - extra_time/2.f)
+        {
+            render_screen(*this);
+
+            input();
+
+            //printf("f %f\n", running_frametime_smoothed/1000.f);
+
+            printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            clk.restart();
+
+            reproject_time_taken = 0;
+
+            //running_frametime_smoothed = (9 * running_frametime_smoothed + get_frametime()) / 10.f;
+
+            //running_frametime_smoothed -= extra_time;
+        }
     }
 }
 

@@ -148,6 +148,7 @@ struct engine
     volatile int render_events_num;
     volatile bool render_me;
     volatile frametype_t last_frametype;
+    volatile frametype_t current_frametype;
     ///this is so that we can predict when to draw the next frame
     ///when there are irregular frametime variations
     ///everyone hates a microstutter
@@ -199,6 +200,7 @@ struct engine
     int get_mouse_delta_x();
     int get_mouse_delta_y();
     float get_frametime();
+    float get_time_since_frame_start();
 
     int get_width();
     int get_height();
@@ -215,7 +217,7 @@ struct engine
 
     static int nbuf;
 
-private:
+    ///turns out, I'm bad at programming
     sf::Clock ftime;
     size_t old_time;
     size_t current_time;
