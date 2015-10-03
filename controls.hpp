@@ -7,6 +7,8 @@
 
 struct engine;
 
+///10 seconds in and i've already misused this struct
+///give it a better name
 struct input_delta
 {
     cl_float4 c_pos;
@@ -14,9 +16,11 @@ struct input_delta
 };
 
 ///must not modify external state so that it can be used for prediction
-input_delta get_input_delta_default(float delta_time, const input_delta& input);
+input_delta get_input_delta_default(float delta_time, const input_delta& input, engine& eng);
 
-void        process_controls_default(engine& eng, float delta_time);
+///make delta time first argument. I don't know why i didn't do that
+void        process_controls_default(float delta_time, engine& eng);
+void        process_controls_empty(float delta_time, engine& eng);
 
 
 struct control_input

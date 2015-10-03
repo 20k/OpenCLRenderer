@@ -395,5 +395,7 @@ void obj_load(objects_container* pobj)
 
     c->isloaded = true;
 
+    printf("Loaded\n");
+
     //std::cout << "Object load time " <<  clk.getElapsedTime().asSeconds() << std::endl;
 }

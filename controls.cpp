@@ -42,7 +42,7 @@ control_input::control_input(decltype(get_input_delta) delta_func, decltype(proc
 ///time in microseconds
 ///should really template this and give it a tag
 ///or stick it in a function map with an enum
-input_delta get_input_delta_default(float delta_time, const input_delta& input)
+input_delta get_input_delta_default(float delta_time, const input_delta& input, engine& eng)
 {
     sf::Keyboard keyboard;
 
@@ -125,7 +125,7 @@ input_delta get_input_delta_default(float delta_time, const input_delta& input)
     return {delta_pos, delta_rot};
 }
 
-void process_controls_default(engine& eng, float delta_time)
+void process_controls_default(float delta_time, engine& eng)
 {
     auto c_pos = eng.c_pos;
     auto c_rot = eng.c_rot;
@@ -146,6 +146,11 @@ void process_controls_default(engine& eng, float delta_time)
     {
         std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
     }
+}
+
+void process_controls_empty(float delta_time, engine& eng)
+{
+
 }
 
 

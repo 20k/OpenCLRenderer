@@ -1716,6 +1716,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     int o_id = T->vertices[0].object_id;
 
+
     ///this is the 3d projection 'pipeline'
 
     ///void rot_3(__global struct triangle *triangle, float3 c_pos, float3 c_rot, float3 ret[3])

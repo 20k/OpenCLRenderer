@@ -73,6 +73,8 @@
 		<Unit filename="cl2.cl" />
 		<Unit filename="clstate.cpp" />
 		<Unit filename="clstate.h" />
+		<Unit filename="controls.cpp" />
+		<Unit filename="controls.hpp" />
 		<Unit filename="engine.cpp" />
 		<Unit filename="engine.hpp" />
 		<Unit filename="hologram.cpp" />

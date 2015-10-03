@@ -722,9 +722,9 @@ void engine::process_input()
 {
     sf::Keyboard keyboard;
 
-    input_delta delta = input_handler.get_input_delta(get_frametime(), {c_pos, c_rot});
+    input_delta delta = input_handler.get_input_delta(get_frametime(), {c_pos, c_rot}, *this);
 
-    input_handler.process_controls(*this, get_frametime());
+    input_handler.process_controls(get_frametime(), *this);
 
     c_pos = add(delta.c_pos, c_pos);
     c_rot = add(delta.c_rot, c_rot);
@@ -1034,7 +1034,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     prearg_list.push_back(&obj_mem_manager::g_obj_desc);
     prearg_list.push_back(&eng.g_distortion_buffer);
 
-    run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
+    //run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
+    run_kernel_with_string("prearrange", &p1global_ws, &local, 1, prearg_list);
 
     local = 256;
 
@@ -2246,6 +2247,7 @@ void render_screen(engine& eng)
 ///also updates frametime
 ///need to decouple input and display functions
 ///frame pacing is still inaccurate
+///need to separate out rendering so that i can draw other buffers to the screen
 void engine::display()
 {
     if(render_me)
