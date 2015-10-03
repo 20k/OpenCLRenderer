@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 
     window.construct_shadowmaps();
 
-    window.input();
+    //window.process_input();
 
     /*std::string m1, m2, m3;
     m1 = "one";
@@ -132,6 +132,6 @@ int main(int argc, char *argv[])
         window.display();
         window.render_block();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

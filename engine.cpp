@@ -21,6 +21,7 @@
 #include "ui_manager.hpp"
 #include <chrono>
 #include "ocl.h"
+#include "controls.hpp"
 
 #ifdef RIFT
 #include "Rift/Include/OVR.h"
@@ -508,35 +509,6 @@ void engine::g_flush_light(light* l) ///just position?
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*lid, sizeof(light), light::lightlist[lid]);
 }
 
-///error
-cl_float4 rot(double x, double y, double z, cl_float4 rotation)
-{
-    double i0x=x;
-    double i0y=y;
-    double i0z=z;
-
-    double i1x=i0x;
-    double i1y=i0y*cos(rotation.x) - sin(rotation.x)*i0z;
-    double i1z=i0y*sin(rotation.x) + cos(rotation.x)*i0z;
-
-
-    double i2x=i1x*cos(rotation.y) + i1z*sin(rotation.y);
-    double i2y=i1y;
-    double i2z=-i1x*sin(rotation.y) + i1z*cos(rotation.y);
-
-    double i3x=i2x*cos(rotation.z) - i2y*sin(rotation.z);
-    double i3y=i2x*sin(rotation.z) + i2y*cos(rotation.z);
-    double i3z=i2z;
-
-    cl_float4 ret;
-
-    ret.x=i3x;
-    ret.y=i3y;
-    ret.z=i3z;
-
-    return ret;
-}
-
 cl_float4 engine::rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
 {
     /*cl_float4 cos_rot;
@@ -746,122 +718,17 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
     cmy = my;
 }
 
-struct input_delta
-{
-    cl_float4 c_pos;
-    cl_float4 c_rot;
-};
-
-///time in microseconds
-///should really template this and give it a tag
-///or stick it in a function map with an enum
-input_delta get_input_delta(float delta_time, const input_delta& input)
+void engine::process_input()
 {
     sf::Keyboard keyboard;
 
-    int distance_multiplier=1;
+    input_delta delta = input_handler.get_input_delta(get_frametime(), {c_pos, c_rot});
 
-    cl_float4 in_pos = input.c_pos;
-    cl_float4 in_rot = input.c_rot;
-
-    cl_float4 delta_pos = {0,0,0};
-    cl_float4 delta_rot = {0,0,0};
-    ///handle camera input. Update to be based off frametime
-
-    if(keyboard.isKeyPressed(sf::Keyboard::LShift))
-    {
-        distance_multiplier=10;
-    }
-    else
-    {
-        distance_multiplier=1;
-    }
-
-    float distance=0.04f*distance_multiplier*30 * delta_time / 8000.f;
-
-    if(keyboard.isKeyPressed(sf::Keyboard::W))
-    {
-        cl_float4 t=rot(0, 0, distance, in_rot);
-        delta_pos = add(delta_pos, t);
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::S))
-    {
-        cl_float4 t=rot(0, 0, -distance, in_rot);
-        delta_pos = add(delta_pos, t);
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::A))
-    {
-        cl_float4 t=rot(-distance, 0, 0, in_rot);
-        delta_pos = add(delta_pos, t);
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::D))
-    {
-        cl_float4 t=rot(distance, 0, 0, in_rot);
-        delta_pos = add(delta_pos, t);
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::E))
-    {
-        delta_pos.y-=distance;
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::Q))
-    {
-        delta_pos.y+=distance;
-    }
-
-    float camera_mult = delta_time / 8000.f;
-
-    if(keyboard.isKeyPressed(sf::Keyboard::Left))
-    {
-        delta_rot.y-=0.001*30 * camera_mult;
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::Right))
-    {
-        delta_rot.y+=0.001*30 * camera_mult;
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::Up))
-    {
-        delta_rot.x-=0.001*30 * camera_mult;
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::Down))
-    {
-        delta_rot.x+=0.001*30 * camera_mult;
-    }
-
-    return {delta_pos, delta_rot};
-}
-
-
-void engine::input()
-{
-    sf::Keyboard keyboard;
-
-    input_delta delta = get_input_delta(get_frametime(), {c_pos, c_rot});
+    input_handler.process_controls(*this, get_frametime());
 
     c_pos = add(delta.c_pos, c_pos);
     c_rot = add(delta.c_rot, c_rot);
 
-    if(keyboard.isKeyPressed(sf::Keyboard::Escape))
-    {
-        window.close();
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::B))
-    {
-        std::cout << "rerr: " << c_pos.x << " " << c_pos.y << " " << c_pos.z << std::endl;
-    }
-
-    if(keyboard.isKeyPressed(sf::Keyboard::N))
-    {
-        std::cout << "rotation: " << c_rot.x << " " << c_rot.y << " " << c_rot.z << std::endl;
-    }
 
     ///am I going to have to add camera to quaternion here to avoid problems? Yes
     ///convert to produce two eye camera outputs
@@ -911,6 +778,11 @@ void engine::input()
         }
     }
     #endif
+}
+
+void engine::set_input_handler(control_input& in)
+{
+    input_handler = in;
 }
 
 float engine::get_frametime()
@@ -2379,7 +2251,6 @@ void engine::display()
     if(render_me)
     {
         static sf::Clock clk;
-        static float reproject_time_taken = 0;
 
         static bool reproj_start = false;
         static float render_time_end = 0;
@@ -2398,7 +2269,7 @@ void engine::display()
         {
             render_screen(*this);
 
-            input();
+            process_input();
 
             //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
@@ -2427,7 +2298,8 @@ void engine::display()
 
             ///ideally this wants to actually be input with deltatime
             ///as the average frametime
-            input();
+            ///by wait + frametime?
+            process_input();
         }
 
         if(current_frametype == frametype::REPROJECT && ftime.getElapsedTime().asMicroseconds() >= reproject_time_end + wait)
@@ -2436,34 +2308,9 @@ void engine::display()
 
             render_screen(*this);
 
-
             printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
         }
-
-        /*if(current_frametype == frametype::REPROJECT && reproject_time_taken == 0)
-        {
-            reproject_time_taken = get_time_since_frame_start();
-
-            extra_time = running_frametime_smoothed - reproject_time_taken;
-
-            extra_time = std::max(extra_time, 0.f);
-        }
-        if(current_frametype == frametype::REPROJECT && get_time_since_frame_start() >= running_frametime_smoothed - extra_time/2.f)
-        {
-            render_screen(*this);
-
-            input();
-
-            //printf("f %f\n", running_frametime_smoothed/1000.f);
-
-            printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
-            clk.restart();
-
-            reproject_time_taken = 0;
-
-            //running_frametime_smoothed = (9 * running_frametime_smoothed + get_frametime()) / 10.f;
-        }*/
     }
 }
 

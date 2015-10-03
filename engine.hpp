@@ -23,6 +23,7 @@
 #include "smoke.hpp"
 
 #include "ocl.h"
+#include "controls.hpp"
 
 #ifdef RIFT
 #include "Rift/Include/OVR.h"
@@ -77,6 +78,7 @@ typedef frametype::frametype frametype_t;
 
 struct engine
 {
+    control_input input_handler;
     sf::Mouse mouse;
 
     int mdx, mdy;
@@ -195,7 +197,8 @@ struct engine
     void swap_depth_buffers();
 
     void ui_interaction();
-    void input();
+    void process_input();
+    void set_input_handler(control_input& in);
     void update_mouse(float from_x = 0.f, float from_y = 0.f, bool use_from_position = false, bool reset_to_from_position = false);
     int get_mouse_x();
     int get_mouse_y();
