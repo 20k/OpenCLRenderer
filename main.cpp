@@ -42,9 +42,9 @@ int main(int argc, char *argv[])
 
     window.window.setPosition({-20, -20});
 
-    #ifdef OCULUS
+    //#ifdef OCULUS
     window.window.setVerticalSyncEnabled(true);
-    #endif
+    //#endif
 
     obj_mem_manager::load_active_objects();
 
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
         //window.render_block();
         window.display();
-        window.render_block();
+        //window.render_block();
 
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

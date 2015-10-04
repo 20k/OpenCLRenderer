@@ -2220,6 +2220,7 @@ void engine::render_block()
 
 void render_screen(engine& eng)
 {
+    ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
     compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
 
     ///blit buffer to screen
@@ -2248,6 +2249,9 @@ void render_screen(engine& eng)
 ///need to decouple input and display functions
 ///frame pacing is still inaccurate
 ///need to separate out rendering so that i can draw other buffers to the screen
+///gpu context switch is causing hw stall
+///investigate binding screen as opencl object
+///I could use multiple queues and synchronise between them with event objects
 void engine::display()
 {
     if(render_me)
@@ -2273,7 +2277,7 @@ void engine::display()
 
             process_input();
 
-            //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
 
             //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
