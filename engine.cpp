@@ -961,17 +961,6 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 {
     eng.last_frametype = frametype::RENDER;
 
-    static bool once = true;
-
-    if(once)
-    {
-        glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
-
-        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
-
-        once = false;
-    }
-
     //sf::Clock c;
 
     cl_uint zero = 0;
@@ -2220,6 +2209,17 @@ void engine::render_block()
 
 void render_screen(engine& eng)
 {
+    static bool once = true;
+
+    if(once)
+    {
+        glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
+
+        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+        once = false;
+    }
+
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
     compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
 
@@ -2277,7 +2277,7 @@ void engine::display()
 
             process_input();
 
-            printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
 
             //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
