@@ -26,7 +26,7 @@ struct light
     void set_active(bool);
 
     static std::vector<light*> lightlist;
-    static std::vector<bool> active;
+    static std::vector<cl_uint> active;
 
     static int get_light_id(light*);
     static light* add_light(const light* l); ///to global light list

@@ -398,8 +398,6 @@ void network::add_new_connection(sockaddr_storage* their_addr, int len)
 const int canary = 0xdeadbeef;
 const int end_canary = 0xafaefead;
 
-const char end_ar[4] = {0xaf, 0xae, 0xfe, 0xad};
-
 std::vector<char> network::receive_any(int& ret_address)
 {
     constexpr int l = 2000;
@@ -977,7 +975,7 @@ void network::send_joinresponse(int id)
     vec.push_back((int)connections.size());
     vec.push_back(end_canary);
 
-    printf("To client: %i\n", connections.size());
+    printf("To client: %ui\n", connections.size());
 
     send(id, vec.data());
 }

@@ -3,7 +3,7 @@
 #include <float.h>
 
 std::vector<light*> light::lightlist;
-std::vector<bool> light::active;
+std::vector<cl_uint> light::active;
 
 void light::set_pos(cl_float4 p)
 {

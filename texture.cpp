@@ -196,7 +196,8 @@ void texture::generate_mipmaps()
 
             FILE* pFile = fopen(mip_loc.c_str(), "r");
 
-            fclose(pFile);
+            if(pFile != nullptr)
+                fclose(pFile);
 
             ///file does not exist, generate and cache
             if(pFile == nullptr || !cacheable)

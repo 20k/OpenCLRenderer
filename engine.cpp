@@ -276,7 +276,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     l_size = 2048;
 
     ///including opencl compilation parameters
-    oclstuff(loc.c_str(), width, height, l_size, only_3d);
+    oclstuff(loc, width, height, l_size, only_3d);
 
     mdx = 0;
     mdy = 0;
@@ -442,6 +442,14 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
 
         light_straight.push_back(*light::lightlist[i]);
     }
+
+    if(light_straight.size() == 0)
+    {
+        printf("Warning, no lights is currently an error\n");
+        throw;
+    }
+
+    printf("%i\n", found_num);
 
     ///gpu light memory
     obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*found_num, CL_MEM_READ_ONLY);
@@ -2335,7 +2343,7 @@ void engine::ui_interaction()
     int selected = ui_manager::selected_value;
 
     ///ui element
-    if(selected != -1 && selected >= 0 && selected < ui_manager::ui_elems.size() && !(selected & MINIMAP_BITFLAG))
+    if(selected >= 0 && selected < ui_manager::ui_elems.size() && !(selected & MINIMAP_BITFLAG))
     {
         ui_element& e = *ui_manager::ui_elems[selected];
 

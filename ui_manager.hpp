@@ -2,7 +2,6 @@
 #define INCLUDED_UI_MANAGER_HPP
 
 #include <vector>
-#include <cl/cl.h>
 #include <string>
 
 #include <cl/cl.h>

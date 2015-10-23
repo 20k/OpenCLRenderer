@@ -4,7 +4,6 @@
 #include <cl/cl.h>
 #include <vector>
 #include "obj_g_descriptor.hpp"
-#include <boost/function.hpp>
 #include <functional>
 
 static cl_uint max_tex_size=2048;

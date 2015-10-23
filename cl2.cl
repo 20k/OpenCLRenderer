@@ -4844,6 +4844,8 @@ void render_naive_points(int num, __global float4* positions, __global uint* col
 
     uint4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
 
+    rgba.x = 255;
+
     buffer_accum(screen_buf, x, y, rgba);
 }
 

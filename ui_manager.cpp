@@ -46,7 +46,7 @@ void ui_element::load(int _ref_id, std::string file, std::string _name, cl_float
 
     ref_id = _ref_id;
 
-    int real_id = hologram_manager::get_real_id(ref_id);
+    //int real_id = hologram_manager::get_real_id(ref_id);
 
     initial = _initial;
 
