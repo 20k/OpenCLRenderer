@@ -406,7 +406,7 @@ std::vector<char> network::receive_any(int& ret_address)
 
     recv_buffer.resize(l);
 
-    int len;
+    int len = 0;
 
     if(network_state == 2)
     {
@@ -975,7 +975,7 @@ void network::send_joinresponse(int id)
     vec.push_back((int)connections.size());
     vec.push_back(end_canary);
 
-    printf("To client: %ui\n", connections.size());
+    printf("To client: %i\n", (int)connections.size());
 
     send(id, vec.data());
 }
@@ -1001,6 +1001,8 @@ bool network::process_joinack(byte_fetch& fetch, int from)
         return false;
 
     client_joined_status[from] = true;
+
+    return true;
 }
 
 ///if server, do nothing
@@ -1134,6 +1136,8 @@ bool network::process_audio(byte_fetch& fetch)
         return false;
 
     signals.push_back({type, x, y, z});
+
+    return true;
 }
 
 /*bool network::process_signal(byte_fetch& fetch)
