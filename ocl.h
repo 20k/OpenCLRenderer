@@ -218,7 +218,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
 
     int src_size=0;
-    const char *source;
+    char *source;
 
     source = file_contents(file.c_str(), &src_size);
 
@@ -226,6 +226,8 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     std::cout << "Loaded file" << std::endl;
 
     compute::program program = compute::program::create_with_source(source, cl::context);
+
+    free(source);
 
     std::cout << "Created Program" << std::endl;
 

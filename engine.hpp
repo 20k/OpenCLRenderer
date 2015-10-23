@@ -238,7 +238,7 @@ struct arg_list
     {
         args.push_back(buf);
         sizes.push_back(sizeof(compute::buffer));
-        can_skip.push_back(true);
+        can_skip.push_back(false);
     }
 
     template<typename T>
@@ -273,7 +273,23 @@ struct Timer
 
 struct kernel_helper
 {
-    cl_uint args[3];
+    cl_uint args[3] = {0};
+
+    kernel_helper(std::initializer_list<cl_int> init)
+    {
+        for(auto& i : args)
+            i = 0;
+
+        int c = 0;
+
+        for(auto& i : init)
+        {
+            args[c++] = i;
+
+            if(c >= 2)
+                return;
+        }
+    }
 };
 
 float idcalc(float);

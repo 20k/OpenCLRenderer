@@ -392,24 +392,6 @@ float backface_cull(struct triangle *tri)
 
 void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, float3 ret[3])
 {
-    /*if(rotation_offset.x == 0.0f && rotation_offset.y == 0.0f && rotation_offset.z == 0.0f)
-    {
-        ret[0]=rot(triangle->vertices[0].pos.xyz + offset, c_pos, c_rot);
-        ret[1]=rot(triangle->vertices[1].pos.xyz + offset, c_pos, c_rot);
-        ret[2]=rot(triangle->vertices[2].pos.xyz + offset, c_pos, c_rot);
-    }
-    else
-    {
-        float3 zero = 0;
-        ret[0] = rot(triangle->vertices[0].pos.xyz, zero, rotation_offset);
-        ret[1] = rot(triangle->vertices[1].pos.xyz, zero, rotation_offset);
-        ret[2] = rot(triangle->vertices[2].pos.xyz, zero, rotation_offset);
-
-        ret[0]=rot(ret[0] + offset, c_pos, c_rot);
-        ret[1]=rot(ret[1] + offset, c_pos, c_rot);
-        ret[2]=rot(ret[2] + offset, c_pos, c_rot);
-    }*/
-
     ret[0] = rot(triangle->vertices[0].pos.xyz, 0, rotation_offset);
     ret[1] = rot(triangle->vertices[1].pos.xyz, 0, rotation_offset);
     ret[2] = rot(triangle->vertices[2].pos.xyz, 0, rotation_offset);
@@ -614,173 +596,6 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
         depth_project(tris[1], width, height, fovc, passback[1]);
     }
 }
-
-
-/*void full_rotate(__global struct triangle *triangle, struct triangle *passback, int *num, float3 c_pos, float3 c_rot, float3 offset, float fovc, int width, int height)
-{
-    float3 tris[2][3];
-    full_rotate_n_extra(triangle, tris, num, c_pos, c_rot, offset, fovc, width, height);
-
-    for(int i=0; i<3; i++)
-    {
-        passback[0].vertices[i].normal = triangle->vertices[i].normal;
-        passback[1].vertices[i].normal = triangle->vertices[i].normal;
-
-        passback[0].vertices[i].pad = triangle->vertices[i].pad;
-        passback[1].vertices[i].pad = triangle->vertices[i].pad;
-
-        passback[0].vertices[i].vt = triangle->vertices[i].vt;
-        passback[1].vertices[i].vt = triangle->vertices[i].vt;
-    }
-
-}*/
-
-///change width/height to be defines by compiler
-/*bool full_rotate(__global struct triangle *triangle, float3 passback[2][3], int *num, float3 c_pos, float3 c_rot, float3 offset, float3 rotation_offset, float fovc, float width, float height, int is_clipped)
-{
-    __global struct triangle *T=triangle;
-
-    ///interpolation doesnt work when odepth close to 0, need to use idcalc(tri) and then work out proper texture coordinates
-    ///YAY
-
-
-    float3 rotpoints[3];
-    rot_3(T, c_pos, c_rot, offset, rotation_offset, rotpoints);
-
-    float3 projected[3];
-    depth_project(rotpoints, width, height, fovc, projected);
-
-    if(is_clipped == 0)
-    {
-        passback[0][0] = projected[0];
-        passback[0][1] = projected[1];
-        passback[0][2] = projected[2];
-
-        *num = 1;
-
-        return false;
-    }
-
-    int n_behind = 0;
-    int ids_behind[2];
-    int id_valid=-1;
-
-    for(int i=0; i<3; i++)
-    {
-        if(rotpoints[i].z <= depth_icutoff)
-        {
-            ids_behind[n_behind] = i;
-            n_behind++;
-        }
-        else
-        {
-            id_valid = i;
-        }
-    }
-
-
-    float3 p1, p2, c1, c2;
-
-    if(n_behind == 0)
-    {
-        passback[0][0] = projected[0];
-        passback[0][1] = projected[1];
-        passback[0][2] = projected[2];
-
-        *num = 1;
-        return true;
-    }
-
-    if(n_behind > 2)
-    {
-        *num = 0;
-        return false;
-    }
-
-    int g1, g2, g3;
-
-    if(n_behind == 1)
-    {
-        ///n0, v1, v2
-        g1 = ids_behind[0];
-        g2 = (ids_behind[0] + 1) % 3;
-        g3 = (ids_behind[0] + 2) % 3;
-    }
-
-    if(n_behind == 2)
-    {
-        g2 = ids_behind[0];
-        g3 = ids_behind[1];
-        g1 = id_valid;
-    }
-    ///back rotate and do barycentric interpolation?
-
-    //i think the jittering is caused by numerical accuracy problems here
-
-    float l1 = native_divide((depth_icutoff - rotpoints[g2].z) , (rotpoints[g1].z - rotpoints[g2].z));
-    float l2 = native_divide((depth_icutoff - rotpoints[g3].z) , (rotpoints[g1].z - rotpoints[g3].z));
-
-
-    p1 = rotpoints[g2] + l1*(rotpoints[g1] - rotpoints[g2]);
-    p2 = rotpoints[g3] + l2*(rotpoints[g1] - rotpoints[g3]);
-
-
-    if(n_behind == 1)
-    {
-        c1 = rotpoints[g2];
-        c2 = rotpoints[g3];
-    }
-    else
-    {
-        c1 = rotpoints[g1];
-    }
-
-
-
-    p1.x = (native_divide(p1.x * fovc, p1.z)) + width/2;
-    p1.y = (native_divide(p1.y * fovc, p1.z)) + height/2;
-
-
-    p2.x = (native_divide(p2.x * fovc, p2.z)) + width/2;
-    p2.y = (native_divide(p2.y * fovc, p2.z)) + height/2;
-
-
-    c1.x = (native_divide(c1.x * fovc, c1.z)) + width/2;
-    c1.y = (native_divide(c1.y * fovc, c1.z)) + height/2;
-
-
-    c2.x = (native_divide(c2.x * fovc, c2.z)) + width/2;
-    c2.y = (native_divide(c2.y * fovc, c2.z)) + height/2;
-
-
-    if(n_behind==1)
-    {
-        passback[0][0] = p1;
-        passback[0][1] = c1;
-        passback[0][2] = c2;
-
-        passback[1][0] = p1;
-        passback[1][1] = c2;
-        passback[1][2] = p2;
-
-        *num = 2;
-
-        return true;
-    }
-
-    if(n_behind==2)
-    {
-        passback[0][ids_behind[0]] = p1;
-        passback[0][ids_behind[1]] = p2;
-        passback[0][id_valid] = c1;
-
-        *num = 1;
-
-        return true;
-    }
-
-    return false;
-}*/
 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 ///fixme
@@ -1081,159 +896,6 @@ float get_horizon_direction_depth(const int2 start, const float2 dir, const int 
     return h;
 }
 
-/*float get_horizon_direction_depth(const int2 start, const float2 dir, const int nsamples, __global uint * depth_buffer, float cdepth, float radius)
-{
-    float h = cdepth;
-
-    int p = 0;
-
-    const float2 ndir = normalize(dir)*radius/nsamples;
-
-    float y = start.y + ndir.y;
-    float x = start.x + ndir.x;
-
-    float last = cdepth;
-
-    float running = 0;
-
-    float dd_last = 0;
-
-    float ddd_running = 0;
-
-    for(; p < nsamples; y+=ndir.y, x += ndir.x, p++)
-    {
-
-        const int rx = round(x);
-        const int ry = round(y);
-
-        if(rx < 0 || rx >= SCREENWIDTH || ry < 0 || ry >= SCREENHEIGHT)
-        {
-            return h;
-        }
-
-        float dval = (float)depth_buffer[ry*SCREENWIDTH + rx]/mulint;
-        dval = idcalc(dval);
-
-
-        float dd = dval - cdepth;
-
-        running += dd;
-
-        if(dd_last!=0)
-        {
-            ddd_running += dd - dd_last;
-        }
-
-        dd_last = dd;
-
-
-    }
-
-    return ddd_running / (nsamples - 2);
-}*/
-
-
-
-///bad ambient occlusion, not actually hbao whatsoever, disabled for the moment
-/*float generate_hbao(int2 spos, __global uint *depth_buffer, float3 normal)
-{
-
-    float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
-
-    depth = idcalc(depth);
-    ///depth is linear between 0 and 1
-    //now, instead of taking the horizon because i'm not entirely sure how to calc that, going to use highest point in filtering
-
-    float radius = 4.0f; //AO radius
-
-    if(radius < 1)
-    {
-        radius = 1;
-    }
-
-    ///using 4 uniform sample directions like a heretic, with 4 samples from each direction
-
-    const int ndirsamples = 4;
-
-    const int ndirs = 4;
-
-    float2 directions[8] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}, {0, 1}, {0, -1}, {-1, 0}, {1, 0}};
-
-
-
-    ///get face normalf
-
-    //float3 p0= {tri->vertices[0].pos.x, tri->vertices[0].pos.y, tri->vertices[0].pos.z, 0};
-    //float3 p1= {tri->vertices[1].pos.x, tri->vertices[1].pos.y, tri->vertices[1].pos.z, 0};
-    //float3 p2= {tri->vertices[2].pos.x, tri->vertices[2].pos.y, tri->vertices[2].pos.z, 0};
-
-    //float3 p1p0=p1-p0;
-    //float3 p2p0=p2-p0;
-
-    //float3 cr=cross(p1p0, p2p0);
-
-    ///my sources tell me this is the right thing. Ie stolen from backface culling. Right. the tangent to that is -1.0/it
-
-    //float3 tang = -1.0f/cr;
-
-    float3 tang = -1.0f/normal;
-
-    //tang = normalize(tang);
-
-    //tang = -1.0f/normal;
-
-
-    float tangle = atan2(tang.z, length(tang.xy));
-
-    //tangle = clamp(tangle, 0.0f, 1.0f);
-
-    float odist = 0;
-
-
-    float accum=0;
-    //int t=0;
-
-
-    ///needs to be using real global distance, not shitty distance
-
-    for(int i=0; i<ndirs; i++)
-    {
-        float cdepth = (float)depth_buffer[spos.y*SCREENWIDTH + spos.x]/mulint;
-        cdepth = idcalc(cdepth);
-
-        float h = get_horizon_direction_depth(spos, directions[i], ndirsamples, depth_buffer, cdepth, radius, &odist);
-
-        //float tangle = atan2(tang.z, );
-
-        float angle = atan2(fabs(h - cdepth), odist);
-
-        //float angle = fabs(h - cdepth)/1000.0f;
-
-        //float angle = h * 2;
-
-        //if(sin(angle) > 0.0f)
-        {
-            accum += clamp(sin(angle) - sin(tangle), 0.0f, 1.0f);// + max(sin(tangle), 0.0);
-
-            //if(angle > 0.3)
-            //    angle = 0.3;
-
-            //accum += angle;
-            //accum += max((float)sin(tangle), 0.0f);
-        }
-
-    }
-
-    accum/=ndirs;
-
-    accum = clamp(accum, 0.0f, 1.0f);
-
-    return accum;
-
-    //return sin(tangle);
-
-}*/
-
 float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 {
     float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
@@ -1285,23 +947,6 @@ float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
     float diff = fabs(furthest - depth);
 
     return min(diff / 100.f, 1.f);
-
-
-    /*if(furthest == depth)
-        return 1;
-
-    float2 fspos = {((fpos.x - SCREENWIDTH/2.0f)*furthest/FOV_CONST), ((fpos.y - SCREENHEIGHT/2.0f)*furthest/FOV_CONST)};
-    float2 sspos = {((spos.x - SCREENWIDTH/2.0f)*depth/FOV_CONST), ((spos.y - SCREENHEIGHT/2.0f)*depth/FOV_CONST)};
-
-
-    float3 tangent = 1.f / normal;
-
-    float hangle = atan2(furthest, length(convert_float2(fspos - sspos)));
-    float tangle = atan2(tangent.z, length(tangent.xy));
-
-    float ao = sin(hangle);// - sin(tangle);
-
-    return fabs(ao) / 10.f;*/
 }
 
 ///ONLY HARD SHADOWS ONLY ONLY___
@@ -4962,18 +4607,35 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
             float3 outside_col = (float3){0.4, 0.70f, 1.f};
 
             float sval = val / gauss_centre;
-            sval = pow(sval, 0.7f);
+            //sval = pow(sval, 0.7f);
             //sval = sqrt(sval);
 
             out = convert_uint4(255.f*val*mix(outside_col, centre_col, sval).xyzz);
 
-            //out = convert_uint4(255.f * centre_col.xyzz);
-
-            //out = convert_uint4(convert_float4(out) * val);
-
             buffer_accum(screen_buf, x + i, y + j, out);
         }
     }
+}
+
+__kernel
+void particle_explode(int num, __global float4* in_p, __global float4* out_p)
+{
+    int id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    float3 my_pos = in_p[id].xyz;
+
+    float3 my_old = out_p[id].xyz;
+
+    float3 cumulative_acc = 0;
+
+    float friction = 1.f;
+
+    float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
+
+    out_p[id] = my_new.xyzz;
 }
 
 
