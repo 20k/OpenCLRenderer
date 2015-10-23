@@ -4844,10 +4844,138 @@ void render_naive_points(int num, __global float4* positions, __global uint* col
 
     uint4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
 
-    rgba.x = 255;
-
     buffer_accum(screen_buf, x, y, rgba);
 }
+
+float get_gauss(float2 pos, float angle, float len, float size_modifier)
+{
+    float sdx = 1 * size_modifier;
+    float sdy = len * size_modifier;
+
+    float sdx_modified = 2 * sdx*sdx;
+    float sdy_modified = 2 * sdy*sdy;
+
+    float ca = native_cos(angle);
+    float sa = native_sin(angle);
+
+    float c2 = ca*ca;
+    float s2 = sa*sa;
+
+    float ga = c2 / sdx_modified + s2 / sdy_modified;
+    ///2sincosx / 4dx2
+    float gb = - sa * ca / sdx_modified + sa * ca / sdy_modified;
+
+    float gc = s2 / sdx_modified + c2 / sdy_modified;
+
+    float A = 1.f;
+
+    float res = A * native_exp(- (ga*pos.x*pos.x - 2.f*gb*pos.x*pos.y + gc*pos.y*pos.y) );
+
+    return res;
+}
+
+__kernel
+void render_gaussian_points(int num, __global float4* positions, __global float4* old_positions, __global uint* colours,
+                            float4 c_pos, float4 c_rot, float4 o_pos, float4 o_rot, __global uint4* screen_buf)
+{
+    uint pid = get_global_id(0);
+
+    if(pid >= num)
+        return;
+
+    float3 position = positions[pid].xyz;
+    float3 old_position = old_positions[pid].xyz;
+    uint colour = colours[pid];
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 postrotate = rot(position, camera_pos, camera_rot);
+    float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float3 oc_postrotate = rot(old_position, o_pos.xyz, o_rot.xyz);
+    float3 oc_projected = depth_project_singular(oc_postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float3 old_postrotate = rot(old_position, camera_pos, camera_rot);
+    float3 old_projected = depth_project_singular(old_postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float depth = projected.z;
+
+    ///hitler bounds checking for depth_pointer
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
+        return;
+
+    if(depth < 1 || depth > depth_far)
+        return;
+
+    uint idepth = dcalc(depth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+    uint4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
+
+
+    uint fid = pid % 10;
+
+    float frac = fid / 10.f;
+
+
+    float2 fractional = projected.xy - floor(projected.xy);
+
+    ///could also factor in relative camera movement to give them a crude motion blur
+    float2 relative = projected.xy - old_projected.xy;// + (old_projected.xy - oc_projected.xy) * 10;// + clamp((old_projected.xy - oc_projected.xy) * 0.1f, -0.9, 0.9f);
+
+    float move_angle = atan2(relative.y, relative.x);
+
+    float dist = fast_length(relative) * 2.f;
+
+    dist = clamp(dist, 1.f + dist, 3.f);
+
+    const int bound = 20;
+
+    float overall_size = 100.f / projected.z + 1;
+
+    overall_size *= frac;
+
+    overall_size = clamp(overall_size, 0.5f, (float)bound/5);
+
+    float gauss_centre = get_gauss((float2){0, 0}, move_angle + M_PI/2.f, dist, overall_size);
+
+    for(int j=-bound; j<=bound; j++)
+    {
+        for(int i=-bound; i<=bound; i++)
+        {
+            if(i + x < 0 || j + y < 0 || i + x >= SCREENWIDTH || j + y >= SCREENHEIGHT)
+                continue;
+
+            ///use fraction part of projected to generate smooth gaussian transition
+            float val = get_gauss((float2){i, j} - fractional, move_angle + M_PI/2.f, dist, overall_size);
+
+            if(val < 0.01f)
+                continue;
+
+            uint4 out = convert_uint4(convert_float4(rgba) * val);
+
+            float3 centre_col = (float3){0.8, 0.8f, 1.f};
+            float3 outside_col = (float3){0.4, 0.70f, 1.f};
+
+            float sval = val / gauss_centre;
+            sval = pow(sval, 0.7f);
+            //sval = sqrt(sval);
+
+            out = convert_uint4(255.f*val*mix(outside_col, centre_col, sval).xyzz);
+
+            //out = convert_uint4(255.f * centre_col.xyzz);
+
+            //out = convert_uint4(convert_float4(out) * val);
+
+            buffer_accum(screen_buf, x + i, y + j, out);
+        }
+    }
+}
+
 
 __kernel
 void blit_unconditional(__write_only image2d_t screen, __global uint4* colour_buf)
@@ -4993,11 +5121,13 @@ void gravity_attract(int num, __global float4* in_p, __global float4* out_p, __g
     g = clamp(g, 0.f, 1.f);
     b = clamp(b, 0.f, 1.f);
 
-    col[id] = 0;
+    uint result = 0;
 
-    col[id] |= (uint)(r * 255) << 24;
-    col[id] |= (uint)(g * 255) << 16;
-    col[id] |= (uint)(b * 255) << 8;
+    result |= (uint)(r * 255) << 24;
+    result |= (uint)(g * 255) << 16;
+    result |= (uint)(b * 255) << 8;
+
+    col[id] = result;
 }
 
 
