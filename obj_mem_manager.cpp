@@ -191,7 +191,7 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
         if(number_of_texture_slices != 0)
         {
             ///need to pin c_texture_array to pcie mem
-            cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+            cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, texture_manager::c_texture_array, 2048*4, 2048*2048*4);
 
             cl::cqueue2.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
             cl::cqueue2.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
