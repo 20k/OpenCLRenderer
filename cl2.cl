@@ -62,8 +62,6 @@ struct obj_g_descriptor
 {
     float4 world_pos;   ///w is 0
     float4 world_rot;   ///w is 0
-    uint start;         ///where the triangles start in the triangle buffer
-    uint tri_num;       ///number of triangles
     uint tid;           ///texture id
     uint rid;           ///normal map id
     uint mip_start;

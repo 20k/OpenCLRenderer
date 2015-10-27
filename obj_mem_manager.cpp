@@ -16,7 +16,6 @@
 #include "engine.hpp"
 #include <map>
 
-std::vector<int> obj_mem_manager::obj_sub_nums;
 
 cl_uint obj_mem_manager::tri_num;
 cl_uint obj_mem_manager::obj_num;
@@ -82,9 +81,10 @@ int get_texture_by_id(int id)
 
     for(unsigned int i=0; i<texture_manager::texture_active_id.size(); i++)
     {
-        if(texture_manager::texture_active_id[i] == id && texture_manager::all_textures[id].type == 0)
+        if(texture_manager::texture_active_id[i] == id)
         {
             num_id = texture_manager::texture_nums_id[i]; ///break?
+            break;
         }
     }
 
@@ -97,9 +97,9 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
     int n=0;
 
     ///cumulative triangle count
-    cl_uint trianglecount = 0;
-
     int active_count = 0;
+
+    int triangle_count = 0;
 
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {
@@ -108,17 +108,13 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
         if(!obj->isactive)
             continue;
 
-        obj_mem_manager::obj_sub_nums.push_back(obj->objs.size());
-        obj->arrange_id = active_count;
+        obj->gpu_descriptor_id = active_count;
 
         for(std::vector<object>::iterator it = obj->objs.begin(); it!=obj->objs.end(); ++it) ///if you call this more than once, it will break. Need to store how much it has already done, and start it again from there to prevent issues with mipmaps
         {
             it->object_g_id = n;
             obj_g_descriptor g;
             object_descriptors.push_back(g);
-
-            object_descriptors[n].tri_num=(it)->tri_num;
-            object_descriptors[n].start=trianglecount;
 
             int tid = get_texture_by_id(it->tid);
             int rid = get_texture_by_id(it->rid);
@@ -137,14 +133,15 @@ int fill_subobject_descriptors(std::vector<obj_g_descriptor> &object_descriptors
             object_descriptors[n].diffuse = it->diffuse;
             object_descriptors[n].two_sided = it->two_sided;
 
-            trianglecount+=(it)->tri_num;
+            triangle_count += it->tri_list.size();
+
             n++;
         }
 
         active_count++;
     }
 
-    return trianglecount;
+    return triangle_count;
 }
 
 void alloc_object_descriptors(temporaries& t, const std::vector<obj_g_descriptor> &object_descriptors, int mipmap_start)
@@ -165,13 +162,9 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 {
     cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
 
-    //cl_uint obj_descriptor_size = object_descriptors.size();
-
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
-    //compute::image_format triformat(CL_RGB, CL_FLOAT);
 
     temporaries& t = obj_mem_manager::temporary_objects;
-
 
     if(texture_manager::dirty)
     {
@@ -191,10 +184,12 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
         if(number_of_texture_slices != 0)
         {
             ///need to pin c_texture_array to pcie mem
-            cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, texture_manager::c_texture_array, 2048*4, 2048*2048*4);
+            //cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, texture_manager::c_texture_array, 2048*4, 2048*2048*4);
 
-            cl::cqueue2.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
-            cl::cqueue2.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
+            clEnqueueWriteImage(cl::cqueue2.get(), t.g_texture_array.get(), CL_FALSE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
+
+            cl::cqueue2.enqueue_write_buffer_async(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
+            cl::cqueue2.enqueue_write_buffer_async(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());
         }
     }
     else
@@ -260,8 +255,6 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 void obj_mem_manager::g_arrange_mem()
 {
     event_clock.restart();
-
-    std::vector<int>().swap(obj_mem_manager::obj_sub_nums);
 
     cl_uint triangle_count = 0;
 

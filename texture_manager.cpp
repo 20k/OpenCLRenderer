@@ -35,7 +35,7 @@ texture* texture_manager::texture_by_id(int id)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 ///maximum number of textures that may fit into a max_tex_size (2048) * max_tex_size slice
@@ -456,3 +456,32 @@ int texture_manager::id_by_location(const std::string& loc)
     std::cout << "could not find texture" << std::endl;
     exit(123232);
 }
+
+int texture_manager::get_active_id(int id)
+{
+    int num_id = -1;
+
+    for(auto& i : texture_active_id)
+    {
+        if(i == id)
+            return texture_nums_id[i];
+    }
+
+    return num_id;
+}
+
+#if 0
+texture* texture_context::make_new()
+{
+    auto tex = new texture;
+
+    all_textures.push_back(tex);
+
+    return tex;
+}
+
+void texture_context::destroy(texture* tex)
+{
+    for(int i=0; i<texture)
+}
+#endif

@@ -41,8 +41,6 @@ struct obj_mem_manager
     static cl_uint tri_num;
     static cl_uint obj_num;
 
-    static std::vector<int> obj_sub_nums; ///after g_arrange
-
     static compute::buffer g_tri_mem;
     static compute::buffer g_tri_num;
 
@@ -66,7 +64,5 @@ struct obj_mem_manager
     static sf::Clock event_clock; ///unfortunately, polling an event status is expensive
     ///using a non exact solution like timer is unfortunately better
 };
-
-
 
 #endif

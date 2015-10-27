@@ -309,15 +309,105 @@ int objects_container::get_object_by_id(int in)
     return -1;
 }
 
-/*objects_container* objects_container::get_remote()
-{
-    int r_id = get_object_by_id(id);
-
-    return objects_container::obj_container_list[r_id];
-}*/
-
 objects_container::~objects_container()
 {
     ///std::cout << "object removed: " << id << std::endl;
     //set_active(false); ///cache_map object will get removed
 }
+
+objects_container* object_context::make_new()
+{
+    objects_container* obj = new objects_container;
+
+    containers.push_back(obj);
+
+    return obj;
+}
+
+void object_context::destroy(objects_container* obj)
+{
+    if(obj == nullptr)
+        return;
+
+    for(int i=0; i<containers.size(); i++)
+    {
+        if(containers[i] == obj)
+        {
+            delete [] obj;
+
+            containers.erase(containers.begin() + i);
+        }
+    }
+}
+
+#include "texture_manager.hpp"
+
+#if 1
+///fills the object descriptors for the objects contained within object_containers
+static int generate_gpu_object_descriptor(const std::vector<objects_container*>& containers, int mipmap_start, std::vector<obj_g_descriptor> &object_descriptors)
+{
+    int n=0;
+
+    ///cumulative triangle count
+
+    int active_count = 0;
+
+    int triangle_count = 0;
+
+    for(unsigned int i=0; i<containers.size(); i++)
+    {
+        objects_container* obj = containers[i];
+
+        if(!obj->isactive)
+            continue;
+
+        obj->gpu_descriptor_id = active_count;
+
+        for(auto& it : obj->objs)
+        {
+            it.object_g_id = n;
+
+            obj_g_descriptor desc;
+
+            ///texture stuff should really be done elsewhere
+            int tid = texture_manager::get_active_id(it.tid);
+            int rid = texture_manager::get_active_id(it.rid);
+
+            ///fill texture and mipmap ids
+            desc.tid = tid;
+            desc.rid = rid;
+
+            desc.mip_start = mipmap_start;
+
+            ///fill other information in
+            desc.world_pos = it.pos;
+            desc.world_rot = it.rot;
+            desc.has_bump = it.has_bump;
+            desc.specular = it.specular;
+            desc.diffuse = it.diffuse;
+            desc.two_sided = it.two_sided;
+
+            triangle_count += it.tri_list.size();
+
+            object_descriptors.push_back(desc);
+
+            n++;
+        }
+
+        active_count++;
+    }
+
+    return triangle_count;
+}
+
+object_context_data object_context::build()
+{
+    object_context_data dat;
+
+    std::vector<obj_g_descriptor> object_descriptors;
+
+    int tri_num = generate_gpu_object_descriptor(containers, texture_manager::mipmap_start, object_descriptors);
+
+
+}
+#endif

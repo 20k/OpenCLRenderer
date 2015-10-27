@@ -3,13 +3,16 @@
 
 #include "object.hpp"
 #include <functional>
+#include <boost/compute/system.hpp>
+
+namespace compute = boost::compute;
 
 struct objects_container
 {
     cl_uint id;
     static cl_uint gid;
 
-    cl_uint arrange_id; ///ie position in desc
+    cl_uint gpu_descriptor_id; ///ie position in desc
 
     std::string file;
     std::string normal_map;
@@ -76,11 +79,36 @@ struct objects_container
     bool cache = true;
 };
 
+struct object_context_data
+{
+    cl_uint tri_num;
+    cl_uint obj_num;
+
+    compute::buffer g_tri_mem;
+    compute::buffer g_tri_num;
+
+    compute::buffer g_obj_desc;
+    compute::buffer g_obj_num;
+
+    compute::buffer g_light_mem;
+    compute::buffer g_light_num;
+
+    compute::buffer g_cut_tri_mem;
+    compute::buffer g_cut_tri_num;
+};
+
+///does not fill in texture data
 struct object_context
 {
-    std::vector<objects_container*> objects;
+    std::vector<objects_container*> containers;
 
+    objects_container* make_new();
+    void destroy(objects_container* obj);
 
+    void cpu_load();
+
+    ///make async and non async version
+    object_context_data build();
 };
 
 
