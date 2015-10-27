@@ -95,6 +95,8 @@ compute::buffer engine::g_ui_id_screen;
 
 float depth_far = 350000;
 
+std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
+
 float idcalc(float value)
 {
     return value * depth_far;
@@ -273,7 +275,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     #endif
 
     ///passed in as compilation parameter to opencl
-    l_size = 2048;
+    l_size = 1024;
 
     ///including opencl compilation parameters
     oclstuff(loc, width, height, l_size, only_3d);
@@ -443,11 +445,11 @@ void engine::realloc_light_gmem() ///for the moment, just reallocate everything
         light_straight.push_back(*light::lightlist[i]);
     }
 
-    if(light_straight.size() == 0)
+    /*if(light_straight.size() == 0)
     {
         printf("Warning, no lights is currently an error\n");
         throw;
-    }
+    }*/
 
     printf("%i\n", found_num);
 

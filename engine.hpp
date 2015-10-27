@@ -230,7 +230,7 @@ struct engine
 
 struct arg_list
 {
-    std::vector<const void*> args;
+    std::vector<void*> args;
     std::vector<int> sizes;
     std::vector<int> can_skip;
 
@@ -294,8 +294,7 @@ struct kernel_helper
 
 float idcalc(float);
 
-static std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
-
+extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 ///runs a kernel with a particular set of arguments
 inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true)

@@ -2330,7 +2330,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     diffuse_sum += ambient_sum;
 
-    //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
     specular_sum = clamp(specular_sum, 0.0f, 1.0f);
     int2 scoord = {x, y};
 
@@ -2349,7 +2349,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     #endif // OUTLINE
 
     final_col = clamp(final_col, 0.f, 1.f);
-
 
     write_imagef(screen, scoord, final_col.xyzz);
 
@@ -4601,16 +4600,20 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
             if(val < 0.01f)
                 continue;
 
-            uint4 out = convert_uint4(convert_float4(rgba) * val);
+            uint4 out;// = convert_uint4(convert_float4(rgba) * val);
 
-            float3 centre_col = (float3){0.8, 0.8f, 1.f};
-            float3 outside_col = (float3){0.4, 0.70f, 1.f};
+            //float3 centre_col = (float3){0.8, 0.8f, 1.f};
+            //float3 outside_col = (float3){0.4, 0.70f, 1.f};
 
             float sval = val / gauss_centre;
             //sval = pow(sval, 0.7f);
             //sval = sqrt(sval);
 
-            out = convert_uint4(255.f*val*mix(outside_col, centre_col, sval).xyzz);
+            //out = convert_uint4(255.f*val*mix(outside_col, centre_col, sval).xyzz);
+
+            out = 255 * val;
+
+            out = convert_uint4(convert_float4(out) * convert_float4(rgba) / 255.f);
 
             buffer_accum(screen_buf, x + i, y + j, out);
         }
@@ -4618,7 +4621,7 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
 }
 
 __kernel
-void particle_explode(int num, __global float4* in_p, __global float4* out_p)
+void particle_explode(int num, __global float4* in_p, __global float4* out_p, float friction)
 {
     int id = get_global_id(0);
 
@@ -4630,8 +4633,6 @@ void particle_explode(int num, __global float4* in_p, __global float4* out_p)
     float3 my_old = out_p[id].xyz;
 
     float3 cumulative_acc = 0;
-
-    float friction = 1.f;
 
     float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
 

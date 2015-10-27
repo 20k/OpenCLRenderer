@@ -76,5 +76,12 @@ struct objects_container
     bool cache = true;
 };
 
+struct object_context
+{
+    std::vector<objects_container*> objects;
+
+
+};
+
 
 #endif
