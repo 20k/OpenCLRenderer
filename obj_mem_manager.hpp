@@ -29,7 +29,7 @@ struct temporaries
     compute::buffer g_cut_tri_mem;
     compute::buffer g_cut_tri_num;
 
-    compute::image_object g_texture_array;
+    compute::image3d g_texture_array;
     compute::buffer g_texture_sizes;
     compute::buffer g_texture_nums;
 };

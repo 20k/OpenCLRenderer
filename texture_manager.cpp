@@ -15,7 +15,7 @@ std::vector<int> texture_manager::new_texture_id;
 
 cl_uchar4* texture_manager::c_texture_array;
 
-compute::image_object texture_manager::g_texture_array;
+compute::image3d texture_manager::g_texture_array;
 compute::buffer texture_manager::g_texture_numbers;
 compute::buffer texture_manager::g_texture_sizes;
 
