@@ -168,6 +168,9 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
     //cl_uint obj_descriptor_size = object_descriptors.size();
 
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
+
+    cl_image_format imgform = {CL_RGBA, CL_UNSIGNED_INT8};
+
     //compute::image_format triformat(CL_RGB, CL_FLOAT);
 
     temporaries& t = obj_mem_manager::temporary_objects;
@@ -182,7 +185,22 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
         t.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
 
         ///3d texture array
-        t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
+        //t.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
+
+        cl_image_desc desc;
+        desc.image_type = CL_MEM_OBJECT_IMAGE2D;
+        desc.image_width = 2048;
+        desc.image_height = 2048;
+        desc.image_array_size = clamped_tex_slice;
+        desc.image_row_pitch = 0;
+        desc.image_slice_pitch = 0;
+        desc.num_mip_levels = 0;
+        desc.num_samples = 0;
+        desc.buffer = nullptr;
+
+        cl_mem mem = clCreateImage(cl::context, CL_MEM_READ_ONLY, &imgform, &desc, nullptr, nullptr);
+
+        t.g_texture_array = compute::image_object(mem, true);
 
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};
@@ -191,7 +209,9 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
         if(number_of_texture_slices != 0)
         {
             ///need to pin c_texture_array to pcie mem
-            cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+            //cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array);
+
+            clEnqueueWriteImage(cl::cqueue2.get(), t.g_texture_array.get(), CL_TRUE, origin, region, 2048*4, 2048*2048*4, texture_manager::c_texture_array, 0, nullptr, nullptr);
 
             cl::cqueue2.enqueue_write_buffer(t.g_texture_sizes, 0, t.g_texture_sizes.size(), texture_manager::texture_sizes.data());
             cl::cqueue2.enqueue_write_buffer(t.g_texture_nums, 0, t.g_texture_nums.size(), texture_manager::new_texture_id.data());

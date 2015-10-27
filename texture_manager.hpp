@@ -27,7 +27,7 @@ struct texture_manager
 
     static cl_uchar4* c_texture_array;
 
-    static compute::image3d g_texture_array;
+    static compute::image_object g_texture_array;
     static compute::buffer g_texture_numbers;
     static compute::buffer g_texture_sizes;
 
