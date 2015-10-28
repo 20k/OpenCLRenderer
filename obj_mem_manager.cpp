@@ -298,7 +298,7 @@ void obj_mem_manager::g_changeover(bool force)
     cl_uint triangle_count = fill_subobject_descriptors(object_descriptors, texture_manager::mipmap_start);
     alloc_object_descriptors(temporary_objects, object_descriptors, texture_manager::mipmap_start);
 
-    clFinish(cl::cqueue2);
+    cl::cqueue2.finish();
 
     temporaries *T = &temporary_objects;
 

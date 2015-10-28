@@ -27,12 +27,19 @@ int main(int argc, char *argv[])
 
     sf::Clock load_time;
 
-    objects_container sponza;
+    object_context context;
+
+    auto sponza = context.make_new();
+    sponza->set_file("sp2/sp2.obj");
+    sponza->set_active(true);
+    sponza->cache = false;
+
+    /*objects_container sponza;
 
     sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("sp2/cornellfixed.obj");
     sponza.set_active(true);
-    sponza.cache = false;
+    sponza.cache = false;*/
 
     engine window;
 
@@ -46,14 +53,22 @@ int main(int argc, char *argv[])
     //window.window.setVerticalSyncEnabled(true);
     //#endif
 
+
     obj_mem_manager::load_active_objects();
 
-    sponza.set_specular(0.f);
+    sponza->set_specular(0.f);
 
     texture_manager::allocate_textures();
 
-    obj_mem_manager::g_arrange_mem();
-    obj_mem_manager::g_changeover();
+    auto tex_gpu = texture_manager::build_descriptors();
+    window.set_tex_data(tex_gpu);
+
+    //obj_mem_manager::g_arrange_mem();
+    //obj_mem_manager::g_changeover();
+
+
+    auto object_dat = context.build();
+    window.set_object_data(object_dat);
 
     sf::Event Event;
 
@@ -79,6 +94,7 @@ int main(int argc, char *argv[])
     ///
 
     //window.add_light(&l);
+
 
     window.set_light_data(light_data);
     window.construct_shadowmaps();

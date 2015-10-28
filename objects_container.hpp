@@ -109,7 +109,7 @@ struct object_context
     objects_container* make_new();
     void destroy(objects_container* obj);
 
-    void cpu_load();
+    void load_active();
 
     ///make async and non async version
     object_context_data build();

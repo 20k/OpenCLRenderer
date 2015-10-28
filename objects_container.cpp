@@ -340,6 +340,11 @@ void object_context::destroy(objects_container* obj)
     }
 }
 
+void object_context::load_active()
+{
+
+}
+
 #include "texture_manager.hpp"
 
 #if 1
@@ -448,7 +453,7 @@ object_context_data alloc_gpu(int mip_start, cl_uint tri_num)
         }
     }
 
-    tri_num = tri_num;
+    dat.tri_num = tri_num;
 
     return dat;
 }
@@ -479,6 +484,8 @@ object_context_data object_context::build()
     dat.tex_gpu = texture_manager::build_descriptors();
 
     alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, dat);
+
+    cl::cqueue2.finish();
 
     return dat;
 }

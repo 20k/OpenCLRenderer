@@ -458,6 +458,7 @@ texture_gpu texture_manager::build_descriptors()
         tex_gpu.g_texture_array = texture_manager::g_texture_array;
     }
 
+    dirty = false;
 
     return tex_gpu;
 }
@@ -507,9 +508,10 @@ int texture_manager::get_active_id(int id)
 {
     int num_id = -1;
 
-    for(auto& i : texture_active_id)
+    //for(auto& i : texture_active_id)
+    for(int i=0; i<texture_active_id.size(); i++)
     {
-        if(i == id)
+        if(texture_active_id[i] == id)
             return texture_nums_id[i];
     }
 

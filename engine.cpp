@@ -426,6 +426,16 @@ void engine::set_light_data(light_gpu& ldat)
     light_data = ldat;
 }
 
+void engine::set_tex_data(texture_gpu& tdat)
+{
+    tex_data = tdat;
+}
+
+void engine::set_object_data(object_context_data& odat)
+{
+    obj_data = odat;
+}
+
 /*light* engine::add_light(light* l)
 {
     light* new_light = light::add_light(l);
@@ -740,7 +750,7 @@ float engine::get_time_since_frame_start()
 
 void engine::construct_shadowmaps()
 {
-    cl_uint p1global_ws = obj_mem_manager::tri_num;
+    cl_uint p1global_ws = obj_data.tri_num;
     cl_uint local=128;
 
     ///cubemap rotations
@@ -793,21 +803,21 @@ void engine::construct_shadowmaps()
 
                 temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
 
-                cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+                cl::cqueue.enqueue_write_buffer(obj_data.g_cut_tri_num, 0, sizeof(cl_uint), &zero);
 
                 arg_list prearg_list;
 
-                prearg_list.push_back(&obj_mem_manager::g_tri_mem);
-                prearg_list.push_back(&obj_mem_manager::g_tri_num);
+                prearg_list.push_back(&obj_data.g_tri_mem);
+                prearg_list.push_back(&obj_data.g_tri_num);
                 prearg_list.push_back(&light::lightlist[i]->pos);
                 prearg_list.push_back(&r_struct[j]);
                 prearg_list.push_back(&g_tid_buf);
                 prearg_list.push_back(&g_tid_buf_max_len);
                 prearg_list.push_back(&g_tid_buf_atomic_count);
-                prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
-                prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+                prearg_list.push_back(&obj_data.g_cut_tri_num);
+                prearg_list.push_back(&obj_data.g_cut_tri_mem);
                 prearg_list.push_back(&juan);
-                prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+                prearg_list.push_back(&obj_data.g_obj_desc);
                 prearg_list.push_back(&g_distortion_buffer);
                 prearg_list.push_back(&g_tile_information);
                 prearg_list.push_back(&g_tile_count);
@@ -821,13 +831,13 @@ void engine::construct_shadowmaps()
                 cl_uint p1global_ws_new = id_c;
 
                 arg_list p1arg_list;
-                p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
+                p1arg_list.push_back(&obj_data.g_tri_mem);
                 p1arg_list.push_back(&g_tid_buf);
-                p1arg_list.push_back(&obj_mem_manager::g_tri_num);
+                p1arg_list.push_back(&obj_data.g_tri_num);
                 p1arg_list.push_back(&temp_l_mem);
                 p1arg_list.push_back(&g_tid_buf_atomic_count);
-                p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
-                p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+                p1arg_list.push_back(&obj_data.g_cut_tri_num);
+                p1arg_list.push_back(&obj_data.g_cut_tri_mem);
                 p1arg_list.push_back(&juan);
                 p1arg_list.push_back(&g_distortion_buffer);
                 p1arg_list.push_back(&g_id_screen_tex);
@@ -907,7 +917,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint zero = 0;
 
     ///1 thread per triangle
-    cl_uint p1global_ws = obj_mem_manager::tri_num;
+    cl_uint p1global_ws = eng.obj_data.tri_num;
     cl_uint local = 128;
 
     static cl_uint id_num = 0;
@@ -952,16 +962,16 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     arg_list prearg_list;
 
-    prearg_list.push_back(&obj_mem_manager::g_tri_mem);
-    prearg_list.push_back(&obj_mem_manager::g_tri_num);
+    prearg_list.push_back(&eng.obj_data.g_tri_mem);
+    prearg_list.push_back(&eng.obj_data.g_tri_num);
     prearg_list.push_back(&position);
     prearg_list.push_back(&rotation);
     prearg_list.push_back(&eng.g_tid_buf);
     prearg_list.push_back(&eng.g_tid_buf_max_len);
     prearg_list.push_back(&eng.g_tid_buf_atomic_count);
-    prearg_list.push_back(&obj_mem_manager::g_cut_tri_num);
-    prearg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
-    prearg_list.push_back(&obj_mem_manager::g_obj_desc);
+    prearg_list.push_back(&eng.obj_data.g_cut_tri_num);
+    prearg_list.push_back(&eng.obj_data.g_cut_tri_mem);
+    prearg_list.push_back(&eng.obj_data.g_obj_desc);
     prearg_list.push_back(&eng.g_distortion_buffer);
 
     //run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
@@ -975,14 +985,14 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     ///write depth of triangles to buffer, ie z buffering
 
     arg_list p1arg_list;
-    p1arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p1arg_list.push_back(&eng.obj_data.g_tri_mem);
     p1arg_list.push_back(&eng.g_tid_buf);
-    p1arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p1arg_list.push_back(&eng.obj_data.g_tri_num);
     p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
     p1arg_list.push_back(&eng.g_tid_buf_atomic_count);
-    p1arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
-    p1arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p1arg_list.push_back(&eng.obj_data.g_cut_tri_num);
+    p1arg_list.push_back(&eng.obj_data.g_cut_tri_mem);
     p1arg_list.push_back(&eng.g_distortion_buffer);
     p1arg_list.push_back(&eng.g_id_screen_tex);
 
@@ -999,14 +1009,14 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
 
     ///hmmm. Using second kernel seems to have better depth complexity
     arg_list p2arg_list;
-    p2arg_list.push_back(&obj_mem_manager::g_tri_mem);
+    p2arg_list.push_back(&eng.obj_data.g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);
-    p2arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p2arg_list.push_back(&eng.obj_data.g_tri_num);
     p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p2arg_list.push_back(&eng.g_id_screen_tex);
     p2arg_list.push_back(&eng.g_tid_buf_atomic_count);
-    p2arg_list.push_back(&obj_mem_manager::g_cut_tri_num);
-    p2arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p2arg_list.push_back(&eng.obj_data.g_cut_tri_num);
+    p2arg_list.push_back(&eng.obj_data.g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
 
     run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
@@ -1017,24 +1027,24 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     /// many arguments later
 
     arg_list p3arg_list;
-    p3arg_list.push_back(&obj_mem_manager::g_tri_mem);
-    p3arg_list.push_back(&obj_mem_manager::g_tri_num);
+    p3arg_list.push_back(&eng.obj_data.g_tri_mem);
+    p3arg_list.push_back(&eng.obj_data.g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
-    p3arg_list.push_back(&texture_manager::g_texture_array);
+    p3arg_list.push_back(&eng.tex_data.g_texture_array);
     p3arg_list.push_back(&g_screen_out);
-    p3arg_list.push_back(&texture_manager::g_texture_numbers);
-    p3arg_list.push_back(&texture_manager::g_texture_sizes);
-    p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
-    p3arg_list.push_back(&obj_mem_manager::g_obj_num);
+    p3arg_list.push_back(&eng.tex_data.g_texture_nums);
+    p3arg_list.push_back(&eng.tex_data.g_texture_sizes);
+    p3arg_list.push_back(&eng.obj_data.g_obj_desc);
+    p3arg_list.push_back(&eng.obj_data.g_obj_num);
     p3arg_list.push_back(&eng.light_data.g_light_num);
     p3arg_list.push_back(&eng.light_data.g_light_mem);
     p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
     p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
     p3arg_list.push_back(&eng.g_tid_buf);
-    p3arg_list.push_back(&obj_mem_manager::g_cut_tri_mem);
+    p3arg_list.push_back(&eng.obj_data.g_cut_tri_mem);
     p3arg_list.push_back(&eng.g_distortion_buffer);
     p3arg_list.push_back(&eng.g_object_id_tex);
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);

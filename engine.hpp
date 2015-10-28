@@ -158,8 +158,12 @@ struct engine
     float running_frametime_smoothed;
 
     light_gpu light_data;
+    texture_gpu tex_data;
+    object_context_data obj_data;
 
     void set_light_data(light_gpu&);
+    void set_tex_data(texture_gpu&);
+    void set_object_data(object_context_data&);
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
 
