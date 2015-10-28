@@ -23,8 +23,6 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
 ///7ish pre tile deferred
 int main(int argc, char *argv[])
 {
-    ///remember to make g_arrange_mem run faster!
-
     sf::Clock load_time;
 
     object_context context;
@@ -33,13 +31,6 @@ int main(int argc, char *argv[])
     sponza->set_file("sp2/sp2.obj");
     sponza->set_active(true);
     sponza->cache = false;
-
-    /*objects_container sponza;
-
-    sponza.set_file("sp2/sp2.obj");
-    //sponza.set_file("sp2/cornellfixed.obj");
-    sponza.set_active(true);
-    sponza.cache = false;*/
 
     engine window;
 
@@ -53,9 +44,7 @@ int main(int argc, char *argv[])
     //window.window.setVerticalSyncEnabled(true);
     //#endif
 
-
-    //obj_mem_manager::load_active_objects();
-
+    ///we need a context.unload_inactive
     context.load_active();
 
     sponza->set_specular(0.f);
@@ -64,10 +53,6 @@ int main(int argc, char *argv[])
 
     auto tex_gpu = texture_manager::build_descriptors();
     window.set_tex_data(tex_gpu);
-
-    //obj_mem_manager::g_arrange_mem();
-    //obj_mem_manager::g_changeover();
-
 
     auto object_dat = context.build();
     window.set_object_data(object_dat);

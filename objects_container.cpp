@@ -336,6 +336,8 @@ void object_context::destroy(objects_container* obj)
             delete [] obj;
 
             containers.erase(containers.begin() + i);
+
+            i--;
         }
     }
 }

@@ -136,6 +136,7 @@ light_gpu light::build() ///for the moment, just reallocate everything
         throw;
     }*/
 
+
     int clamped_num = std::max((int)found_num, 1);
 
     printf("%i\n", found_num);
