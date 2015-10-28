@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     l.set_col((cl_float4){0.0f, 0.0f, 1.0f, 0});
 
     l.set_pos((cl_float4){-0, 200, -500, 0});
-    l.shadow = 1;
+    l.set_shadow_casting(1);
     l.radius = 100000;
 
     light::add_light(&l);
@@ -141,8 +141,8 @@ int main(int argc, char *argv[])
 
         //window.render_block();
         window.display();
-        window.render_block();
+        //window.render_block();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 }

@@ -472,6 +472,7 @@ bool texture_manager::exists(int texture_id)
             return true;
         }
     }
+
     return false;
 }
 
@@ -485,6 +486,7 @@ bool texture_manager::exists_by_location(const std::string& loc)
             return true;
         }
     }
+
     return false;
 }
 

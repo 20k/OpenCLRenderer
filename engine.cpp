@@ -2174,8 +2174,6 @@ void render_screen(engine& eng)
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
     compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
 
-    clFinish(cl::cqueue.get());
-
     ///blit buffer to screen
     glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
@@ -2231,7 +2229,7 @@ void engine::display()
 
             process_input();
 
-            //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
 
             //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
