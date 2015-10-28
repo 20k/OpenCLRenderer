@@ -728,15 +728,17 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
     vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
 
 
-    float2 tdiff = {fabs(maxtx - mintx), fabs(maxty - minty)};
+    float2 tdiff = {(maxtx - mintx), (maxty - minty)};
 
     tdiff *= tsize;
 
-    float2 vdiff = {fabs(maxvx - minvx), fabs(maxvy - minvy)};
+    float2 vdiff = {(maxvx - minvx), (maxvy - minvy)};
 
     float2 tex_per_pix = tdiff / vdiff;
 
-    float worst = max(tex_per_pix.x, tex_per_pix.y);
+    //float worst = max(tex_per_pix.x, tex_per_pix.y);
+
+    float worst = sqrt(tex_per_pix.x * tex_per_pix.x + tex_per_pix.y * tex_per_pix.y);
 
     int mip_lower=0;
     int mip_higher=0;
@@ -1000,7 +1002,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     postrotate_pos.y += LIGHTBUFFERDIM/2.0f;
 
     ///cubemap depth buffer
-    __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
+    const __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
     ///off by one error hack, yes this is appallingly bad
     postrotate_pos.xy = clamp(postrotate_pos.xy, 1.f, LIGHTBUFFERDIM-2.f);
@@ -2092,7 +2094,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         return;
     }
 
-    __global struct triangle* T = &triangles[tri_global];
+    const __global struct triangle* T = &triangles[tri_global];
 
 
     int o_id = T->vertices[0].object_id;
@@ -2129,7 +2131,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
     normal = fast_normalize(normal);
-
 
     float3 tris_proj[3];
 
