@@ -265,7 +265,6 @@ void obj_mem_manager::g_arrange_mem()
 
     triangle_count = fill_subobject_descriptors(object_descriptors, texture_manager::mipmap_start);
 
-
     allocate_gpu(texture_manager::mipmap_start, triangle_count);
 
     //obj_mem_manager::ready = true; ///unnecessary at the moment, more useful when concurrency comes into play

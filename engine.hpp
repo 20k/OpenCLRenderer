@@ -76,6 +76,8 @@ namespace frametype
 
 typedef frametype::frametype frametype_t;
 
+struct light_gpu;
+
 struct engine
 {
     control_input input_handler;
@@ -139,7 +141,6 @@ struct engine
     static unsigned int gl_smoothed_framebuffer_id;
 
     static cl_uint *blank_light_buf;
-    static cl_uint shadow_light_num;
 
     sf::RenderWindow window;
 
@@ -156,6 +157,9 @@ struct engine
     ///everyone hates a microstutter
     float running_frametime_smoothed;
 
+    light_gpu light_data;
+
+    void set_light_data(light_gpu&);
 
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
 
@@ -166,12 +170,12 @@ struct engine
     static cl_float4 rotate(cl_float4, cl_float4);
     static cl_float4 back_rotate(cl_float4, cl_float4);
 
-    static light* add_light(light*);
+    /*static light* add_light(light*);
     static void remove_light(light*);
     static void set_light_pos(light*, cl_float4);
     static void g_flush_lights(); ///not implemented
     static void g_flush_light(light*); ///flushes a particular light to the gpu
-    static void realloc_light_gmem(); ///reallocates all lights
+    //static void realloc_light_gmem(); ///reallocates all lights*/
     ///lighting needs to be its own class
 
     void construct_shadowmaps();

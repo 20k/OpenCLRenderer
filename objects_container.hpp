@@ -4,6 +4,7 @@
 #include "object.hpp"
 #include <functional>
 #include <boost/compute/system.hpp>
+#include "texture_manager.hpp"
 
 namespace compute = boost::compute;
 
@@ -90,11 +91,14 @@ struct object_context_data
     compute::buffer g_obj_desc;
     compute::buffer g_obj_num;
 
+    ///light memory is 100% not this classes responsibility, get light manager to handle that
     compute::buffer g_light_mem;
     compute::buffer g_light_num;
 
     compute::buffer g_cut_tri_mem;
     compute::buffer g_cut_tri_num;
+
+    texture_gpu tex_gpu;
 };
 
 ///does not fill in texture data

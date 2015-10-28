@@ -400,6 +400,73 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
     return triangle_count;
 }
 
+#include "clstate.h"
+
+object_context_data alloc_gpu(int mip_start, cl_uint tri_num)
+{
+    object_context_data dat;
+
+    dat.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*tri_num, CL_MEM_READ_WRITE);
+    dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*tri_num*3*2);
+
+    dat.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
+    dat.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
+
+    cl::cqueue2.enqueue_write_buffer(dat.g_tri_num, 0, dat.g_tri_num.size(), &tri_num);
+
+    cl_uint running = 0;
+
+    int obj_id = 0;
+
+    ///write triangle data to gpu
+    for(std::vector<objects_container*>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); ++it2)
+    {
+        objects_container* obj = (*it2);
+
+        if(!obj->isactive)
+            continue;
+
+        for(std::vector<object>::iterator it=obj->objs.begin(); it!=obj->objs.end(); ++it)
+        {
+            for(int i=0; i<(*it).tri_num; i++)
+            {
+                (*it).tri_list[i].vertices[0].set_pad(obj_id);
+            }
+
+            it->gpu_tri_start = running;
+
+            ///boost::compute fails an assertion if tri_num == 0
+            ///we dont care if the data arrives late
+            if((*it).tri_num>0)
+                cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), (*it).tri_list.data());
+
+            running += (*it).tri_num;
+
+            it->gpu_tri_end = running;
+
+            obj_id++;
+        }
+    }
+
+    tri_num = tri_num;
+
+    return dat;
+}
+
+void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
+{
+    dat.obj_num = object_descriptors.size();
+
+    dat.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*dat.obj_num, CL_MEM_READ_ONLY);
+    dat.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
+
+    ///dont care if data arrives late
+    if(dat.obj_num > 0)
+        cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_desc, 0, dat.g_obj_desc.size(), object_descriptors.data());
+
+    cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_num, 0, dat.g_obj_num.size(), &dat.obj_num);
+}
+
 object_context_data object_context::build()
 {
     object_context_data dat;
@@ -408,6 +475,11 @@ object_context_data object_context::build()
 
     int tri_num = generate_gpu_object_descriptor(containers, texture_manager::mipmap_start, object_descriptors);
 
+    dat = alloc_gpu(texture_manager::mipmap_start, tri_num);
+    dat.tex_gpu = texture_manager::build_descriptors();
 
+    alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, dat);
+
+    return dat;
 }
 #endif

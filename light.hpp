@@ -4,6 +4,17 @@
 #include <cl/cl.h>
 #include <vector>
 
+#include <boost/compute/system.hpp>
+
+
+namespace compute = boost::compute;
+
+struct light_gpu
+{
+    compute::buffer g_light_num;
+    compute::buffer g_light_mem;
+};
+
 ///lights need to be able to be activated and deactivated
 struct light
 {
@@ -31,6 +42,10 @@ struct light
     static int get_light_id(light*);
     static light* add_light(const light* l); ///to global light list
     static void remove_light(light* l);
+
+    static bool dirty_shadow;
+
+    static light_gpu build();
 };
 
 

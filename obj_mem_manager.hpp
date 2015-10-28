@@ -24,7 +24,6 @@ struct temporaries
 
     compute::buffer g_light_mem;
     compute::buffer g_light_num;
-    compute::buffer g_light_buf;
 
     compute::buffer g_cut_tri_mem;
     compute::buffer g_cut_tri_num;

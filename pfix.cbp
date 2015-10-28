@@ -47,17 +47,16 @@
 		</Build>
 		<Compiler>
 			<Add option="-std=gnu++11" />
-			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
-			<Add option="-DSFML_STATIC" />
 			<Add option="-DGLEW_STATIC" />
+			<Add option="-DNDEBUG" />
 		</Compiler>
 		<Linker>
 			<Add option="-lmingw32" />
-			<Add option="-lsfml-graphics-s" />
+			<Add option="-lsfml-graphics" />
 			<Add option="-lsfml-audio" />
-			<Add option="-lsfml-network-s" />
-			<Add option="-lsfml-window-s" />
-			<Add option="-lsfml-system-s" />
+			<Add option="-lsfml-network" />
+			<Add option="-lsfml-window" />
+			<Add option="-lsfml-system" />
 			<Add option="-lfreetype" />
 			<Add option="-ljpeg" />
 			<Add option="-lopengl32" />

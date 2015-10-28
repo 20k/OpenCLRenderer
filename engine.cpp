@@ -73,7 +73,6 @@ unsigned int engine::gl_smoothed_framebuffer_id=0;
 
 ///the empty light buffer, and number of shadow lights
 cl_uint* engine::blank_light_buf;
-cl_uint engine::shadow_light_num;
 
 ///gpuside light buffer, and lightmap cubemap resolution
 compute::buffer engine::g_shadow_light_buffer;
@@ -275,7 +274,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     #endif
 
     ///passed in as compilation parameter to opencl
-    l_size = 1024;
+    l_size = 2048;
 
     ///including opencl compilation parameters
     oclstuff(loc, width, height, l_size, only_3d);
@@ -286,8 +285,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     cmy = 0;
 
     blank_light_buf=NULL;
-
-    shadow_light_num = 0;
 
     c_pos.x=0;
     c_pos.y=0;
@@ -424,76 +421,12 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //glEnable(GL_TEXTURE2D); ///?
 }
 
-void engine::realloc_light_gmem() ///for the moment, just reallocate everything
+void engine::set_light_data(light_gpu& ldat)
 {
-    cl_uint lnum = light::lightlist.size();
-
-    cl_uint found_num = 0;
-
-    ///turn pointer list into block of memory for writing to gpu
-    std::vector<light> light_straight;
-
-    for(int i=0; i<light::lightlist.size(); i++)
-    {
-        if(light::active[i] == false)
-        {
-            continue;
-        }
-
-        found_num++;
-
-        light_straight.push_back(*light::lightlist[i]);
-    }
-
-    /*if(light_straight.size() == 0)
-    {
-        printf("Warning, no lights is currently an error\n");
-        throw;
-    }*/
-
-    printf("%i\n", found_num);
-
-    ///gpu light memory
-    obj_mem_manager::g_light_mem = compute::buffer(cl::context, sizeof(light)*found_num, CL_MEM_READ_ONLY);
-
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
-    cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_num, 0, sizeof(cl_uint), &found_num);
-
-    ///sacrifice soul to chaos gods, allocate light buffers here
-
-    int ln = 0;
-
-    ///doesnt work quite right
-    ///needs to dirty if any light buffer is changed
-    for(unsigned int i=0; i<light::lightlist.size(); i++)
-    {
-        if(light::lightlist[i]->shadow == 1)
-        {
-            ln++;
-        }
-    }
-
-    ///this is incorrect as per above comment
-    if(shadow_light_num != ln)
-    {
-        shadow_light_num = ln;
-
-        ///blank cubemap filled with UINT_MAX
-        g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
-
-        cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
-
-        ///not sure how this pans out for stalling
-        for(unsigned int i = 0; i<l_size*l_size*6*ln; i++)
-        {
-            buf[i] = UINT_MAX;
-        }
-
-        clEnqueueUnmapMemObject(cl::cqueue.get(), g_shadow_light_buffer.get(), buf, 0, NULL, NULL);
-    }
+    light_data = ldat;
 }
 
-light* engine::add_light(light* l)
+/*light* engine::add_light(light* l)
 {
     light* new_light = light::add_light(l);
     realloc_light_gmem();
@@ -517,7 +450,7 @@ void engine::g_flush_light(light* l) ///just position?
     ///flush light information to gpu
     int lid = light::get_light_id(l);
     cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_light_mem, sizeof(light)*lid, sizeof(light), light::lightlist[lid]);
-}
+}*/
 
 cl_float4 engine::rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
 {
@@ -879,15 +812,11 @@ void engine::construct_shadowmaps()
                 prearg_list.push_back(&g_tile_information);
                 prearg_list.push_back(&g_tile_count);
 
-
                 run_kernel_with_string("prearrange_light", &p1global_ws, &local, 1, prearg_list, true);
-
 
                 cl_uint id_c = 0;
 
-
                 cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
-
 
                 cl_uint p1global_ws_new = id_c;
 
@@ -964,6 +893,8 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
     eng.current_frametype = frametype::REPROJECT;
 }
+
+#include "light.hpp"
 
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
@@ -1098,8 +1029,8 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p3arg_list.push_back(&texture_manager::g_texture_sizes);
     p3arg_list.push_back(&obj_mem_manager::g_obj_desc);
     p3arg_list.push_back(&obj_mem_manager::g_obj_num);
-    p3arg_list.push_back(&obj_mem_manager::g_light_num);
-    p3arg_list.push_back(&obj_mem_manager::g_light_mem);
+    p3arg_list.push_back(&eng.light_data.g_light_num);
+    p3arg_list.push_back(&eng.light_data.g_light_mem);
     p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
     p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
     p3arg_list.push_back(&eng.g_tid_buf);

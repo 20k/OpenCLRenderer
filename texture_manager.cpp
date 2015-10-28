@@ -416,6 +416,52 @@ void texture_manager::allocate_textures()
     ///need to allocate memory for textures and build the texture structures?
 }
 
+#include "clstate.h"
+
+texture_gpu texture_manager::build_descriptors()
+{
+    texture_gpu tex_gpu;
+
+    ///this really shouldn't be in here whatsoever
+    if(texture_manager::dirty)
+    {
+        compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
+
+        cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
+
+        cl_uint clamped_tex_slice = number_of_texture_slices <= 1 ? 2 : number_of_texture_slices;
+        cl_uint clamped_ids = texture_manager::new_texture_id.size() == 0 ? 1 : texture_manager::new_texture_id.size();
+
+        tex_gpu.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*clamped_tex_slice, CL_MEM_READ_ONLY);
+        tex_gpu.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
+        tex_gpu.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
+
+        size_t origin[3] = {0,0,0};
+        size_t region[3] = {2048, 2048, number_of_texture_slices};
+
+        ///if the number of texture slices is 0, we'll still have some memory itll just be full of crap
+        if(number_of_texture_slices != 0)
+        {
+            ///need to pin c_texture_array to pcie mem
+            //cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, texture_manager::c_texture_array, 2048*4, 2048*2048*4);
+
+            clEnqueueWriteImage(cl::cqueue2.get(), tex_gpu.g_texture_array.get(), CL_FALSE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
+
+            cl::cqueue2.enqueue_write_buffer_async(tex_gpu.g_texture_sizes, 0, tex_gpu.g_texture_sizes.size(), texture_manager::texture_sizes.data());
+            cl::cqueue2.enqueue_write_buffer_async(tex_gpu.g_texture_nums, 0, tex_gpu.g_texture_nums.size(), texture_manager::new_texture_id.data());
+        }
+    }
+    else
+    {
+        tex_gpu.g_texture_sizes = texture_manager::g_texture_sizes;
+        tex_gpu.g_texture_nums  = texture_manager::g_texture_numbers;
+        tex_gpu.g_texture_array = texture_manager::g_texture_array;
+    }
+
+
+    return tex_gpu;
+}
+
 bool texture_manager::exists(int texture_id)
 {
     for(int i=0; i<all_textures.size(); i++)

@@ -1,9 +1,14 @@
 #include "light.hpp"
 #include <iostream>
 #include <float.h>
+#include <algorithm>
+#include "clstate.h"
+#include "engine.hpp"
 
 std::vector<light*> light::lightlist;
 std::vector<cl_uint> light::active;
+
+bool light::dirty_shadow = true;
 
 void light::set_pos(cl_float4 p)
 {
@@ -75,6 +80,9 @@ int light::get_light_id(light* l)
 
 light* light::add_light(const light* l)
 {
+    if(l->shadow)
+        dirty_shadow = true;
+
     light* new_light = new light(*l);
     lightlist.push_back(new_light);
     active.push_back(true);
@@ -88,8 +96,92 @@ void light::remove_light(light* l)
     if(lid == -1)
         return;
 
+    if(l->shadow)
+        dirty_shadow = true;
+
     lightlist.erase(lightlist.begin() + lid);
     active.erase(active.begin() + lid);
 
     delete l;
+}
+
+
+
+light_gpu light::build() ///for the moment, just reallocate everything
+{
+    cl_uint lnum = light::lightlist.size();
+
+    cl_uint found_num = 0;
+
+    ///turn pointer list into block of memory for writing to gpu
+    std::vector<light> light_straight;
+
+    for(int i=0; i<light::lightlist.size(); i++)
+    {
+        if(light::active[i] == false)
+        {
+            continue;
+        }
+
+        found_num++;
+
+        light_straight.push_back(*light::lightlist[i]);
+    }
+
+    light_gpu dat;
+
+    /*if(light_straight.size() == 0)
+    {
+        printf("Warning, no lights is currently an error\n");
+        throw;
+    }*/
+
+    int clamped_num = std::max((int)found_num, 1);
+
+    printf("%i\n", found_num);
+
+    ///gpu light memory
+    dat.g_light_mem = compute::buffer(cl::context, sizeof(light)*clamped_num, CL_MEM_READ_ONLY);
+
+    if(found_num > 0)
+        cl::cqueue.enqueue_write_buffer(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
+
+    dat.g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY, nullptr);
+    cl::cqueue.enqueue_write_buffer(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
+
+    ///sacrifice soul to chaos gods, allocate light buffers here
+
+    int ln = 0;
+
+    for(unsigned int i=0; i<light::lightlist.size(); i++)
+    {
+        if(light::lightlist[i]->shadow == 1)
+        {
+            ln++;
+        }
+    }
+
+    ///make this a variable in the opencl code
+    const cl_uint l_size = engine::l_size;
+
+    if(dirty_shadow)
+    {
+        ///blank cubemap filled with UINT_MAX
+        engine::g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
+
+        cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
+
+        ///not sure how this pans out for stalling
+        ///badly
+        for(unsigned int i = 0; i<l_size*l_size*6*ln; i++)
+        {
+            buf[i] = UINT_MAX;
+        }
+
+        clEnqueueUnmapMemObject(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), buf, 0, NULL, NULL);
+    }
+
+    dirty_shadow = false;
+
+    return dat;
 }

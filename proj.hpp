@@ -27,7 +27,6 @@ static cl_mem fake;
 #include <limits.h>
 
 #include <boost/compute/system.hpp>
-#include <boost/compute/interop/opengl.hpp>
 
 namespace compute = boost::compute;
 

@@ -1522,16 +1522,9 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
     ///void generate_new_triangles(float3 points[3], int ids[3], float lconst[2], int *num, float3 ret[2][3])
     ///void depth_project(float3 rotated[3], int width, int height, float fovc, float3 ret[3])
 
-    float efov = FOV_CONST;
-    float ewidth = SCREENWIDTH;
-    float eheight = SCREENHEIGHT;
-
-    if(is_light == 1)
-    {
-        efov = LFOV_CONST; //half of l_size = 90 degrees fov
-        ewidth = LIGHTBUFFERDIM;
-        eheight = LIGHTBUFFERDIM;
-    }
+    float efov = LFOV_CONST;
+    float ewidth = LIGHTBUFFERDIM;
+    float eheight = LIGHTBUFFERDIM;
 
     float3 tris_proj[2][3]; ///projected triangles
 
@@ -1578,21 +1571,6 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
         if(!ooany[i]) ///skip bad tris
         {
             continue;
-        }
-
-        ///a light would read outside this quite severely
-        if(!is_light)
-        {
-            for(int j=0; j<3; j++)
-            {
-                int xc = round(tris_proj[i][j].x);
-                int yc = round(tris_proj[i][j].y);
-
-                if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
-                    continue;
-
-                tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
-            }
         }
 
         float3 xpv, ypv;
@@ -1782,14 +1760,8 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
         return;
     }
 
-    float ewidth = SCREENWIDTH;
-    float eheight = SCREENHEIGHT;
-
-    if(is_light == 1)
-    {
-        ewidth = LIGHTBUFFERDIM;
-        eheight = LIGHTBUFFERDIM;
-    }
+    float ewidth = LIGHTBUFFERDIM;
+    float eheight = LIGHTBUFFERDIM;
 
     //uint tri_id = fragment_id_buffer[id*5 + 0];
 

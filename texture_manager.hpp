@@ -11,6 +11,13 @@
 
 namespace compute = boost::compute;
 
+struct texture_gpu
+{
+    compute::buffer g_texture_sizes;
+    compute::buffer g_texture_nums;
+    compute::image3d g_texture_array;
+};
+
 struct texture_manager
 {
     static std::vector<texture> all_textures;
@@ -39,6 +46,7 @@ struct texture_manager
     static int inactivate_texture(int texture_id);
 
     static void allocate_textures();
+    static texture_gpu build_descriptors();
 
     static bool exists_by_location(const std::string&);
 
