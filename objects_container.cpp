@@ -340,9 +340,41 @@ void object_context::destroy(objects_container* obj)
     }
 }
 
+#include "obj_mem_manager.hpp"
+
 void object_context::load_active()
 {
+    for(unsigned int i=0; i<containers.size(); i++)
+    {
+        objects_container *obj = containers[i];
 
+        if(obj->isloaded == false)
+        {
+            if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
+            {
+                int save_id = obj->id;
+                cl_float4 save_pos = obj->pos;
+                cl_float4 save_rot = obj->rot;
+
+                *obj = object_cache[obj->file];
+
+                obj->id = save_id;
+                obj->set_pos(save_pos);
+                obj->set_rot(save_rot);
+            }
+            else
+            {
+                obj->call_load_func(containers[i]);
+                obj->set_active_subobjs(true);
+
+                if(obj->cache)
+                {
+                    object_cache[obj->file] = *obj;
+                    object_cache[obj->file].id = -1;
+                }
+            }
+        }
+    }
 }
 
 #include "texture_manager.hpp"

@@ -10,6 +10,7 @@
 
 namespace compute = boost::compute;
 
+
 ///temporary objects when switching buffers
 struct temporaries
 {
@@ -63,5 +64,10 @@ struct obj_mem_manager
     static sf::Clock event_clock; ///unfortunately, polling an event status is expensive
     ///using a non exact solution like timer is unfortunately better
 };
+
+struct objects_container;
+
+extern std::map<std::string, objects_container> object_cache;
+
 
 #endif

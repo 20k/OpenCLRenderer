@@ -54,7 +54,9 @@ int main(int argc, char *argv[])
     //#endif
 
 
-    obj_mem_manager::load_active_objects();
+    //obj_mem_manager::load_active_objects();
+
+    context.load_active();
 
     sponza->set_specular(0.f);
 
