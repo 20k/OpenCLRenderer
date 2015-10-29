@@ -4507,6 +4507,9 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
     if(pid >= num)
         return;
 
+    if(brightness <= 0.f)
+        return;
+
     float3 position = positions[pid].xyz;
     float3 old_position = old_positions[pid].xyz;
     uint colour = colours[pid];
