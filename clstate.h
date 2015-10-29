@@ -47,6 +47,7 @@ namespace cl
     extern kernel prearrange_light;
     extern kernel kernel1_light;
     extern kernel tile_clear;
+    extern kernel clear_screen_buffer;
     extern kernel kernel1_oculus;
     extern kernel kernel2_oculus;
     extern kernel kernel3_oculus;

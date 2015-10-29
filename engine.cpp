@@ -792,8 +792,6 @@ void engine::construct_shadowmaps()
             {
                 cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
 
-                cl_uint zero = 0;
-
                 cl_mem temp_l_mem;
 
                 cl_buffer_region buf_reg;
@@ -944,7 +942,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     #endif
 
 
-    float id_fudge = 1.2;
+    float id_fudge = 1.2f;
 
     ///this is very undefined behaviour
     clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
@@ -2229,7 +2227,7 @@ void engine::display()
 
             process_input();
 
-            printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
+            //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
 
             //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;

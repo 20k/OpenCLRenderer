@@ -35,6 +35,7 @@ kernel cl::prearrange;
 kernel cl::prearrange_light;
 kernel cl::kernel1_light;
 kernel cl::tile_clear;
+kernel cl::clear_screen_buffer;
 kernel cl::kernel1_oculus;
 kernel cl::kernel2_oculus;
 kernel cl::kernel3_oculus;

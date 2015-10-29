@@ -47,6 +47,7 @@
 		</Build>
 		<Compiler>
 			<Add option="-std=gnu++11" />
+			<Add option="-march=native" />
 			<Add option="-DGLEW_STATIC" />
 			<Add option="-DNDEBUG" />
 		</Compiler>
@@ -71,46 +72,90 @@
 		</Linker>
 		<Unit filename="cl2.cl" />
 		<Unit filename="clstate.cpp" />
-		<Unit filename="clstate.h" />
+		<Unit filename="clstate.h">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="controls.cpp" />
-		<Unit filename="controls.hpp" />
+		<Unit filename="controls.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="engine.cpp" />
-		<Unit filename="engine.hpp" />
+		<Unit filename="engine.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="hologram.cpp" />
-		<Unit filename="hologram.hpp" />
+		<Unit filename="hologram.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="interact_manager.cpp" />
-		<Unit filename="interact_manager.hpp" />
+		<Unit filename="interact_manager.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="light.cpp" />
-		<Unit filename="light.hpp" />
+		<Unit filename="light.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="main.cpp" />
-		<Unit filename="obj_g_descriptor.hpp" />
+		<Unit filename="obj_g_descriptor.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="obj_info_struct.cpp" />
-		<Unit filename="obj_info_struct.hpp" />
+		<Unit filename="obj_info_struct.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="obj_load.cpp" />
-		<Unit filename="obj_load.hpp" />
+		<Unit filename="obj_load.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="obj_mem_manager.cpp" />
-		<Unit filename="obj_mem_manager.hpp" />
+		<Unit filename="obj_mem_manager.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="object.cpp" />
-		<Unit filename="object.hpp" />
+		<Unit filename="object.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="objects_container.cpp" />
-		<Unit filename="objects_container.hpp" />
-		<Unit filename="ocl.h" />
+		<Unit filename="objects_container.hpp">
+			<Option weight="0" />
+		</Unit>
+		<Unit filename="ocl.h">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="point_cloud.cpp" />
-		<Unit filename="point_cloud.hpp" />
-		<Unit filename="proj.hpp" />
+		<Unit filename="point_cloud.hpp">
+			<Option weight="0" />
+		</Unit>
+		<Unit filename="proj.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="text_handler.cpp" />
-		<Unit filename="text_handler.hpp" />
+		<Unit filename="text_handler.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="texture.cpp" />
-		<Unit filename="texture.hpp" />
+		<Unit filename="texture.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="texture_manager.cpp" />
-		<Unit filename="texture_manager.hpp" />
+		<Unit filename="texture_manager.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="triangle.cpp" />
-		<Unit filename="triangle.hpp" />
+		<Unit filename="triangle.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="ui_manager.cpp" />
-		<Unit filename="ui_manager.hpp" />
-		<Unit filename="vec.hpp" />
+		<Unit filename="ui_manager.hpp">
+			<Option weight="0" />
+		</Unit>
+		<Unit filename="vec.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="vertex.cpp" />
-		<Unit filename="vertex.hpp" />
+		<Unit filename="vertex.hpp">
+			<Option weight="0" />
+		</Unit>
 		<Extensions>
 			<code_completion />
 			<envvars />

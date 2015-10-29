@@ -242,13 +242,6 @@ struct arg_list
     std::vector<int> sizes;
     std::vector<int> can_skip;
 
-    void push_back(compute::buffer* buf)
-    {
-        args.push_back(buf);
-        sizes.push_back(sizeof(compute::buffer));
-        can_skip.push_back(false);
-    }
-
     template<typename T>
     void push_back(T* buf)
     {
@@ -266,6 +259,14 @@ struct arg_list
     }
 };
 
+/*template<>
+inline
+void arg_list::push_back<compute::buffer>(compute::buffer* buf)
+{
+    args.push_back(buf);
+    sizes.push_back(sizeof(compute::buffer));
+    can_skip.push_back(false);
+}*/
 
 struct Timer
 {
@@ -307,17 +308,16 @@ extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 ///runs a kernel with a particular set of arguments
 inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true)
 {
-    size_t g_ws[dimensions];
-    size_t l_ws[dimensions];
-
-    for(int i=0; i<dimensions; i++)
-        if(g_ws[i] <= 0)
-            return compute::event();
+    size_t g_ws[3];
+    size_t l_ws[3];
 
     for(int i=0; i<dimensions; i++)
     {
         g_ws[i] = global_ws[i];
         l_ws[i] = local_ws[i];
+
+        if(g_ws[i] <= 0)
+            return compute::event();
 
         ///how do i do this for 2d? Or probably best to convert
         ///2d kernels into 1d because its much faster (I hate everyone)
@@ -349,6 +349,8 @@ inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], 
             continue;
 
         kernel_map[kernel.name][i] = previous_buffer;
+
+        //printf("%s %i\n", kernel.name.c_str(), i);
         ///
 
         clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));

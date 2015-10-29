@@ -4383,7 +4383,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 typedef union
 {
     uint4 m_int4;
-    int m_ints[4];
+    uint m_ints[4];
 } naive_conv;
 
 void buffer_accum(__global naive_conv* buf, int x, int y, uint4 val)
@@ -4499,7 +4499,7 @@ float get_gauss(float2 pos, float angle, float len, float size_modifier)
 }
 
 __kernel
-void render_gaussian_points(int num, __global float4* positions, __global float4* old_positions, __global uint* colours,
+void render_gaussian_points(int num, __global float4* positions, __global float4* old_positions, __global uint* colours, float brightness,
                             float4 c_pos, float4 c_rot, float4 o_pos, float4 o_rot, __global uint4* screen_buf)
 {
     uint pid = get_global_id(0);
@@ -4591,7 +4591,7 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
 
             //out = convert_uint4(255.f*val*mix(outside_col, centre_col, sval).xyzz);
 
-            out = 255 * val;
+            out = 255 * sval * brightness;
 
             out = convert_uint4(convert_float4(out) * convert_float4(rgba) / 255.f);
 

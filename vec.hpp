@@ -2,6 +2,7 @@
 #define INCLUDED_HPP_VEC
 #include <cl/cl.h>
 #include <math.h>
+#include <algorithm>
 
 inline cl_float4 neg(cl_float4 v)
 {

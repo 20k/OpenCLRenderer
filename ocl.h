@@ -285,6 +285,9 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::kernel1_light = load_kernel(program, "kernel1_light");
     cl::tile_clear = load_kernel(program, "tile_clear");
 
+
+    cl::clear_screen_buffer = load_kernel(program, "clear_screen_buffer");
+
     #ifdef OCULUS
     cl::kernel1_oculus = load_kernel(program, "kernel1_oculus");
     cl::kernel2_oculus= load_kernel(program, "kernel2_oculus");

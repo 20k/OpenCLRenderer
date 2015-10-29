@@ -3,7 +3,6 @@
 #include <iostream>
 #include "clstate.h"
 #include "engine.hpp"
-#include "proj.hpp"
 
 ///probably need to use computje::buffers here
 

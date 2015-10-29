@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     window.set_tex_data(tex_gpu);
 
     auto object_dat = context.build();
-    window.set_object_data(object_dat);
+    window.set_object_data(object_dat);;
 
     sf::Event Event;
 
@@ -141,8 +141,12 @@ int main(int argc, char *argv[])
 
         //window.render_block();
         window.display();
-        //window.render_block();
+        window.render_block();
 
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
+
+    ///if we're doing async rendering on the main thread, then this is necessary
+    cl::cqueue.finish();
+    glFinish();
 }
