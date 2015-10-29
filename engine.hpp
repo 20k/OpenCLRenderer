@@ -259,14 +259,14 @@ struct arg_list
     }
 };
 
-/*template<>
+template<>
 inline
 void arg_list::push_back<compute::buffer>(compute::buffer* buf)
 {
     args.push_back(buf);
     sizes.push_back(sizeof(compute::buffer));
-    can_skip.push_back(false);
-}*/
+    can_skip.push_back(true);
+}
 
 struct Timer
 {
@@ -308,8 +308,8 @@ extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 ///runs a kernel with a particular set of arguments
 inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true)
 {
-    size_t g_ws[3];
-    size_t l_ws[3];
+    size_t g_ws[dimensions];
+    size_t l_ws[dimensions];
 
     for(int i=0; i<dimensions; i++)
     {

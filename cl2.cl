@@ -4563,6 +4563,23 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
 
     overall_size *= frac;
 
+
+    float min_contrib = 0.5f;
+
+    float abound = 1 - min_contrib;
+    float bbound = - min_contrib*min_contrib;
+
+    ///with brightness at 0, evaluates to min_contrib, with brightness to 1, evaluates to 1
+
+    ///brightness at 0 = minimum brightness contribution
+    ///this is so that we don't have a weird cutoff effect where
+    ///the size of the particles stop decreasing as brightness approaches 0
+    ///which is perceptually noticable
+
+    float brightness_contrib = clamp(abound * (brightness + min_contrib) - bbound, min_contrib, 30.f);
+
+    overall_size *= brightness_contrib;
+
     overall_size = clamp(overall_size, 0.5f, (float)bound/5);
 
     float gauss_centre = get_gauss((float2){0, 0}, move_angle + M_PI/2.f, dist, overall_size);
