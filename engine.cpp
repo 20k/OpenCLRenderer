@@ -820,7 +820,7 @@ void engine::construct_shadowmaps()
                 prearg_list.push_back(&g_tile_information);
                 prearg_list.push_back(&g_tile_count);
 
-                run_kernel_with_string("prearrange_light", &p1global_ws, &local, 1, prearg_list, true);
+                run_kernel_with_string("prearrange_light", &p1global_ws, &local, 1, prearg_list);
 
                 cl_uint id_c = 0;
 
@@ -994,7 +994,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&eng.g_distortion_buffer);
     p1arg_list.push_back(&eng.g_id_screen_tex);
 
-    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
+    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list);
 
     //sf::Clock p2;
 
@@ -1017,7 +1017,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p2arg_list.push_back(&eng.obj_data->g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
 
-    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list, true);
+    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list);
 
     //sf::Clock c3;
     int nnbuf = (eng.nbuf + 1) % 2;
@@ -1052,7 +1052,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint p3local_ws[] = {16, 16};
 
     ///this is the deferred screenspace pass
-    auto event = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list, true);
+    auto event = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list);
 
     #ifndef REPROJECT_TEST
     clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
