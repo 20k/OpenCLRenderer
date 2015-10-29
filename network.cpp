@@ -1055,8 +1055,6 @@ bool network::process_posrot(byte_fetch& fetch)
     {
         obj->set_pos(pos);
         obj->set_rot(rot);
-
-        obj->g_flush_objects(); ///temporary/permanent
     }
     else
     {

@@ -8,6 +8,8 @@
 
 namespace compute = boost::compute;
 
+struct object_context;
+
 struct objects_container
 {
     cl_uint id;
@@ -71,7 +73,7 @@ struct objects_container
     cl_float4 get_centre();
 
 
-    void    g_flush_objects(); ///calls g_flush for all objects
+    void    g_flush_objects(object_context_data& dat); ///calls g_flush for all objects
 
     static int get_object_by_id(int);
 
@@ -111,8 +113,16 @@ struct object_context
 
     void load_active();
 
-    ///make async and non async version
-    object_context_data build();
+    ///this causes a gpu reallocation
+    void build();
+
+    ///this fetches the internal context data
+    object_context_data* fetch();
+
+    void flush_locations();
+
+private:
+    object_context_data gpu_dat;
 };
 
 

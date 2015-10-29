@@ -32,7 +32,7 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
     for(unsigned int i=0; i<objs.size(); i++)
     {
-        objs[i].pos = _pos;
+        objs[i].set_pos(pos);
     }
 
     if(isactive)
@@ -53,7 +53,7 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 
     for(unsigned int i=0; i<objs.size(); i++)
     {
-        objs[i].rot = _rot;
+        objs[i].set_rot(rot);
     }
 
     if(isactive)
@@ -73,7 +73,7 @@ void objects_container::set_file(const std::string& f)
     file = f;
 }
 
-    ///push objs to thing? Manage from here?
+///push objs to thing? Manage from here?
 void objects_container::set_active_subobjs(bool param)
 {
     for(unsigned int i=0; i<objs.size(); i++)
@@ -175,22 +175,20 @@ void objects_container::call_obj_vis_load(cl_float4 pos)
     }
 }
 
-
-
-void objects_container::g_flush_objects()
+void objects_container::g_flush_objects(object_context_data& dat)
 {
-    int tid = get_object_by_id(id);
+    //int tid = get_object_by_id(id);
 
-    if(isactive)
+    //if(isactive)
     {
-        objects_container *T = objects_container::obj_container_list[tid];
+        //objects_container *T = objects_container::obj_container_list[tid];
 
-        for(unsigned int i=0; i<T->objs.size(); i++)
+        for(unsigned int i=0; i<objs.size(); i++)
         {
-            T->objs[i].g_flush();
+            objs[i].g_flush(dat);
         }
     }
-    else
+    //else
     {
         //std::cout << "Warning " __FILE__ << ": " << __LINE__ << " g_flush_objects called on object not pushed to global storage" << std::endl;
     }
@@ -256,11 +254,6 @@ cl_float4 objects_container::get_centre()
 void objects_container::unload()
 {
     isloaded = false;
-
-    for(auto& o : objs)
-    {
-        o.isloaded = false;
-    }
 
     set_active(false);
 
@@ -350,7 +343,7 @@ void object_context::load_active()
     {
         objects_container *obj = containers[i];
 
-        if(obj->isloaded == false)
+        if(obj->isloaded == false && obj->isactive)
         {
             if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
@@ -363,6 +356,7 @@ void object_context::load_active()
                 obj->id = save_id;
                 obj->set_pos(save_pos);
                 obj->set_rot(save_rot);
+                obj->set_active(true);
             }
             else
             {
@@ -398,7 +392,14 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
         objects_container* obj = containers[i];
 
         if(!obj->isactive)
+        {
+            for(auto& it : obj->objs)
+                it.object_g_id = -1;
+
+            obj->gpu_descriptor_id = -1;
+
             continue;
+        }
 
         obj->gpu_descriptor_id = active_count;
 
@@ -441,7 +442,7 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
 
 #include "clstate.h"
 
-object_context_data alloc_gpu(int mip_start, cl_uint tri_num)
+object_context_data alloc_gpu(int mip_start, cl_uint tri_num, object_context& context)
 {
     object_context_data dat;
 
@@ -458,7 +459,7 @@ object_context_data alloc_gpu(int mip_start, cl_uint tri_num)
     int obj_id = 0;
 
     ///write triangle data to gpu
-    for(std::vector<objects_container*>::iterator it2 = objects_container::obj_container_list.begin(); it2!=objects_container::obj_container_list.end(); ++it2)
+    for(std::vector<objects_container*>::iterator it2 = context.containers.begin(); it2!=context.containers.end(); ++it2)
     {
         objects_container* obj = (*it2);
 
@@ -506,21 +507,31 @@ void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descri
     cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_num, 0, dat.g_obj_num.size(), &dat.obj_num);
 }
 
-object_context_data object_context::build()
+void object_context::build()
 {
-    object_context_data dat;
-
     std::vector<obj_g_descriptor> object_descriptors;
 
     int tri_num = generate_gpu_object_descriptor(containers, texture_manager::mipmap_start, object_descriptors);
 
-    dat = alloc_gpu(texture_manager::mipmap_start, tri_num);
-    dat.tex_gpu = texture_manager::build_descriptors();
+    gpu_dat = alloc_gpu(texture_manager::mipmap_start, tri_num, *this);
+    gpu_dat.tex_gpu = texture_manager::build_descriptors();
 
-    alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, dat);
+    alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, gpu_dat);
 
     cl::cqueue2.finish();
-
-    return dat;
 }
+
+object_context_data* object_context::fetch()
+{
+    return &gpu_dat;
+}
+
+void object_context::flush_locations()
+{
+    for(auto& i : containers)
+    {
+        i->g_flush_objects(gpu_dat);
+    }
+}
+
 #endif

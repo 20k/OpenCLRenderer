@@ -10,6 +10,8 @@
 
 #include "obj_g_descriptor.hpp"
 
+struct object_context_data;
+
 struct object
 {
     cl_uint gpu_tri_start;
@@ -35,7 +37,7 @@ struct object
     cl_uint bid; ///bumpmap_id
     cl_uint rid;
 
-    cl_uint object_g_id; ///obj_g_descriptor id ///assigned
+    cl_int object_g_id; ///obj_g_descriptor id ///assigned
 
     cl_uint has_bump; ///does this object have a bumpmap
 
@@ -72,7 +74,7 @@ struct object
     void try_load(cl_float4); ///try and get the object, dependent on its visibility
     ///unused, probably removing visibility system due to complete infeasibility of automatic object loading based on anything useful
 
-    void g_flush(); ///flush position (currently just) etc to gpu memory
+    void g_flush(object_context_data& dat); ///flush position (currently just) etc to gpu memory
 
     ///for writing to gpu, need the memory to stick around
     private:

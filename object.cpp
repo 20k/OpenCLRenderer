@@ -43,6 +43,8 @@ object::object() : tri_list(0)
     two_sided = 0;
 
     tri_num = 0;
+
+    object_g_id = -1;
 }
 
 object::~object()
@@ -313,8 +315,11 @@ void object::try_load(cl_float4 pos)
 
 ///flush rotation and position information to relevant subobject descriptor
 ///if scene updated behind objects back will not work
-void object::g_flush()
+void object::g_flush(object_context_data& dat)
 {
+    if(object_g_id == -1)
+        return;
+
     bool dirty_pos = false;
     bool dirty_rot = false;
 
@@ -352,11 +357,11 @@ void object::g_flush()
     cl_event event;
 
     if(dirty_pos && dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
     else if(dirty_pos)
-        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
     else if(dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, obj_mem_manager::g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
 
     if(ret == CL_SUCCESS)
     {
