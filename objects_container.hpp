@@ -66,6 +66,8 @@ struct objects_container
     void    set_normal(const std::string&);
     void    set_two_sided(bool);
 
+    void    hide();
+
     //objects_container* get_remote();
 
     ///currently uncached

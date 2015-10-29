@@ -289,6 +289,12 @@ void objects_container::set_two_sided(bool two_sided)
     }
 }
 
+void objects_container::hide()
+{
+    ///well, this is the official location for this terrible hack now
+    set_pos({0, -100000000, 0});
+}
+
 int objects_container::get_object_by_id(int in)
 {
     for(int i=0; i<objects_container::obj_container_list.size(); i++)
@@ -480,7 +486,7 @@ object_context_data alloc_gpu(int mip_start, cl_uint tri_num, object_context& co
             if((*it).tri_num>0)
                 cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), (*it).tri_list.data());
 
-            running += (*it).tri_num;
+            running += (*it).tri_list.size();
 
             it->gpu_tri_end = running;
 
