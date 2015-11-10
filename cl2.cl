@@ -4499,7 +4499,7 @@ float get_gauss(float2 pos, float angle, float len, float size_modifier)
 }
 
 __kernel
-void render_gaussian_points(int num, __global float4* positions, __global float4* old_positions, __global uint* colours, float brightness,
+void render_gaussian_points(int num, __global float4* positions, float current_frac, float old_frac, __global uint* colours, float brightness,
                             float4 c_pos, float4 c_rot, float4 o_pos, float4 o_rot, __global uint4* screen_buf)
 {
     uint pid = get_global_id(0);
@@ -4510,8 +4510,9 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
     if(brightness <= 0.f)
         return;
 
-    float3 position = positions[pid].xyz;
-    float3 old_position = old_positions[pid].xyz;
+    float3 position = positions[pid].xyz * 40 * current_frac;
+    float3 old_position = positions[pid].xyz * 40 * old_frac;
+    //float3 old_position = old_positions[pid].xyz;
     uint colour = colours[pid];
 
     float3 camera_pos = c_pos.xyz;
@@ -4621,14 +4622,14 @@ void render_gaussian_points(int num, __global float4* positions, __global float4
 }
 
 __kernel
-void particle_explode(int num, __global float4* in_p, __global float4* out_p, float friction)
+void particle_explode(int num, __global float4* in_p, __global float4* out_p, float frac)
 {
     int id = get_global_id(0);
 
     if(id >= num)
         return;
 
-    float3 my_pos = in_p[id].xyz;
+    /*float3 my_pos = in_p[id].xyz;
 
     float3 my_old = out_p[id].xyz;
 
@@ -4636,7 +4637,13 @@ void particle_explode(int num, __global float4* in_p, __global float4* out_p, fl
 
     float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
 
-    out_p[id] = my_new.xyzz;
+    out_p[id] = my_new.xyzz;*/
+
+    float3 my_pos = in_p[id].xyz;
+
+    my_pos = my_pos * frac * 100.f;
+
+    out_p[id] = my_pos.xyzz;
 }
 
 

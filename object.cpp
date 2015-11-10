@@ -45,6 +45,8 @@ object::object() : tri_list(0)
     tri_num = 0;
 
     object_g_id = -1;
+
+    last_object_context_data_id = -1;
 }
 
 object::~object()
@@ -315,10 +317,28 @@ void object::try_load(cl_float4 pos)
 
 ///flush rotation and position information to relevant subobject descriptor
 ///if scene updated behind objects back will not work
-void object::g_flush(object_context_data& dat)
+///this is now called every frame
+///yay!
+void object::g_flush(object_context_data& dat, bool force)
 {
     if(object_g_id == -1)
         return;
+
+    if(!dat.gpu_data_finished)
+        return;
+
+    int data_id = dat.id;
+
+    ///if the gpu context has changed, force a write
+    bool force_flush = last_object_context_data_id != data_id;
+
+    last_object_context_data_id = data_id;
+
+    force_flush |= force;
+
+    //force_flush = false;
+
+    //bool force_flush = force;
 
     bool dirty_pos = false;
     bool dirty_rot = false;
@@ -340,7 +360,7 @@ void object::g_flush(object_context_data& dat)
     ///I believe it should be fine, because posrot will only be updated when g_flush will get called... however it may possibly lead to odd behaviour
     ///possibly use the event callback system to fix this
 
-    if(!dirty_pos && !dirty_rot)
+    if(!dirty_pos && !dirty_rot && !force_flush)
         return;
 
     //clWaitForEvents(write_events.size(), write_events.data());
@@ -357,11 +377,18 @@ void object::g_flush(object_context_data& dat)
     cl_event event;
 
     if(dirty_pos && dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
     else if(dirty_pos)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
     else if(dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
+
+    ///on a flush atm we'll get some slighty data duplication
+    ///very minorly bad for performance, but eh
+    if(force_flush)
+    {
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
+    }
 
     if(ret == CL_SUCCESS)
     {

@@ -74,7 +74,7 @@ struct object
     void try_load(cl_float4); ///try and get the object, dependent on its visibility
     ///unused, probably removing visibility system due to complete infeasibility of automatic object loading based on anything useful
 
-    void g_flush(object_context_data& dat); ///flush position (currently just) etc to gpu memory
+    void g_flush(object_context_data& dat, bool force = false); ///flush position (currently just) etc to gpu memory
 
     ///for writing to gpu, need the memory to stick around
     private:
@@ -82,6 +82,8 @@ struct object
 
     cl_float4 last_pos;
     cl_float4 last_rot;
+
+    uint32_t last_object_context_data_id;
 };
 
 

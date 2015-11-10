@@ -75,7 +75,7 @@ struct objects_container
     cl_float4 get_centre();
 
 
-    void    g_flush_objects(object_context_data& dat); ///calls g_flush for all objects
+    void    g_flush_objects(object_context_data& dat, bool force = false); ///calls g_flush for all objects
 
     static int get_object_by_id(int);
 
@@ -103,12 +103,40 @@ struct object_context_data
     compute::buffer g_cut_tri_num;
 
     texture_gpu tex_gpu;
+
+    volatile bool gpu_data_finished = false;
+
+    ///necessary for stuff to know that the object context has changed
+    ///and so to reflush its data to the gpu
+    static cl_uint gid;
+    cl_uint id = gid++;
+};
+
+struct object_temporaries
+{
+    cl_uint object_g_id;
+
+    cl_uint gpu_tri_start;
+    cl_uint gpu_tri_end;
+};
+
+struct container_temporaries
+{
+    cl_uint gpu_descriptor_id;
+
+    std::vector<object_temporaries> new_object_data;
+
+    int object_id;
 };
 
 ///does not fill in texture data
+///at the moment, manipulation container's object data (ie the subobjects) can result in incorrect behaviour
+///if the order of the objects is swapped around, or a middle one is deleted etc
 struct object_context
 {
     std::vector<objects_container*> containers;
+
+    std::vector<container_temporaries> new_container_data;
 
     objects_container* make_new();
     void destroy(objects_container* obj);
@@ -121,10 +149,22 @@ struct object_context
     ///this fetches the internal context data
     object_context_data* fetch();
 
-    void flush_locations();
+    void flush_locations(bool force = false);
+
+    object_context_data old_dat;
+    object_context_data gpu_dat;
+    object_context_data new_gpu_dat;
+
+    volatile bool ready_to_flip = false;
+
+    void flip();
+
+    int frames_since_flipped = 0;
 
 private:
-    object_context_data gpu_dat;
+
+    ///so we can use write async
+    std::vector<obj_g_descriptor> object_descriptors;
 };
 
 
