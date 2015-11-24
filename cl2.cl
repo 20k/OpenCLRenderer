@@ -10118,7 +10118,9 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
 
     float3 my_pos = in_p[id].xyz;
 
-    float3 my_old = out_p[id].xyz;
+    my_pos = my_pos + in_v[id].xyz + 0.5f * in_a[id].xyz;
+
+    float3 my_vel = in_v[id].xyz;
 
     for(int i=0; i<num; i++)
     {
@@ -10145,26 +10147,49 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
 
         cumulative_acc += (G * to_them) / (gravity_distance*gravity_distance*gravity_distance);
 
+        ///interpolate velocities
+        ///I'm sure there's a physically accurate way to do this
         if(subsurface_distance < surface)
         {
             //float R = 0.1f * (1.f + max_temp);
 
+            ///too close repulsion
             float R = 0.1f;
 
             float extra = surface - subsurface_distance;
 
             cumulative_acc -= R * to_them / (subsurface_distance*subsurface_distance*subsurface_distance);
+
+
+            float3 their_vel = in_v[i].xyz;
+
+            float3 avg_v = (my_vel + their_vel)/2.f;
+
+            float3 to_avg = avg_v - my_vel;
+
+
+            cumulative_acc += (to_avg / 100.f);
         }
     }
+
+    float3 my_new = my_pos;
+
+    out_a[id].xyz = cumulative_acc;
+    out_p[id].xyz = my_pos;
+    out_v[id].xyz = in_v[id].xyz + 0.5f * (in_a[id].xyz + cumulative_acc);
 
     const float friction = 1.f;
 
     ///hooray! I finally understand vertlets!
-    float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
+    //float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
 
+    //out_v[id] = out_v[id]
 
+    /*float3 my_new = in_p[id] + in_v[id] + 0.5f * cumulative_acc
 
-    out_p[id] = my_new.xyzz;
+    out_a[id] = cumulative_acc;
+
+    out_p[id] = my_new.xyzz;*/
 
 
     float3 camera_pos = c_pos.xyz;
