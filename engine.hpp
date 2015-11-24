@@ -384,8 +384,12 @@ inline compute::event run_kernel_with_string(const std::string& name, cl_uint gl
 
     if(!k.loaded)
     {
+        printf("trying to load %s\n", name.c_str());
+
         k = load_kernel(cl::program, name);
         cl::kernels[name] = k;
+
+        printf("loaded\n");
     }
 
     return run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue);

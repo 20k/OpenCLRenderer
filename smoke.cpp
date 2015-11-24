@@ -260,7 +260,7 @@ void smoke::tick(float dt)
     dens_diffuse.push_back(&dt_const); ///temp
     dens_diffuse.push_back(&type_density); ///temp
 
-    run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
+    run_kernel_with_string("diffuse_unstable_tex", global_ws, local_ws, 3, dens_diffuse);
 
     arg_list dens_advect;
     dens_advect.push_back(&width);
@@ -274,42 +274,42 @@ void smoke::tick(float dt)
     dens_advect.push_back(&g_velocity_z[n_vel]);
     dens_advect.push_back(&dt_const); ///temp
 
-    run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
+    run_kernel_with_string("advect_tex", global_ws, local_ws, 3, dens_advect);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_x[next_vel];
     dens_diffuse.args[5] = &g_velocity_x[n_vel];
     dens_diffuse.args[8] = &type_velocity;
 
-    run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
+    run_kernel_with_string("diffuse_unstable_tex", global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_y[next_vel];
     dens_diffuse.args[5] = &g_velocity_y[n_vel];
 
-    run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
+    run_kernel_with_string("diffuse_unstable_tex", global_ws, local_ws, 3, dens_diffuse);
 
     ///just modify relevant arguments
     dens_diffuse.args[4] = &g_velocity_z[next_vel];
     dens_diffuse.args[5] = &g_velocity_z[n_vel];
 
-    run_kernel_with_list(cl::diffuse_unstable_tex, global_ws, local_ws, 3, dens_diffuse);
+    run_kernel_with_string("diffuse_unstable_tex", global_ws, local_ws, 3, dens_diffuse);
 
     ///nexts now valid
     dens_advect.args[4] = &g_velocity_x[n_vel];
     dens_advect.args[5] = &g_velocity_x[next_vel];
 
-    run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
+    run_kernel_with_string("advect_tex", global_ws, local_ws, 3, dens_advect);
 
     dens_advect.args[4] = &g_velocity_y[n_vel];
     dens_advect.args[5] = &g_velocity_y[next_vel];
 
-    run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
+    run_kernel_with_string("advect_tex", global_ws, local_ws, 3, dens_advect);
 
     dens_advect.args[4] = &g_velocity_z[n_vel];
     dens_advect.args[5] = &g_velocity_z[next_vel];
 
-    run_kernel_with_list(cl::advect_tex, global_ws, local_ws, 3, dens_advect);
+    run_kernel_with_string("advect_tex", global_ws, local_ws, 3, dens_advect);
 }
 
 void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box_size, cl_float add_amount)

@@ -16,6 +16,8 @@
 
 #define depth_no_clear (mulint-1)
 
+#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
+
 struct interp_container;
 
 float rerror(float a, float b)
@@ -1118,6 +1120,284 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
+///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
+///force_pos is offset within the box
+__kernel
+void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size, float add_amount,
+                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in, __read_only image3d_t voxel_in,
+                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out, __write_only image3d_t voxel_out)
+{
+    int xpos = get_global_id(0);
+    int ypos = get_global_id(1);
+    int zpos = get_global_id(2);
+
+    if(xpos >= box_size || ypos >= box_size || zpos >= box_size)
+        return;
+
+    int3 pos = {xpos, ypos, zpos};
+
+    ///centre
+    pos -= (int)box_size/2;
+
+    ///apply within-box offset
+    pos += convert_int3(force_pos.xyz);
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
+    float3 vel;
+
+    vel.x = read_imagef(x_in, sam, pos.xyzz).x;
+    vel.y = read_imagef(y_in, sam, pos.xyzz).x;
+    vel.z = read_imagef(z_in, sam, pos.xyzz).x;
+
+    float voxel_amount = read_imagef(voxel_in, sam, pos.xyzz).x;
+
+    voxel_amount += add_amount;
+
+    write_imagef(voxel_out, pos.xyzz, voxel_amount);
+
+    float3 force_dir_amount = force_dir.xyz * force;
+
+    vel += force_dir_amount;
+
+    vel = clamp(vel, -3.f, 3.f);
+
+    write_imagef(x_out, pos.xyzz, vel.x);
+    write_imagef(y_out, pos.xyzz, vel.y);
+    write_imagef(z_out, pos.xyzz, vel.z);
+}
+
+
+
+typedef enum diffuse_type
+{
+    density,
+    velocity
+} diffuse_type;
+
+__kernel void diffuse_unstable(int width, int height, int depth, int b, __global float* x_out, __global float* x_in, float diffuse, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    ///make these width-1, 1, for gas escape
+    if(x >= width-1 || y >= height-1 || z >= depth-1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0 || z < 0)
+    {
+        x_out[IX(x, y, z)] = x_in[IX(x, y, z)];
+        return;
+    }
+
+
+    float val = 0;
+
+    if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
+        val = (x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
+
+    x_out[IX(x,y,z)] = max(val, 0.0f);
+}
+
+__kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt, diffuse_type type)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
+    {
+        return;
+    }
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+    float4 pos = (float4){x, y, z, 0};
+
+
+    float val = 0;
+
+    val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,1,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,-1,0,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
+        + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
+
+    int div = 6;
+
+    float myval = read_imagef(x_in, sam, pos).x;
+
+    float weight = 100.f;
+
+    val = (val + weight*myval) / (div + weight);
+
+    if(type == density)
+    {
+        val = max(val, 0.f);
+    }
+
+    write_imagef(x_out, convert_int4(pos), val);
+}
+
+float advect_func_vel(float x, float y, float z,
+                  int width, int height, int depth,
+                  __global float* d_in,
+                  //__global float* xvel, __global float* yvel, __global float* zvel,
+                  float pvx, float pvy, float pvz,
+                  float dt)
+{
+    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
+    {
+        return 0;
+    }
+
+
+    float dt0x = dt*width;
+    float dt0y = dt*height;
+    float dt0z = dt*depth;
+
+    float vx = x - dt0x * pvx;//xvel[IX(x,y,z)];
+    float vy = y - dt0y * pvy;//yvel[IX(x,y,z)];
+    float vz = z - dt0z * pvz;//zvel[IX(x,y,z)];
+
+    vx = clamp(vx, 0.5f, width - 1.5f);
+    vy = clamp(vy, 0.5f, height - 1.5f);
+    vz = clamp(vz, 0.5f, depth - 1.5f);
+
+    float3 v0s = floor((float3){vx, vy, vz});
+
+    int3 iv0s = convert_int3(v0s);
+
+    float3 v1s = v0s + 1;
+
+    float3 fracs = (float3){vx, vy, vz} - v0s;
+
+    float3 ifracs = 1.0f - fracs;
+
+    float xy0 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z)];
+    float xy1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z)];
+
+    float xy0z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z+1)];
+    float xy1z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z+1)];
+
+    float yz0 = ifracs.y * xy0 + fracs.y * xy1;
+    float yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
+
+    float val = ifracs.z * yz0 + fracs.z * yz1;
+
+    return val;
+}
+
+
+float advect_func_vel_tex(float x, float y, float z,
+                  int width, int height, int depth,
+                  __read_only image3d_t d_in,
+                  float pvx, float pvy, float pvz,
+                  float dt)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_LINEAR;
+
+    float3 dtd = dt * (float3){width, height, depth};
+
+    float3 distance = dtd * (float3){pvx, pvy, pvz};
+
+    float3 vvec = (float3){x, y, z} - distance;
+
+    float val = read_imagef(d_in, sam, vvec.xyzz + 0.5f).x;
+
+    return val;
+}
+
+
+float advect_func(float x, float y, float z,
+                  int width, int height, int depth,
+                  __global float* d_in,
+                  __global float* xvel, __global float* yvel, __global float* zvel,
+                  float dt)
+{
+    return advect_func_vel(x, y, z, width, height, depth, d_in, xvel[IX((int)x,(int)y,(int)z)], yvel[IX((int)x,(int)y,(int)z)], zvel[IX((int)x,(int)y,(int)z)], dt);
+
+}
+
+float advect_func_tex(float x, float y, float z,
+                  int width, int height, int depth,
+                  __read_only image3d_t d_in,
+                  __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
+                  float dt)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+
+    float v1, v2, v3;
+
+    v1 = read_imagef(xvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
+    v2 = read_imagef(yvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
+    v3 = read_imagef(zvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
+
+    return advect_func_vel_tex(x, y, z, width, height, depth, d_in, v1, v2, v3, dt);
+
+}
+
+
+///combine all 3 uvw velocities into 1 kernel?
+///nope, slower
+///textures for free interpolation, would be extremely, extremely much fasterer
+///might be worth combining them then
+__kernel
+//__attribute__((reqd_work_group_size(16, 16, 1)))
+void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    if(x >= width || y >= height || z >= depth)
+    {
+        return;
+    }
+
+    d_out[IX(x, y, z)] = advect_func(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
+}
+
+///my next step is to convert everything to textures
+///the step after that is to stop fluid escaping
+///need to do boundary condition at edge so that fluid velocity hitting the walls is reflected
+__kernel
+//__attribute__((reqd_work_group_size(16, 16, 1)))
+void advect_tex(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    ///lazy for < 1
+    ///figuring out how to do this correctly is important
+    if(x >= width || y >= height || z >= depth) // || x < 1 || y < 1 || z < 1)
+    {
+        ///breaks
+        //if(x == 0 || y == 0 || z == 0 || x == width-1 || y == height-1 || z == depth-1)
+        //    write_imagef(d_out, (int4){x, y, z, 0}, read_imagef(d_in, sam, (int4){x, y, z, 0}));
+
+        return;
+    }
+
+
+    float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
+
+    write_imagef(d_out, (int4){x, y, z, 0}, rval);
+}
+
+
 ///not supported on nvidia :(
 /*#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
@@ -1127,6 +1407,185 @@ __kernel void atomic_64_test(__global ulong* test)
     int g_id = get_global_id(0);
     atom_min(&test[g_id], 12l);
 }*/
+
+
+float do_trilinear(__global float* buf, float vx, float vy, float vz, int width, int height, int depth)
+{
+    float v1, v2, v3, v4, v5, v6, v7, v8;
+
+    int x = vx, y = vy, z = vz;
+
+    v1 = buf[IX(x, y, z)];
+    v2 = buf[IX(x+1, y, z)];
+    v3 = buf[IX(x, y+1, z)];
+
+    v4 = buf[IX(x+1, y+1, z)];
+    v5 = buf[IX(x, y, z+1)];
+    v6 = buf[IX(x+1, y, z+1)];
+    v7 = buf[IX(x, y+1, z+1)];
+    v8 = buf[IX(x+1, y+1, z+1)];
+
+    float x1, x2, x3, x4;
+
+    float xfrac = vx - floor(vx);
+
+    x1 = v1 * (1.0f - xfrac) + v2 * xfrac;
+    x2 = v3 * (1.0f - xfrac) + v4 * xfrac;
+    x3 = v5 * (1.0f - xfrac) + v6 * xfrac;
+    x4 = v7 * (1.0f - xfrac) + v8 * xfrac;
+
+    float yfrac = vy - floor(vy);
+
+    float y1, y2;
+
+    y1 = x1 * (1.0f - yfrac) + x2 * yfrac;
+    y2 = x3 * (1.0f - yfrac) + x4 * yfrac;
+
+    float zfrac = vz - floor(vz);
+
+    return y1 * (1.0f - zfrac) + y2 * zfrac;
+}
+
+float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global float* w1, __global float* w2, __global float* w3, __read_only image3d_t d_in, float roughness)
+{
+    int width, height, depth;
+
+    width = size.x;
+    height = size.y;
+    depth = size.z;
+
+    int uw, uh, ud;
+
+    uw = upscaled_size.x;
+    uh = upscaled_size.y;
+    ud = upscaled_size.z;
+
+    int x, y, z;
+
+    x = loc.x;
+    y = loc.y;
+    z = loc.z;
+
+    float rx, ry, rz;
+    ///imprecise, we need something else
+    rx = (float)x / (float)scale;
+    ry = (float)y / (float)scale;
+    rz = (float)z / (float)scale;
+
+    float3 wval = 0;
+
+    int pos = z*uw*uh + y*uw + x;
+
+
+    ///would be beneficial to be able to use lower res smoke
+    ///ALMOST CERTAINLY NEED TO INTERPOLATE
+
+    uint total_pos = uw*uh*ud;
+
+    ///offsets into the same tile dont seem to improve anything
+    ///would reduce noise generation time, need to check more exhaustively
+    wval.x = w1[pos];
+    wval.y = w2[pos];
+    wval.z = w3[pos];
+    //wval.z = wval.y;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_LINEAR;
+
+    ///et is length(vx, vy, vz?)
+
+    float vx, vy, vz;
+    ///do trilinear beforehand
+    ///or do averaging like a sensible human being
+    ///or use a 3d texture and get this for FREELOY JENKINS
+    ///do i need smooth vx....????
+
+    vx = read_imagef(xvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
+    vy = read_imagef(yvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
+    vz = read_imagef(zvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
+
+    ///only a very minor speed increase :(
+    if(fabs(vx) < 0.01 && fabs(vy) < 0.01 && fabs(vz) < 0.01)
+    {
+        //d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+        //return;
+    }
+
+    //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
+
+    ///arbitrary constant?
+    ///need to do interpolation of this
+    ///? twiddle the constant
+    ///this is the new velocity-
+
+    float3 vel = (float3){vx, vy, vz};
+
+    float len = fast_length(vel);
+
+    ///squared maybe not best
+    ///bump these numbers up for AWESOME smoke
+    float3 vval = vel + len*wval*roughness;
+
+
+
+
+    //float mag = length(vx + val.x/100.0f);
+
+    ///need to advect diffuse buffer
+    ///this isnt correct indexing
+
+
+    ///if i perform advection within this kernel, then i dont have to write this data out
+    ///instead, i can just only write out upscaled density!"
+    ///yay, performance!
+    ///then i can also use the higher resolution noise?
+    //x_out[pos] = vval.x;
+    //y_out[pos] = vval.y;
+    //z_out[pos] = vval.z;
+
+    ///do advect in this kernel here?
+
+    ///do interpolation? This is just nearest neighbour ;_;
+    //d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+
+    ///need to pass in real dt
+    ///draw from here somehow?
+
+    float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
+
+    val += val * length(vval);
+
+    ///this disables upscaling
+    //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
+
+    return val;
+}
+
+///do one advect of diffuse with post_upscale higher res?
+///dedicated upscaling kernel?
+///very interestingly, excluding the x_out, y_out and z_out arguments incrases performances by ~1ms
+///????
+///need to use linear interpolation on velocities
+__kernel void post_upscale(int width, int height, int depth,
+                           int uw, int uh, int ud,
+                           //__global float* xvel, __global float* yvel, __global float* zvel,
+                           __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
+                           __global float* w1, __global float* w2, __global float* w3,
+                           //__global float* x_out, __global float* y_out, __global float* z_out,
+                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale, float roughness)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= uw || y >= uh || z >= ud)
+        return;
+
+    float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
+
+    write_imagef(d_out, (int4){x, y, z, 0}, val);
+}
 
 
 
@@ -4801,7 +5260,6 @@ void gravity_attract(int num, __global float4* in_p, __global float4* out_p, __g
 }
 
 
-#if 0
 #define AOS(t, a, b, c) t a, t b, t c
 
 ///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
@@ -4977,10 +5435,7 @@ void cloth_simulate_old(AOS(__global float*, px, py, pz), AOS(__global float*, l
 
     write_imagef(screen, scr, 1.f);
 }
-
-
-
-#ifndef ONLY_3D
+#if 1//ndef ONLY_3D
 
 //detect step edges, then blur gaussian and mask with object ids?
 
@@ -7134,7 +7589,6 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
     ///start off literally hitler
 }
 
-#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
 ///draw from front backwards until we hit something?
 ///do separate rendering onto real sized buffer, then back project from screen into that
@@ -7785,231 +8239,6 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
 
 }*/
-
-typedef enum diffuse_type
-{
-    density,
-    velocity
-} diffuse_type;
-
-__kernel void diffuse_unstable(int width, int height, int depth, int b, __global float* x_out, __global float* x_in, float diffuse, float dt)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    ///lazy for < 1
-    ///make these width-1, 1, for gas escape
-    if(x >= width-1 || y >= height-1 || z >= depth-1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0 || z < 0)
-    {
-        x_out[IX(x, y, z)] = x_in[IX(x, y, z)];
-        return;
-    }
-
-
-    float val = 0;
-
-    if(x != 0 && x != width-1 && y != 0 && y != height-1 && z != 0 && z != depth-1)
-        val = (x_in[IX(x-1, y, z)] + x_in[IX(x+1, y, z)] + x_in[IX(x, y-1, z)] + x_in[IX(x, y+1, z)] + x_in[IX(x, y, z-1)] + x_in[IX(x, y, z+1)])/6.0f;
-
-    x_out[IX(x,y,z)] = max(val, 0.0f);
-}
-
-__kernel void diffuse_unstable_tex(int width, int height, int depth, int b, __write_only image3d_t x_out, __read_only image3d_t x_in, float diffuse, float dt, diffuse_type type)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    if(x >= width || y >= height || z >= depth)// || x < 0 || y < 0 || z < 0)
-    {
-        return;
-    }
-
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_NEAREST;
-
-    float4 pos = (float4){x, y, z, 0};
-
-
-    float val = 0;
-
-    val = read_imagef(x_in, sam, pos + (float4){-1,0,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){1,0,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,1,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,-1,0,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,0,1,0}).x
-        + read_imagef(x_in, sam, pos + (float4){0,0,-1,0}).x;
-
-    int div = 6;
-
-    float myval = read_imagef(x_in, sam, pos).x;
-
-    float weight = 100.f;
-
-    val = (val + weight*myval) / (div + weight);
-
-    if(type == density)
-    {
-        val = max(val, 0.f);
-    }
-
-    write_imagef(x_out, convert_int4(pos), val);
-}
-
-float advect_func_vel(float x, float y, float z,
-                  int width, int height, int depth,
-                  __global float* d_in,
-                  //__global float* xvel, __global float* yvel, __global float* zvel,
-                  float pvx, float pvy, float pvz,
-                  float dt)
-{
-    if(x >= width-2 || y >= height-2 || z >= depth-2 || x < 1 || y < 1 || z < 1)
-    {
-        return 0;
-    }
-
-
-    float dt0x = dt*width;
-    float dt0y = dt*height;
-    float dt0z = dt*depth;
-
-    float vx = x - dt0x * pvx;//xvel[IX(x,y,z)];
-    float vy = y - dt0y * pvy;//yvel[IX(x,y,z)];
-    float vz = z - dt0z * pvz;//zvel[IX(x,y,z)];
-
-    vx = clamp(vx, 0.5f, width - 1.5f);
-    vy = clamp(vy, 0.5f, height - 1.5f);
-    vz = clamp(vz, 0.5f, depth - 1.5f);
-
-    float3 v0s = floor((float3){vx, vy, vz});
-
-    int3 iv0s = convert_int3(v0s);
-
-    float3 v1s = v0s + 1;
-
-    float3 fracs = (float3){vx, vy, vz} - v0s;
-
-    float3 ifracs = 1.0f - fracs;
-
-    float xy0 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z)];
-    float xy1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z)];
-
-    float xy0z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y, iv0s.z+1)];
-    float xy1z1 = ifracs.x * d_in[IX(iv0s.x, iv0s.y+1, iv0s.z+1)] + fracs.x * d_in[IX(iv0s.x+1, iv0s.y+1, iv0s.z+1)];
-
-    float yz0 = ifracs.y * xy0 + fracs.y * xy1;
-    float yz1 = ifracs.y * xy0z1 + fracs.y * xy1z1;
-
-    float val = ifracs.z * yz0 + fracs.z * yz1;
-
-    return val;
-}
-
-
-float advect_func_vel_tex(float x, float y, float z,
-                  int width, int height, int depth,
-                  __read_only image3d_t d_in,
-                  float pvx, float pvy, float pvz,
-                  float dt)
-{
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_LINEAR;
-
-    float3 dtd = dt * (float3){width, height, depth};
-
-    float3 distance = dtd * (float3){pvx, pvy, pvz};
-
-    float3 vvec = (float3){x, y, z} - distance;
-
-    float val = read_imagef(d_in, sam, vvec.xyzz + 0.5f).x;
-
-    return val;
-}
-
-
-float advect_func(float x, float y, float z,
-                  int width, int height, int depth,
-                  __global float* d_in,
-                  __global float* xvel, __global float* yvel, __global float* zvel,
-                  float dt)
-{
-    return advect_func_vel(x, y, z, width, height, depth, d_in, xvel[IX((int)x,(int)y,(int)z)], yvel[IX((int)x,(int)y,(int)z)], zvel[IX((int)x,(int)y,(int)z)], dt);
-
-}
-
-float advect_func_tex(float x, float y, float z,
-                  int width, int height, int depth,
-                  __read_only image3d_t d_in,
-                  __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
-                  float dt)
-{
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_NEAREST;
-
-
-    float v1, v2, v3;
-
-    v1 = read_imagef(xvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
-    v2 = read_imagef(yvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
-    v3 = read_imagef(zvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
-
-    return advect_func_vel_tex(x, y, z, width, height, depth, d_in, v1, v2, v3, dt);
-
-}
-
-
-///combine all 3 uvw velocities into 1 kernel?
-///nope, slower
-///textures for free interpolation, would be extremely, extremely much fasterer
-///might be worth combining them then
-__kernel
-//__attribute__((reqd_work_group_size(16, 16, 1)))
-void advect(int width, int height, int depth, int b, __global float* d_out, __global float* d_in, __global float* xvel, __global float* yvel, __global float* zvel, float dt)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    ///lazy for < 1
-    if(x >= width || y >= height || z >= depth)
-    {
-        return;
-    }
-
-    d_out[IX(x, y, z)] = advect_func(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
-}
-
-///my next step is to convert everything to textures
-///the step after that is to stop fluid escaping
-///need to do boundary condition at edge so that fluid velocity hitting the walls is reflected
-__kernel
-//__attribute__((reqd_work_group_size(16, 16, 1)))
-void advect_tex(int width, int height, int depth, int b, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    ///lazy for < 1
-    ///figuring out how to do this correctly is important
-    if(x >= width || y >= height || z >= depth) // || x < 1 || y < 1 || z < 1)
-    {
-        ///breaks
-        //if(x == 0 || y == 0 || z == 0 || x == width-1 || y == height-1 || z == depth-1)
-        //    write_imagef(d_out, (int4){x, y, z, 0}, read_imagef(d_in, sam, (int4){x, y, z, 0}));
-
-        return;
-    }
-
-
-    float rval = advect_func_tex(x, y, z, width, height, depth, d_in, xvel, yvel, zvel, dt);
-
-    write_imagef(d_out, (int4){x, y, z, 0}, rval);
-}
 
 /*__kernel void set_bnd(int width, int height, int depth, int b, __global float* val)
 {
@@ -9872,233 +10101,99 @@ __kernel void fluid_timestep_3d(__global uchar* obstacles,
     return accum;
 }*/
 
-float do_trilinear(__global float* buf, float vx, float vy, float vz, int width, int height, int depth)
+#endif
+
+__kernel
+void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
+                                 __global float4* in_v, __global float4* out_v,
+                                 __global float4* in_a, __global float4* out_a,
+                                 float4 c_pos, float4 c_rot, __global uint4* screen_buf)
 {
-    float v1, v2, v3, v4, v5, v6, v7, v8;
+    int id = get_global_id(0);
 
-    int x = vx, y = vy, z = vz;
+    if(id >= num)
+        return;
 
-    v1 = buf[IX(x, y, z)];
-    v2 = buf[IX(x+1, y, z)];
-    v3 = buf[IX(x, y+1, z)];
+    float3 cumulative_acc = 0;
 
-    v4 = buf[IX(x+1, y+1, z)];
-    v5 = buf[IX(x, y, z+1)];
-    v6 = buf[IX(x+1, y, z+1)];
-    v7 = buf[IX(x, y+1, z+1)];
-    v8 = buf[IX(x+1, y+1, z+1)];
+    float3 my_pos = in_p[id].xyz;
 
-    float x1, x2, x3, x4;
+    float3 my_old = out_p[id].xyz;
 
-    float xfrac = vx - floor(vx);
-
-    x1 = v1 * (1.0f - xfrac) + v2 * xfrac;
-    x2 = v3 * (1.0f - xfrac) + v4 * xfrac;
-    x3 = v5 * (1.0f - xfrac) + v6 * xfrac;
-    x4 = v7 * (1.0f - xfrac) + v8 * xfrac;
-
-    float yfrac = vy - floor(vy);
-
-    float y1, y2;
-
-    y1 = x1 * (1.0f - yfrac) + x2 * yfrac;
-    y2 = x3 * (1.0f - yfrac) + x4 * yfrac;
-
-    float zfrac = vz - floor(vz);
-
-    return y1 * (1.0f - zfrac) + y2 * zfrac;
-}
-
-float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global float* w1, __global float* w2, __global float* w3, __read_only image3d_t d_in, float roughness)
-{
-    int width, height, depth;
-
-    width = size.x;
-    height = size.y;
-    depth = size.z;
-
-    int uw, uh, ud;
-
-    uw = upscaled_size.x;
-    uh = upscaled_size.y;
-    ud = upscaled_size.z;
-
-    int x, y, z;
-
-    x = loc.x;
-    y = loc.y;
-    z = loc.z;
-
-    float rx, ry, rz;
-    ///imprecise, we need something else
-    rx = (float)x / (float)scale;
-    ry = (float)y / (float)scale;
-    rz = (float)z / (float)scale;
-
-    float3 wval = 0;
-
-    int pos = z*uw*uh + y*uw + x;
-
-
-    ///would be beneficial to be able to use lower res smoke
-    ///ALMOST CERTAINLY NEED TO INTERPOLATE
-
-    uint total_pos = uw*uh*ud;
-
-    ///offsets into the same tile dont seem to improve anything
-    ///would reduce noise generation time, need to check more exhaustively
-    wval.x = w1[pos];
-    wval.y = w2[pos];
-    wval.z = w3[pos];
-    //wval.z = wval.y;
-
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_LINEAR;
-
-    ///et is length(vx, vy, vz?)
-
-    float vx, vy, vz;
-    ///do trilinear beforehand
-    ///or do averaging like a sensible human being
-    ///or use a 3d texture and get this for FREELOY JENKINS
-    ///do i need smooth vx....????
-
-    vx = read_imagef(xvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
-    vy = read_imagef(yvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
-    vz = read_imagef(zvel, sam, (float4){rx, ry, rz, 0.0f} + 0.5f).x;
-
-    ///only a very minor speed increase :(
-    if(fabs(vx) < 0.01 && fabs(vy) < 0.01 && fabs(vz) < 0.01)
+    for(int i=0; i<num; i++)
     {
-        //d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
-        //return;
+        if(i == id)
+            continue;
+
+        float3 their_pos = in_p[i].xyz;
+
+        float3 to_them = their_pos - my_pos;
+
+        float len = fast_length(to_them);
+
+        //const float surface = (1.f + max_temp * 1.f) * 10 * 1.f / (max_dens);
+
+        float gravity_distance = len;
+        float subsurface_distance = len;
+
+        float surface = 10.f;
+
+        if(gravity_distance < surface)
+            gravity_distance = surface;
+
+        float G = 0.01f;
+
+        cumulative_acc += (G * to_them) / (gravity_distance*gravity_distance*gravity_distance);
+
+        if(subsurface_distance < surface)
+        {
+            //float R = 0.1f * (1.f + max_temp);
+
+            float R = 0.1f;
+
+            float extra = surface - subsurface_distance;
+
+            cumulative_acc -= R * to_them / (subsurface_distance*subsurface_distance*subsurface_distance);
+        }
     }
 
-    //float3 mval = (float3){vx, vy, vz} + pow(2.0f, -5/6.0f) * et * (width/2.0f) * val;
+    const float friction = 1.f;
 
-    ///arbitrary constant?
-    ///need to do interpolation of this
-    ///? twiddle the constant
-    ///this is the new velocity-
-
-    float3 vel = (float3){vx, vy, vz};
-
-    float len = fast_length(vel);
-
-    ///squared maybe not best
-    ///bump these numbers up for AWESOME smoke
-    float3 vval = vel + len*wval*roughness;
+    ///hooray! I finally understand vertlets!
+    float3 my_new = my_pos + cumulative_acc + (my_pos - my_old) * friction;
 
 
 
-
-    //float mag = length(vx + val.x/100.0f);
-
-    ///need to advect diffuse buffer
-    ///this isnt correct indexing
+    out_p[id] = my_new.xyzz;
 
 
-    ///if i perform advection within this kernel, then i dont have to write this data out
-    ///instead, i can just only write out upscaled density!"
-    ///yay, performance!
-    ///then i can also use the higher resolution noise?
-    //x_out[pos] = vval.x;
-    //y_out[pos] = vval.y;
-    //z_out[pos] = vval.z;
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
 
-    ///do advect in this kernel here?
+    float3 postrotate = rot(my_new, camera_pos, camera_rot);
 
-    ///do interpolation? This is just nearest neighbour ;_;
-    //d_out[pos] = d_in[IX((int)rx, (int)ry, (int)rz)];
+    float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-    ///need to pass in real dt
-    ///draw from here somehow?
+    float depth = projected.z;
 
-    float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
-
-    val += val * length(vval);
-
-    ///this disables upscaling
-    //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
-
-    return val;
-}
-
-///do one advect of diffuse with post_upscale higher res?
-///dedicated upscaling kernel?
-///very interestingly, excluding the x_out, y_out and z_out arguments incrases performances by ~1ms
-///????
-///need to use linear interpolation on velocities
-__kernel void post_upscale(int width, int height, int depth,
-                           int uw, int uh, int ud,
-                           //__global float* xvel, __global float* yvel, __global float* zvel,
-                           __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
-                           __global float* w1, __global float* w2, __global float* w3,
-                           //__global float* x_out, __global float* y_out, __global float* z_out,
-                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale, float roughness)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
-
-    if(x >= uw || y >= uh || z >= ud)
+    ///hitler bounds checking for depth_pointer
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
 
-    float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
-
-    write_imagef(d_out, (int4){x, y, z, 0}, val);
-}
-
-///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
-///force_pos is offset within the box
-__kernel
-void advect_at_position(float4 force_pos, float4 force_dir, float force, float box_size, float add_amount,
-                        __read_only image3d_t x_in, __read_only image3d_t y_in, __read_only image3d_t z_in, __read_only image3d_t voxel_in,
-                        __write_only image3d_t x_out, __write_only image3d_t y_out, __write_only image3d_t z_out, __write_only image3d_t voxel_out)
-{
-    int xpos = get_global_id(0);
-    int ypos = get_global_id(1);
-    int zpos = get_global_id(2);
-
-    if(xpos >= box_size || ypos >= box_size || zpos >= box_size)
+    if(depth < 1 || depth > depth_far)
         return;
 
-    int3 pos = {xpos, ypos, zpos};
+    uint idepth = dcalc(depth)*mulint;
 
-    ///centre
-    pos -= (int)box_size/2;
+    int x, y;
+    x = projected.x;
+    y = projected.y;
 
-    ///apply within-box offset
-    pos += convert_int3(force_pos.xyz);
+    uint colour = 0xFF00FF00;
 
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_NEAREST;
+    uint4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
 
-
-    float3 vel;
-
-    vel.x = read_imagef(x_in, sam, pos.xyzz).x;
-    vel.y = read_imagef(y_in, sam, pos.xyzz).x;
-    vel.z = read_imagef(z_in, sam, pos.xyzz).x;
-
-    float voxel_amount = read_imagef(voxel_in, sam, pos.xyzz).x;
-
-    voxel_amount += add_amount;
-
-    write_imagef(voxel_out, pos.xyzz, voxel_amount);
-
-    float3 force_dir_amount = force_dir.xyz * force;
-
-    vel += force_dir_amount;
-
-    vel = clamp(vel, -3.f, 3.f);
-
-    write_imagef(x_out, pos.xyzz, vel.x);
-    write_imagef(y_out, pos.xyzz, vel.y);
-    write_imagef(z_out, pos.xyzz, vel.z);
+    buffer_accum(screen_buf, x, y, rgba);
 }
 
-#endif
-#endif
+

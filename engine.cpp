@@ -1726,7 +1726,8 @@ void engine::draw_smoke(smoke& s, cl_int solid)
     cl_uint local_ws[3] = {16, 16, 1};
 
     ///this also upscales the diffusion buffer
-    run_kernel_with_list(cl::post_upscale, global_ws, local_ws, 3, post_args);
+    //run_kernel_with_list(cl::post_upscale, global_ws, local_ws, 3, post_args);
+    run_kernel_with_string("post_upscale", global_ws, local_ws, 3, post_args);
 
     ///need to advect the diffuse buffer. Upscale it first, then advect
 
@@ -1876,8 +1877,8 @@ void engine::draw_smoke(smoke& s, cl_int solid)
     smoke_args.push_back(&offset);
     smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
     smoke_args.push_back(&s.render_size);
-    smoke_args.push_back(&obj_mem_manager::g_light_num);
-    smoke_args.push_back(&obj_mem_manager::g_light_mem);
+    smoke_args.push_back(&light_data->g_light_num);
+    smoke_args.push_back(&light_data->g_light_mem);
     smoke_args.push_back(&s.voxel_bound);
     smoke_args.push_back(&solid);
 
@@ -1904,7 +1905,8 @@ void engine::draw_smoke(smoke& s, cl_int solid)
     cl_uint render_ws[2] = {c_width, c_height};
     cl_uint render_lws[2] = {16, 16};
 
-    run_kernel_with_list(cl::render_voxel_cube, render_ws, render_lws, 2, smoke_args);
+    //run_kernel_with_list(cl::render_voxel_cube, render_ws, render_lws, 2, smoke_args);
+    run_kernel_with_string("render_voxel_cube", render_ws, render_lws, 2, smoke_args);
 
     //compute::opengl_enqueue_release_gl_objects(1, &s.output.get(), cl::cqueue);
 
