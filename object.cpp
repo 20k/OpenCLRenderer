@@ -123,6 +123,11 @@ void object::set_rot(cl_float4 _rot)
     rot = _rot;
 }
 
+void object::offset_pos(cl_float4 _offset)
+{
+    pos = add(pos, _offset);
+}
+
 ///static full mesh translation
 void object::translate_centre(cl_float4 _centre)
 {

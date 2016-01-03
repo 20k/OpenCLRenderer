@@ -140,6 +140,8 @@ compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* 
     ///attach one to the other
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, screen_id);
 
+    //glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
+    //glBindRenderbufferEXT(GL_RENDERBUFFER, 0);
 
     ///have opencl nab this and store in g_screen
     compute::opengl_renderbuffer buf = compute::opengl_renderbuffer(cl::context, screen_id, compute::memory_object::read_write);
@@ -271,6 +273,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #else
     window.create(sf::VideoMode(videowidth, height), name);
+    //window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #endif
 
     ///passed in as compilation parameter to opencl
@@ -2162,13 +2165,14 @@ void render_screen(engine& eng)
 {
     static bool once = true;
 
-    if(once)
+    ///dangerous if i want to mix 2d and 3d rendering
+    //if(once)
     {
         glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
 
         glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
-        once = false;
+        //once = false;
     }
 
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?

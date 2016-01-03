@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
-    window.window.setPosition({-20, -20});
+    //window.window.setPosition({-20, -20});
 
     //#ifdef OCULUS
     //window.window.setVerticalSyncEnabled(true);
@@ -54,8 +54,9 @@ int main(int argc, char *argv[])
     auto tex_gpu = texture_manager::build_descriptors();
     window.set_tex_data(tex_gpu);
 
-    auto object_dat = context.build();
-    window.set_object_data(object_dat);;
+    context.build();
+    auto object_dat = context.fetch();
+    window.set_object_data(*object_dat);
 
     sf::Event Event;
 
@@ -128,7 +129,7 @@ int main(int argc, char *argv[])
     {
         sf::Clock c;
 
-        if(window.window.pollEvent(Event))
+        while(window.window.pollEvent(Event))
         {
             if(Event.type == sf::Event::Closed)
                 window.window.close();
@@ -143,7 +144,7 @@ int main(int argc, char *argv[])
         window.display();
         window.render_block();
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary

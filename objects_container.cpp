@@ -20,6 +20,13 @@ objects_container::objects_container()
     set_load_func(std::bind(obj_load, std::placeholders::_1));
 }
 
+///this method is pretty much useless i believe now
+///except potentially the gid++ id allocation
+///even then, that should be handled by the object context
+///not on a global scale
+///although a global scale is *sort* of acceptable as long as there's
+///no threading
+///or perhaps actually desirable if atomics were used?
 cl_uint objects_container::push()
 {
     obj_container_list.push_back(this);
@@ -70,17 +77,38 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
     }
 }
 
+void objects_container::offset_pos(cl_float4 _offset)
+{
+    pos = add(pos, _offset);
+
+    for(auto& i : objs)
+    {
+        i.offset_pos(_offset);
+    }
+}
+
 void objects_container::set_file(const std::string& f)
 {
     file = f;
 }
 
 ///push objs to thing? Manage from here?
+
+///the set_pos function is now quite misleading before object load
+///because it performs an object offset at load time
+///but an object subobject set after object load time
+///rip in peace
+///to be honest it probably shouldn't exist anyway as the concept
+///of setting the position is somewhat misleading
+///really it should maintain proper relative positioning of subobjects
+///unless you use an explicit call to force_all_pos or something
 void objects_container::set_active_subobjs(bool param)
 {
     for(unsigned int i=0; i<objs.size(); i++)
     {
-        objs[i].set_pos(pos);
+        //objs[i].set_pos(pos); ///this is incorrect as activating the subobject will trample over its initialised position
+        objs[i].offset_pos(pos); ///this makes pos pretty misleading
+        ///? maybe offset_rot? proper combine? cross that bridge when we come to it i suspect
         objs[i].set_rot(rot);
         objs[i].set_active(param);
     }
@@ -96,6 +124,7 @@ cl_uint objects_container::set_active(bool param)
     }
 
     ///deactivating an object will cause it to be unallocated next g_arrange_mem
+    ///this is how useless
     if(isactive && !param)
     {
         std::vector<objects_container*>::iterator it = objects_container::obj_container_list.begin();
@@ -348,6 +377,7 @@ void object_context::destroy(objects_container* obj)
 
 #include "obj_mem_manager.hpp"
 
+///why the hell is this in this file
 ///allow object loading to do a shallow copy
 void object_context::load_active()
 {
@@ -365,6 +395,8 @@ void object_context::load_active()
 
                 *obj = object_cache[obj->file];
 
+                ///hmm
+                ///needs to be done at a subobject level, otherwise this is incorrect
                 obj->id = save_id;
                 obj->set_pos(save_pos);
                 obj->set_rot(save_rot);

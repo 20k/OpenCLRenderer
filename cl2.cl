@@ -14,6 +14,8 @@
 
 #define depth_icutoff 50
 
+#define depth_fcutoff 50.f
+
 #define depth_no_clear (mulint-1)
 
 #define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
@@ -464,6 +466,7 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
 
 ///this clips with the near plane, but do we want to clip with the screen instead?
 ///could be generating huge triangles that fragment massively
+///so, i think its all the branching and random array accesses that make this super slow
 void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
 {
     int id_valid;
@@ -473,7 +476,7 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
     for(int i=0; i<3; i++)
     {
         ///will cause odd effects as tri crosses far clipping plane
-        if(points[i].z <= depth_icutoff || points[i].z > depth_far)
+        if(points[i].z <= depth_fcutoff || points[i].z > depth_far)
         {
             ids_behind[n_behind] = i;
             n_behind++;
@@ -492,7 +495,7 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
 
     float3 p1, p2, c1, c2;
 
-
+    ///we really want to avoid a copy
     if(n_behind == 0)
     {
         ret[0][0] = points[0]; ///copy nothing?
@@ -520,28 +523,9 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
         g1 = id_valid;
     }
 
-    ///this is substituted in rather than calculated then used, may help with numerical accuracy
-    //float l1 = native_divide((depth_icutoff - points[g2].z), (points[g1].z - points[g2].z));
-    //float l2 = native_divide((depth_icutoff - points[g3].z), (points[g1].z - points[g3].z));
-
-
     p1 = points[g2] + native_divide((depth_icutoff - points[g2].z)*(points[g1] - points[g2]), points[g1].z - points[g2].z);
     p2 = points[g3] + native_divide((depth_icutoff - points[g3].z)*(points[g1] - points[g3]), points[g1].z - points[g3].z);
 
-
-    //p1 = points[g2] + (depth_icutoff - points[g2].z)*(points[g1] - points[g2]) / (points[g1].z - points[g2].z);
-    //p2 = points[g3] + (depth_icutoff - points[g3].z)*(points[g1] - points[g3]) / (points[g1].z - points[g3].z);
-
-
-    ///g2 behind, g3 behind
-    ///g1 valid
-
-    /*float g2z = points[g2].z - depth_icutoff;
-    p1 = points[g1] + (points[g2] - points[g1]) * (g2z / points[g2].z);
-
-
-    float g3z = points[g3].z - depth_icutoff;
-    p2 = points[g1] + (points[g3] - points[g1]) * (g3z / points[g3].z);*/
     if(n_behind==1)
     {
         c1 = points[g2];
@@ -1825,6 +1809,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     barrier(CLK_GLOBAL_MEM_FENCE);
 
+    ///ok looks like this is the problem
+    ///finally going to have to fix this memory access pattern
+    ///do it properly and use halfs
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
@@ -1836,9 +1823,9 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     ///void generate_new_triangles(float3 points[3], int ids[3], float lconst[2], int *num, float3 ret[2][3])
     ///void depth_project(float3 rotated[3], int width, int height, float fovc, float3 ret[3])
 
-    float efov = FOV_CONST;
-    float ewidth = SCREENWIDTH;
-    float eheight = SCREENHEIGHT;
+    const float efov = FOV_CONST;
+    const float ewidth = SCREENWIDTH;
+    const float eheight = SCREENHEIGHT;
 
     float3 tris_proj[2][3]; ///projected triangles
 
@@ -1877,6 +1864,8 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
     uint b_id = atomic_add(id_cutdown_tris, num);
+
+    ///up to here takes 14 ms
 
     ///If the triangle intersects with the near clipping plane, there are two
     ///otherwise 1
@@ -4958,13 +4947,129 @@ float get_gauss(float2 pos, float angle, float len, float size_modifier)
 }
 
 __kernel
-void render_gaussian_points(int num, __global float4* positions, float current_frac, float old_frac, __global uint* colours, float brightness,
+void render_gaussian_normal(int num, __global float4* positions, __global uint* colours, float brightness,
                             float4 c_pos, float4 c_rot, float4 o_pos, float4 o_rot, __global uint4* screen_buf)
 {
     uint pid = get_global_id(0);
 
     if(pid >= num)
+        return; //https://www.google.co.uk/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwi0uYnggsrJAhUDUhQKHeqYAG8QFggfMAA&url=http%3A%2F%2Fwww.cplusplus.com%2Freference%2Fvector%2Fvector%2Fresize%2F&usg=AFQjCNHHJsGv6GKSac9BmBkY-5Wpu9lnzw&sig2=a9fAo10b1PYV14eT0a3kPw&bvm=bv.108538919,d.bGg
+
+    if(brightness <= 0.f)
         return;
+
+    float3 position = positions[pid].xyz;
+    float3 old_position = positions[pid].xyz;
+    //float3 old_position = old_positions[pid].xyz;
+    uint colour = colours[pid];
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 postrotate = rot(position, camera_pos, camera_rot);
+    float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float3 oc_postrotate = rot(old_position, o_pos.xyz, o_rot.xyz);
+    float3 oc_projected = depth_project_singular(oc_postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float3 old_postrotate = rot(old_position, camera_pos, camera_rot);
+    float3 old_projected = depth_project_singular(old_postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float depth = projected.z;
+
+    ///hitler bounds checking for depth_pointer
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
+        return;
+
+    if(depth < 1 || depth > depth_far)
+        return;
+
+    uint idepth = dcalc(depth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+    uint4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
+
+
+    float2 fractional = projected.xy - floor(projected.xy);
+
+    ///could also factor in relative camera movement to give them a crude motion blur
+    float2 relative = projected.xy - old_projected.xy;// + (old_projected.xy - oc_projected.xy) * 10;// + clamp((old_projected.xy - oc_projected.xy) * 0.1f, -0.9, 0.9f);
+
+    float move_angle = atan2(relative.y, relative.x);
+
+    float dist = fast_length(relative) * 2.f;
+
+    dist = clamp(dist, 1.f + dist, 3.f);
+
+    const int bound = 20;
+
+    float overall_size = 100.f / projected.z + 1;
+
+
+    float min_contrib = 0.5f;
+
+    float abound = 1 - min_contrib;
+    float bbound = - min_contrib*min_contrib;
+
+    ///with brightness at 0, evaluates to min_contrib, with brightness to 1, evaluates to 1
+
+    ///brightness at 0 = minimum brightness contribution
+    ///this is so that we don't have a weird cutoff effect where
+    ///the size of the particles stop decreasing as brightness approaches 0
+    ///which is perceptually noticable
+
+    float brightness_contrib = clamp(abound * (brightness + min_contrib) - bbound, min_contrib, 30.f);
+
+    overall_size *= brightness_contrib;
+
+    overall_size = clamp(overall_size, 0.5f, (float)bound/5);
+
+    float gauss_centre = get_gauss((float2){0, 0}, move_angle + M_PI/2.f, dist, overall_size);
+
+    for(int j=-bound; j<=bound; j++)
+    {
+        for(int i=-bound; i<=bound; i++)
+        {
+            if(i + x < 0 || j + y < 0 || i + x >= SCREENWIDTH || j + y >= SCREENHEIGHT)
+                continue;
+
+            ///use fraction part of projected to generate smooth gaussian transition
+            float val = get_gauss((float2){i, j} - fractional, move_angle + M_PI/2.f, dist, overall_size);
+
+            if(val < 0.01f)
+                continue;
+
+            uint4 out;// = convert_uint4(convert_float4(rgba) * val);
+
+            //float3 centre_col = (float3){0.8, 0.8f, 1.f};
+            //float3 outside_col = (float3){0.4, 0.70f, 1.f};
+
+            float sval = val / gauss_centre;
+            //sval = pow(sval, 0.7f);
+            //sval = sqrt(sval);
+
+            //out = convert_uint4(255.f*val*mix(outside_col, centre_col, sval).xyzz);
+
+            out = 255 * sval * brightness;
+
+            out = convert_uint4(convert_float4(out) * convert_float4(rgba) / 255.f);
+
+            buffer_accum(screen_buf, x + i, y + j, out);
+        }
+    }
+}
+
+__kernel
+void render_gaussian_points_frac(int num, __global float4* positions, float current_frac, float old_frac, __global uint* colours, float brightness,
+                            float4 c_pos, float4 c_rot, float4 o_pos, float4 o_rot, __global uint4* screen_buf)
+{
+    uint pid = get_global_id(0);
+
+    if(pid >= num)
+        return; //https://www.google.co.uk/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwi0uYnggsrJAhUDUhQKHeqYAG8QFggfMAA&url=http%3A%2F%2Fwww.cplusplus.com%2Freference%2Fvector%2Fvector%2Fresize%2F&usg=AFQjCNHHJsGv6GKSac9BmBkY-5Wpu9lnzw&sig2=a9fAo10b1PYV14eT0a3kPw&bvm=bv.108538919,d.bGg
 
     if(brightness <= 0.f)
         return;
@@ -10104,7 +10209,7 @@ __kernel void fluid_timestep_3d(__global uchar* obstacles,
 #endif
 
 __kernel
-void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
+void gravity_alt_first(int num, __global float4* in_p, __global float4* out_p,
                                  __global float4* in_v, __global float4* out_v,
                                  __global float4* in_a, __global float4* out_a,
                                  float4 c_pos, float4 c_rot, __global uint4* screen_buf)
@@ -10117,8 +10222,6 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
     float3 cumulative_acc = 0;
 
     float3 my_pos = in_p[id].xyz;
-
-    my_pos = my_pos + in_v[id].xyz + 0.5f * in_a[id].xyz;
 
     float3 my_vel = in_v[id].xyz;
 
@@ -10133,32 +10236,110 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
 
         float len = fast_length(to_them);
 
-        //const float surface = (1.f + max_temp * 1.f) * 10 * 1.f / (max_dens);
-
         float gravity_distance = len;
         float subsurface_distance = len;
 
-        float surface = 10.f;
+        float surface = 40.f;
 
-        if(gravity_distance < surface)
-            gravity_distance = surface;
-
-        float G = 0.01f;
-
-        cumulative_acc += (G * to_them) / (gravity_distance*gravity_distance*gravity_distance);
+        float G = 0.1f;
 
         ///interpolate velocities
         ///I'm sure there's a physically accurate way to do this
         if(subsurface_distance < surface)
         {
-            //float R = 0.1f * (1.f + max_temp);
-
             ///too close repulsion
-            float R = 0.1f;
+
+        }
+        else
+        {
+            cumulative_acc += (G * to_them) / (gravity_distance*gravity_distance*gravity_distance);
+        }
+    }
+
+    //cumulative_acc = clamp(cumulative_acc, -1.f, 1.f);
+
+    float len = fast_length(cumulative_acc);
+
+    if(len > 1.f)
+    {
+        //cumulative_acc = fast_normalize(cumulative_acc);
+    }
+
+    float3 my_new = my_pos;
+
+    out_p[id].xyz = my_pos;// + my_vel + cumulative_acc;
+    out_v[id].xyz = my_vel + cumulative_acc;
+}
+
+__kernel
+void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
+                                 __global float4* in_v, __global float4* out_v,
+                                 __global float4* in_a, __global float4* out_a,
+                                 float4 c_pos, float4 c_rot, __global uint4* screen_buf)
+{
+    int id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    float3 cumulative_acc = 0;
+    float3 cumulative_alt = 0;
+
+    float3 my_pos = in_p[id].xyz;
+
+    //my_pos = my_pos + in_v[id].xyz + in_a[id].xyz;//0.5f * in_a[id].xyz;
+
+    float3 my_vel = in_v[id].xyz;
+
+    float cumulative_num = 0;
+
+
+    for(int i=0; i<num; i++)
+    {
+        if(i == id)
+            continue;
+
+        float3 their_pos = in_p[i].xyz;
+
+        float3 to_them = their_pos - my_pos;
+
+        float subsurface_distance = fast_length(to_them);
+
+        float surface = 40.f;
+
+
+        ///interpolate velocities
+        ///I'm sure there's a physically accurate way to do this
+        if(subsurface_distance < surface)
+        {
+            ///too close repulsion
+            /*float R = 0.00002f;
 
             float extra = surface - subsurface_distance;
 
-            cumulative_acc -= R * to_them / (subsurface_distance*subsurface_distance*subsurface_distance);
+            //extra = extra / surface;
+
+            //if(extra > 1.f)
+            //    cumulative_acc -= R * to_them / (extra*extra*extra);
+
+            //cumulative_acc -= R * to_them * pow(extra, 0.1f);
+
+            subsurface_distance = max(subsurface_distance, 1.f);
+
+            float3 clamped = R * to_them / (subsurface_distance * subsurface_distance * subsurface_distance);
+
+            //clamped = clamp(clamped, -0.1f, 0.1f);
+
+            cumulative_acc -= clamped;*/
+
+            float R = 0.02f;
+
+            subsurface_distance = max(subsurface_distance, 0.1f);
+
+            float3 clamped = R * to_them / (subsurface_distance * subsurface_distance * subsurface_distance);
+
+            //cumulative_alt -= clamped;
+            cumulative_alt -= clamped;
 
 
             float3 their_vel = in_v[i].xyz;
@@ -10168,15 +10349,38 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
             float3 to_avg = avg_v - my_vel;
 
 
-            cumulative_acc += (to_avg / 100.f);
+            //float weight = 1000.f;
+
+            //float3 res = (my_vel * weight + their_vel) / (1 + weight);
+
+            //if(length(to_avg) > 0.01f)
+            cumulative_acc += to_avg / 100.f;// / 1000.f;
+            cumulative_num += 1.f;
         }
     }
 
-    float3 my_new = my_pos;
+    if(cumulative_num > 0.f)
+        cumulative_acc /= cumulative_num;
 
-    out_a[id].xyz = cumulative_acc;
+    cumulative_acc += cumulative_alt;
+
+    //cumulative_acc = clamp(cumulative_acc, -1.f, 1.f);
+
+    float len = fast_length(cumulative_acc);
+
+    if(len > 1.f)
+    {
+        //cumulative_acc = fast_normalize(cumulative_acc);
+    }
+
+    float3 my_new = my_pos + my_vel + cumulative_acc;
+
+    /*out_a[id].xyz = cumulative_acc;
     out_p[id].xyz = my_pos;
-    out_v[id].xyz = in_v[id].xyz + 0.5f * (in_a[id].xyz + cumulative_acc);
+    out_v[id].xyz = in_v[id].xyz + in_a[id].xyz;//0.5f * (in_a[id].xyz + cumulative_acc);*/
+
+    out_p[id].xyz = my_pos + my_vel + cumulative_acc;
+    out_v[id].xyz = my_vel + cumulative_acc;
 
     const float friction = 1.f;
 
