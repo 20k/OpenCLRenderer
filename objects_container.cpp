@@ -538,6 +538,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
             ///boost::compute fails an assertion if tri_num == 0
             ///we dont care if the data arrives late
+            ///this might be causing the freezes
             if(it->tri_num > 0)
             {
                 //clEnqueueFillBuffer(cl::cqueue2.get(), dat.g_tri_mem.get(), &obj_id, sizeof(obj_id), 0, dat.g_tri_mem.size(), 0, nullptr, nullptr);
@@ -671,6 +672,8 @@ void object_context::build()
     }
 
     ///errhghg
+    ///this fixes the flashing
+    ///im not sure markers are working how i want
     //cl::cqueue2.finish();
 }
 

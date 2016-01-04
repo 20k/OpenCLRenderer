@@ -139,7 +139,7 @@ light_gpu light::build() ///for the moment, just reallocate everything
 
     int clamped_num = std::max((int)found_num, 1);
 
-    printf("%i\n", found_num);
+    //printf("LFnum: %i\n", found_num);
 
     ///gpu light memory
     dat.g_light_mem = compute::buffer(cl::context, sizeof(light)*clamped_num, CL_MEM_READ_ONLY);

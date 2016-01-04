@@ -1,5 +1,7 @@
 #pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
 
+#pragma OPENCL FP_CONTRACT ON
+
 #define MIP_LEVELS 4
 
 #define FOV_CONST 500.0f
