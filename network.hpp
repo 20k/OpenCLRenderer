@@ -25,6 +25,7 @@ struct audio_packet
     float x, y, z; ///the absolute position
 };
 
+///so uuh. Scrap this completely right?
 struct network
 {
     ///currently inoperable, pending review

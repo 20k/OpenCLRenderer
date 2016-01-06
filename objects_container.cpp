@@ -643,6 +643,7 @@ void object_context::build()
     ///if we call build rapidly
     ///this will get cleared and be invalid
     ///how do we deal with this?
+
     object_descriptors.clear();
     new_container_data.clear();
     ready_to_flip = false;
@@ -674,7 +675,7 @@ void object_context::build()
     ///errhghg
     ///this fixes the flashing
     ///im not sure markers are working how i want
-    //cl::cqueue2.finish();
+    cl::cqueue2.finish();
 }
 
 object_context_data* object_context::fetch()

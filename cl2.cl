@@ -3959,7 +3959,7 @@ __kernel
 void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
                     , __write_only image2d_t screen, __global float4* body_positions, int body_num,
-                    float4 wind_dir, float wind_str, __global float4* wind_buf)
+                    float4 wind_dir, float wind_str, __global float4* wind_buf, float floor_const)
 {
     ///per-vertex
     int id = get_global_id(0);
@@ -4086,6 +4086,9 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     diff = clamp(diff, -10.f, 10.f);
 
     float3 new_pos = mypos + diff * 0.985f + acc;
+
+    if(new_pos.y < floor_const)
+        new_pos.y = mypos.y;
 
     out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
