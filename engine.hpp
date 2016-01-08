@@ -143,6 +143,7 @@ struct engine
     static cl_uint *blank_light_buf;
 
     sf::RenderWindow window;
+    bool ready_to_flip;
 
     std::vector<object*> objects; ///obsolete?
 
@@ -200,7 +201,9 @@ struct engine
     ///wait until rendering is finished
     void render_block();
     void render_buffers();
-    void display();
+    void blit_to_screen();
+    void flip();
+
 
     void swap_depth_buffers();
 

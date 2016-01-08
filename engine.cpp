@@ -411,12 +411,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
+    ///fixme
     delete [] blank;
 
     delete [] distortion_clear;
 
     old_pos = {0};
     old_rot = {0};
+
+    ready_to_flip = false;
 
     ///rift
 
@@ -2190,15 +2193,21 @@ void render_screen(engine& eng)
 
     compute::opengl_enqueue_acquire_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
 
-    eng.render_me = false;
-
-    eng.old_time = eng.current_time;
-    eng.current_time = eng.ftime.getElapsedTime().asMicroseconds();
-
-    eng.window.display();
-
     //eng.running_frametime_smoothed = (9 * eng.running_frametime_smoothed + eng.get_frametime()) / 10.f;
     //eng.running_frametime_smoothed = eng.get_frametime();
+}
+
+void engine::flip()
+{
+    if(render_me)
+    {
+        render_me = false;
+
+        old_time = current_time;
+        current_time = ftime.getElapsedTime().asMicroseconds();
+
+        window.display();
+    }
 }
 
 ///also updates frametime
@@ -2208,7 +2217,7 @@ void render_screen(engine& eng)
 ///gpu context switch is causing hw stall
 ///investigate binding screen as opencl object
 ///I could use multiple queues and synchronise between them with event objects
-void engine::display()
+void engine::blit_to_screen()
 {
     if(render_me)
     {
