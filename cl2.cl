@@ -14,9 +14,11 @@
 
 #define mulint UINT_MAX
 
-#define depth_icutoff 50
+#define depth_icutoff 20
 
-#define depth_fcutoff 50.f
+#define depth_fcutoff 20.f
+
+//#define depth_fcutoff depth_icutoff ## .f
 
 #define depth_no_clear (mulint-1)
 
@@ -2726,7 +2728,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
 
         #else
-        const float kS = 1.f;
+        const float kS = 0.4f;
 
         float ndh = mdot(N, H);
 
@@ -2735,7 +2737,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         float ndl = mdot(normal, l2c);
         float ldh = mdot(l2c, H);
 
-        const float F0 = 0.8f;
+        const float F0 = 0.4f;
 
         float fresnel = F0 + (1 - F0) * pow((1.f - vdh), 5.f);
 

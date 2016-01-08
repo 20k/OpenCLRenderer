@@ -680,6 +680,12 @@ void object_context::build()
 
 object_context_data* object_context::fetch()
 {
+    ///just in case
+    if(!ready_to_flip)
+    {
+        cl::cqueue2.finish();
+    }
+
     return &gpu_dat;
 }
 
