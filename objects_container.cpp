@@ -18,6 +18,7 @@ objects_container::objects_container()
     pos = (cl_float4){0,0,0,0};
     rot = (cl_float4){0,0,0,0};
     set_load_func(std::bind(obj_load, std::placeholders::_1));
+    independent_subobjects = false;
 }
 
 ///this method is pretty much useless i believe now
@@ -107,8 +108,17 @@ void objects_container::set_active_subobjs(bool param)
     for(unsigned int i=0; i<objs.size(); i++)
     {
         //objs[i].set_pos(pos); ///this is incorrect as activating the subobject will trample over its initialised position
-        objs[i].offset_pos(pos); ///this makes pos pretty misleading
+        //objs[i].offset_pos(pos); ///this makes pos pretty misleading
         ///? maybe offset_rot? proper combine? cross that bridge when we come to it i suspect
+        //objs[i].offset_pos(objs[i].pos);
+        //objs[i].
+
+
+        if(!has_independent_subobjects())
+            objs[i].set_pos(pos);
+        else
+            objs[i].offset_pos(pos);
+
         objs[i].set_rot(rot);
         objs[i].set_active(param);
     }
@@ -324,6 +334,11 @@ void objects_container::hide()
 {
     ///well, this is the official location for this terrible hack now
     set_pos({0, -100000000, 0});
+}
+
+bool objects_container::has_independent_subobjects()
+{
+    return independent_subobjects;
 }
 
 int objects_container::get_object_by_id(int in)

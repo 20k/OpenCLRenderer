@@ -25,6 +25,7 @@ struct objects_container
 
     bool isactive;
     bool isloaded;
+    bool independent_subobjects;
 
     cl_float4 pos;
     cl_float4 rot;
@@ -68,6 +69,8 @@ struct objects_container
     void    set_two_sided(bool);
 
     void    hide();
+
+    bool    has_independent_subobjects();
 
     //objects_container* get_remote();
 
