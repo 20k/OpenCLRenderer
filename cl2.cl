@@ -4104,10 +4104,6 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     scaled_dt = min(scaled_dt, 1.5f);
 
-    //scaled_dt = 1.f;
-
-    //printf("%f\n", scaled_dt);
-
     float3 new_pos = mypos + diff * 0.985f + acc * scaled_dt * scaled_dt;
 
     if(new_pos.y < floor_const)
@@ -6206,7 +6202,8 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     if(depth < 1)// || depth > depth_far)
         return;
 
-    projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
+    if(distortion_buffer)
+        projected.xy += distortion_buffer[(int)projected.y*SCREENWIDTH + (int)projected.x];
 
     if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
         return;
@@ -6351,6 +6348,161 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
                 norm_mag /= bound;
                 norm_mag *= norm_mag * norm_mag;
             }*/
+
+            my_col *= norm_mag;
+
+            if(y + j >= SCREENHEIGHT || x + i >= SCREENWIDTH || y + j < 0 || x + i < 0)
+                continue;
+
+            __global uint* depth_pointer = &depth_buffer[(y+j)*SCREENWIDTH + x + i];
+
+            accumulate_to_buffer(screen_buf, x + i, y + j, my_col * final_modifier);
+            atomic_min(depth_pointer, idepth);
+        }
+    }
+}
+
+__kernel void galaxy_rendering_modern(__global uint* num, __global float4* positions, __global uint* colours, float4 g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer)
+{
+    uint pid = get_global_id(0);
+
+    if(pid >= *num)
+        return;
+
+    float3 position = positions[pid].xyz;
+    uint colour = colours[pid];
+
+    float3 camera_pos = g_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 postrotate = rot(position, camera_pos, camera_rot);
+
+    float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float depth = projected.z;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    if(depth < 1)
+        return;
+
+    if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
+        return;
+
+    float tdepth = depth >= depth_far ? depth_far-1 : depth;
+
+    uint idepth = dcalc(tdepth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+    float final_modifier = 1.f;
+
+    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
+
+    rgba /= 255.0f;
+
+    depth /= 4.0f;
+
+    float brightness = 2000000.0f;
+
+    float relative_brightness = brightness * 1.0f/(depth*depth);
+
+    ///relative brightness is our depth measure, 1.0 is maximum closeness, 0.01 is furthest 'away'
+    ///that we're allowing stars to look
+    relative_brightness = clamp(relative_brightness, 0.01f, 1.0f);
+
+
+    float highlight_distance = 500.f;
+
+    ///fraction within highlight radius
+    float radius_frac = depth / highlight_distance;
+
+    radius_frac = 1.f - radius_frac;
+
+    radius_frac = clamp(radius_frac, 0.f, 1.f);
+
+    ///some stars will artificially modify this, see a component
+    float radius = radius_frac * 10.f;
+
+    radius += relative_brightness * 4.f;
+
+    radius = clamp(radius, 2.f, 10.f);
+
+    if(rgba.w >= 0.98 && rgba.w < 0.99)
+    {
+        relative_brightness += 0.25;
+        radius *= 2.f;
+    }
+
+    bool hypergiant = false;
+
+    if(rgba.w >= 0.9999)
+    {
+        relative_brightness += 0.35;
+        radius *= 2.5;
+        hypergiant = true;
+    }
+
+    relative_brightness += rgba.w / 2.5;
+
+    float w1 = 1/2.f;
+
+    float4 final_col = rgba * relative_brightness;
+
+    float4 lower_val = final_col * w1;
+
+    final_col *= 255.f;
+    lower_val *= 255.f;
+
+    float bound = ceil(radius);
+
+    bool within_highlight = (radius_frac > 0) && bound > 10;
+
+    for(int j=-bound; j<=bound; j++)
+    {
+        for(int i=-bound; i<=bound; i++)
+        {
+            float2 bright = {i, j};
+
+            float len = length(bright);
+
+            len = clamp(len, 0.f, bound);
+
+            ///bound at centre, 0 at edge
+            float mag = bound - len;
+
+            ///?
+            float norm_mag = mag / bound;
+
+            norm_mag *= norm_mag * norm_mag;
+
+            float transition_period = 0.4f;
+
+            float transition_frac = radius_frac / transition_period;
+
+            transition_frac = clamp(transition_frac, 0.f, 1.f);
+            transition_frac = sqrt(transition_frac);
+
+
+            ///make all final col?
+            float4 my_col = within_highlight ? lower_val * (1.f - transition_frac) : lower_val;//radius_frac > transition_period ? 0.f : lower_val;
+
+            if(i == 0 && j == 0)
+                my_col = final_col;
+
+            ///if hypergiant and i or j but not both equal to 1
+            if(hypergiant && (abs(i) == 1 && abs(j) == 0 || abs(i) == 0 && abs(j) == 1 || abs(i) == 1 && abs(j) == 1))
+            {
+                my_col = final_col * (w1 * 1.1f);
+            }
+
+            if((abs(i) == 1) != (abs(j) == 1) && within_highlight)
+            {
+                my_col = rgba * 255.f * transition_frac + lower_val * (1.0f - transition_frac);
+            }
 
             my_col *= norm_mag;
 
@@ -6661,7 +6813,6 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
     uint d1 = space_depth_buffer[y*SCREENWIDTH + x];
     uint d2 = depth_buffer[y*SCREENWIDTH + x];
 
-
     ///???
     ///leave it alone
     if(d2 != mulint)
@@ -6682,6 +6833,8 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
     }*/
 
     col = clamp(col, 0.f, 1.f);
+
+    //col = 1.f;
 
     write_imagef(screen, (int2){x, y}, col);
 }
