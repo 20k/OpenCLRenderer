@@ -38,12 +38,10 @@ struct star_info
     float brightness;
 };
 
-
 inline float randf()
 {
     return (float)rand() / RAND_MAX;
 }
-
 
 void different_scatter(int x, int y, vector<star_info>& vals, float dist, int n, float dist_factor, float brightness = 1, int type = 1)
 {

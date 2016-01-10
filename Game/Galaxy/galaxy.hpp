@@ -13,6 +13,4 @@ struct star
 point_cloud get_starmap(int seed);
 
 
-
-
 #endif // INCLUDED_GALAXY_HPP

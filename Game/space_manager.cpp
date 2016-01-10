@@ -12,6 +12,8 @@ void space_manager::init(int _width, int _height)
     g_colour_blend =    compute::buffer(cl::context, sizeof(cl_uint4)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, buf);
 
     delete [] buf;
+
+    distortion_set = false;
 }
 
 void space_manager::update_camera(cl_float4 _c_pos, cl_float4 _c_rot)
@@ -33,6 +35,8 @@ void space_manager::set_depth_buffer(compute::buffer& d_buf)
 void space_manager::set_distortion_buffer(compute::buffer& buf)
 {
     g_distortion_buffer = buf;
+
+    distortion_set = true;
 }
 
 
@@ -49,7 +53,13 @@ void space_manager::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_c
     p1arg_list.push_back(&c_rot);
     p1arg_list.push_back(&g_colour_blend); ///read/write hack
     p1arg_list.push_back(&g_space_depth);
-    p1arg_list.push_back(&g_distortion_buffer);
+
+    compute::buffer* none = nullptr;
+
+    if(distortion_set)
+        p1arg_list.push_back(&g_distortion_buffer);
+    else
+        p1arg_list.push_back(&none);
 
     cl_uint local = 128;
 
@@ -57,6 +67,20 @@ void space_manager::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_c
 
     //run_kernel_with_list(cl::point_cloud_depth,   &p1global_ws, &local, 1, p1arg_list, true);
     run_kernel_with_list(cl::point_cloud_recover, &p1global_ws, &local, 1, p1arg_list, true);
+}
+
+void space_manager::draw_galaxy_cloud_modern(point_cloud_info& pc, cl_float4 camera_pos)
+{
+    arg_list p1arg_list;
+    p1arg_list.push_back(&pc.g_len);
+    p1arg_list.push_back(&pc.g_points_mem);
+    p1arg_list.push_back(&pc.g_colour_mem);
+    p1arg_list.push_back(&camera_pos);
+    p1arg_list.push_back(&c_rot);
+    p1arg_list.push_back(&g_colour_blend); ///read/write hack
+    p1arg_list.push_back(&g_space_depth);
+
+    run_kernel_with_string("galaxy_rendering_modern", {pc.len}, {128}, 1, p1arg_list);
 }
 
 void space_manager::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer& g_cam)

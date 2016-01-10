@@ -381,7 +381,6 @@ int main(int argc, char *argv[])
         //window.draw_space_nebulae(cloud_buf, g_game_cam);
 
 
-
         space_resources.draw_space_dust_cloud(g_space_dust, g_game_cam);
 
 
