@@ -690,7 +690,7 @@ void object_context::build()
     ///errhghg
     ///this fixes the flashing
     ///im not sure markers are working how i want
-    cl::cqueue2.finish();
+    //cl::cqueue2.finish();
 }
 
 object_context_data* object_context::fetch()

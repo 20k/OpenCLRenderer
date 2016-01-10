@@ -6,9 +6,12 @@
 #include <boost/compute/system.hpp>
 #include "texture_manager.hpp"
 
+
 namespace compute = boost::compute;
 
+struct object;
 struct object_context;
+struct object_context_data;
 
 struct objects_container
 {

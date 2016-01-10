@@ -3961,7 +3961,8 @@ __kernel
 void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, int width, int height, int depth,
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
                     , __write_only image2d_t screen, __global float4* body_positions, int body_num,
-                    float4 wind_dir, float wind_str, __global float4* wind_buf, float floor_const)
+                    float4 wind_dir, float wind_str, __global float4* wind_buf, float floor_const,
+                    float frametime)
 {
     ///per-vertex
     int id = get_global_id(0);
@@ -4039,14 +4040,22 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
         {
             float excess = dist - rest_dist;
 
-            acc += normalize(to_them) * excess/mf;
+            float cm = excess / mf;
+
+            cm = clamp(cm, -length(to_them)/8.f, length(to_them)/8.f);
+
+            acc += normalize(to_them) * cm;
 
         }
         if(dist < rest_dist)
         {
             float excess = rest_dist - dist;
 
-            acc -= normalize(to_them) * excess/mf;
+            float cm = excess / mf;
+
+            cm = clamp(cm, -length(to_them)/8.f, length(to_them)/8.f);
+
+            acc -= normalize(to_them) * cm;
         }
     }
 
@@ -4087,7 +4096,19 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
 
     diff = clamp(diff, -10.f, 10.f);
 
-    float3 new_pos = mypos + diff * 0.985f + acc;
+    ///the old frametime. Bit of a hack to get it to carry on working
+    ///as it did before
+    float expected_dt = 7.f;
+
+    float scaled_dt = frametime / expected_dt;
+
+    scaled_dt = min(scaled_dt, 1.5f);
+
+    //scaled_dt = 1.f;
+
+    //printf("%f\n", scaled_dt);
+
+    float3 new_pos = mypos + diff * 0.985f + acc * scaled_dt * scaled_dt;
 
     if(new_pos.y < floor_const)
         new_pos.y = mypos.y;
