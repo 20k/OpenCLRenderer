@@ -6822,19 +6822,7 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
 
     float4 col = convert_float4(my_col) / 255.f;
 
-
-    /*if(col.x > 1 || col.y > 1 || col.z > 1)
-    {
-        float mv = max(col.x, max(col.y, col.z));
-
-        col -= mv;
-
-        col += 1;
-    }*/
-
     col = clamp(col, 0.f, 1.f);
-
-    //col = 1.f;
 
     write_imagef(screen, (int2){x, y}, col);
 }

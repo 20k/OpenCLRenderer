@@ -690,7 +690,7 @@ void object_context::build()
     ///errhghg
     ///this fixes the flashing
     ///im not sure markers are working how i want
-    //cl::cqueue2.finish();
+    cl::cqueue2.finish();
 }
 
 object_context_data* object_context::fetch()
@@ -701,6 +701,13 @@ object_context_data* object_context::fetch()
         cl::cqueue2.finish();
     }
 
+    flip();
+
+    return &gpu_dat;
+}
+
+object_context_data* object_context::get_current_gpu()
+{
     return &gpu_dat;
 }
 

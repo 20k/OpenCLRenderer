@@ -155,6 +155,7 @@ struct object_context
 
     ///this fetches the internal context data
     object_context_data* fetch();
+    object_context_data* get_current_gpu();
 
     void flush_locations(bool force = false);
 
