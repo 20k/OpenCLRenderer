@@ -1009,97 +1009,6 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
 
     float ldp = idcalc(native_divide((float)ldepth_map[(int)round(postrotate_pos.y)*LIGHTBUFFERDIM + (int)round(postrotate_pos.x)], mulint));
 
-    ///this does hacky linear interpolation shit (which just barely works), replaced by post process smoothing
-    /*float near[4];
-    float cnear[4];
-
-    int2 sws[4] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
-    int2 mcoords[4];
-
-    for(int i=0; i<4; i++)
-    {
-        mcoords[i] = sws[i] + convert_int2((postrotate_pos.xy));
-
-        mcoords[i] = clamp(mcoords[i], 1, LIGHTBUFFERDIM-2);
-    }
-
-    int2 corners[4] = {{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
-    int2 ccoords[4];
-
-    for(int i=0; i<4; i++)
-    {
-        ccoords[i] = corners[i] + convert_int2((postrotate_pos.xy));
-
-        ccoords[i] = clamp(ccoords[i], 1, LIGHTBUFFERDIM-2);
-    }
-
-    cnear[0] = native_divide((float)ldepth_map[ccoords[0].y*LIGHTBUFFERDIM + ccoords[0].x], (float)mulint);
-    near[0] = native_divide((float)ldepth_map[mcoords[0].y*LIGHTBUFFERDIM + mcoords[0].x], (float)mulint);
-    cnear[1] = native_divide((float)ldepth_map[ccoords[1].y*LIGHTBUFFERDIM + ccoords[1].x], (float)mulint);
-    near[1] = native_divide((float)ldepth_map[mcoords[1].y*LIGHTBUFFERDIM + mcoords[1].x], (float)mulint);
-
-    near[2] = native_divide((float)ldepth_map[mcoords[2].y*LIGHTBUFFERDIM + mcoords[2].x], (float)mulint);
-    cnear[2] = native_divide((float)ldepth_map[ccoords[2].y*LIGHTBUFFERDIM + ccoords[2].x], (float)mulint);
-    near[3] = native_divide((float)ldepth_map[mcoords[3].y*LIGHTBUFFERDIM + mcoords[3].x], (float)mulint);
-    cnear[3] = native_divide((float)ldepth_map[ccoords[3].y*LIGHTBUFFERDIM + ccoords[3].x], (float)mulint);
-
-
-    float pass_arr[4] = {0,0,0,0};
-    float cpass_arr[4] = {0,0,0,0};
-
-    ///change of plan, shadows want to be static and fast at runtime, therefore going to sink the generate time into memory not runtime filtering
-
-
-    int depthpass=0;
-    int cdepthpass=0; //corners
-    float len = dcalc(12);
-
-    ///next two loops are extremely hacky filtering prebits
-    for(int i=0; i<4; i++)
-    {
-        if(dpth > near[i] + len)
-        {
-            depthpass++;
-            pass_arr[i] = 1;
-        }
-    }
-
-    for(int i=0; i<4; i++)
-    {
-        if(dpth > cnear[i] + len)
-        {
-            cdepthpass++;
-            cpass_arr[i] = 1;
-        }
-    }
-
-    ///extremely hacky smooth filtering additionally
-    ///I dont actaully know how this works anymore
-    ///mix
-    if(depthpass > 3 && dpth > ldp + len)
-    {
-
-        float fx = postrotate_pos.x - floor(postrotate_pos.x);
-        float fy = postrotate_pos.y - floor(postrotate_pos.y);
-
-        float dx1 = fx * cpass_arr[1] + (1.0f-fx) * cpass_arr[0];
-        float dx2 = fx * cpass_arr[3] + (1.0f-fx) * cpass_arr[2];
-        float fin = fy * dx2 + (1.0f-fy) * dx1;
-
-
-        occamount+=fin;
-    }
-    else if(depthpass > 0 && dpth > ldp + len)
-    {
-        float fx = postrotate_pos.x - floor(postrotate_pos.x);
-        float fy = postrotate_pos.y - floor(postrotate_pos.y);
-
-        float dx = fx*pass_arr[2] + (1.0f-fx)*pass_arr[1];
-        float dy = fy*pass_arr[3] + (1.0f-fy)*pass_arr[0];
-
-        occamount += dx*dy;
-    }*/
-
     ///offset to prevent depth issues causing artifacting
     float len = 20;
 
@@ -1108,6 +1017,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
+#ifdef FLUID
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
 ///force_pos is offset within the box
 __kernel
@@ -1384,6 +1294,7 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
 
     write_imagef(d_out, (int4){x, y, z, 0}, rval);
 }
+
 
 
 ///not supported on nvidia :(
@@ -1784,6 +1695,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
     //write that shit out
     distort_buffer[y*SCREENWIDTH + x] = xysum;
 }
+#endif
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
@@ -1811,6 +1723,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         *id_buffer_atomc = 0;
     }
 
+    //if(get_group_id(0) == 0)
     barrier(CLK_GLOBAL_MEM_FENCE);
 
     ///ok looks like this is the problem
@@ -1819,7 +1732,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     __global struct triangle *T = &triangles[id];
 
     int o_id = T->vertices[0].object_id;
-
 
     ///this is the 3d projection 'pipeline'
 
@@ -1837,35 +1749,18 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     ///needs to be changed for lights
 
-    __global struct obj_g_descriptor *G = &gobj[o_id];
+    const __global struct obj_g_descriptor* G = &gobj[o_id];
+
+    ///apparently opencl is a bit retarded
+    float3 g_world_pos = G->world_pos.xyz;
 
     ///optimisation for very far away objects, useful for hiding stuff
-    if(fast_length(G->world_pos.xyz - c_pos.xyz) > depth_far)
+    if(fast_length(g_world_pos - c_pos.xyz) > depth_far)
         return;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
+    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
-
-    int ooany[2];
-
-    for(int i=0; i<num; i++)
-    {
-        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
-
-        ooany[i] = valid;
-    }
-
-    ///out of bounds checking for triangles
-    for(int j=0; j<num; j++)
-    {
-        int cond = (tris_proj[j][0].x < 0 && tris_proj[j][1].x < 0 && tris_proj[j][2].x < 0)  ||
-            (tris_proj[j][0].x >= ewidth && tris_proj[j][1].x >= ewidth && tris_proj[j][2].x >= ewidth) ||
-            (tris_proj[j][0].y < 0 && tris_proj[j][1].y < 0 && tris_proj[j][2].y < 0) ||
-            (tris_proj[j][0].y >= eheight && tris_proj[j][1].y >= eheight && tris_proj[j][2].y >= eheight);
-
-        ooany[j] = !cond && ooany[j];
-    }
 
     uint b_id = atomic_add(id_cutdown_tris, num);
 
@@ -1875,10 +1770,15 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     ///otherwise 1
     for(int i=0; i<num; i++)
     {
-        if(!ooany[i]) ///skip bad tris
-        {
+        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+
+        int cond = (tris_proj[i][0].x < 0 && tris_proj[i][1].x < 0 && tris_proj[i][2].x < 0)  ||
+            (tris_proj[i][0].x >= ewidth && tris_proj[i][1].x >= ewidth && tris_proj[i][2].x >= ewidth) ||
+            (tris_proj[i][0].y < 0 && tris_proj[i][1].y < 0 && tris_proj[i][2].y < 0) ||
+            (tris_proj[i][0].y >= eheight && tris_proj[i][1].y >= eheight && tris_proj[i][2].y >= eheight);
+
+        if(!valid || cond)
             continue;
-        }
 
         for(int j=0; j<3; j++)
         {
@@ -5564,7 +5464,7 @@ void cloth_simulate_old(AOS(__global float*, px, py, pz), AOS(__global float*, l
 
     write_imagef(screen, scr, 1.f);
 }
-#if 1//ndef ONLY_3D
+//#if 1//ndef ONLY_3D
 
 //detect step edges, then blur gaussian and mask with object ids?
 
@@ -6517,6 +6417,7 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
     }
 }
 
+#ifdef SPACE_OLD
 ///nearly identical to point cloud, but space dust instead
 __kernel void space_dust(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_cam, float4 c_pos, float4 c_rot, __read_only image2d_t screen_in, __write_only image2d_t screen, __global uint* depth_buffer,
                          __global float2* distortion_buffer)
@@ -6787,6 +6688,7 @@ void space_nebulae(__global float4* g_pos, float4 c_rot, __global float4* positi
 
     write_imagef(screen, (int2){x, y}, clamp(col_avg + blend, 0.f, 1.f));
 }
+#endif
 
 __kernel
 void clear_space_buffers(__global uint4* colour_buf, __global uint* depth_buffer)
@@ -6826,6 +6728,7 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
 
     write_imagef(screen, (int2){x, y}, col);
 }
+#if 0
 
 ///swap this for sfml parallel rendering?
 ///will draw for everything in the scene ///reallocate every time..?
@@ -10375,7 +10278,7 @@ __kernel void fluid_timestep_3d(__global uchar* obstacles,
     return accum;
 }*/
 
-#endif
+//#endif
 
 __kernel
 void gravity_alt_first(int num, __global float4* in_p, __global float4* out_p,
@@ -10595,3 +10498,4 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
 }
 
 
+#endif

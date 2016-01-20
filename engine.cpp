@@ -279,8 +279,12 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     ///passed in as compilation parameter to opencl
     l_size = 2048;
 
+    sf::Clock ocltime;
+
     ///including opencl compilation parameters
     oclstuff(loc, width, height, l_size, only_3d);
+
+    printf("kernel compilation time: %f\n", ocltime.getElapsedTime().asMicroseconds() / 1000.f);
 
     mdx = 0;
     mdy = 0;

@@ -283,8 +283,6 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::prearrange = load_kernel(program, "prearrange");
     cl::prearrange_light = load_kernel(program, "prearrange_light");
     cl::kernel1_light = load_kernel(program, "kernel1_light");
-    cl::tile_clear = load_kernel(program, "tile_clear");
-
 
     cl::clear_screen_buffer = load_kernel(program, "clear_screen_buffer");
 
@@ -299,6 +297,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     if(!only_3d)
     {
+        cl::tile_clear = load_kernel(program, "tile_clear");
         cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
         cl::point_cloud_recover = load_kernel(program, "point_cloud_recovery_pass");
         cl::space_dust = load_kernel(program, "space_dust");
