@@ -237,6 +237,8 @@ struct engine
     sf::Clock ftime;
     size_t old_time;
     size_t current_time;
+
+    bool loaded = false;
 };
 
 struct arg_list

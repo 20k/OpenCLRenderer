@@ -92,7 +92,7 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
 }
 
 ///also blatantly nicked off nvidia
-static char *file_contents(const char *filename, int *length)
+static char* file_contents(const char *filename, int *length)
 {
     FILE *f = fopen(filename, "r");
     void *buffer;
@@ -131,97 +131,14 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
     return k;
 }
 
-inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
+extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
+
+inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
 {
-    ///need to initialise context and the like
-    ///cant use boost::compute as it does not support opengl context sharing on windows
-
-    cl_int error = 0;   // Used to handle error codes
-
-    cl_platform_id platform;
-
-    // Platform
-    error = oclGetPlatformID(&platform);
-
-    if(error != CL_SUCCESS)
-    {
-        std::cout << "Error getting platform id: " << std::endl;
-        exit(error);
-    }
-    else
-    {
-        std::cout << "Got platform IDs" << std::endl;
-    }
-
-    ///this is essentially black magic
-    cl_context_properties props[] =
-    {
-        CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-        CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-        CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
-        0
-    };
-
-
-    cl_uint num;
-
-    cl_device_id device[100];
-
-    // Device
-    error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, device, &num);
-
-    std::cout << "Found " << num << " devices" << std::endl;
-
-    if(error != CL_SUCCESS)
-    {
-        std::cout << "Error getting device ids: ";
-        exit(error);
-    }
-    else
-    {
-        std::cout << "Got device ids" << std::endl;
-    }
-
-
-    // Context
-    cl_context context = clCreateContext(props, 1, &device[0], NULL, NULL, &error);
-
-    if(error != CL_SUCCESS)
-    {
-        std::cout << "Error creating context: ";
-        exit(error);
-    }
-    else
-    {
-        std::cout << "Created context" << std::endl;
-    }
-
-
-    cl::context = compute::context(context, true);
-
-    std::cout << "Bound context" << std::endl;
-
-    cl::device = compute::device(device[0], true);
-
-    std::cout << "Bound device" << std::endl;
-
-    #ifdef PROFILING
-    cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
-    cl::cqueue2 = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
-    #else
-    cl::cqueue = compute::command_queue(cl::context, cl::device);
-    cl::cqueue2 = compute::command_queue(cl::context, cl::device);
-    #endif
-
-
-    std::cout << "Created command queue" << std::endl;
-
-
     int src_size=0;
     char *source;
 
     source = file_contents(file.c_str(), &src_size);
-
 
     std::cout << "Loaded file" << std::endl;
 
@@ -340,7 +257,100 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         cl::draw_hermite_skin = load_kernel(program, "draw_hermite_skin");
     }
 
+    kernel_map.clear();
+    cl::kernels.clear();
+
     std::cout << "Loaded obscene numbers of kernels" << std::endl;
+}
+
+inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
+{
+    ///need to initialise context and the like
+    ///cant use boost::compute as it does not support opengl context sharing on windows
+
+    cl_int error = 0;   // Used to handle error codes
+
+    cl_platform_id platform;
+
+    // Platform
+    error = oclGetPlatformID(&platform);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error getting platform id: " << std::endl;
+        exit(error);
+    }
+    else
+    {
+        std::cout << "Got platform IDs" << std::endl;
+    }
+
+    ///this is essentially black magic
+    cl_context_properties props[] =
+    {
+        CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+        CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+        CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
+        0
+    };
+
+
+    cl_uint num;
+
+    cl_device_id device[100];
+
+    // Device
+    error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, device, &num);
+
+    std::cout << "Found " << num << " devices" << std::endl;
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error getting device ids: ";
+        exit(error);
+    }
+    else
+    {
+        std::cout << "Got device ids" << std::endl;
+    }
+
+    ///I think the context is invalid
+    ///because all the resources were created under the other context
+    ///maybe create a new reload function which skips all this
+    // Context
+    cl_context context = clCreateContext(props, 1, &device[0], NULL, NULL, &error);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error creating context: ";
+        exit(error);
+    }
+    else
+    {
+        std::cout << "Created context" << std::endl;
+    }
+
+
+    cl::context = compute::context(context, true);
+
+    std::cout << "Bound context" << std::endl;
+
+    cl::device = compute::device(device[0], true);
+
+    std::cout << "Bound device" << std::endl;
+
+    #ifdef PROFILING
+    cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
+    cl::cqueue2 = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
+    #else
+    cl::cqueue = compute::command_queue(cl::context, cl::device);
+    cl::cqueue2 = compute::command_queue(cl::context, cl::device);
+    #endif
+
+
+    std::cout << "Created command queue" << std::endl;
+
+    build(file, w, h, lres, only_3d);
 }
 
 

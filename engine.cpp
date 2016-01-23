@@ -64,7 +64,7 @@ compute::opengl_renderbuffer engine::g_screen;
 ///this needs changing
 
 ///opengl ids
-unsigned int engine::gl_framebuffer_id=0;
+unsigned int engine::gl_framebuffer_id=-1;
 unsigned int engine::gl_reprojected_framebuffer_id=0;
 unsigned int engine::gl_screen_id=0;
 unsigned int engine::gl_rift_screen_id[2]={0};
@@ -177,6 +177,14 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     ovr_Initialize();
     #endif
 
+    cl_float2 old_win_pos = {100, 100};
+
+    ///preserve window position
+    if(loaded)
+    {
+        old_win_pos = {window.getPosition().x, window.getPosition().y};
+    }
+
     width = pwidth;
     height = pheight;
     depth = pdepth;
@@ -269,6 +277,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     printf("Initialised with width %i and height %i\n", videowidth, height);
 
 
+    ///window.create might invalidate the context
     #ifdef OCULUS
     window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #else
@@ -276,13 +285,24 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #endif
 
+    if(loaded)
+    {
+        window.setPosition({old_win_pos.x, old_win_pos.y});
+    }
+
     ///passed in as compilation parameter to opencl
     l_size = 2048;
 
     sf::Clock ocltime;
 
     ///including opencl compilation parameters
-    oclstuff(loc, width, height, l_size, only_3d);
+    if(!loaded)
+        oclstuff(loc, width, height, l_size, only_3d);
+    else
+    {
+        //build(loc, width, height, l_size, only_3d);
+        oclstuff(loc, width, height, l_size, only_3d);
+    }
 
     printf("kernel compilation time: %f\n", ocltime.getElapsedTime().asMicroseconds() / 1000.f);
 
@@ -329,6 +349,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     ///generate and bind renderbuffers
     if(!rift::enabled)
     {
+        if(gl_framebuffer_id != -1)
+        {
+            compute::opengl_enqueue_release_gl_objects(1, &g_screen.get(), cl::cqueue);
+        }
+
         g_screen = gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, width, height);
 
         compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
@@ -429,6 +454,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     //glEnable(GL_TEXTURE2D); ///?
+
+    loaded = true;
 }
 
 void engine::set_light_data(light_gpu& ldat)
@@ -1004,7 +1031,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p1arg_list.push_back(&eng.g_distortion_buffer);
     p1arg_list.push_back(&eng.g_id_screen_tex);
 
-    run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list);
+    run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
 
     //sf::Clock p2;
 
@@ -1027,7 +1054,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     p2arg_list.push_back(&eng.obj_data->g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
 
-    run_kernel_with_list(cl::kernel2, &p2global_ws, &local, 1, p2arg_list);
+    run_kernel_with_string("kernel2", &p2global_ws, &local, 1, p2arg_list);
 
     //sf::Clock c3;
     int nnbuf = (eng.nbuf + 1) % 2;
@@ -1062,7 +1089,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     cl_uint p3local_ws[] = {16, 16};
 
     ///this is the deferred screenspace pass
-    auto event = run_kernel_with_list(cl::kernel3, p3global_ws, p3local_ws, 2, p3arg_list);
+    auto event = run_kernel_with_string("kernel3", p3global_ws, p3local_ws, 2, p3arg_list);
 
     #ifndef REPROJECT_TEST
     clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
