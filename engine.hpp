@@ -215,6 +215,11 @@ struct engine
     int get_mouse_y();
     int get_mouse_delta_x();
     int get_mouse_delta_y();
+    void update_scrollwheel_delta(sf::Event& event);
+    void reset_scrollwheel_delta();
+    //void set_scrollwheel_hack();
+    //void reset_scrollwheel_hack();
+    float get_scrollwheel_delta();
     float get_frametime();
     float get_time_since_frame_start();
 
@@ -239,6 +244,9 @@ struct engine
     size_t current_time;
 
     bool loaded = false;
+
+    float scrollwheel_delta = 0;
+    bool skip_scrollwheel = false;
 };
 
 struct arg_list

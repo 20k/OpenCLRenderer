@@ -675,6 +675,36 @@ int engine::get_mouse_delta_y()
     return mdy;
 }
 
+void engine::update_scrollwheel_delta(sf::Event& event)
+{
+    if(event.mouseWheelScroll.wheel != sf::Mouse::VerticalWheel)
+        return;
+
+    scrollwheel_delta += event.mouseWheelScroll.delta;
+
+    //if(skip_scrollwheel)
+    //    scrollwheel_delta = 0;
+}
+
+float engine::get_scrollwheel_delta()
+{
+    return scrollwheel_delta;
+}
+
+void engine::reset_scrollwheel_delta()
+{
+    scrollwheel_delta = 0.f;
+}
+
+/*void engine::set_scrollwheel_hack()
+{
+    skip_scrollwheel = true;
+}
+
+void engine::reset_scrollwheel_hack()
+{
+    skip_scrollwheel = false;
+}*/
 
 void engine::update_mouse(float from_x, float from_y, bool use_from_position, bool reset_to_from_position)
 {

@@ -22,7 +22,7 @@
 
 #define depth_no_clear (mulint-1)
 
-#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
+//#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
 struct interp_container;
 
