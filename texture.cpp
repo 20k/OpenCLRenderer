@@ -250,11 +250,12 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     arg_list args;
     args.push_back(&gl_mem);
     args.push_back(&gpu_id); ///what's my gpu id?
+    args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?
     args.push_back(&gpu_dat.g_texture_nums);
     args.push_back(&gpu_dat.g_texture_sizes);
     args.push_back(&gpu_dat.g_texture_array);
 
-    run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+    //run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 
     /*cl_mem clCreateFromGLTexture (cl_context context,
     cl_mem_flags flags, GLenum texture_target,

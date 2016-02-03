@@ -84,21 +84,20 @@ int main(int argc, char *argv[])
     window.set_light_data(light_data);
     window.construct_shadowmaps();
 
-    //sf::Texture updated_tex;
-    //updated_tex.loadFromFile("Res/test.png");
+    /*sf::Texture updated_tex;
+    updated_tex.loadFromFile("Res/test.png");
 
-    //sf::Sprite test;
-    //test.setTexture(updated_tex);
-
-    //glBindTexture(GL_TEXTURE_2D, 0);
-
-    /*for(auto& i : sponza->objs)
+    for(auto& i : sponza->objs)
     {
-        texture* tex = i.get_texture();
+        //texture* tex = i.get_texture();
+
+        //printf("tname %s\n", tex->texture_location.c_str());
 
         if(tex->c_image.getSize() == updated_tex.getSize())
         {
             //tex->update_gpu_texture(updated_tex, tex_gpu);
+
+            //printf("howdy\n");
         }
     }*/
 
@@ -153,16 +152,13 @@ int main(int argc, char *argv[])
         ///do manual async on thread
         window.draw_bulk_objs_n();
 
-        //window.render_block();
-        //window.display();
-        window.flip();
-        //window.window.draw(test);
         window.blit_to_screen();
 
-        //window.window.clear();
+        window.flip();
+
         window.render_block();
 
-        window.process_input();
+        //window.process_input();
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

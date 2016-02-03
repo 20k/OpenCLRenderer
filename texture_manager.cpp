@@ -315,7 +315,12 @@ void generate_textures_and_mipmaps()
         texture_manager::new_texture_id.push_back(mipmap_texture_id[i]);
     }
 
-    texture_manager::mipmap_start = mipbegin;
+    /*texture_manager::mipmap_start = mipbegin;
+
+    for(auto& i : texture_manager::all_textures)
+    {
+        i.
+    }*/
 }
 
 
@@ -446,7 +451,7 @@ texture_gpu texture_manager::build_descriptors()
 
         tex_gpu.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*clamped_tex_slice, CL_MEM_READ_ONLY);
         tex_gpu.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
-        tex_gpu.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_ONLY, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
+        tex_gpu.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
 
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};

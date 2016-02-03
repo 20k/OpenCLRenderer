@@ -623,7 +623,7 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, 
     write_imageui(array, convert_int4(coord), to_write);
 }
 
-__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -640,7 +640,15 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, __global ui
 
     uint4 col = read_imageui(tex, sam, (int2){x, y});
 
+    /*int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
+    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;*/
+
     write_tex_array(col, (float2){x, y}, tex_id, nums, sizes, array);
+
+    for(int i=0; i<MIP_LEVELS; i++)
+    {
+        write_tex_array(col, (float2){x, y} / (i + 1), tex_id * MIP_LEVELS + mipmap_start + i, nums, sizes, array);
+    }
 }
 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
