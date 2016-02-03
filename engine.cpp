@@ -2302,7 +2302,8 @@ void engine::blit_to_screen()
         {
             render_screen(*this);
 
-            process_input();
+            if(!manual_input)
+                process_input();
 
             //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();

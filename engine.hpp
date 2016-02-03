@@ -247,6 +247,7 @@ struct engine
 
     float scrollwheel_delta = 0;
     bool skip_scrollwheel = false;
+    bool manual_input = false;
 };
 
 struct arg_list
