@@ -144,8 +144,6 @@ void add_texture(texture& tex, int& newid, int mlevel = 0)
     newid=mod;
     ///so, now the upper half represents which slice its in, and the lower half, the number within the slice
 
-
-
     ///texture placed in block num
     texture_manager::texture_numbers[num]++;
 }
@@ -177,13 +175,9 @@ int num_to_divide(int target, int tsize)
     return f;
 }
 
-
 ///arrange textures here and update texture ids
-
 ///fix texturing
-
 ///do memory optimisation
-
 
 int calc_num_slices(int tsize, int tnum)
 {

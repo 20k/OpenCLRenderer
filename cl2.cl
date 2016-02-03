@@ -637,18 +637,23 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
                     CLK_ADDRESS_NONE   |
                     CLK_FILTER_NEAREST;
 
-    uint4 col = read_imageui(tex, sam, (int2){x, y});
+    ///for some reason, even though sfml is 32bit RGBA internally,
+    ///I have to use read_imagef to read the texture format
+    float4 col = read_imagef(tex, sam, (int2){x, y});
+
+    col *= 255.f;
+
+    uint4 ucol = convert_uint4(col);
 
     //col = 0;
 
     int slice = nums[tex_id] >> 16;
-
     float width = sizes[slice];
 
     /*int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
     int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;*/
 
-    write_tex_array(col, (float2){x, y}, tex_id, nums, sizes, array);
+    write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
 
     for(int i=0; i<MIP_LEVELS; i++)
     {
@@ -660,7 +665,7 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
         int w2 = nums[mtexid] >> 16;
         float nwidth = sizes[w2];
 
-        write_tex_array(col, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
+        write_tex_array(ucol, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
     }
 }
 
@@ -806,7 +811,12 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     //float worst = max(tex_per_pix.x, tex_per_pix.y);
 
-    float worst = sqrt(tex_per_pix.x * tex_per_pix.x + tex_per_pix.y * tex_per_pix.y);
+    ///min gives good texture quality
+    //float worst = min(tex_per_pix.x, tex_per_pix.y);
+
+    //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.f;
+
+    float worst = fast_length(tex_per_pix);
 
     int mip_lower=0;
     int mip_higher=0;

@@ -103,6 +103,8 @@ void texture::inactivate()
 void texture::set_unique()
 {
     is_unique = true;
+
+    cacheable = false;
 }
 
 void texture::set_texture_location(const std::string& loc)
