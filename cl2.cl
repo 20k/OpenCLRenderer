@@ -756,6 +756,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     return result;
 }
 
+///two mip levels are interchanging inappropriately
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
@@ -820,7 +821,7 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
     mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
     mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
 
-    invalid_mipmap = (mip_lower == MIP_LEVELS || mip_higher == MIP_LEVELS);
+    invalid_mipmap = (mip_lower == MIP_LEVELS && mip_higher == MIP_LEVELS);
 
     int lower_size  = native_exp2((float)mip_lower);
     int higher_size = native_exp2((float)mip_higher);

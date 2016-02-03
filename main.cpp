@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
         if(tex->c_image.getSize() == updated_tex.getSize())
         {
-            tex->update_gpu_texture(updated_tex, tex_gpu);
+            //tex->update_gpu_texture(updated_tex, tex_gpu);
 
             //printf("howdy\n");
         }
