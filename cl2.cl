@@ -885,6 +885,7 @@ float get_horizon_direction_depth(const int2 start, const float2 dir, const int 
     return h;
 }
 
+///still broken, but I accidentally made a nice outline effect!
 float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 {
     float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
@@ -937,6 +938,130 @@ float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 
     return min(diff / 100.f, 1.f);
 }
+
+float generate_outline(int2 spos, __global uint* depth_buffer, float3 normal)
+{
+    float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
+
+    depth = idcalc(depth);
+
+    float furthest = depth;
+    int2 fpos = spos;
+
+    int rad = 1;
+
+    for(int x=-rad; x<=rad; x++)
+    {
+        int2 pos = spos + (int2){x, 0};
+
+        if(pos.x < 0 || pos.x >= SCREENWIDTH || pos.y < 0 || pos.y >= SCREENHEIGHT)
+            continue;
+
+        float new_depth = (float)depth_buffer[pos.y * SCREENWIDTH + pos.x] / mulint;
+        new_depth = idcalc(new_depth);
+
+        if(new_depth > furthest)
+        {
+            furthest = new_depth;
+            fpos = pos;
+        }
+    }
+
+    for(int y=-rad; y<=rad; y++)
+    {
+        int2 pos = spos + (int2){0, y};
+
+        if(pos.x < 0 || pos.x >= SCREENWIDTH || pos.y < 0 || pos.y >= SCREENHEIGHT)
+            continue;
+
+        uint d = depth_buffer[pos.y * SCREENWIDTH + pos.x];
+
+        float new_depth = (float) d/ mulint;
+        new_depth = idcalc(new_depth);
+
+        if(fabs(new_depth - depth) > fabs(furthest - depth) && new_depth > depth_icutoff && d != 0)
+        {
+            furthest = new_depth;
+            fpos = pos;
+        }
+    }
+
+    float diff = fabs(furthest - depth);
+
+    return min(diff / 100.f, 1.f);
+}
+
+/*float generate_outline_onlyid(int2 spos, __global uint* depth_buffer, int object_id)
+{
+    float depth = (float)depth_buffer[spos.y * SCREENWIDTH + spos.x]/mulint;
+
+    depth = idcalc(depth);
+
+    float furthest = depth;
+    int2 fpos = spos;
+
+    int rad = 1;
+
+    for(int x=-rad; x<=rad; x++)
+    {
+        int2 pos = spos + (int2){x, 0};
+
+        if(pos.x < 0 || pos.x >= SCREENWIDTH || pos.y < 0 || pos.y >= SCREENHEIGHT)
+            continue;
+
+        float new_depth = (float)depth_buffer[pos.y * SCREENWIDTH + pos.x] / mulint;
+        new_depth = idcalc(new_depth);
+
+        if(new_depth > furthest)
+        {
+            furthest = new_depth;
+            fpos = pos;
+        }
+    }
+
+    for(int y=-rad; y<=rad; y++)
+    {
+        int2 pos = spos + (int2){0, y};
+
+        if(pos.x < 0 || pos.x >= SCREENWIDTH || pos.y < 0 || pos.y >= SCREENHEIGHT)
+            continue;
+
+        uint d = depth_buffer[pos.y * SCREENWIDTH + pos.x];
+
+        float new_depth = (float) d/ mulint;
+        new_depth = idcalc(new_depth);
+
+        if(fabs(new_depth - depth) > fabs(furthest - depth) && new_depth > depth_icutoff && d != 0)
+        {
+            furthest = new_depth;
+            fpos = pos;
+        }
+    }
+
+    float diff = fabs(furthest - depth);
+
+    return min(diff / 100.f, 1.f);
+}
+
+__kernel void do_outline(int g_id, __global uint* depth_buffer, __write_only image2d_t screen, __global struct triangle* triangles, __global uint* fragment_id_buffer, __read_only image2d_t id_buffer)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
+
+    uint tri_global = fragment_id_buffer[id_val4.x * 5 + 0];
+
+    ///this is wonderfully inefficient
+    int o_id = triangles[tri_global].vertices[0].object_id;
+}*/
 
 /*float3 cubemap_swizzle(float3 global_pos, float3 camera_pos, int which)
 {
@@ -2676,7 +2801,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     //#define OUTLINE
     #ifdef OUTLINE
-    float hbao = generate_hbao(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
+    float hbao = generate_outline(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
     final_col += hbao;
     #endif // OUTLINE
 

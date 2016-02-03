@@ -31,7 +31,10 @@ texture* texture_manager::texture_by_id(int id)
     {
         if(i.id == id)
         {
-            return &all_textures[id];
+            //this is incorrect
+            //return &all_textures[id];
+
+            return &i;
         }
     }
 

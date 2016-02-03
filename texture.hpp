@@ -21,6 +21,7 @@ struct texture
 
     bool is_active;
     bool is_loaded;
+    bool is_unique; ///ie don't cache me
 
     bool has_mipmaps;
 
@@ -48,6 +49,8 @@ struct texture
 
     void activate();
     void inactivate();
+
+    void set_unique();
 
     void load();
 

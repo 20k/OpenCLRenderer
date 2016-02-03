@@ -17,6 +17,14 @@ struct object
     cl_uint gpu_tri_start;
     cl_uint gpu_tri_end;
 
+    ///put the current texture id in here, as well as
+    ///the texture addressing information
+    ///allow the tex_gpu structure to have a .write(gpu/cpu_texture, object)
+    ///this would probably have to update the cpu side texture
+    ///as well as the member in the cpu texture array
+    ///?
+    ///restrict this to same sized texture updates, or subupdates with offsets/size
+
     cl_float4 pos;
     cl_float4 rot;
 

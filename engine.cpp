@@ -468,6 +468,7 @@ void engine::set_tex_data(texture_gpu& tdat)
     tex_data = &tdat;
 }
 
+///this is not a copy?
 void engine::set_object_data(object_context_data& odat)
 {
     obj_data = &odat;

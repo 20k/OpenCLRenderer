@@ -23,6 +23,7 @@ texture::texture()
 
     is_active = false;
     is_loaded = false;
+    is_unique = false;
     has_mipmaps = false;
     cacheable = true;
 
@@ -90,9 +91,15 @@ void texture::activate()
 {
     texture_manager::activate_texture(id);
 }
+
 void texture::inactivate()
 {
     texture_manager::inactivate_texture(id);
+}
+
+void texture::set_unique()
+{
+    is_unique = true;
 }
 
 void texture::set_texture_location(const std::string& loc)
@@ -107,7 +114,7 @@ bool texture::exists()
 
 void texture::push()
 {
-    if(!exists())
+    if(!exists() || is_unique)
     {
         id = texture_manager::add_texture(*this);
     }

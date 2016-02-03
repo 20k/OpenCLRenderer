@@ -698,10 +698,10 @@ object_context_data* object_context::fetch()
     ///just in case
     if(!ready_to_flip)
     {
-        cl::cqueue2.finish();
+        //cl::cqueue2.finish();
     }
 
-    flip();
+    //flip();
 
     return &gpu_dat;
 }
