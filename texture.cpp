@@ -246,6 +246,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     cl_mem gl_mem = clCreateFromGLTexture(cl::context.get(), CL_MEM_READ_ONLY,
                                           GL_TEXTURE_2D, 0, (GLuint)opengl_id, NULL);
 
+    //printf("gpu %i %i\n", gpu_id & 0x0000FFFF, (gpu_id >> 16) & 0x0000FFFF);
 
     arg_list args;
     args.push_back(&gl_mem);
@@ -255,12 +256,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     args.push_back(&gpu_dat.g_texture_sizes);
     args.push_back(&gpu_dat.g_texture_array);
 
-    //run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
-
-    /*cl_mem clCreateFromGLTexture (cl_context context,
-    cl_mem_flags flags, GLenum texture_target,
-    GLint miplevel, GLuint texture, cl_int *errcode_ret)*/
-
+    run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 }
 
 void texture_load(texture* tex)

@@ -84,22 +84,22 @@ int main(int argc, char *argv[])
     window.set_light_data(light_data);
     window.construct_shadowmaps();
 
-    /*sf::Texture updated_tex;
+    sf::Texture updated_tex;
     updated_tex.loadFromFile("Res/test.png");
 
     for(auto& i : sponza->objs)
     {
-        //texture* tex = i.get_texture();
+        texture* tex = i.get_texture();
 
         //printf("tname %s\n", tex->texture_location.c_str());
 
         if(tex->c_image.getSize() == updated_tex.getSize())
         {
-            //tex->update_gpu_texture(updated_tex, tex_gpu);
+            tex->update_gpu_texture(updated_tex, tex_gpu);
 
             //printf("howdy\n");
         }
-    }*/
+    }
 
     //window.process_input();
 

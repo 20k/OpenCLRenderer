@@ -590,7 +590,6 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, global uint* size, __write_only image3d_t array)
 {
     //cannot do linear interpolation on uchars
-
     float x = coords.x;
     float y = coords.y;
 
@@ -640,6 +639,12 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
 
     uint4 col = read_imageui(tex, sam, (int2){x, y});
 
+    //col = 0;
+
+    int slice = nums[tex_id] >> 16;
+
+    float width = sizes[slice];
+
     /*int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
     int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;*/
 
@@ -647,7 +652,15 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
 
     for(int i=0; i<MIP_LEVELS; i++)
     {
-        write_tex_array(col, (float2){x, y} / (i + 1), tex_id * MIP_LEVELS + mipmap_start + i, nums, sizes, array);
+        ///is this just.. wrong?
+        ///how on earth has this ever worked???
+        ///tex_id is some completely random property
+        int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
+
+        int w2 = nums[mtexid] >> 16;
+        float nwidth = sizes[w2];
+
+        write_tex_array(col, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
     }
 }
 

@@ -19,7 +19,7 @@ compute::image3d texture_manager::g_texture_array;
 compute::buffer texture_manager::g_texture_numbers;
 compute::buffer texture_manager::g_texture_sizes;
 
-int texture_manager::mipmap_start;
+cl_int texture_manager::mipmap_start;
 
 bool texture_manager::dirty = false;
 
@@ -160,7 +160,8 @@ void add_texture_and_mipmaps(texture& tex, int newmips[], int& newid)
         add_texture(tex, newmips[i], i+1);
     }
 
-    tex.gpu_id = newid;
+    ///wrong
+    //tex.gpu_id = newid;
 }
 
 int num_to_divide(int target, int tsize)
@@ -276,7 +277,7 @@ void generate_textures_and_mipmaps()
     ///start information from scratch
     std::vector<int>().swap(texture_manager::texture_active_id);
     std::vector<int>().swap(texture_manager::texture_nums_id);
-    std::vector<int>().swap(texture_manager::new_texture_id);
+    std::vector<int>().swap(texture_manager::new_texture_id); ///storage of the hybrid gpu nums+sizes information
 
     std::vector<int> mipmap_texture_id;
 
@@ -315,9 +316,9 @@ void generate_textures_and_mipmaps()
         texture_manager::new_texture_id.push_back(mipmap_texture_id[i]);
     }
 
-    /*texture_manager::mipmap_start = mipbegin;
+    texture_manager::mipmap_start = mipbegin;
 
-    for(auto& i : texture_manager::all_textures)
+    /*for(auto& i : texture_manager::all_textures)
     {
         i.
     }*/

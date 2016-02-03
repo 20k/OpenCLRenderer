@@ -486,7 +486,18 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
             int tid = texture_manager::get_active_id(it.tid);
             int rid = texture_manager::get_active_id(it.rid);
 
+            texture* tex = texture_manager::texture_by_id(it.tid);
+
+            if(tex)
+                tex->gpu_id = tid;
+
+            texture* rtex = texture_manager::texture_by_id(it.rid);
+
+            if(rtex)
+                rtex->gpu_id = rid;
+
             ///fill texture and mipmap ids
+            ///desc.tid?
             desc.tid = tid;
             desc.rid = rid;
 
