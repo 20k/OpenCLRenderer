@@ -111,10 +111,13 @@ light_gpu light::build() ///for the moment, just reallocate everything
 {
     cl_uint lnum = light::lightlist.size();
 
-    cl_uint found_num = 0;
+    static cl_uint found_num = 0;
 
     ///turn pointer list into block of memory for writing to gpu
-    std::vector<light> light_straight;
+    static std::vector<light> light_straight;
+
+    light_straight.clear();
+    found_num = 0;
 
     for(int i=0; i<light::lightlist.size(); i++)
     {
@@ -145,10 +148,10 @@ light_gpu light::build() ///for the moment, just reallocate everything
     dat.g_light_mem = compute::buffer(cl::context, sizeof(light)*clamped_num, CL_MEM_READ_ONLY);
 
     if(found_num > 0)
-        cl::cqueue.enqueue_write_buffer(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
+        cl::cqueue.enqueue_write_buffer_async(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
 
     dat.g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY, nullptr);
-    cl::cqueue.enqueue_write_buffer(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
+    cl::cqueue.enqueue_write_buffer_async(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
 
     ///sacrifice soul to chaos gods, allocate light buffers here
 

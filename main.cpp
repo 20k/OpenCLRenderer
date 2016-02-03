@@ -158,8 +158,6 @@ int main(int argc, char *argv[])
 
         window.render_block();
 
-        //window.process_input();
-
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
