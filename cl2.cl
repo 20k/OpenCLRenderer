@@ -816,13 +816,18 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.f;
 
+    /*if(tex_per_pix.x > tex_per_pix.y * 2)
+        tex_per_pix.y = tex_per_pix.x;
+
+    if(tex_per_pix.y > tex_per_pix.x > 2)
+        tex_per_pix.x = tex_per_pix.y;*/
+
     float worst = fast_length(tex_per_pix);
 
     int mip_lower=0;
     int mip_higher=0;
     float fractional_mipmap_distance = 0;
 
-    bool invalid_mipmap = false;
 
     mip_lower = floor(native_log2(worst));
 
@@ -831,14 +836,13 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
     mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
     mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
 
-    invalid_mipmap = (mip_lower == MIP_LEVELS && mip_higher == MIP_LEVELS);
 
     int lower_size  = native_exp2((float)mip_lower);
     int higher_size = native_exp2((float)mip_higher);
 
     fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
 
-    fractional_mipmap_distance = invalid_mipmap ? 0 : fractional_mipmap_distance;
+    fractional_mipmap_distance = (mip_lower == mip_higher) ? 0 : fractional_mipmap_distance;
 
     int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
     int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;
@@ -847,7 +851,7 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
 
     float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
-    if(tid_lower == tid_higher || fmd == 0)
+    if(mip_lower == mip_higher || fmd == 0)
         return native_divide(col1, 255.f);
 
     //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;

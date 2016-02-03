@@ -157,9 +157,6 @@ void add_texture_and_mipmaps(texture& tex, int newmips[], int& newid)
     {
         add_texture(tex, newmips[i], i+1);
     }
-
-    ///wrong
-    //tex.gpu_id = newid;
 }
 
 int num_to_divide(int target, int tsize)

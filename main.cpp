@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 
         //window.process_input();
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary
