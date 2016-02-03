@@ -71,19 +71,52 @@ void object::set_active(bool param)
         {
             ///if object !initialised, should probably error out, or throw
             isactive = param;
-            texture_manager::all_textures[tid].type = 0;
-            texture_manager::all_textures[tid].activate();
+
+            texture* tex = texture_manager::texture_by_id(tid);
+
+            if(tex)
+            {
+                tex->type = 0;
+                tex->activate();
+            }
+
+            //texture_manager::all_textures[tid].type = 0;
+            //texture_manager::all_textures[tid].activate();
 
             if(rid != -1)
             {
-                texture_manager::all_textures[rid].type = 0;
-                texture_manager::all_textures[rid].activate();
+                texture* rtex = texture_manager::texture_by_id(rid);
+
+                if(!rtex)
+                {
+                    printf("weird normal texture error, should be impossible\n");
+                }
+                else
+                {
+                    rtex->type = 0;
+                    rtex->activate();
+                }
+
+                //texture_manager::all_textures[rid].type = 0;
+                //texture_manager::all_textures[rid].activate();
             }
 
             if(has_bump)
             {
-                texture_manager::all_textures[bid].type = 1;
-                texture_manager::all_textures[bid].activate();
+                texture* btex = texture_manager::texture_by_id(bid);
+
+                if(!btex)
+                {
+                    printf("bumpmap error, should be impossible\n");
+                }
+                else
+                {
+                    btex->type = 1;
+                    btex->activate();
+                }
+
+                //texture_manager::all_textures[bid].type = 1;
+                //texture_manager::all_textures[bid].activate();
             }
         }
         else
