@@ -974,7 +974,7 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
-void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
+compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
 {
     eng.last_frametype = frametype::RENDER;
 
@@ -1123,7 +1123,7 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     auto event = run_kernel_with_string("kernel3", p3global_ws, p3local_ws, 2, p3arg_list);
 
     #ifndef REPROJECT_TEST
-    clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
+    //clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
     #endif // REPROJECT_TEST
 
 
@@ -1251,9 +1251,11 @@ void render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::o
     #ifdef DEBUGGING
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
+
+    return event;
 }
 
-void render_reproject(engine& eng, cl_float4 old_position, cl_float4 old_rotation, cl_float4 new_position, cl_float4 new_rotation, compute::opengl_renderbuffer& g_screen_out)
+compute::event render_reproject(engine& eng, cl_float4 old_position, cl_float4 old_rotation, cl_float4 new_position, cl_float4 new_rotation, compute::opengl_renderbuffer& g_screen_out)
 {
     eng.last_frametype = frametype::REPROJECT;
 
@@ -1310,6 +1312,8 @@ void render_reproject(engine& eng, cl_float4 old_position, cl_float4 old_rotatio
     auto event = run_kernel_with_string("kernel3", {eng.width, eng.height}, {8, 8}, 2, p3again);
 
     clSetEventCallback(event.get(), CL_COMPLETE, render_async_reproject, &eng);
+
+    return event;
 }
 
 void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2], compute::opengl_renderbuffer g_screen_out[2])
@@ -1432,16 +1436,16 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
 }
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
-void engine::draw_bulk_objs_n()
+compute::event engine::draw_bulk_objs_n()
 {
+    compute::event ret;
+
     ///this is not a shadowmapping kernel. is_light needs to be passed in as a compile time parameter
     cl_float4 pos_offset = c_pos;
     cl_float4 rot_offset = c_rot;
 
     if(render_events_num >= max_render_events)
-        return;
-
-    compute::event ret;
+        return ret;
 
     if(!rift::enabled)
     {
@@ -1453,7 +1457,7 @@ void engine::draw_bulk_objs_n()
         {
         #endif // USE_REPROJECTION
 
-            render_tris(*this, pos_offset, rot_offset, g_screen);
+            ret = render_tris(*this, pos_offset, rot_offset, g_screen);
             swap_depth_buffers();
 
         #ifdef USE_REPROJECTION
@@ -1464,6 +1468,8 @@ void engine::draw_bulk_objs_n()
     }
     ///now we have both eye positions and rotations, need to render in 3d and apply distortion
     ///directly render barrel distortion @1080p
+    ///maybe I should just outright deprecate this
+    #if RIFT
     else
     {
         using namespace rift;
@@ -1496,6 +1502,9 @@ void engine::draw_bulk_objs_n()
 
         render_tris_oculus(*this, cameras, rotations, g_rift_screen);
     }
+    #endif
+
+    return ret;
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
@@ -2061,6 +2070,11 @@ void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer 
     cl_uint local_ws[1] = {256}; ///I believe these days I calculate this automagically
 
     run_kernel_with_string("cloth_simulate", global_ws, local_ws, 1, cloth_args);
+}
+
+void engine::set_render_event(compute::event& event)
+{
+    clSetEventCallback(event.get(), CL_COMPLETE, render_async, this);
 }
 
 void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w, int h)

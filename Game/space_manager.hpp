@@ -28,7 +28,6 @@ struct space_manager
 
     int width, height;
 
-    void clear_buffers();
     void init(int _width, int _height);
 
     void update_camera(cl_float4 _c_pos, cl_float4 _c_rot);
@@ -45,6 +44,7 @@ struct space_manager
     void draw_space_nebulae(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
 
     void blit_space_to_screen();
+    compute::event clear_buffers();
 };
 
 #endif // SPACE_MANAGER_H_INCLUDED

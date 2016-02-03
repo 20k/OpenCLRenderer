@@ -185,7 +185,7 @@ struct engine
 
     void construct_shadowmaps();
     void generate_distortion(compute::buffer& points, int num);
-    void draw_bulk_objs_n(); ///draw objects to scene
+    compute::event draw_bulk_objs_n(); ///draw objects to scene
     void draw_fancy_projectiles(compute::image2d&, compute::buffer&, int); ///fancy looking projectiles
     void draw_ui();
     void draw_holograms();
@@ -195,6 +195,8 @@ struct engine
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
     ///i hate this function
     void draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, compute::buffer defx, compute::buffer defy, compute::buffer defz, int w, int h, int d); ///why has nobody fixed this
+
+    void set_render_event(compute::event&);
 
     void render_texture(compute::opengl_renderbuffer&, GLuint id, int w, int h);
 

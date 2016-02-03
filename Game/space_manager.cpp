@@ -160,11 +160,11 @@ void space_manager::blit_space_to_screen()
     run_kernel_with_string("blit_space_to_screen", {width, height, 0}, {16, 16, 0}, 2, blit_space);
 }
 
-void space_manager::clear_buffers()
+compute::event space_manager::clear_buffers()
 {
     arg_list clear_args;
     clear_args.push_back(&g_colour_blend);
     clear_args.push_back(&g_space_depth);
 
-    run_kernel_with_string("clear_space_buffers", {width, height, 0}, {16, 16, 0}, 2, clear_args);
+    return run_kernel_with_string("clear_space_buffers", {width, height, 0}, {16, 16, 0}, 2, clear_args);
 }
