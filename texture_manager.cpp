@@ -23,6 +23,8 @@ int texture_manager::mipmap_start;
 
 bool texture_manager::dirty = false;
 
+int texture_manager::gid = 0;
+
 ///this file provides texture gpu allocation functionality, its essentially a gigantic hack around the lack of texture array support in opencl 1.1
 
 texture* texture_manager::texture_by_id(int id)
@@ -95,7 +97,7 @@ inline void setpixel(cl_uchar4* buf, sf::Color col, int x, int y, int lx, int ly
 }
 
 ///averages out 4 pixel values
-static sf::Color pixel4(sf::Color p0, sf::Color p1, sf::Color p2, sf::Color p3)
+static sf::Color pixel4(const sf::Color& p0, const sf::Color& p1, const sf::Color& p2, const sf::Color& p3)
 {
     sf::Color ret;
     ret.r=(p0.r + p1.r + p2.r + p3.r)/4.0f;
@@ -125,7 +127,7 @@ void add_texture(texture& tex, int& newid, int mlevel = 0)
     {
         for(int j=blockalongy*size; j<(blockalongy+1)*size; j++)
         {
-            sf::Color c=T.getPixel(ti, tj);
+            sf::Color c = T.getPixel(ti, tj);
             setpixel(firstfree, c, i, j, max_tex_size, max_tex_size);
             tj++;
         }
@@ -142,6 +144,8 @@ void add_texture(texture& tex, int& newid, int mlevel = 0)
     newid=mod;
     ///so, now the upper half represents which slice its in, and the lower half, the number within the slice
 
+
+
     ///texture placed in block num
     texture_manager::texture_numbers[num]++;
 }
@@ -156,6 +160,7 @@ void add_texture_and_mipmaps(texture& tex, int newmips[], int& newid)
         add_texture(tex, newmips[i], i+1);
     }
 
+    tex.gpu_id = newid;
 }
 
 int num_to_divide(int target, int tsize)
@@ -319,6 +324,7 @@ void load_active_textures()
     for(unsigned int i=0; i<texture_manager::active_textures.size(); i++)
     {
         texture *tex = texture_manager::texture_by_id(texture_manager::active_textures[i]);
+
         if(!tex->is_loaded)
         {
             tex->load();
@@ -331,6 +337,7 @@ void generate_all_mipmaps()
     for(unsigned int i=0; i<texture_manager::active_textures.size(); i++)
     {
         texture *tex = texture_manager::texture_by_id(texture_manager::active_textures[i]);
+
         if(!tex->has_mipmaps)
         {
             tex->generate_mipmaps();
@@ -338,43 +345,45 @@ void generate_all_mipmaps()
     }
 }
 
-
 int texture_manager::add_texture(texture& tex)
 {
+    tex.id = gid++;
     all_textures.push_back(tex);
-    tex.id = all_textures.size()-1;
-    all_textures[tex.id].id = tex.id;
+
+    //all_textures[tex.id].id = tex.id;
 
     return tex.id;
 }
 
-int texture_manager::activate_texture(int texture_id)
+void texture_manager::activate_texture(int texture_id)
 {
-    if(all_textures[texture_id].is_active != true)
+    texture* tex = texture_by_id(texture_id);
+
+    if(tex->is_active != true)
     {
         active_textures.push_back(texture_id);
-        all_textures[texture_id].is_active = true;
-        return active_textures.size()-1;
+        tex->is_active = true;
+        //return active_textures.size()-1;
     }
 
     //std::cout << "warning, could not activate texture, already active" << std::endl;
-    return -1;
+    //return -1;
 }
 
-
-
 ///will auto mop up in texture_manager reallocate
-int texture_manager::inactivate_texture(int texture_id)
+void texture_manager::inactivate_texture(int texture_id)
 {
-    if(all_textures[texture_id].is_active==true)
+    texture* tex = texture_by_id(texture_id);
+
+    if(tex->is_active == true)
     {
         inactive_textures.push_back(texture_id);
-        all_textures[texture_id].is_active = false;
-        return inactive_textures.size()-1;
+        tex->is_active = false;
+        //return inactive_textures.size()-1;
     }
 
     //std::cout << "warning, could not deactivate texture, already inactive" << std::endl;
-    return -1;
+    //return -1;
 }
 
 void texture_manager::allocate_textures()
@@ -493,20 +502,20 @@ bool texture_manager::exists_by_location(const std::string& loc)
     return false;
 }
 
-///returns id based on location as comparison
-int texture_manager::id_by_location(const std::string& loc)
+
+int texture_manager::texture_id_by_location(const std::string& loc)
 {
-    for(int i=0; i<texture_manager::all_textures.size(); i++)
+    for(auto& i : texture_manager::all_textures)
     {
-        if(texture_manager::all_textures[i].texture_location == loc)
+        if(i.texture_location == loc)
         {
-            return i;
+            return i.id;
         }
     }
 
-    ///why is this a fatal error?
-    std::cout << "could not find texture" << std::endl;
-    exit(123232);
+    printf("could not find tex\n");
+
+    return -1;
 }
 
 int texture_manager::get_active_id(int id)

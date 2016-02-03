@@ -80,9 +80,6 @@ void object::set_active(bool param)
                 tex->activate();
             }
 
-            //texture_manager::all_textures[tid].type = 0;
-            //texture_manager::all_textures[tid].activate();
-
             if(rid != -1)
             {
                 texture* rtex = texture_manager::texture_by_id(rid);
@@ -96,9 +93,6 @@ void object::set_active(bool param)
                     rtex->type = 0;
                     rtex->activate();
                 }
-
-                //texture_manager::all_textures[rid].type = 0;
-                //texture_manager::all_textures[rid].activate();
             }
 
             if(has_bump)
@@ -114,9 +108,6 @@ void object::set_active(bool param)
                     btex->type = 1;
                     btex->activate();
                 }
-
-                //texture_manager::all_textures[bid].type = 1;
-                //texture_manager::all_textures[bid].activate();
             }
         }
         else
@@ -303,6 +294,11 @@ void object::scale(float f)
             tri_list[i].vertices[j].set_pos(pos);
         }
     }
+}
+
+texture* object::get_texture()
+{
+    return texture_manager::texture_by_id(tid);
 }
 
 cl_float4 object::get_centre()

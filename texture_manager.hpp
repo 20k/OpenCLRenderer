@@ -42,25 +42,25 @@ struct texture_manager
 
     static int add_texture(texture& tex);
 
-    static int activate_texture(int texture_id);
-    static int inactivate_texture(int texture_id);
+    static void activate_texture(int texture_id);
+    static void inactivate_texture(int texture_id);
 
     static void allocate_textures();
     static texture_gpu build_descriptors();
 
     static bool exists_by_location(const std::string&);
 
-    //static bool does_texture_exist_by_location(std::string);
-
     static bool exists(int texture_id);
 
-    static int id_by_location(const std::string&);
+    static int texture_id_by_location(const std::string&);
 
     static texture* texture_by_id(int);
 
     static int get_active_id(int id);
 
     static bool dirty;
+
+    static int gid;
 };
 
 #if 0

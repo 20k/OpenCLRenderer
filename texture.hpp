@@ -12,6 +12,8 @@ struct texture;
 
 void texture_load(texture*);
 
+struct texture_gpu;
+
 struct texture
 {
     sf::Image c_image;
@@ -30,6 +32,8 @@ struct texture
     int id;
 
     int type;
+
+    cl_uint gpu_id;
 
     std::string texture_location;
 
@@ -55,6 +59,8 @@ struct texture
     void load();
 
     texture();
+
+    void update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat);
 
     cl_uint get_largest_dimension() const;
 

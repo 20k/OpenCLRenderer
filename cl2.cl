@@ -585,6 +585,64 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
     }
 }
 
+///0 -> 255
+///this is gpu_id weird combination
+void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, global uint* size, __write_only image3d_t array)
+{
+    //cannot do linear interpolation on uchars
+
+    float x = coords.x;
+    float y = coords.y;
+
+    int slice = num[tid] >> 16;
+
+    int which = num[tid] & 0x0000FFFF;
+
+    const float max_tex_size = 2048;
+
+    float width = size[slice];
+
+    int hnum = native_divide(max_tex_size, width);
+    ///max horizontal and vertical nums
+
+    float tnumx = which % hnum;
+    float tnumy = which / hnum;
+
+    float tx = tnumx*width;
+    float ty = tnumy*width;
+
+    y = width - y;
+
+    x = clamp(x, 0.001f, width - 0.001f);
+    y = clamp(y, 0.001f, width - 0.001f);
+
+    ///width - fixes bug
+    ///remember to add 0.5f to this
+    float4 coord = {tx + x, ty + y, slice, 0};
+
+    write_imageui(array, convert_int4(coord), to_write);
+}
+
+__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    ///I seem to remember this is hideously slow
+    int2 dim = get_image_dim(tex);
+
+    if(x >= dim.x || y >= dim.y)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE   |
+                    CLK_FILTER_NEAREST;
+
+    uint4 col = read_imageui(tex, sam, (int2){x, y});
+
+    write_tex_array(col, (float2){x, y}, tex_id, nums, sizes, array);
+}
+
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 ///fixme
 ///this should under no circumstances have to index two global arrays just to have to read from a damn texture
@@ -633,8 +691,6 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     return t;
 }
-
-
 
 ///fixme
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input

@@ -10,6 +10,8 @@
 
 #include "obj_g_descriptor.hpp"
 
+struct texture;
+
 struct object_context_data;
 
 struct object
@@ -68,6 +70,8 @@ struct object
     void swap_90_perp();
     void stretch(int dim, float amount);
     void scale(float);
+
+    texture* get_texture();
 
     ///this is uncached for the moment
     cl_float4 get_centre();

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <boost/bind.hpp>
 #include "texture_manager.hpp"
+#include "engine.hpp"
 
 template<typename T>
 static std::string to_str(T i)
@@ -32,6 +33,8 @@ texture::texture()
     id = -1;
 
     type = 0;
+
+    gpu_id = 0;
 }
 
 cl_uint texture::get_largest_dimension() const
@@ -120,7 +123,7 @@ void texture::push()
     }
     else
     {
-        id = texture_manager::id_by_location(texture_location);
+        id = texture_manager::texture_id_by_location(texture_location);
     }
 }
 
@@ -228,6 +231,35 @@ void texture::generate_mipmaps()
             }
         }
     }
+}
+
+void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
+{
+    if(!is_active)
+        return;
+
+    GLint opengl_id;
+
+    sf::Texture::bind( &tex );
+    glGetIntegerv( GL_TEXTURE_BINDING_2D, &opengl_id );
+
+    cl_mem gl_mem = clCreateFromGLTexture(cl::context.get(), CL_MEM_READ_ONLY,
+                                          GL_TEXTURE_2D, 0, (GLuint)opengl_id, NULL);
+
+
+    arg_list args;
+    args.push_back(&gl_mem);
+    args.push_back(&gpu_id); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
+
+    run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+
+    /*cl_mem clCreateFromGLTexture (cl_context context,
+    cl_mem_flags flags, GLenum texture_target,
+    GLint miplevel, GLuint texture, cl_int *errcode_ret)*/
+
 }
 
 void texture_load(texture* tex)
