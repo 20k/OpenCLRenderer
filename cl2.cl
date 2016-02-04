@@ -2624,11 +2624,30 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     const __global struct triangle* T = &triangles[tri_global];
 
+    float3 p1, p2, p3;
+    float2 vt1, vt2, vt3;
+    float3 n1, n2, n3; ///when I do the rewrite, make me a normalized float2
+
+    p1 = T->vertices[0].pos.xyz;
+    p2 = T->vertices[1].pos.xyz;
+    p3 = T->vertices[2].pos.xyz;
+
+    vt1 = T->vertices[0].vt;
+    vt2 = T->vertices[1].vt;
+    vt3 = T->vertices[2].vt;
+
+    n1 = T->vertices[0].normal.xyz;
+    n2 = T->vertices[1].normal.xyz;
+    n3 = T->vertices[2].normal.xyz;
+
 
     int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
-
+    ///getting anything from G involves waiting hideously for so many properties to come through
+    ///this is probably a massive cause of slowdown, gpus are not good for this, its essentially a shit
+    ///linked list
+    ///stick o_id into fragment_id_buffer?
 
     float ldepth = idcalc((float)*ft/mulint);
 
@@ -2647,14 +2666,14 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     float l1,l2,l3;
 
-    get_barycentric(object_local, T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, &l1, &l2, &l3);
+    get_barycentric(object_local, p1, p2, p3, &l1, &l2, &l3);
 
     float2 vt;
-    vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
+    vt = vt1 * l1 + vt2 * l2 + vt3 * l3;
 
     ///interpolated normal
     float3 normal;
-    normal = T->vertices[0].normal.xyz * l1 + T->vertices[1].normal.xyz * l2 + T->vertices[2].normal.xyz * l3;
+    normal = n1 * l1 + n2 * l2 + n3 * l3;
 
     normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
@@ -2669,7 +2688,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
-        float3 t_normal = texture_filter(tris_proj, T->vertices[0].vt, T->vertices[1].vt, T->vertices[2].vt, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+        float3 t_normal = texture_filter(tris_proj, vt1, vt2, vt3, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
 
         t_normal.xyz -= 0.5f;
 
@@ -2825,7 +2844,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         #endif
     }
 
-    float3 col = texture_filter(tris_proj, T->vertices[0].vt, T->vertices[1].vt, T->vertices[2].vt, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float3 col = texture_filter(tris_proj, vt1, vt2, vt3, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;
 
