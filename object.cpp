@@ -401,32 +401,32 @@ void object::g_flush(object_context_data& dat, bool force)
 
     for(auto& i : write_events)
     {
-        clReleaseEvent(i);
+        //clReleaseEvent(i);
     }
 
-    write_events.clear();
+    //write_events.clear();
 
     cl_int ret = -1;
 
     cl_event event;
 
     if(dirty_pos && dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, nullptr); ///both position and rotation dirty
     else if(dirty_pos)
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, &event); ///only position
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, nullptr); ///only position
     else if(dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, &event); ///only rotation
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, nullptr); ///only rotation
 
     ///on a flush atm we'll get some slighty data duplication
     ///very minorly bad for performance, but eh
     if(force_flush)
     {
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, nullptr); ///both position and rotation dirty
     }
 
     if(ret == CL_SUCCESS)
     {
-        write_events.push_back(event);
+        //write_events.push_back(event);
     }
 
     last_pos = pos;

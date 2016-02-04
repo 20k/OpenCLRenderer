@@ -572,6 +572,7 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, 
     write_imageui(array, convert_int4(coord), to_write);
 }
 
+///why is the texture actually floats, not 32bit rgba? surface format optimisation?
 __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
 {
     int x = get_global_id(0);
@@ -1864,6 +1865,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 }
 #endif
 
+#if 0
 ///maybe I can make it an array of float and then use vload3? Might cause.. uuh.. i forget the the name, the problem which isn't memory coalescing
 ///bank conflicts. will have to work this out at a later date
 ///this function is temporary until the cpu side sorts out its triangle handling
@@ -1897,6 +1899,7 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 
     object_ids[id] = my_tri.vertices[0].object_id;
 }
+#endif
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
@@ -2635,7 +2638,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //?
     prefetch(ft, 1);
 
-    to_clear[y*SCREENWIDTH + x] = UINT_MAX;
+    to_clear[y*SCREENWIDTH + x] = mulint;
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
@@ -2648,7 +2651,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     camera_pos = c_pos.xyz;
     camera_rot = c_rot.xyz;
 
-    if(*ft == UINT_MAX)
+    if(*ft == mulint)
     {
         ///temp, remember to fix when we're back in action
         //write_imagei(object_ids, (int2){x, y}, -1);
@@ -6485,7 +6488,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
     }
 }
 
-__kernel void galaxy_rendering_modern(__global uint* num, __global float4* positions, __global uint* colours, float4 g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer)
+__kernel void galaxy_rendering_modern(__global uint* num, __global float4* positions, __global uint* colours, float4 g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer, __global uint* game_depth_buffer)
 {
     uint pid = get_global_id(0);
 
@@ -6511,6 +6514,9 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
         return;
 
     if(projected.x < 1 || projected.x >= SCREENWIDTH - 1 || projected.y < 1 || projected.y >= SCREENHEIGHT - 1)
+        return;
+
+    if(game_depth_buffer[(int)projected.y * SCREENWIDTH + (int)projected.x] != mulint)
         return;
 
     float tdepth = depth >= depth_far ? depth_far-1 : depth;
@@ -6938,12 +6944,17 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
     uint d1 = space_depth_buffer[y*SCREENWIDTH + x];
     uint d2 = depth_buffer[y*SCREENWIDTH + x];
 
+    uint4 my_col = colour_buf[y*SCREENWIDTH + x];
+
+    space_depth_buffer[y*SCREENWIDTH + x] = mulint;
+    colour_buf[y*SCREENWIDTH + x] = 0;
+
     ///???
     ///leave it alone
     if(d2 != mulint)
+    {
         return;
-
-    uint4 my_col = colour_buf[y*SCREENWIDTH + x];
+    }
 
     float4 col = convert_float4(my_col) / 255.f;
 
@@ -6951,6 +6962,7 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
 
     write_imagef(screen, (int2){x, y}, col);
 }
+
 #if 0
 
 ///swap this for sfml parallel rendering?

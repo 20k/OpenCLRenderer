@@ -2235,9 +2235,26 @@ void engine::render_buffers()
     g_screen_edge_smoothed = temp;*/
 }
 
+///hmm. its faster to not do async
 void engine::render_block()
 {
     cl::cqueue.finish();
+
+    //render_me = true;
+
+    /*engine& eng = *this;
+
+    eng.render_me = true;
+
+    eng.render_events_num--;
+
+    //if(eng.render_events_num < 0)
+    //    printf("what\n");
+
+    eng.old_pos = eng.c_pos;
+    eng.old_rot = eng.c_rot;
+
+    eng.current_frametype = frametype::RENDER;*/
 }
 
 void render_screen(engine& eng)

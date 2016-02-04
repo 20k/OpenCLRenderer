@@ -378,6 +378,9 @@ inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], 
     }
 
     compute::event event = cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, l_ws);
+    //clEnqueueNDRangeKernel(cqueue.get(), kernel.kernel.get(), dimensions, nullptr, g_ws, l_ws, 0, nullptr, nullptr);
+
+    //compute::event event;
 
     #ifdef PROFILING
     cl::cqueue.finish();

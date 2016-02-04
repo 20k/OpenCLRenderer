@@ -24,12 +24,12 @@ void space_manager::update_camera(cl_float4 _c_pos, cl_float4 _c_rot)
 
 void space_manager::set_screen(compute::opengl_renderbuffer& _g_screen)
 {
-    g_screen = _g_screen;
+    g_screen = &_g_screen;
 }
 
 void space_manager::set_depth_buffer(compute::buffer& d_buf)
 {
-    depth_buffer = d_buf;
+    depth_buffer = &d_buf;
 }
 
 void space_manager::set_distortion_buffer(compute::buffer& buf)
@@ -79,6 +79,7 @@ void space_manager::draw_galaxy_cloud_modern(point_cloud_info& pc, cl_float4 cam
     p1arg_list.push_back(&c_rot);
     p1arg_list.push_back(&g_colour_blend); ///read/write hack
     p1arg_list.push_back(&g_space_depth);
+    p1arg_list.push_back(depth_buffer);
 
     run_kernel_with_string("galaxy_rendering_modern", {pc.len}, {128}, 1, p1arg_list);
 }
@@ -95,9 +96,9 @@ void space_manager::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer&
     p1arg_list.push_back(&g_cam);
     p1arg_list.push_back(&c_pos);
     p1arg_list.push_back(&c_rot);
-    p1arg_list.push_back(&g_screen);
-    p1arg_list.push_back(&g_screen);
-    p1arg_list.push_back(&depth_buffer);
+    p1arg_list.push_back(g_screen);
+    p1arg_list.push_back(g_screen);
+    p1arg_list.push_back(depth_buffer);
     p1arg_list.push_back(&g_distortion_buffer);
 
 
@@ -118,8 +119,8 @@ void space_manager::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffe
     p1arg_list.push_back(&offset_pos);
     p1arg_list.push_back(&c_pos);
     p1arg_list.push_back(&c_rot);
-    p1arg_list.push_back(&g_screen);
-    p1arg_list.push_back(&depth_buffer);
+    p1arg_list.push_back(g_screen);
+    p1arg_list.push_back(depth_buffer);
     p1arg_list.push_back(&g_distortion_buffer);
 
     cl_uint local = 128;
@@ -138,9 +139,9 @@ void space_manager::draw_space_nebulae(point_cloud_info& info, compute::buffer& 
     nebulae_arg_list.push_back(&info.g_points_mem);
     nebulae_arg_list.push_back(&info.g_colour_mem);
     nebulae_arg_list.push_back(&info.g_len);
-    nebulae_arg_list.push_back(&depth_buffer);
-    nebulae_arg_list.push_back(&g_screen);
-    nebulae_arg_list.push_back(&g_screen);
+    nebulae_arg_list.push_back(depth_buffer);
+    nebulae_arg_list.push_back(g_screen);
+    nebulae_arg_list.push_back(g_screen);
 
 
     cl_uint p3global_ws[]= {width, height};
@@ -149,15 +150,15 @@ void space_manager::draw_space_nebulae(point_cloud_info& info, compute::buffer& 
     run_kernel_with_list(cl::space_nebulae, p3global_ws, p3local_ws, 2, nebulae_arg_list, true);
 }
 
-void space_manager::blit_space_to_screen()
+compute::event space_manager::blit_space_to_screen()
 {
     arg_list blit_space;
-    blit_space.push_back(&g_screen);
+    blit_space.push_back(g_screen);
     blit_space.push_back(&g_colour_blend);
     blit_space.push_back(&g_space_depth);
-    blit_space.push_back(&depth_buffer);
+    blit_space.push_back(depth_buffer);
 
-    run_kernel_with_string("blit_space_to_screen", {width, height, 0}, {16, 16, 0}, 2, blit_space);
+    return run_kernel_with_string("blit_space_to_screen", {width, height, 0}, {16, 16, 0}, 2, blit_space);
 }
 
 compute::event space_manager::clear_buffers()

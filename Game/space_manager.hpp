@@ -22,8 +22,8 @@ struct space_manager
     cl_float4 c_rot;
     cl_float4 c_pos;
 
-    compute::opengl_renderbuffer g_screen;
-    compute::buffer depth_buffer; ///regular rendering depth buffer
+    compute::opengl_renderbuffer* g_screen;
+    compute::buffer* depth_buffer; ///regular rendering depth buffer
     compute::buffer g_distortion_buffer;
 
     int width, height;
@@ -43,7 +43,7 @@ struct space_manager
     void draw_space_dust_no_tile(point_cloud_info&, compute::buffer& offset_pos); ///separation of church and state?
     void draw_space_nebulae(point_cloud_info&, compute::buffer& g_pos); ///separation of church and state?
 
-    void blit_space_to_screen();
+    compute::event blit_space_to_screen();
     compute::event clear_buffers();
 };
 
