@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 
     //sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
-    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 2000));
+    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
 
     sponza.set_active(true);
     sponza.cache = false;
