@@ -1864,6 +1864,37 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 }
 #endif
 
+///maybe I can make it an array of float and then use vload3? Might cause.. uuh.. i forget the the name, the problem which isn't memory coalescing
+///bank conflicts
+///this function is temporary until the cpu side sorts out its triangle handling
+///though, if its fast enough this may never be necessary
+__kernel
+void shim_old_triangle_format_to_new(__global struct triangle* triangles,
+                                     __global float4* p1, __global float4* p2, __global float4* p3,
+                                     __global float2* vt1, __global float2* vt2, __global float2* vt3,
+                                     __global float4* n1, __global float4* n2, __global float4* n3,
+                                     uint num) ///remember to change me to a float2
+{
+    uint id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    struct triangle my_tri = triangles[id];
+
+    p1[id] = my_tri.vertices[0].pos;
+    p2[id] = my_tri.vertices[1].pos;
+    p3[id] = my_tri.vertices[2].pos;
+
+    vt1[id] = my_tri.vertices[0].vt;
+    vt2[id] = my_tri.vertices[1].vt;
+    vt3[id] = my_tri.vertices[2].vt;
+
+    n1[id] = my_tri.vertices[0].normal;
+    n2[id] = my_tri.vertices[1].normal;
+    n3[id] = my_tri.vertices[2].normal;
+}
+
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
