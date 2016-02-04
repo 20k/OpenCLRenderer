@@ -305,7 +305,7 @@ struct kernel_helper
 {
     cl_uint args[3] = {0};
 
-    kernel_helper(std::initializer_list<cl_int> init)
+    kernel_helper(std::initializer_list<cl_uint> init)
     {
         for(auto& i : args)
             i = 0;

@@ -31,8 +31,9 @@ struct object_context_data
     texture_gpu tex_gpu;
 
     compute::buffer pos[3];
-    compute::buffer norm[3];
     compute::buffer vt[3];
+    compute::buffer norm[3];
+
     compute::buffer object_ids;
 
     volatile bool gpu_data_finished = false;
