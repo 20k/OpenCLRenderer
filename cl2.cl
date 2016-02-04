@@ -1873,6 +1873,7 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
                                      __global float4* p1, __global float4* p2, __global float4* p3,
                                      __global float2* vt1, __global float2* vt2, __global float2* vt3,
                                      __global float4* n1, __global float4* n2, __global float4* n3,
+                                     __global uint* object_ids,
                                      uint num) ///remember to change me to a float2
 {
     uint id = get_global_id(0);
@@ -1893,6 +1894,8 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
     n1[id] = my_tri.vertices[0].normal;
     n2[id] = my_tri.vertices[1].normal;
     n3[id] = my_tri.vertices[2].normal;
+
+    object_ids[id] = my_tri.vertices[0].object_id;
 }
 
 ///lower = better for sparse scenes, higher = better for large tri scenes

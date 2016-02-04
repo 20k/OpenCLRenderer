@@ -30,6 +30,11 @@ struct object_context_data
 
     texture_gpu tex_gpu;
 
+    compute::buffer pos[3];
+    compute::buffer norm[3];
+    compute::buffer vt[3];
+    compute::buffer object_ids;
+
     volatile bool gpu_data_finished = false;
 
     ///necessary for stuff to know that the object context has changed
@@ -78,6 +83,8 @@ struct object_context
 
     void flush_locations(bool force = false);
 
+    ///this is currently useless, as we'are always using a pointer to gpu_dat
+    ///we're just duplicating the data ;_;
     object_context_data old_dat;
     object_context_data gpu_dat;
     object_context_data new_gpu_dat;

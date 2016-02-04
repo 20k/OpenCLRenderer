@@ -187,6 +187,10 @@ struct engine
 
     void construct_shadowmaps();
     void generate_distortion(compute::buffer& points, int num);
+
+    ///replaceme to take a object_context_data and render it
+    ///completely externalise all possible state
+    ///except for persistent data like the screen
     compute::event draw_bulk_objs_n(); ///draw objects to scene
     void draw_fancy_projectiles(compute::image2d&, compute::buffer&, int); ///fancy looking projectiles
     void draw_ui();

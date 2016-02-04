@@ -188,6 +188,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
     cl_uint obj_id = 0;
 
     ///write triangle data to gpu
+    ///this will break if objects are activated at some point between the last and current fun
     for(std::vector<objects_container*>::iterator it2 = context.containers.begin(); it2!=context.containers.end(); ++it2)
     {
         objects_container* obj = (*it2);
@@ -218,6 +219,17 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
             obj_id++;
         }
     }
+
+    for(auto& i : dat.pos)
+        i = compute::buffer(cl::context, sizeof(cl_float4) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
+
+    for(auto& i : dat.norm)
+        i = compute::buffer(cl::context, sizeof(cl_float4) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
+
+    for(auto& i : dat.vt)
+        i = compute::buffer(cl::context, sizeof(cl_float2) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
+
+    dat.object_ids = compute::buffer(cl::context, sizeof(cl_uint) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
 
     dat.tri_num = tri_num;
 }
