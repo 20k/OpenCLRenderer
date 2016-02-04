@@ -715,7 +715,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float3 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -733,11 +733,11 @@ float3 texture_filter(float3 c_tri[3], __global struct triangle* tri, float2 vt,
     float maxvy=max3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
 
 
-    float mintx=min3(tri->vertices[0].vt.x, tri->vertices[1].vt.x, tri->vertices[2].vt.x);
-    float maxtx=max3(tri->vertices[0].vt.x, tri->vertices[1].vt.x, tri->vertices[2].vt.x);
+    float mintx=min3(vt1.x, vt2.x, vt3.x);
+    float maxtx=max3(vt1.x, vt2.x, vt3.x);
 
-    float minty=min3(tri->vertices[0].vt.y, tri->vertices[1].vt.y, tri->vertices[2].vt.y);
-    float maxty=max3(tri->vertices[0].vt.y, tri->vertices[1].vt.y, tri->vertices[2].vt.y);
+    float minty=min3(vt1.y, vt2.y, vt3.y);
+    float maxty=max3(vt1.y, vt2.y, vt3.y);
 
     float2 vtm = vt;
 
@@ -2669,7 +2669,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
-        float3 t_normal = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+        float3 t_normal = texture_filter(tris_proj, T->vertices[0].vt, T->vertices[1].vt, T->vertices[2].vt, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
 
         t_normal.xyz -= 0.5f;
 
@@ -2825,7 +2825,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         #endif
     }
 
-    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float3 col = texture_filter(tris_proj, T->vertices[0].vt, T->vertices[1].vt, T->vertices[2].vt, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;
 
@@ -3740,7 +3740,7 @@ void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct
 
     int2 scoord = {x, y};
 
-    float3 col = texture_filter(tris_proj, T, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float3 col = texture_filter(tris_proj, T->vertices[0].vt, T->vertices[1].vt, T->vertices[2].vt, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
 
