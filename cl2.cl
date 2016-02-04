@@ -1908,11 +1908,7 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 ///something is causing massive slowdown when we're within the triangles, just rendering them causes very little slowdown. Out of bounds massive-ness?
 ///can skip fragmentation stage if every thread does the same amount of work in tile deferred step
 __kernel
-void prearrange(__global float4* gp1, __global float4* gp2, __global float4* gp3,
-                //__global float2* gvt1, __global float2* gvt2, __global float2* gvt3,
-                //__global float4* gn1, __global float4* gn2, __global float4* gn3,
-                __global uint* object_ids,
-                __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
+void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
 {
     uint id = get_global_id(0);
@@ -1934,15 +1930,9 @@ void prearrange(__global float4* gp1, __global float4* gp2, __global float4* gp3
     ///ok looks like this is the problem
     ///finally going to have to fix this memory access pattern
     ///do it properly and use halfs
-    //__global struct triangle *T = &triangles[id];
+    __global struct triangle *T = &triangles[id];
 
-    //int o_id = T->vertices[0].object_id;
-
-    float3 p1 = gp1[id].xyz;
-    float3 p2 = gp2[id].xyz;
-    float3 p3 = gp3[id].xyz;
-
-    int o_id = object_ids[id];
+    int o_id = T->vertices[0].object_id;
 
     ///this is the 3d projection 'pipeline'
 
@@ -1970,7 +1960,7 @@ void prearrange(__global float4* gp1, __global float4* gp2, __global float4* gp3
         return;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(p1, p2, p3, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
+    full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     uint b_id = atomic_add(id_cutdown_tris, num);
@@ -2200,7 +2190,7 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
 __kernel
-void kernel1(__global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
+void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, __global float2* distort_buffer, __write_only image2d_t id_buffer)
 {
     uint id = get_global_id(0);
@@ -2471,7 +2461,7 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
-void kernel2(__global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
+void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
             __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
             __global float2* distort_buffer)
 {
@@ -2620,12 +2610,8 @@ float mdot(float3 v1, float3 v2)
 __kernel
 //__attribute__((reqd_work_group_size(8, 8, 1)))
 //__attribute__((vec_type_hint(float3)))
-void kernel3(__global float4* gp1, __global float4* gp2, __global float4* gp3,
-             __global float2* gvt1, __global float2* gvt2, __global float2* gvt3,
-             __global float4* gn1, __global float4* gn2, __global float4* gn3,
-             __global uint* gobject_ids,
-             __global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
-            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
+void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+           __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer
            )
@@ -2670,25 +2656,26 @@ void kernel3(__global float4* gp1, __global float4* gp2, __global float4* gp3,
         return;
     }
 
-    //const __global struct triangle* T = &triangles[tri_global];
+    const __global struct triangle* T = &triangles[tri_global];
 
     float3 p1, p2, p3;
     float2 vt1, vt2, vt3;
     float3 n1, n2, n3; ///when I do the rewrite, make me a normalized float2
 
-    p1 = gp1[tri_global].xyz;
-    p2 = gp2[tri_global].xyz;
-    p3 = gp3[tri_global].xyz;
+    p1 = T->vertices[0].pos.xyz;
+    p2 = T->vertices[1].pos.xyz;
+    p3 = T->vertices[2].pos.xyz;
 
-    vt1 = gvt1[tri_global];
-    vt2 = gvt2[tri_global];
-    vt3 = gvt3[tri_global];
+    vt1 = T->vertices[0].vt;
+    vt2 = T->vertices[1].vt;
+    vt3 = T->vertices[2].vt;
 
-    n1 = gn1[tri_global].xyz;
-    n2 = gn2[tri_global].xyz;
-    n3 = gn3[tri_global].xyz;
+    n1 = T->vertices[0].normal.xyz;
+    n2 = T->vertices[1].normal.xyz;
+    n3 = T->vertices[2].normal.xyz;
 
-    int o_id = gobject_ids[tri_global];
+
+    int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
     ///getting anything from G involves waiting hideously for so many properties to come through
