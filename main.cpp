@@ -150,7 +150,9 @@ int main(int argc, char *argv[])
         }
 
         ///do manual async on thread
-        window.draw_bulk_objs_n();
+        auto event = window.draw_bulk_objs_n();
+
+        window.set_render_event(event);
 
         window.blit_to_screen();
 

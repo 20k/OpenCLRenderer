@@ -339,62 +339,18 @@ void calc_min_max_oc(float3 points[3], float mx, float my, float width, float he
     ret[3] = clamp(ret[3], my, height-1);
 }
 
-
-void construct_interpolation(struct triangle* tri, struct interp_container* C, float width, float height)
-{
-    float y1 = round(tri->vertices[0].pos.y);
-    float y2 = round(tri->vertices[1].pos.y);
-    float y3 = round(tri->vertices[2].pos.y);
-
-    float x1 = round(tri->vertices[0].pos.x);
-    float x2 = round(tri->vertices[1].pos.x);
-    float x3 = round(tri->vertices[2].pos.x);
-
-    float miny=min3(y1, y2, y3)-1; ///oh, wow
-    float maxy=max3(y1, y2, y3);
-    float minx=min3(x1, x2, x3)-1;
-    float maxx=max3(x1, x2, x3);
-
-    miny=clamp(miny, 0.0f, height-1);
-    maxy=clamp(maxy, 0.0f, height-1);
-    minx=clamp(minx, 0.0f, width-1);
-    maxx=clamp(maxx, 0.0f, width-1);
-
-    float rconstant = native_recip(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
-
-    C->x.x=x1;
-    C->x.y=x2;
-    C->x.z=x3;
-
-    C->y.x=y1;
-    C->y.y=y2;
-    C->y.z=y3;
-
-    C->xbounds[0]=minx;
-    C->xbounds[1]=maxx;
-
-    C->ybounds[0]=miny;
-    C->ybounds[1]=maxy;
-
-    C->rconstant=rconstant;
-}
-
 ///small holes are not this fault
 float backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
     return cross(p1-p0, p2-p0).z < 0;
 }
 
-float3 tri_to_normal(struct triangle* tri)
+float3 rot_with_offset(const float3 pos, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset)
 {
-    return cross(tri->vertices[1].pos.xyz - tri->vertices[0].pos.xyz, tri->vertices[2].pos.xyz - tri->vertices[0].pos.xyz);
-}
+    float3 intermediate = rot(pos, 0, rotation_offset);
 
-float backface_cull(struct triangle *tri)
-{
-    return backface_cull_expanded(tri->vertices[0].pos.xyz, tri->vertices[1].pos.xyz, tri->vertices[2].pos.xyz);
+    return rot(intermediate + offset, c_pos, c_rot);
 }
-
 
 void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, float3 ret[3])
 {
@@ -405,14 +361,6 @@ void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 
     ret[0] = rot(ret[0] + offset, c_pos, c_rot);
     ret[1] = rot(ret[1] + offset, c_pos, c_rot);
     ret[2] = rot(ret[2] + offset, c_pos, c_rot);
-}
-
-void rot_3_normal(__global struct triangle *triangle, float3 c_rot, float3 ret[3])
-{
-    float3 centre = 0;
-    ret[0]=rot(triangle->vertices[0].normal.xyz, centre, c_rot);
-    ret[1]=rot(triangle->vertices[1].normal.xyz, centre, c_rot);
-    ret[2]=rot(triangle->vertices[2].normal.xyz, centre, c_rot);
 }
 
 void rot_3_raw(const float3 raw[3], const float3 rotation, float3 ret[3])
@@ -428,7 +376,6 @@ void rot_3_pos(const float3 raw[3], const float3 pos, const float3 rotation, flo
     ret[1]=rot(raw[1], pos, rotation);
     ret[2]=rot(raw[2], pos, rotation);
 }
-
 
 void depth_project(float3 rotated[3], float width, float height, float fovc, float3 ret[3])
 {
@@ -447,7 +394,6 @@ void depth_project(float3 rotated[3], float width, float height, float fovc, flo
         ret[i].z = rotated[i].z;
     }
 }
-
 
 float3 depth_project_singular(float3 rotated, float width, float height, float fovc)
 {
@@ -554,7 +500,7 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
     }
 }
 
-void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][3], int *num, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, const float fovc, const float width, const float height)
+void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3], int *num, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, const float fovc, const float width, const float height)
 {
     ///void rot_3(__global struct triangle *triangle, float3 c_pos, float4 c_rot, float4 ret[3])
     ///void generate_new_triangles(float4 points[3], int ids[3], float lconst[2], int *num, float4 ret[2][3])
@@ -564,7 +510,11 @@ void full_rotate_n_extra(__global struct triangle *triangle, float3 passback[2][
 
     float3 pr[3];
 
-    rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
+    //rot_3(triangle, c_pos, c_rot, offset, rotation_offset, pr);
+
+    pr[0] = rot_with_offset(v1, c_pos, c_rot, offset, rotation_offset);
+    pr[1] = rot_with_offset(v2, c_pos, c_rot, offset, rotation_offset);
+    pr[2] = rot_with_offset(v3, c_pos, c_rot, offset, rotation_offset);
 
     int n = 0;
 
@@ -1976,7 +1926,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         return;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
+    full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     uint b_id = atomic_add(id_cutdown_tris, num);
@@ -2119,7 +2069,7 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
         return;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(T, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
+    full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     int ooany[2];
