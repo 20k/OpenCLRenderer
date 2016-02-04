@@ -41,34 +41,38 @@ int main(int argc, char *argv[])
 {
     ///remember to make g_arrange_mem run faster!
 
-    objects_container sponza;
+    object_context context;
+
+    objects_container& sponza = *context.make_new();
 
     //sponza.set_file("sp2/sp2.obj");
     //sponza.set_file("Objects/pre-ruin.obj");
-    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
+    sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 2000));
 
     sponza.set_active(true);
     sponza.cache = false;
 
-    objects_container c1;
+    objects_container& c1 = *context.make_new();
     c1.set_file("../../objects/cylinder.obj");
     c1.set_pos({-2000, 0, 0});
     c1.set_active(true);
 
-    objects_container c2;
+    objects_container& c2 = *context.make_new();
     c2.set_file("../../objects/cylinder.obj");
     c2.set_pos({0,0,0});
     c2.set_active(true);
 
     engine window;
-    window.load(1280,768,1000, "turtles", "../../cl2.cl");
+    window.load(1280,768,1000, "turtles", "../../cl2.cl", true);
 
     window.set_camera_pos((cl_float4){0,0,0,0});
 
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
-    obj_mem_manager::load_active_objects();
+    //obj_mem_manager::load_active_objects();
+
+    context.load_active();
 
     //sponza.scale(100.0f);
 
@@ -79,9 +83,19 @@ int main(int argc, char *argv[])
     c2.set_rot({M_PI/2.0f, 0, 0});
 
     texture_manager::allocate_textures();
+    auto tex_gpu = texture_manager::build_descriptors();
+
+    window.set_tex_data(tex_gpu);
+
+    context.build();
+
+    auto ctx = context.fetch();
+    window.set_object_data(*ctx);
+
+    /*texture_manager::allocate_textures();
 
     obj_mem_manager::g_arrange_mem();
-    obj_mem_manager::g_changeover();
+    obj_mem_manager::g_changeover();*/
 
     sf::Event Event;
 
@@ -95,7 +109,13 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){-200, 2000, -100, 0});
     //l.set_pos((cl_float4){-200, 200, -100, 0});
     //l.set_pos((cl_float4){-400, 150, -555, 0});
-    window.add_light(&l);
+    //window.add_light(&l);
+
+    light::add_light(&l);
+
+    auto light_data = light::build();
+
+    window.set_light_data(light_data);
 
     //l.set_pos((cl_float4){0, 200, -450, 0});
     l.set_pos((cl_float4){-1200, 150, 0, 0});
@@ -109,19 +129,24 @@ int main(int argc, char *argv[])
     {
         sf::Clock c;
 
-        if(window.window.pollEvent(Event))
+        while(window.window.pollEvent(Event))
         {
             if(Event.type == sf::Event::Closed)
                 window.window.close();
         }
 
-        window.input();
+        //window.input();
 
-        window.draw_bulk_objs_n();
+        auto event = window.draw_bulk_objs_n();
 
-        window.render_buffers();
+        //window.render_buffers();
+        window.blit_to_screen();
+        window.flip();
 
-        window.display();
+        window.set_render_event(event);
+        window.render_block();
+
+        //window.display();
 
         std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }

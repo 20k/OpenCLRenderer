@@ -36,11 +36,10 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-std=gnu++11" />
-			<Add option="-DSFML_STATIC" />
+			<Add option="-DGLEW_STATIC" />
 			<Add option="-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" />
 		</Compiler>
 		<Linker>
-			<Add option="-lport" />
 			<Add option="-lmingw32" />
 			<Add option="-lsfml-graphics" />
 			<Add option="-lsfml-audio" />
@@ -84,6 +83,7 @@
 		<Unit filename="../../obj_mem_manager.hpp" />
 		<Unit filename="../../object.cpp" />
 		<Unit filename="../../object.hpp" />
+		<Unit filename="../../object_context.cpp" />
 		<Unit filename="../../objects_container.cpp" />
 		<Unit filename="../../objects_container.hpp" />
 		<Unit filename="../../ocl.h" />
