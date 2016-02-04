@@ -1028,7 +1028,19 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     arg_list prearg_list;
 
-    prearg_list.push_back(&eng.obj_data->g_tri_mem);
+    //prearg_list.push_back(&eng.obj_data->g_tri_mem);
+
+    for(auto& i : eng.obj_data->pos)
+        prearg_list.push_back(&i);
+
+    //for(auto& i : eng.obj_data->vt)
+    //    prearg_list.push_back(&i);
+
+    //for(auto& i : eng.obj_data->norm)
+    //    prearg_list.push_back(&i);
+
+    prearg_list.push_back(&eng.obj_data->object_ids);
+
     prearg_list.push_back(&eng.obj_data->g_tri_num);
     prearg_list.push_back(&position);
     prearg_list.push_back(&rotation);
@@ -1051,7 +1063,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     ///write depth of triangles to buffer, ie z buffering
 
     arg_list p1arg_list;
-    p1arg_list.push_back(&eng.obj_data->g_tri_mem);
+    //p1arg_list.push_back(&eng.obj_data->g_tri_mem);
     p1arg_list.push_back(&eng.g_tid_buf);
     p1arg_list.push_back(&eng.obj_data->g_tri_num);
     p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
@@ -1075,7 +1087,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     ///hmmm. Using second kernel seems to have better depth complexity
     arg_list p2arg_list;
-    p2arg_list.push_back(&eng.obj_data->g_tri_mem);
+    //p2arg_list.push_back(&eng.obj_data->g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);
     p2arg_list.push_back(&eng.obj_data->g_tri_num);
     p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
@@ -1093,7 +1105,20 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     /// many arguments later
 
     arg_list p3arg_list;
-    p3arg_list.push_back(&eng.obj_data->g_tri_mem);
+    //p3arg_list.push_back(&eng.obj_data->g_tri_mem);
+
+    for(auto& i : eng.obj_data->pos)
+        p3arg_list.push_back(&i);
+
+    for(auto& i : eng.obj_data->vt)
+        p3arg_list.push_back(&i);
+
+    for(auto& i : eng.obj_data->norm)
+        p3arg_list.push_back(&i);
+
+    p3arg_list.push_back(&eng.obj_data->object_ids);
+
+
     p3arg_list.push_back(&eng.obj_data->g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);

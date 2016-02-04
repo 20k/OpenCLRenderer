@@ -115,6 +115,8 @@
 		<Unit filename="object.hpp">
 			<Option weight="0" />
 		</Unit>
+		<Unit filename="object_context.cpp" />
+		<Unit filename="object_context.hpp" />
 		<Unit filename="objects_container.cpp" />
 		<Unit filename="objects_container.hpp">
 			<Option weight="0" />
