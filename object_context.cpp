@@ -222,7 +222,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         }
     }
 
-    for(auto& i : dat.pos)
+    /*for(auto& i : dat.pos)
         i = compute::buffer(cl::context, sizeof(cl_float4) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
 
     for(auto& i : dat.vt)
@@ -253,7 +253,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
     args.push_back(&dat.object_ids);
     args.push_back(&dat.tri_num);
 
-    run_kernel_with_string("shim_old_triangle_format_to_new", {dat.tri_num}, {256}, 1, args, cl::cqueue2);
+    run_kernel_with_string("shim_old_triangle_format_to_new", {dat.tri_num}, {256}, 1, args, cl::cqueue2);*/
 }
 
 void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
