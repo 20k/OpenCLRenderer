@@ -219,8 +219,7 @@ struct engine
     int get_mouse_delta_y();
     void update_scrollwheel_delta(sf::Event& event);
     void reset_scrollwheel_delta();
-    //void set_scrollwheel_hack();
-    //void reset_scrollwheel_hack();
+
     float get_scrollwheel_delta();
     float get_frametime();
     float get_time_since_frame_start();
@@ -231,7 +230,7 @@ struct engine
     void set_camera_pos(cl_float4);
     void set_camera_rot(cl_float4);
 
-    void check_obj_visibility(); ///unused, likely ot be removed
+    void check_obj_visibility(); ///unused, likely to be removed
 
     ///?
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);

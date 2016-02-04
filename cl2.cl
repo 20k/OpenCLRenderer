@@ -1865,7 +1865,7 @@ __kernel void create_distortion_offset(__global float4* const distort_pos, int d
 #endif
 
 ///maybe I can make it an array of float and then use vload3? Might cause.. uuh.. i forget the the name, the problem which isn't memory coalescing
-///bank conflicts
+///bank conflicts. will have to work this out at a later date
 ///this function is temporary until the cpu side sorts out its triangle handling
 ///though, if its fast enough this may never be necessary
 __kernel
