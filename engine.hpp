@@ -25,6 +25,8 @@
 #include "ocl.h"
 #include "controls.hpp"
 
+#include "object_context.hpp"
+
 #ifdef RIFT
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"

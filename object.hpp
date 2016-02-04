@@ -9,6 +9,7 @@
 #include <functional>
 
 #include "obj_g_descriptor.hpp"
+#include "object_context.hpp"
 
 struct texture;
 
