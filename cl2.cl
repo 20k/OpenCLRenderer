@@ -4240,6 +4240,7 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid + 1].vertices[2].normal.xyz = n3;
 }
 
+#if 0
 ///width+1 x height+1
 __kernel
 void generate_heightmap(int width, int height, __global float* heightmap, __global float4* y_func, __global float* sm_noise, float4 c_pos, float4 c_rot)
@@ -4681,6 +4682,7 @@ void render_heightmap_p2(int width, int height, __global float* heightmap, __glo
     //write_imagef(screen, (int2){x, y}, normal.xyzz);
     //write_imagef(screen, (int2){x, y}, (float)bpos.x/width);
 }
+#endif
 
 /*
 __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer,
