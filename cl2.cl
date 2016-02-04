@@ -2648,6 +2648,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     ///this is probably a massive cause of slowdown, gpus are not good for this, its essentially a shit
     ///linked list
     ///stick o_id into fragment_id_buffer?
+    ///the opencl environment is also sufficiently sad that two gobj[o_id] calls may not be cached
 
     float ldepth = idcalc((float)*ft/mulint);
 
