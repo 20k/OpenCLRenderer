@@ -939,6 +939,7 @@ void engine::generate_distortion(compute::buffer& points, int num)
 PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
 PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
+///so, this can trample render_events_num
 void render_async(cl_event event, cl_int event_command_exec_status, void *user_data)
 {
     engine& eng = *(engine*)user_data;
@@ -948,7 +949,10 @@ void render_async(cl_event event, cl_int event_command_exec_status, void *user_d
     eng.render_events_num--;
 
     if(eng.render_events_num < 0)
+    {
         printf("what\n");
+        eng.render_events_num = 0;
+    }
 
     eng.old_pos = eng.c_pos;
     eng.old_rot = eng.c_rot;
@@ -2075,6 +2079,8 @@ void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer 
 void engine::set_render_event(compute::event& event)
 {
     clSetEventCallback(event.get(), CL_COMPLETE, render_async, this);
+
+    //event_queue.push_back(event);
 }
 
 void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w, int h)
@@ -2238,23 +2244,22 @@ void engine::render_buffers()
 ///hmm. its faster to not do async
 void engine::render_block()
 {
-    cl::cqueue.finish();
+    ///ok, this is the gist of what we want to do
+    //if(render_events_num == max_render_events)
 
-    //render_me = true;
+    //cl::cqueue.finish();
 
-    /*engine& eng = *this;
+    /*if(event_queue.size() >= max_render_events)
+        clWaitForEvents(1, &event_queue.front().get());
 
-    eng.render_me = true;
+    if(event_queue.size() == 0)*/
+    //if(event_queue.size() >= max_render_events)
+    if(event_queue.size() == 0)
+    {
+        cl::cqueue.finish(); ///fallback
 
-    eng.render_events_num--;
-
-    //if(eng.render_events_num < 0)
-    //    printf("what\n");
-
-    eng.old_pos = eng.c_pos;
-    eng.old_rot = eng.c_rot;
-
-    eng.current_frametype = frametype::RENDER;*/
+        render_async(cl_event(), 0, this);
+    }
 }
 
 void render_screen(engine& eng)
@@ -2375,6 +2380,18 @@ void engine::blit_to_screen()
 
             printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
+        }
+
+        if(event_queue.size() > 0)
+            event_queue.pop_front();
+
+        while(event_queue.size() > max_render_events)
+        {
+            clWaitForEvents(1, &event_queue.front().get());
+
+            event_queue.pop_front();
+
+            printf("Fixing minor event race condition\n");
         }
     }
 }

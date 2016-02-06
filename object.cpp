@@ -397,37 +397,54 @@ void object::g_flush(object_context_data& dat, bool force)
     if(!dirty_pos && !dirty_rot && !force_flush)
         return;
 
-    //clWaitForEvents(write_events.size(), write_events.data());
+    /*if(write_events.size() > 0)
+        clWaitForEvents(write_events.size(), write_events.data());*/
+
+
+    /*if(write_events.size() > 0)
+    {
+        //clWaitForEvents(write_events.size(), write_events.data());
+    }
 
     for(auto& i : write_events)
     {
         //clReleaseEvent(i);
-    }
+    }*/
 
-    //write_events.clear();
+    int num_events = write_events.size();
 
     cl_int ret = -1;
 
     cl_event event;
 
     if(dirty_pos && dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, nullptr); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, write_events.data(), &event); ///both position and rotation dirty
     else if(dirty_pos)
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, 0, NULL, nullptr); ///only position
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, write_events.data(), &event); ///only position
     else if(dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, 0, NULL, nullptr); ///only rotation
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, write_events.data(), &event); ///only rotation
 
     ///on a flush atm we'll get some slighty data duplication
     ///very minorly bad for performance, but eh
     if(force_flush)
     {
-        ret = clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, 0, NULL, nullptr); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, write_events.data(), &event); ///both position and rotation dirty
     }
+
+    for(auto& i : write_events)
+    {
+        clReleaseEvent(i);
+    }
+
+    write_events.clear();
 
     if(ret == CL_SUCCESS)
     {
-        //write_events.push_back(event);
+        write_events.push_back(event);
     }
+
+    ///???
+    //clReleaseEvent(event);
 
     last_pos = pos;
     last_rot = rot;

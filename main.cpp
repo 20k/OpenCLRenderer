@@ -136,6 +136,8 @@ int main(int argc, char *argv[])
 
     exit(1);*/
 
+    sf::Keyboard key;
+
     ///use event callbacks for rendering to make blitting to the screen and refresh
     ///asynchronous to actual bits n bobs
     ///clSetEventCallback
@@ -152,7 +154,7 @@ int main(int argc, char *argv[])
         ///do manual async on thread
         auto event = window.draw_bulk_objs_n();
 
-        window.set_render_event(event);
+        //window.set_render_event(event);
 
         window.blit_to_screen();
 
@@ -160,7 +162,8 @@ int main(int argc, char *argv[])
 
         window.render_block();
 
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        if(key.isKeyPressed(sf::Keyboard::M))
+            std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary

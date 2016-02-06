@@ -27,6 +27,8 @@
 
 #include "object_context.hpp"
 
+#include <atomic>
+
 #ifdef RIFT
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"
@@ -151,8 +153,8 @@ struct engine
 
     int max_render_events;
     //std::vector<std::pair<int, compute::event>> render_events;
-    volatile int render_events_num;
-    volatile bool render_me;
+    volatile std::atomic<int> render_events_num;
+    volatile std::atomic<bool> render_me;
     volatile frametype_t last_frametype;
     volatile frametype_t current_frametype;
     ///this is so that we can predict when to draw the next frame
@@ -255,6 +257,8 @@ struct engine
     float scrollwheel_delta = 0;
     bool skip_scrollwheel = false;
     bool manual_input = false;
+
+    std::deque<compute::event> event_queue;
 };
 
 struct arg_list
