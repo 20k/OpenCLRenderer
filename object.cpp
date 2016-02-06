@@ -370,9 +370,6 @@ void object::g_flush(object_context_data& dat, bool force)
 
     force_flush |= force;
 
-    //force_flush = false;
-
-    //bool force_flush = force;
 
     bool dirty_pos = false;
     bool dirty_rot = false;
@@ -394,17 +391,12 @@ void object::g_flush(object_context_data& dat, bool force)
     ///I believe it should be fine, because posrot will only be updated when g_flush will get called... however it may possibly lead to odd behaviour
     ///possibly use the event callback system to fix this
 
+    ///eventually extend this to only update the correct components
     if(!dirty_pos && !dirty_rot && !force_flush)
         return;
 
     /*if(write_events.size() > 0)
-        clWaitForEvents(write_events.size(), write_events.data());*/
-
-
-    /*if(write_events.size() > 0)
-    {
-        //clWaitForEvents(write_events.size(), write_events.data());
-    }
+        clWaitForEvents(write_events.size(), write_events.data());
 
     for(auto& i : write_events)
     {
@@ -428,6 +420,11 @@ void object::g_flush(object_context_data& dat, bool force)
     ///very minorly bad for performance, but eh
     if(force_flush)
     {
+        if(dirty_pos || dirty_rot)
+            write_events.push_back(event);
+
+        num_events = write_events.size();
+
         ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, write_events.data(), &event); ///both position and rotation dirty
     }
 

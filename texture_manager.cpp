@@ -454,10 +454,10 @@ texture_gpu texture_manager::build_descriptors()
             ///need to pin c_texture_array to pcie mem
             //cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, texture_manager::c_texture_array, 2048*4, 2048*2048*4);
 
-            clEnqueueWriteImage(cl::cqueue2.get(), tex_gpu.g_texture_array.get(), CL_FALSE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
+            clEnqueueWriteImage(cl::cqueue.get(), tex_gpu.g_texture_array.get(), CL_FALSE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
 
-            cl::cqueue2.enqueue_write_buffer_async(tex_gpu.g_texture_sizes, 0, tex_gpu.g_texture_sizes.size(), texture_manager::texture_sizes.data());
-            cl::cqueue2.enqueue_write_buffer_async(tex_gpu.g_texture_nums, 0, tex_gpu.g_texture_nums.size(), texture_manager::new_texture_id.data());
+            cl::cqueue.enqueue_write_buffer_async(tex_gpu.g_texture_sizes, 0, tex_gpu.g_texture_sizes.size(), texture_manager::texture_sizes.data());
+            cl::cqueue.enqueue_write_buffer_async(tex_gpu.g_texture_nums, 0, tex_gpu.g_texture_nums.size(), texture_manager::new_texture_id.data());
         }
     }
     else
