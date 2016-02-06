@@ -425,6 +425,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
         num_events = write_events.size();
 
+        ///the cl_true here is a big reason for the slowdown on object context change
         ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, write_events.data(), &event); ///both position and rotation dirty
     }
 

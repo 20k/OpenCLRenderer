@@ -2080,7 +2080,7 @@ void engine::set_render_event(compute::event& event)
 {
     clSetEventCallback(event.get(), CL_COMPLETE, render_async, this);
 
-    //event_queue.push_back(event);
+    event_queue.push_back(event);
 }
 
 void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w, int h)
@@ -2254,11 +2254,19 @@ void engine::render_block()
 
     if(event_queue.size() == 0)*/
     //if(event_queue.size() >= max_render_events)
+
     if(event_queue.size() == 0)
     {
         cl::cqueue.finish(); ///fallback
 
         render_async(cl_event(), 0, this);
+    }
+
+    if(event_queue.size() > 0)
+    {
+        clWaitForEvents(1, &event_queue.front().get());
+
+        event_queue.pop_front();
     }
 }
 
@@ -2269,15 +2277,17 @@ void render_screen(engine& eng)
     ///dangerous if i want to mix 2d and 3d rendering
     //if(once)
     {
-        glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
-
-        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
         //once = false;
     }
 
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
     compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
+
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
+
+    glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
 
     ///blit buffer to screen
     glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -2288,8 +2298,6 @@ void render_screen(engine& eng)
     interact::clear();
 
     text_handler::render();
-
-    compute::opengl_enqueue_acquire_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
 
     //eng.running_frametime_smoothed = (9 * eng.running_frametime_smoothed + eng.get_frametime()) / 10.f;
     //eng.running_frametime_smoothed = eng.get_frametime();
@@ -2305,6 +2313,8 @@ void engine::flip()
         current_time = ftime.getElapsedTime().asMicroseconds();
 
         window.display();
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
     }
 }
 
@@ -2382,7 +2392,7 @@ void engine::blit_to_screen()
             clk.restart();
         }
 
-        if(event_queue.size() > 0)
+        /*if(event_queue.size() > 0)
             event_queue.pop_front();
 
         while(event_queue.size() > max_render_events)
@@ -2392,7 +2402,7 @@ void engine::blit_to_screen()
             event_queue.pop_front();
 
             printf("Fixing minor event race condition\n");
-        }
+        }*/
     }
 }
 

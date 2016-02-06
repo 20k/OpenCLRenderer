@@ -344,7 +344,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::cqueue2 = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
     #else
     cl::cqueue = compute::command_queue(cl::context, cl::device);
-    cl::cqueue2 = compute::command_queue(cl::context, cl::device);
+    cl::cqueue2 = compute::command_queue(cl::context, cl::device); //CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
     #endif
 
 
