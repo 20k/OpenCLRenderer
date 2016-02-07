@@ -4306,7 +4306,7 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
 
     /*if(id == 1)
     {
-        out[id] = (struct cloth_pos){fixed.x, fixed.y, fixed.z};
+        out[id] = (struct cloth_pos){fixed.x, fixed.y - (desired_length / num), fixed.z};
         return;
     }*/
 
@@ -4352,7 +4352,7 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
     acc = to_move;
 
     ///gravity needs to scale with the number of nodes
-    float grav = 0.098 / 5;
+    float grav = 0.98 / 10;
 
     acc.y -= grav;
 
@@ -4545,7 +4545,12 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         float3 p1 = c2v(in[base]);
         float3 p2 = c2v(in[upper]);
 
+        float plen = fast_length(p1 - p2);
+
+        //float3 p0 = (float3){p1.x, p1.y + plen, p1.z};
+
         float3 p0 = p1 + (p1 - p2);
+        //float3 p0 = (float3){p1.x, p1.y - segment_length * 5, p1.z};
         float3 p3 = p2 + (p2 - p1);
 
         if(base != 0)
@@ -4559,6 +4564,9 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         }
 
         ///so this is the vector of me -> line centre
+        ///so, i need to replace this
+        ///with the interpolated version? new_pos + new_offset SHOULD be interpolated, so it
+        ///should automagically work!
         float3 to_central_line = shortest_to_line((float3){0,0,0}, (float3){0, 1, 0}, original->vertices[i].pos.xyz);
 
         float3 to_my_point = -to_central_line;
@@ -4569,14 +4577,22 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         //float3 new_offset = mutual_rotate(to_my_point, p1, p2);
 
         //float3 new_pos = p2 * frac + p1 * (1.f - frac);
+        //float3 new_pos_inc = p2 * (frac + 0.001f) + p1 * (1.f - (frac + 0.001f));
 
+        ///catmull rom splines have smoothed the problem, but not fixed it
         float3 new_pos = catmull2(frac, p0, p1, p2, p3);
-        float3 new_pos_inc = catmull2(frac + 0.001f, p0, p1, p2, p3);
+        float3 new_pos_inc = catmull2(frac + 0.01f, p0, p1, p2, p3);
 
         //float3 rotation_axis = tri_to_normal((float3){0,0,0}, p1, p2);
-        float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, new_pos_inc);
+
+        float3 fixed = c2v(in[0]);
+
+
+        float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, fixed);
+        //float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, new_pos_inc);
         rotation_axis = normalize(rotation_axis);
-        float rotation_angle = acos(dot(normalize(new_pos_inc - new_pos), (float3){0, 1, 0}));
+        float rotation_angle = acos(dot(normalize(fixed - new_pos), (float3){0, 1, 0}));
+        //float rotation_angle = acos(dot(normalize(new_pos_inc - new_pos), (float3){0, 1, 0}));
         //float rotation_angle = acos(dot(normalize(p2 - p1), (float3){0, 1, 0}));
 
         float3 new_offset = axis_angle(to_my_point, rotation_axis, -rotation_angle);
@@ -4599,9 +4615,9 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         T->vertices[i].pos.xyz = end_pos;
     }
 
-    /*float3 tmp = T->vertices[0].pos.xyz;
+    float3 tmp = T->vertices[0].pos.xyz;
     T->vertices[0].pos.xyz = T->vertices[1].pos.xyz;
-    T->vertices[1].pos.xyz = tmp;*/
+    T->vertices[1].pos.xyz = tmp;
 
     float3 normal = tri_to_normal(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz);
 
