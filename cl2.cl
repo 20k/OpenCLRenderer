@@ -4548,23 +4548,12 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
 
         float plen = fast_length(p1 - p2);
 
-        //float3 p0 = (float3){p1.x, p1.y + plen, p1.z};
-
         float3 p0 = p1 + (p1 - p2);
-        //float3 p0 = (float3){p1.x, p1.y - segment_length * 5, p1.z};
         float3 p3 = p2 + (p2 - p1);
-
-        float3 pm1 = p0 + (p0 - p1);
 
         if(base != 0)
         {
-            pm1 = p0;
             p0 = c2v(in[base-1]);
-        }
-
-        if(base > 1)
-        {
-            pm1 = c2v(in[base - 2]);
         }
 
         if(upper != num_segments - 1)
@@ -4580,55 +4569,21 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
 
         float3 to_my_point = -to_central_line;
 
-        ///the fact that stuff is rotating is the problem
-        ///why is the rotating stuff intersecting?
-        ///ie its not sticking on the vector, its actually rotating about an axis
-        //float3 new_offset = mutual_rotate(to_my_point, p1, p2);
-
-        //float3 new_pos = p2 * frac + p1 * (1.f - frac);
-        //float3 new_pos_inc = p2 * (frac + 0.001f) + p1 * (1.f - (frac + 0.001f));
-
         ///catmull rom splines have smoothed the problem, but not fixed it
         float3 new_pos = catmull2(frac, p0, p1, p2, p3);
         float3 new_pos_inc = catmull2(frac + 0.01f, p0, p1, p2, p3);
-        //float3 old_pos = catmull2(frac, pm1, p0, p1, p2);
-
-        //float3 rotation_axis = tri_to_normal((float3){0,0,0}, p1, p2);
 
         float3 fixed = c2v(in[0]);
-
-
-        //float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, fixed);
-        //float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, new_pos_inc);
-        //float3 rotation_axis = tri_to_normal(old_pos, new_pos, new_pos_inc);
 
         float3 rotation_axis = cross(fast_normalize(new_pos), fast_normalize(new_pos_inc));
 
         rotation_axis = normalize(rotation_axis);
 
-        //float rotation_angle = acos(dot(normalize(fixed - new_pos), (float3){0, 1, 0}));
-        //float rotation_angle = acos(dot(normalize(new_pos - new_pos_inc), (float3){0, 1, 0}));
-        //float rotation_angle = acos(dot(normalize(new_pos_inc - new_pos), (float3){0, 1, 0}));
-        //float rotation_angle = acos(dot(normalize(p2 - p1), (float3){0, 1, 0}));
-
         float rotation_angle = acos(dot(fast_normalize(new_pos), fast_normalize(new_pos_inc)));
 
         float3 new_offset = axis_angle(to_my_point, rotation_axis, -rotation_angle);
 
-
-        //float3 new_pos = cosip(p1, p2, frac);
-
-        //float3 new_pos = catmull(p0, p1, p2, p3, frac);
-
-        //float3 new_pos = catmull2(frac, p0, p1, p2, p3);
-
-        //float sch = (new_pos.y / string_length) * (height_bounds.y - height_bounds.x) + height_bounds.x;
-
-        //new_pos.y = sch;
-
         float3 end_pos = new_pos + new_offset;
-
-        //printf("%v3f %i\n", end_pos, i);
 
         T->vertices[i].pos.xyz = end_pos;
     }
