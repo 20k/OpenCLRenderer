@@ -79,6 +79,7 @@ struct object
 
     ///this is uncached for the moment
     cl_float4 get_centre();
+    cl_float2 get_exact_height_bounds(); ///expensive!
 
     void translate_centre(cl_float4);
 

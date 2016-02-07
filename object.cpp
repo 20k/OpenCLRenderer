@@ -325,6 +325,30 @@ cl_float4 object::get_centre()
         return {0};
 }
 
+cl_float2 object::get_exact_height_bounds()
+{
+    float minh = FLT_MAX;
+    float maxh = -FLT_MAX;
+
+    for(auto& i : tri_list)
+    {
+        for(auto& j : i.vertices)
+        {
+            if(j.get_pos().y < minh)
+            {
+                minh = j.get_pos().y;
+            }
+
+            if(j.get_pos().y >= maxh)
+            {
+                maxh = j.get_pos().y;
+            }
+        }
+    }
+
+    return {minh, maxh};
+}
+
 void object::set_vis_func(std::function<int (object*, cl_float4)> vis)
 {
     obj_vis = vis;

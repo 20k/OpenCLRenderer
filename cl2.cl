@@ -4026,6 +4026,13 @@ float3 c2v(struct cloth_pos p)
 {
     return (float3){p.x, p.y, p.z};
 }
+
+///anticlockwise
+float3 tri_to_normal(float3 p0, float3 p1, float3 p2)
+{
+    return -cross(p1-p0, p2-p0);
+}
+
 ///0 1
 ///3 2
 float3 rect_to_normal(float3 p0, float3 p1, float3 p2, float3 p3)
@@ -4297,6 +4304,12 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
         return;
     }
 
+    /*if(id == 1)
+    {
+        out[id] = (struct cloth_pos){fixed.x, fixed.y, fixed.z};
+        return;
+    }*/
+
     float3 my_pos = c2v(in[id]);
     float3 old_pos = c2v(out[id]);
 
@@ -4338,7 +4351,8 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
 
     acc = to_move;
 
-    float grav = 0.98 / 5;
+    ///gravity needs to scale with the number of nodes
+    float grav = 0.098 / 5;
 
     acc.y -= grav;
 
@@ -4348,7 +4362,7 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
 
     float scaled_dt = frametime / expected_dt;
 
-    scaled_dt = clamp(scaled_dt, 0.0001f, 1.f);
+    scaled_dt = clamp(scaled_dt, 0.0001f, 0.1f);
 
     //scaled_dt = min(scaled_dt, 1.5f);
 
@@ -4394,6 +4408,9 @@ float3 to_euler(float3 vec)
 }
 
 ///original is vector from 0
+///uh. We can use this to fix a lot of things if it works properly...
+///so, if the vector is slightly displaced from center, we'll actually be rotated around it?
+///or is that itll be moved with it?
 float3 mutual_rotate(float3 pos, float3 ip1, float3 ip2)
 {
     float3 new_dir = ip2 - ip1;
@@ -4434,6 +4451,42 @@ float3 mutual_rotate(float3 pos, float3 ip1, float3 ip2)
     return rp;
 }
 
+float3 axis_angle(float3 v, float3 axis, float angle)
+{
+    return cos(angle) * v + sin(angle) * cross(axis, v) + (1.f - cos(angle)) * dot(axis, v) * axis;
+}
+
+float3 cosip(float3 p1, float3 p2, float frac)
+{
+    float m = (1.f - cos(frac * M_PI)) / 2.f;
+
+    return p1 * (1.f - m) + p2 * m;
+}
+
+float3 catmull(float3 p1, float3 p2, float3 p3, float3 p4, float frac)
+{
+    float f2 = frac * frac;
+
+    float3 a0 = -0.5*p1 + 1.5*p2 - 1.5*p3 + 0.5*p4;
+    float3 a1 = p1 - 2.5*p2 + 2*p3 - 0.5*p4;
+    float3 a2 = -0.5*p1 + 0.5*p3;
+    float3 a3 = p2;
+
+    return a0 * frac * f2 + a1 * f2 + a2 * frac + a3;
+}
+
+float3 catmull2(float t, float3 p0, float3 p1, float3 p2, float3 p3)
+{
+	float3 a = 0.5f * (2.f * p1);
+	float3 b = 0.5f * (p2 - p0);
+	float3 c = 0.5f * (2.f * p0 - 5.f * p1 + 4.f * p2 - p3);
+	float3 d = 0.5f * (-p0 + 3.f * p1 - 3.f * p2 + p3);
+
+	float3 pos = a + (b * t) + (c * t * t) + (d * t * t * t);
+
+	return pos;
+}
+
 ///assume that the input object goes along the 0 -> x axis, thats the
 ///bone axis
 ///i should probably make this programmable
@@ -4443,10 +4496,12 @@ float3 mutual_rotate(float3 pos, float3 ip1, float3 ip2)
 ///or at least the original x coordinate
 ///we do have an unused triangle.vertices.pos.a component
 ///rip
+///change this back to using .a component, so we can allow non exactly sized objects to be mapped
 __kernel
 void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end,
                       __global struct triangle* backup,
-                      __global struct cloth_pos* in, float string_length, int num_segments)
+                      __global struct cloth_pos* in, float string_length, int num_segments,
+                      float2 height_bounds)
 {
     int triangle_id = get_global_id(0);
 
@@ -4465,12 +4520,22 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
     ///otherwise we'll accumulate error
     for(int i=0; i<3; i++)
     {
-        float bone_position = original->vertices[i].pos.y;
+        //float bone_position = original->vertices[i].pos.y;
+
+        float current_pos = original->vertices[i].pos.y;
+
+        ///- min / (max - min)
+        current_pos -= height_bounds.x;
+        current_pos /= (height_bounds.y - height_bounds.x);
+
+        float bone_position = current_pos * string_length;
 
         float num_frac = bone_position / segment_length;
 
+        num_frac = (num_frac / (num_segments + 2)) * (num_segments);
+
         int base = (int)num_frac;
-        int upper = num_frac + 1;
+        int upper = base + 1;
 
         base = clamp(base, 0, num_segments-1);
         upper = clamp(upper, 0, num_segments-1);
@@ -4480,25 +4545,52 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         float3 p1 = c2v(in[base]);
         float3 p2 = c2v(in[upper]);
 
+        float3 p0 = p1 + (p1 - p2);
+        float3 p3 = p2 + (p2 - p1);
+
+        if(base != 0)
+        {
+            p0 = c2v(in[base-1]);
+        }
+
+        if(upper != num_segments - 1)
+        {
+            p3 = c2v(in[upper + 1]);
+        }
+
         ///so this is the vector of me -> line centre
         float3 to_central_line = shortest_to_line((float3){0,0,0}, (float3){0, 1, 0}, original->vertices[i].pos.xyz);
 
         float3 to_my_point = -to_central_line;
 
-        ///no, to_central_line is centered
-        //float3 centered = original->vertices[i].pos.xyz - to_central_line;
+        ///the fact that stuff is rotating is the problem
+        ///why is the rotating stuff intersecting?
+        ///ie its not sticking on the vector, its actually rotating about an axis
+        //float3 new_offset = mutual_rotate(to_my_point, p1, p2);
 
-        //float3 angle_offset = to_euler(to_central_line);
-        //float distance = fast_length(to_central_line);
+        //float3 new_pos = p2 * frac + p1 * (1.f - frac);
 
-        ///to_euler is a problem
-        /*float3 new_angle = to_euler(p2 - p1);
+        float3 new_pos = catmull2(frac, p0, p1, p2, p3);
+        float3 new_pos_inc = catmull2(frac + 0.001f, p0, p1, p2, p3);
 
-        float3 new_offset = rot(to_my_point, 0.f, new_angle);*/
+        //float3 rotation_axis = tri_to_normal((float3){0,0,0}, p1, p2);
+        float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, new_pos_inc);
+        rotation_axis = normalize(rotation_axis);
+        float rotation_angle = acos(dot(normalize(new_pos_inc - new_pos), (float3){0, 1, 0}));
+        //float rotation_angle = acos(dot(normalize(p2 - p1), (float3){0, 1, 0}));
 
-        float3 new_offset = mutual_rotate(to_my_point, p1, p2);
+        float3 new_offset = axis_angle(to_my_point, rotation_axis, -rotation_angle);
 
-        float3 new_pos = p2 * frac + p1 * (1.f - frac);
+
+        //float3 new_pos = cosip(p1, p2, frac);
+
+        //float3 new_pos = catmull(p0, p1, p2, p3, frac);
+
+        //float3 new_pos = catmull2(frac, p0, p1, p2, p3);
+
+        //float sch = (new_pos.y / string_length) * (height_bounds.y - height_bounds.x) + height_bounds.x;
+
+        //new_pos.y = sch;
 
         float3 end_pos = new_pos + new_offset;
 
@@ -4506,6 +4598,16 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
 
         T->vertices[i].pos.xyz = end_pos;
     }
+
+    /*float3 tmp = T->vertices[0].pos.xyz;
+    T->vertices[0].pos.xyz = T->vertices[1].pos.xyz;
+    T->vertices[1].pos.xyz = tmp;*/
+
+    float3 normal = tri_to_normal(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz);
+
+    T->vertices[0].normal.xyz = normal;
+    T->vertices[1].normal.xyz = normal;
+    T->vertices[2].normal.xyz = normal;
 }
 
 #if 0
