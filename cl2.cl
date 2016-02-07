@@ -4030,7 +4030,7 @@ float3 c2v(struct cloth_pos p)
 ///anticlockwise
 float3 tri_to_normal(float3 p0, float3 p1, float3 p2)
 {
-    return -cross(p1-p0, p2-p0);
+    return fast_normalize(-cross(p1-p0, p2-p0));
 }
 
 ///0 1
@@ -4304,11 +4304,12 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
         return;
     }
 
-    /*if(id == 1)
+    ///prevents wobbly top, but in response makes the top look really odd and static :[
+    if(id == 1)
     {
         out[id] = (struct cloth_pos){fixed.x, fixed.y - (desired_length / num), fixed.z};
         return;
-    }*/
+    }
 
     float3 my_pos = c2v(in[id]);
     float3 old_pos = c2v(out[id]);
@@ -4370,7 +4371,7 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
 
     out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
-    write_imagef(screen, (int2){new_pos.x + 100, new_pos.y + 500}, 1.f);
+    write_imagef(screen, (int2){new_pos.x + 400, new_pos.y + 500}, 1.f);
 
     int t1 = id * 2 + 0;
     int t2 = id * 2 + 1;
@@ -4553,9 +4554,17 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         //float3 p0 = (float3){p1.x, p1.y - segment_length * 5, p1.z};
         float3 p3 = p2 + (p2 - p1);
 
+        float3 pm1 = p0 + (p0 - p1);
+
         if(base != 0)
         {
+            pm1 = p0;
             p0 = c2v(in[base-1]);
+        }
+
+        if(base > 1)
+        {
+            pm1 = c2v(in[base - 2]);
         }
 
         if(upper != num_segments - 1)
@@ -4582,18 +4591,27 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         ///catmull rom splines have smoothed the problem, but not fixed it
         float3 new_pos = catmull2(frac, p0, p1, p2, p3);
         float3 new_pos_inc = catmull2(frac + 0.01f, p0, p1, p2, p3);
+        //float3 old_pos = catmull2(frac, pm1, p0, p1, p2);
 
         //float3 rotation_axis = tri_to_normal((float3){0,0,0}, p1, p2);
 
         float3 fixed = c2v(in[0]);
 
 
-        float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, fixed);
+        //float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, fixed);
         //float3 rotation_axis = tri_to_normal((float3){0,0,0}, new_pos, new_pos_inc);
+        //float3 rotation_axis = tri_to_normal(old_pos, new_pos, new_pos_inc);
+
+        float3 rotation_axis = cross(fast_normalize(new_pos), fast_normalize(new_pos_inc));
+
         rotation_axis = normalize(rotation_axis);
-        float rotation_angle = acos(dot(normalize(fixed - new_pos), (float3){0, 1, 0}));
+
+        //float rotation_angle = acos(dot(normalize(fixed - new_pos), (float3){0, 1, 0}));
+        //float rotation_angle = acos(dot(normalize(new_pos - new_pos_inc), (float3){0, 1, 0}));
         //float rotation_angle = acos(dot(normalize(new_pos_inc - new_pos), (float3){0, 1, 0}));
         //float rotation_angle = acos(dot(normalize(p2 - p1), (float3){0, 1, 0}));
+
+        float rotation_angle = acos(dot(fast_normalize(new_pos), fast_normalize(new_pos_inc)));
 
         float3 new_offset = axis_angle(to_my_point, rotation_axis, -rotation_angle);
 
