@@ -339,7 +339,7 @@ void update_object_status(cl_event event, cl_int event_command_exec_status, void
     ctx->ready_to_flip = true;
 }
 
-void object_context::build()
+void object_context::build(bool force)
 {
     ///if we call build rapidly
     ///this will get cleared and be invalid
@@ -359,7 +359,7 @@ void object_context::build()
     alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, new_gpu_dat);
 
     ///ie we want there to be some valid gpu presence
-    if(!gpu_dat.gpu_data_finished)
+    if(!gpu_dat.gpu_data_finished || force)
     {
         cl::cqueue2.finish();
 

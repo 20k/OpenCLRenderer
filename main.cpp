@@ -101,6 +101,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    printf("load_time %f\n", load_time.getElapsedTime().asMicroseconds() / 1000.f);
+
     //window.process_input();
 
     /*std::string m1, m2, m3;
@@ -154,7 +156,7 @@ int main(int argc, char *argv[])
         ///do manual async on thread
         auto event = window.draw_bulk_objs_n();
 
-        //window.set_render_event(event);
+        window.set_render_event(event);
 
         window.blit_to_screen();
 

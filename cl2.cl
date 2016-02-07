@@ -4277,6 +4277,237 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid + 1].vertices[2].normal.xyz = n3;
 }
 
+__kernel
+void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
+                     int num, float desired_length, float width,
+                     __global struct cloth_pos* in, __global struct cloth_pos* out,
+                     float4 fixed, float frametime, __write_only image2d_t screen)
+{
+    ///and so i went to bed
+
+    int id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    ///we are the fixed'th element
+    if(id == 0)
+    {
+        out[id] = (struct cloth_pos){fixed.x, fixed.y, fixed.z};
+        return;
+    }
+
+    float3 my_pos = c2v(in[id]);
+    float3 old_pos = c2v(out[id]);
+
+    float3 diff = (my_pos - old_pos);
+
+    diff = clamp(diff, -10.f, 10.f);
+
+    float3 acc = 0.f;
+
+    ///distance between two nodes in a segment
+    float desired_node_separation = desired_length / num;
+
+    float3 left_neighbour = c2v(in[id - 1]);
+    float3 right_neighbour = my_pos + (float3){desired_node_separation, 0, 0}; ///fake position at exactly the correct distance
+
+    if(id != num-1)
+        right_neighbour = c2v(in[id + 1]);
+
+    float3 to_move = 0;
+
+    float llen = fast_length(left_neighbour - my_pos);
+    float rlen = fast_length(right_neighbour - my_pos);
+
+    ///so if llen > desired node, this is positive, else negative
+    float lextra = llen - desired_node_separation;
+    float rextra = rlen - desired_node_separation;
+
+    lextra = clamp(lextra, -0.1f * llen, 0.1f * llen);
+    rextra = clamp(rextra, -0.1f * rlen, 0.1f * rlen);
+
+    float scale = 0.3f;
+
+    ///scale should be time corrected?
+    lextra *= scale;
+    rextra *= scale;
+
+    to_move += fast_normalize(left_neighbour - my_pos) * lextra;
+    to_move += fast_normalize(right_neighbour - my_pos) * rextra;
+
+    acc = to_move;
+
+    float grav = 0.98 / 5;
+
+    acc.y -= grav;
+
+    frametime = frametime / 1000.f;
+
+    float expected_dt = 50.f;
+
+    float scaled_dt = frametime / expected_dt;
+
+    scaled_dt = clamp(scaled_dt, 0.0001f, 1.f);
+
+    //scaled_dt = min(scaled_dt, 1.5f);
+
+    float3 new_pos = my_pos + diff * 0.9985f + acc * scaled_dt * scaled_dt;
+
+    out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
+
+    write_imagef(screen, (int2){new_pos.x + 100, new_pos.y + 500}, 1.f);
+
+    int t1 = id * 2 + 0;
+    int t2 = id * 2 + 1;
+
+    //there'll be two triangles left over because i've confused segments with nodes
+
+    ///left to me
+    ///so, 2d slice, temp
+    //tris[t1].vertices[0].pos.xyz = {left_neighbour}
+}
+
+float3 shortest_to_line(float3 lp, float3 ldir, float3 p)
+{
+    float3 ret;
+
+    float3 n = fast_normalize(ldir);
+
+    return (lp - p) - dot(lp - p, n) * n;
+}
+
+float3 to_euler(float3 vec)
+{
+    float3 dir = vec;
+
+    float cangle = dot((float3){0, 1, 0}, fast_normalize(dir));
+
+    float angle2 = acos(cangle);
+
+    float y = atan2(dir.z, dir.x);
+
+    ///z y x then?
+    float3 ret = {0, y, angle2};
+
+    return ret;
+}
+
+///original is vector from 0
+float3 mutual_rotate(float3 pos, float3 ip1, float3 ip2)
+{
+    float3 new_dir = ip2 - ip1;
+
+    float3 old = (float3){0, 1, 0};
+
+    float ol = 1;
+    float ot = acos(old.z / ol);
+    //float op = atan2(old.y, old.x);
+    float op = M_PI/2.f;
+
+
+    float len = length(new_dir);
+
+    float cc2 = clamp(new_dir.z / len, -1.f, 1.f);
+
+    float theta = acos(cc2);
+    float phi = atan2(new_dir.y, new_dir.x);
+
+
+    float l2 = length(pos);
+
+    float cc3 = clamp(pos.z / l2, -1.f, 1.f);
+
+    float t2 = acos(cc3);
+    float ph2 = atan2(pos.y, pos.x);
+
+    t2 += theta - ot;
+    ph2 += phi - op;
+
+    float3 rp;
+    rp.x = l2 * sin(t2) * cos(ph2);
+    rp.y = l2 * sin(t2) * sin(ph2);
+    rp.z = l2 * cos(t2);
+
+    //printf("%f %f %f\n", rp.x, rp.y, rp.z);
+
+    return rp;
+}
+
+///assume that the input object goes along the 0 -> x axis, thats the
+///bone axis
+///i should probably make this programmable
+///or y axis as is standard in the rest of my engine as a reference axis
+///left hand side of the object must be at x = 0, right hand side must be at x = string_length
+///ahh shite. We need to keep a backup of the original triangle data somewhere
+///or at least the original x coordinate
+///we do have an unused triangle.vertices.pos.a component
+///rip
+__kernel
+void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end,
+                      __global struct triangle* backup,
+                      __global struct cloth_pos* in, float string_length, int num_segments)
+{
+    int triangle_id = get_global_id(0);
+
+    if(triangle_id + tri_start >= tri_end)
+        return;
+
+    __global struct triangle* T = &tris[triangle_id + tri_start];
+    __global struct triangle* original = &backup[triangle_id];
+
+    float segment_length = string_length / num_segments;
+
+    ///need to find my original offset from the segment centre (ie the x axis)
+    ///express this as a vector
+    ///then rotate this into the new string reference frame
+    ///which means again we need the original triangle positions
+    ///otherwise we'll accumulate error
+    for(int i=0; i<3; i++)
+    {
+        float bone_position = original->vertices[i].pos.y;
+
+        float num_frac = bone_position / segment_length;
+
+        int base = (int)num_frac;
+        int upper = num_frac + 1;
+
+        base = clamp(base, 0, num_segments-1);
+        upper = clamp(upper, 0, num_segments-1);
+
+        float frac = num_frac - base;
+
+        float3 p1 = c2v(in[base]);
+        float3 p2 = c2v(in[upper]);
+
+        ///so this is the vector of me -> line centre
+        float3 to_central_line = shortest_to_line((float3){0,0,0}, (float3){0, 1, 0}, original->vertices[i].pos.xyz);
+
+        float3 to_my_point = -to_central_line;
+
+        ///no, to_central_line is centered
+        //float3 centered = original->vertices[i].pos.xyz - to_central_line;
+
+        //float3 angle_offset = to_euler(to_central_line);
+        //float distance = fast_length(to_central_line);
+
+        ///to_euler is a problem
+        /*float3 new_angle = to_euler(p2 - p1);
+
+        float3 new_offset = rot(to_my_point, 0.f, new_angle);*/
+
+        float3 new_offset = mutual_rotate(to_my_point, p1, p2);
+
+        float3 new_pos = p2 * frac + p1 * (1.f - frac);
+
+        float3 end_pos = new_pos + new_offset;
+
+        //printf("%v3f %i\n", end_pos, i);
+
+        T->vertices[i].pos.xyz = end_pos;
+    }
+}
+
 #if 0
 ///width+1 x height+1
 __kernel

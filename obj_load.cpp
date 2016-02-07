@@ -385,12 +385,14 @@ void obj_load(objects_container* pobj)
 
         obj.rid = normal.id;
 
+        ///doesn't this perform a double offset?
         obj.pos = c->pos;
         obj.rot = c->rot;
 
         obj.isloaded = true;
 
-        c->objs.push_back(obj); ///does this copy get eliminated?
+        ///fixme
+        c->objs.push_back(obj); ///does this copy get eliminated? ///timing this says yes
     }
 
     c->isloaded = true;

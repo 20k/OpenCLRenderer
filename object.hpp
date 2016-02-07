@@ -60,6 +60,9 @@ struct object
 
     std::vector<cl_event> write_events;
 
+    cl_uint unique_id;
+    static cl_uint gid;
+
     object();
     ~object();
 

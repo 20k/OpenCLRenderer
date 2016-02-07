@@ -76,7 +76,7 @@ struct object_context
     void load_active();
 
     ///this causes a gpu reallocation
-    void build();
+    void build(bool force = false);
 
     ///this fetches the internal context data
     object_context_data* fetch();

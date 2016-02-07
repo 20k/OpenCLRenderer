@@ -7,6 +7,8 @@
 #include "texture_manager.hpp"
 #include "vec.hpp"
 
+cl_uint object::gid = 0;
+
 int obj_null_vis(object* obj, cl_float4 c_pos)
 {
     return 1;
@@ -47,6 +49,8 @@ object::object() : tri_list(0)
     object_g_id = -1;
 
     last_object_context_data_id = -1;
+
+    unique_id = gid++;
 }
 
 object::~object()
