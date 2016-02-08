@@ -285,9 +285,9 @@ void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
     args.push_back(&gpu_dat.g_texture_sizes);
     args.push_back(&gpu_dat.g_texture_array);
 
-    printf("%i %i\n", c_image.getSize().x, c_image.getSize().y);
+    //printf("%i %i\n", c_image.getSize().x, c_image.getSize().y);
 
-    printf("gpuid %i\n", gpu_id);
+    //printf("gpuid %i\n", gpu_id);
 
     run_kernel_with_string("update_gpu_tex_colour", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 }

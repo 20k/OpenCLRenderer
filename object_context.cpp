@@ -360,11 +360,57 @@ void update_object_status(cl_event event, cl_int event_command_exec_status, void
     ctx->ready_to_flip = true;
 }
 
+/// need to A
+///make textures autoreallocate if  necessary
+/// and B
+///make this function not naively rebuild every time its asked if its not necessary
 void object_context::build(bool force)
 {
     ///if we call build rapidly
     ///this will get cleared and be invalid
     ///how do we deal with this?
+
+    bool rebuild_textures = false;
+
+    for(auto& k : containers)
+    {
+        for(auto& i : k->objs)
+        {
+            bool found = false;
+
+            for(auto& j : last_builds_tids)
+            {
+                if(i.tid == j)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if(!found)
+            {
+                rebuild_textures = true;
+                break;
+            }
+        }
+    }
+
+    last_builds_tids.clear();
+
+    for(auto& k : containers)
+    {
+        for(auto& i : k->objs)
+        {
+            last_builds_tids.insert(i.tid);
+        }
+    }
+
+    if(rebuild_textures)
+    {
+        texture_manager::allocate_textures();
+
+        printf("rebuild\n");
+    }
 
     object_descriptors.clear();
     new_container_data.clear();

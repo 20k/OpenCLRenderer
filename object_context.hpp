@@ -6,6 +6,8 @@
 #include <boost/compute/system.hpp>
 #include "texture_manager.hpp"
 
+#include <set>
+
 namespace compute = boost::compute;
 
 struct objects_container;
@@ -66,6 +68,7 @@ struct container_temporaries
 ///if the order of the objects is swapped around, or a middle one is deleted etc
 struct object_context
 {
+    std::set<cl_uint> last_builds_tids;
     std::vector<objects_container*> containers;
 
     std::vector<container_temporaries> new_container_data;
