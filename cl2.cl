@@ -4521,8 +4521,6 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
     ///otherwise we'll accumulate error
     for(int i=0; i<3; i++)
     {
-        //float bone_position = original->vertices[i].pos.y;
-
         float current_pos = original->vertices[i].pos.y;
 
         ///- min / (max - min)
@@ -4588,6 +4586,7 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         T->vertices[i].pos.xyz = end_pos;
     }
 
+    ///I don't know why the winding order seems to be reversed
     float3 tmp = T->vertices[0].pos.xyz;
     T->vertices[0].pos.xyz = T->vertices[1].pos.xyz;
     T->vertices[1].pos.xyz = tmp;

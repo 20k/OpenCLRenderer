@@ -10,6 +10,7 @@
 #include "texture.hpp"
 #include <math.h>
 #include <list>
+#include "vec.hpp"
 
 std::map<std::string, objects_container> cache_map;
 
@@ -400,4 +401,64 @@ void obj_load(objects_container* pobj)
     printf("Loaded\n");
 
     //std::cout << "Object load time " <<  clk.getElapsedTime().asSeconds() << std::endl;
+}
+
+cl_float4 to_norm(cl_float4 p0, cl_float4 p1, cl_float4 p2)
+{
+    return normalise(neg(cross(sub(p1, p0), sub(p2, p0))));
+}
+
+void obj_rect(objects_container* pobj, texture& tex, cl_float2 dim)
+{
+    object obj;
+
+    obj.isloaded = true;
+
+    cl_float2 hdim = {dim.x/2.f, dim.y/2.f};
+
+    /*quad q;
+    q.p1 = {-hdim.x,-hdim.y, 0};
+    q.p2 = {-hdim.x, hdim.y, 0};
+    q.p3 = {hdim.x, hdim.y, 0};
+    q.p4 = {hdim.x, hdim.y, 0};
+
+    std::array<6, cl_float4> decomp = q.decompose();*/
+
+    struct triangle tri1, tri2;
+
+
+    tri1.vertices[0].set_pos({-hdim.x, -hdim.y, 0});
+    tri1.vertices[1].set_pos({-hdim.x,  hdim.y, 0});
+    tri1.vertices[2].set_pos({ hdim.x,  hdim.y, 0});
+
+    tri2.vertices[0].set_pos({-hdim.x, -hdim.y, 0});
+    tri2.vertices[1].set_pos({ hdim.x,  hdim.y, 0});
+    tri2.vertices[2].set_pos({ hdim.x, -hdim.y, 0});
+
+    cl_float4 normal = to_norm(tri1.vertices[0].get_pos(), tri1.vertices[1].get_pos(), tri1.vertices[2].get_pos());
+
+    for(int i=0; i<3; i++)
+        tri1.vertices[i].set_normal(normal);
+
+    for(int i=0; i<3; i++)
+        tri2.vertices[i].set_normal(normal);
+
+    tri1.vertices[0].set_vt({0, 0});
+    tri1.vertices[1].set_vt({0, 1});
+    tri1.vertices[2].set_vt({1, 1});
+
+    tri2.vertices[0].set_vt({0, 0});
+    tri2.vertices[1].set_vt({1, 1});
+    tri2.vertices[2].set_vt({1, 0});
+
+    obj.tri_list.push_back(tri1);
+    obj.tri_list.push_back(tri2);
+
+    obj.tri_num = obj.tri_list.size();
+
+    obj.tid = tex.id;
+
+    pobj->objs.push_back(obj);
+
+    pobj->isloaded = true;
 }
