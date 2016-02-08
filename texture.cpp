@@ -126,6 +126,17 @@ void texture::push()
     else
     {
         id = texture_manager::texture_id_by_location(texture_location);
+
+        texture* tex = texture_manager::texture_by_id(id);
+
+        if(tex || id == -1)
+        {
+            if(tex->is_unique || id == -1)
+            {
+                id = texture_manager::add_texture(*this);
+            }
+        }
+
     }
 }
 
@@ -261,9 +272,41 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 }
 
+void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
+{
+    if(!is_active)
+        return;
+
+    arg_list args;
+    args.push_back(&col);
+    args.push_back(&gpu_id); ///what's my gpu id?
+    args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
+
+    printf("%i %i\n", c_image.getSize().x, c_image.getSize().y);
+
+    printf("gpuid %i\n", gpu_id);
+
+    run_kernel_with_string("update_gpu_tex_colour", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+}
+
 void texture_load(texture* tex)
 {
     tex->c_image.loadFromFile(tex->texture_location);
+    tex->is_loaded = true;
+
+    if(tex->get_largest_dimension() > max_tex_size)
+    {
+        std::cout << "Error, texture larger than max texture size @" << __LINE__ << " @" << __FILE__ << std::endl;
+        ///error? set isloaded to false? return bad id or throw?
+    }
+}
+
+void texture_make_blank(texture* tex, int w, int h, sf::Color col)
+{
+    tex->c_image.create(w, h, col);
     tex->is_loaded = true;
 
     if(tex->get_largest_dimension() > max_tex_size)

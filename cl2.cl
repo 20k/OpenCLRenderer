@@ -596,13 +596,8 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
 
     uint4 ucol = convert_uint4(col);
 
-    //col = 0;
-
     int slice = nums[tex_id] >> 16;
     float width = sizes[slice];
-
-    /*int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
-    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;*/
 
     write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
 
@@ -620,6 +615,35 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
     }
 }
 
+__kernel
+void update_gpu_tex_colour(float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    int slice = nums[tex_id] >> 16;
+    float width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    uint4 ucol = convert_uint4(col);
+
+    write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
+
+    for(int i=0; i<MIP_LEVELS; i++)
+    {
+        ///is this just.. wrong?
+        ///how on earth has this ever worked???
+        ///tex_id is some completely random property
+        int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
+
+        int w2 = nums[mtexid] >> 16;
+        float nwidth = sizes[w2];
+
+        write_tex_array(ucol, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
+    }
+}
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 ///fixme
 ///this should under no circumstances have to index two global arrays just to have to read from a damn texture

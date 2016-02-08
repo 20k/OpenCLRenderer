@@ -445,6 +445,10 @@ texture_gpu texture_manager::build_descriptors()
         tex_gpu.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
         tex_gpu.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
 
+        texture_manager::g_texture_sizes =   tex_gpu.g_texture_sizes;
+        texture_manager::g_texture_numbers = tex_gpu.g_texture_nums;
+        texture_manager::g_texture_array =   tex_gpu.g_texture_array;
+
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};
 

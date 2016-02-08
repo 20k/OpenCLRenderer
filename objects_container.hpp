@@ -54,6 +54,9 @@ struct objects_container
     void    set_load_func  (std::function<void (objects_container*)>);
     void    call_load_func (objects_container*);
 
+    //void    set_override_tex(texture* tex);
+    void    set_unique_textures(bool are_unique);
+
     void    set_obj_vis(std::function<int (object*, cl_float4)>);
     void    set_obj_load_func(std::function<void (object*)>);
 
@@ -89,6 +92,10 @@ struct objects_container
     ~objects_container();
 
     bool cache = true;
+
+    bool textures_are_unique = false;
+
+    //texture* override_tex = nullptr;
 };
 
 #endif

@@ -48,6 +48,8 @@ void object_context::load_active()
         {
             if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
+                ///can cache
+
                 int save_id = obj->id;
                 cl_float4 save_pos = obj->pos;
                 cl_float4 save_rot = obj->rot;
@@ -60,6 +62,25 @@ void object_context::load_active()
                 obj->set_pos(save_pos);
                 obj->set_rot(save_rot);
                 obj->set_active(true);
+
+                ///this still dont work ;_;
+                /*for(auto& i : obj->objs)
+                {
+                    ///ptr to array, so when we push it becomes invalid
+                    texture* tex = texture_manager::texture_by_id(i.tid);
+
+                    if(tex)
+                    {
+                        if(tex->is_unique)
+                        {
+                            texture cp = *tex;
+
+                            cp.push();
+
+                            i.tid = cp.id;
+                        }
+                    }
+                }*/
             }
             else
             {
@@ -380,7 +401,7 @@ void object_context::build(bool force)
     ///errhghg
     ///this fixes the flashing
     ///im not sure markers are working how i want
-    //cl::cqueue2.finish();
+    cl::cqueue2.finish();
 }
 
 object_context_data* object_context::fetch()

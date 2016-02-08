@@ -11,6 +11,7 @@ static cl_uint max_tex_size=2048;
 struct texture;
 
 void texture_load(texture*);
+void texture_make_blank(texture* tex, int w, int h, sf::Color col);
 
 struct texture_gpu;
 
@@ -61,6 +62,7 @@ struct texture
     texture();
 
     void update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat);
+    void update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat);
 
     cl_uint get_largest_dimension() const;
 

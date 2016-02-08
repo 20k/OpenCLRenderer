@@ -186,7 +186,15 @@ void objects_container::call_load_func(objects_container* c)
     fp(c);
 }
 
+/*void objects_container::set_override_tex(texture* tex)
+{
+    override_tex = tex;
+}*/
 
+void objects_container::set_unique_textures(bool are_unique)
+{
+    textures_are_unique = are_unique;
+}
 
 void objects_container::set_obj_vis(std::function<int (object*, cl_float4)> func)
 {

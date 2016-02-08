@@ -339,9 +339,17 @@ void obj_load(objects_container* pobj)
         std::string full = dir + "/" + texture_name;
 
         texture tex;
+
+        if(pobj->textures_are_unique)
+        {
+            tex.set_unique();
+        }
+
         tex.type = 0;
         tex.set_texture_location(full);
         tex.push();
+
+        //printf("%s %i\n", full.c_str(), tex.id);
 
         bool isbump = false;
         cl_uint b_id = -1;
