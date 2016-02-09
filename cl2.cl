@@ -824,6 +824,8 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
     }
 }
 
+///need to dynamically avoid the texture borders
+///;_;
 __kernel
 void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
 {
@@ -835,7 +837,7 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
     int slice = nums[tex_id] >> 16;
     float width = sizes[slice];
 
-    int length = 100 * 2 * 5;
+    int length = width / 3.f;//100 * 2 * 5;
 
     float per_texture = tex_id * 100.f;
 
@@ -867,23 +869,28 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
         col.xyz += 0.5f;
     }
 
+    float nnoise = dir.x * 1000.f + dir.y * 100;
+
     for(int i=0; i<length; i++)
     {
         ///0.174533
         ///-10 -> 10
         //float change_angle = 0.174533f * (noise(line_id * 100.f + i * 300.f + tex_id * 100.f) - 0.5f) * 0.1f;
 
-        float change_angle = 0.174533f * (noise(per_texture + i * 100.f) - 0.5f) * 0.1f;
+        float change_angle = 0.174533f * (noise(per_texture + i * 10.f + nnoise)) * 0.5f;// - 0.5f) * 0.1f;
 
         angle_accum += change_angle;
 
-        ///
+        if(cur.x < 100 || cur.x >= width - 100 || cur.y < 100 || cur.y >= width - 100)
+        {
+            angle_accum += 0.01f;
+        }
+
         float2 next = cur + (float2){cos(angle_accum), sin(angle_accum)} / 2.f;
 
         uint4 ucol = convert_uint4(col * 255.f);
 
         write_tex_array(ucol, cur, tex_id, nums, sizes, array);
-
 
         cur = next;
     }
