@@ -3058,10 +3058,49 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
+
+    __local float2 vts[16*16];
+
+    int lix = get_local_id(0);
+    int liy = get_local_id(1);
+
+    vts[liy*16 + lix] = vt;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float2 vdx, vdy;
+
+    float2 vtdiff;
+
+    if(lix != 0)
+    {
+        vdx = vts[liy*16 + lix] - vts[liy*16 + lix - 1];
+    }
+
+    if(lix == 0)
+    {
+        vdx = vts[liy*16 + 1] - vts[liy*16 + 0];
+    }
+
+    if(liy != 0)
+    {
+        vdy = vts[liy*16 + lix] - vts[(liy-1)*16 + lix];
+    }
+
+    if(liy == 0)
+    {
+        vdy = vts[1*16 + lix] - vts[0*16 + lix];
+    }
+
+    //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
+
+    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y};
+
+
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
-        float3 t_normal = texture_filter(tris_proj, vt1, vt2, vt3, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+        float3 t_normal = texture_filter_diff(tris_proj, vt1, vt2, vt3, vt, vtdiff, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
 
         t_normal.xyz -= 0.5f;
 
@@ -3216,48 +3255,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
         #endif
     }
-
-    __local float2 vts[16*16];
-
-    int lix = get_local_id(0);
-    int liy = get_local_id(1);
-
-    /*vt.x = vt.x >= 1 ? 1.0f - (vt.x - floor(vt.x)) : vt.x;
-    vt.x = vt.x < 0 ? 1.0f + fabs(vt.x) - fabs(floor(vt.x)) : vt.x;
-    vt.y = vt.y >= 1 ? 1.0f - (vt.y - floor(vt.y)) : vt.y;
-    vt.y = vt.y < 0 ? 1.0f + fabs(vt.y) - fabs(floor(vt.y)) : vt.y;*/
-
-    vts[liy*16 + lix] = vt;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    float2 vdx, vdy;
-
-    float2 vtdiff;
-
-    if(lix != 0)
-    {
-        vdx = vts[liy*16 + lix] - vts[liy*16 + lix - 1];
-    }
-
-    if(lix == 0)
-    {
-        vdx = vts[liy*16 + 1] - vts[liy*16 + 0];
-    }
-
-    if(liy != 0)
-    {
-        vdy = vts[liy*16 + lix] - vts[(liy-1)*16 + lix];
-    }
-
-    if(liy == 0)
-    {
-        vdy = vts[1*16 + lix] - vts[0*16 + lix];
-    }
-
-    //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
-
-    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y};
 
     float3 col = texture_filter_diff(tris_proj, vt1, vt2, vt3, vt, vtdiff, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
