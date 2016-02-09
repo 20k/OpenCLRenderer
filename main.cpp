@@ -51,12 +51,14 @@ int main(int argc, char *argv[])
 
     texture_manager::allocate_textures();
 
-    auto tex_gpu = texture_manager::build_descriptors();
-    window.set_tex_data(tex_gpu);
+    //auto tex_gpu = texture_manager::build_descriptors();
+    //window.set_tex_data(tex_gpu);
 
     context.build();
     auto object_dat = context.fetch();
     window.set_object_data(*object_dat);
+
+    window.set_tex_data(context.fetch()->tex_gpu);
 
     sf::Event Event;
 
@@ -96,7 +98,7 @@ int main(int argc, char *argv[])
         if(tex->c_image.getSize() == updated_tex.getSize())
         {
             //tex->update_gpu_texture(updated_tex, tex_gpu);
-            tex->update_gpu_texture_col({255, 0, 0}, tex_gpu);
+            //tex->update_gpu_texture_col({255, 0, 0}, context.fetch()->tex_gpu);
 
             //printf("howdy\n");
         }

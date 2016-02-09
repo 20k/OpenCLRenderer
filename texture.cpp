@@ -104,7 +104,7 @@ void texture::set_unique()
 {
     is_unique = true;
 
-    cacheable = false;
+    //cacheable = false;
 }
 
 void texture::set_texture_location(const std::string& loc)
@@ -129,9 +129,9 @@ void texture::push()
 
         texture* tex = texture_manager::texture_by_id(id);
 
-        if(tex || id == -1)
+        if(id == -1 || tex)
         {
-            if(tex->is_unique || id == -1)
+            if(id == -1 || tex->is_unique)
             {
                 id = texture_manager::add_texture(*this);
             }
@@ -290,6 +290,53 @@ void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
     //printf("gpuid %i\n", gpu_id);
 
     run_kernel_with_string("update_gpu_tex_colour", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+}
+
+void texture::update_random_lines(cl_int num, texture_gpu& gpu_dat)
+{
+    if(!is_active)
+        return;
+
+    cl_float4 col = {0,0,0};
+
+    arg_list args;
+    args.push_back(&num);
+    args.push_back(&col);
+    args.push_back(&gpu_id); ///what's my gpu id?
+    args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
+
+    run_kernel_with_string("procedural_crack", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+
+    clFinish(cl::cqueue.get());
+
+    arg_list margs;
+    margs.push_back(&gpu_id);
+    margs.push_back(&texture_manager::mipmap_start);
+    margs.push_back(&gpu_dat.g_texture_nums);
+    margs.push_back(&gpu_dat.g_texture_sizes);
+    margs.push_back(&gpu_dat.g_texture_array);
+    margs.push_back(&gpu_dat.g_texture_array);
+
+    run_kernel_with_string("generate_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, margs);
+
+    for(int i=0; i<MIP_LEVELS; i++)
+    {
+        cl_uint mip = i;
+
+        arg_list rargs;
+        rargs.push_back(&gpu_id);
+        rargs.push_back(&mip);
+        rargs.push_back(&texture_manager::mipmap_start);
+        rargs.push_back(&gpu_dat.g_texture_nums);
+        rargs.push_back(&gpu_dat.g_texture_sizes);
+        rargs.push_back(&gpu_dat.g_texture_array);
+        rargs.push_back(&gpu_dat.g_texture_array);
+
+        run_kernel_with_string("generate_mip_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, rargs);
+    }
 }
 
 void texture_load(texture* tex)

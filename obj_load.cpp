@@ -129,7 +129,7 @@ void obj_load(objects_container* pobj)
         exit(0xDEAD);
     }
 
-    //sf::Clock clk;
+    sf::Clock clk;
 
     std::string filename = pobj->file;
     std::string mtlname;
@@ -374,6 +374,8 @@ void obj_load(objects_container* pobj)
         {
             obj.tri_list.push_back(tris[j]);
         }
+
+        //memcpy(&obj.tri_list[0], &tris[usemtl_pos[i]], sizeof(triangle) * (usemtl_pos[i+1] - usemtl_pos[i]));
 
         obj.tri_num = obj.tri_list.size(); ///needs to be removed
 

@@ -284,7 +284,7 @@ void generate_textures_and_mipmaps()
 
             ///b is location within array, t is texture id, basically these two map ids -> array position information
             texture_manager::new_texture_id.push_back(t);
-            texture_manager::texture_nums_id.push_back(b);
+            texture_manager::texture_nums_id.push_back(b); ///this is really redundant
 
             ///textures id in active texture list
             texture_manager::texture_active_id.push_back(texture_manager::texture_by_id(texture_manager::active_textures[i])->id);

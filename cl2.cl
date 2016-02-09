@@ -535,6 +535,59 @@ void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3],
     }
 }
 
+
+///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
+///fixme
+///this should under no circumstances have to index two global arrays just to have to read from a damn texture
+float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE   |
+                    CLK_FILTER_NEAREST;
+
+    //cannot do linear interpolation on uchars
+
+    float x = coords.x;
+    float y = coords.y;
+
+    int slice = num[tid] >> 16;
+
+    int which = num[tid] & 0x0000FFFF;
+
+    const float max_tex_size = 2048;
+
+    float width = size[slice];
+
+    int hnum = native_divide(max_tex_size, width);
+    ///max horizontal and vertical nums
+
+    float tnumx = which % hnum;
+    float tnumy = which / hnum;
+
+
+    float tx = tnumx*width;
+    float ty = tnumy*width;
+
+    y = width - y;
+
+    x = fmod(x, width);
+    y = fmod(y, width);
+
+    x = clamp(x, 0.001f, width - 0.001f);
+    y = clamp(y, 0.001f, width - 0.001f);
+
+    ///width - fixes bug
+    ///remember to add 0.5f to this
+    float4 coord = {tx + x, ty + y, slice, 0};
+
+    uint4 col;
+    col = read_imageui(array, sam, coord);
+
+    float3 t = convert_float3(col.xyz);
+
+    return t;
+}
+
 ///0 -> 255
 ///this is gpu_id weird combination
 void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, global uint* size, __write_only image3d_t array)
@@ -561,6 +614,9 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, 
     float ty = tnumy*width;
 
     y = width - y;
+
+    x = fmod(x, width);
+    y = fmod(y, width);
 
     x = clamp(x, 0.001f, width - 0.001f);
     y = clamp(y, 0.001f, width - 0.001f);
@@ -644,54 +700,202 @@ void update_gpu_tex_colour(float4 col, uint tex_id, uint mipmap_start, __global 
         write_tex_array(ucol, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
     }
 }
-///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
-///fixme
-///this should under no circumstances have to index two global arrays just to have to read from a damn texture
-float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
+
+/*float noise_2d(int x, int y)
 {
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_NONE   |
-                    CLK_FILTER_NEAREST;
+    int n=x*271 + y*1999;
 
-    //cannot do linear interpolation on uchars
+    n=(n<<13)^n;
 
-    float x = coords.x;
-    float y = coords.y;
+    int nn=(n*(n*n*41333 +53307781)+1376312589)&0x7fffffff;
 
-    int slice = num[tid] >> 16;
+    return ((1.0-((float)nn/1073741824.0)));// + noise1(x) + noise1(y) + noise1(z) + noise1(w))/5.0;
+}*/
 
-    int which = num[tid] & 0x0000FFFF;
+float noise(int x)
+{
+    int n=x*271;
 
-    const float max_tex_size = 2048;
+    n=(n<<13)^n;
 
-    float width = size[slice];
+    int nn=(n*(n*n*41333 +53307781)+1376312589)&0x7fffffff;
 
-    int hnum = native_divide(max_tex_size, width);
-    ///max horizontal and vertical nums
-
-    float tnumx = which % hnum;
-    float tnumy = which / hnum;
-
-
-    float tx = tnumx*width;
-    float ty = tnumy*width;
-
-    y = width - y;
-
-    x = clamp(x, 0.001f, width - 0.001f);
-    y = clamp(y, 0.001f, width - 0.001f);
-
-    ///width - fixes bug
-    ///remember to add 0.5f to this
-    float4 coord = {tx + x, ty + y, slice, 0};
-
-    uint4 col;
-    col = read_imageui(array, sam, coord);
-
-    float3 t = convert_float3(col.xyz);
-
-    return t;
+    return ((1.0f-((float)nn/1073741824.0f)));
 }
+
+__kernel
+void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __global uint* sizes, __write_only image3d_t array, __read_only image3d_t rarray)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    int slice = nums[tex_id] >> 16;
+    float width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
+
+    float3 accum = 0;
+    float div = 0.f;
+
+    for(int j=-1; j<=1; j++)
+    {
+        for(int i=-1; i<=1; i++)
+        {
+            float3 col = read_tex_array((float2){x*2 + i, y*2 + j}, tex_id, nums, sizes, rarray);
+
+            accum += col * gauss[j+1][i+1];
+            div += gauss[j+1][i+1];
+        }
+    }
+
+    accum /= div;
+
+    for(int i=0; i<1; i++)
+    {
+        ///is this just.. wrong?
+        ///how on earth has this ever worked???
+        ///tex_id is some completely random property
+        int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
+
+        int w2 = nums[mtexid] >> 16;
+        float nwidth = sizes[w2];
+
+        float2 yx = ((float2){x * 2, y * 2} / width) * nwidth;
+
+        if(yx.x >= nwidth || yx.y >= nwidth)
+            return;
+
+        write_tex_array(convert_uint4(accum.xyzz), yx, mtexid, nums, sizes, array);
+    }
+}
+
+__kernel
+void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array, __read_only image3d_t rarray)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    uint proper_id = tex_id * MIP_LEVELS + mipmap_start + mip_level;
+
+    int slice = nums[proper_id] >> 16;
+    float width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    /*float3 accum = 0;
+    float div = 0.f;
+
+    for(int j=-1; j<=1; j++)
+    {
+        for(int i=-1; i<=1; i++)
+        {
+            float v = sqrt(2.f) - fast_length((float2){i, j});
+
+            float3 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
+
+            accum += col * v;
+
+            div += v;
+        }
+    }
+
+    //accum /= 9.f;
+
+    accum /= div;*/
+
+    const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
+
+    float3 accum = 0;
+    float div = 0.f;
+
+    for(int j=-1; j<=1; j++)
+    {
+        for(int i=-1; i<=1; i++)
+        {
+            float3 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
+
+            accum += col * gauss[j+1][i+1];
+            div += gauss[j+1][i+1];
+        }
+    }
+
+    accum /= div;
+
+
+    for(int i=0; i<1; i++)
+    {
+        ///is this just.. wrong?
+        ///how on earth has this ever worked???
+        ///tex_id is some completely random property
+        int mtexid = proper_id + i;
+
+        int w2 = nums[mtexid] >> 16;
+        float nwidth = sizes[w2];
+
+        float2 yx = ((float2){x * 2, y * 2} / width) * nwidth;
+
+        if(yx.x >= nwidth || yx.y >= nwidth)
+            return;
+
+        write_tex_array(convert_uint4(accum.xyzz), yx, mtexid, nums, sizes, array);
+    }
+}
+
+__kernel
+void procedural_crack(int num, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+{
+    int line_id = get_global_id(0);
+
+    if(line_id >= num)
+        return;
+
+    int slice = nums[tex_id] >> 16;
+    float width = sizes[slice];
+
+    int length = 100;
+
+    float xp = noise(tex_id * 100.f) * width;
+
+    float2 cur = {xp, noise(tex_id * 20.f + xp * 100.f) * width};
+
+    float angle_accum = tex_id * 10.f + line_id;
+
+    for(int i=0; i<length; i++)
+    {
+        ///0.174533
+        ///-10 -> 10
+        float change_angle = 0.174533f * (noise(line_id * 100.f + i * 300.f + tex_id * 100.f) - 0.5f) * 0.1f;
+
+        angle_accum += change_angle;
+
+        float2 next = cur + (float2){sin(angle_accum), cos(angle_accum)};
+
+        uint4 ucol = convert_uint4(col * 255.f);
+
+        write_tex_array(ucol, cur, tex_id, nums, sizes, array);
+
+        for(int i=0; i<MIP_LEVELS; i++)
+        {
+            ///is this just.. wrong?
+            ///how on earth has this ever worked???
+            ///tex_id is some completely random property
+            int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
+
+            int w2 = nums[mtexid] >> 16;
+            float nwidth = sizes[w2];
+
+            write_tex_array(ucol, (cur / width) * nwidth, mtexid, nums, sizes, array);
+        }
+
+        cur = next;
+    }
+}
+
+
 
 ///fixme
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
@@ -791,13 +995,120 @@ float3 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float
 
     //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.f;
 
-    /*if(tex_per_pix.x > tex_per_pix.y * 2)
-        tex_per_pix.y = tex_per_pix.x;
-
-    if(tex_per_pix.y > tex_per_pix.x > 2)
-        tex_per_pix.x = tex_per_pix.y;*/
-
     float worst = fast_length(tex_per_pix);
+
+    int mip_lower=0;
+    int mip_higher=0;
+    float fractional_mipmap_distance = 0;
+
+
+    mip_lower = floor(native_log2(worst));
+
+    mip_higher = mip_lower + 1;
+
+    mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
+    mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
+
+
+    int lower_size  = native_exp2((float)mip_lower);
+    int higher_size = native_exp2((float)mip_higher);
+
+    fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
+
+    fractional_mipmap_distance = (mip_lower == mip_higher) ? 0 : fractional_mipmap_distance;
+
+    int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
+    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;
+
+    float fmd = fractional_mipmap_distance;
+
+    float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+
+    if(mip_lower == mip_higher || fmd == 0)
+        return native_divide(col1, 255.f);
+
+    //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;
+
+    float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+
+    float3 finalcol = col1*(1.0f-fmd) + col2*(fmd);
+
+    return native_divide(finalcol, 255.0f);
+}
+
+///two mip levels are interchanging inappropriately
+///fov const is key to mipmapping?
+///textures are suddenly popping between levels, this isnt right
+///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
+float3 texture_filter_diff(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float2 vtdiff, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+{
+    /*int slice=nums[tid2] >> 16;
+    int tsize=sizes[slice];
+
+    float3 rotpoints[3];
+    rotpoints[0] = c_tri[0];
+    rotpoints[1] = c_tri[1];
+    rotpoints[2] = c_tri[2];
+
+
+    float minvx=min3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x); ///these are screenspace coordinates, used relative to each other so +width/2.0 cancels
+    float maxvx=max3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x);
+
+    float minvy=min3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
+    float maxvy=max3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
+
+
+    float mintx=min3(vt1.x, vt2.x, vt3.x);
+    float maxtx=max3(vt1.x, vt2.x, vt3.x);
+
+    float minty=min3(vt1.y, vt2.y, vt3.y);
+    float maxty=max3(vt1.y, vt2.y, vt3.y);
+
+    float2 vtm = vt;
+
+
+    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
+
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
+
+    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
+
+
+    float2 tdiff = {(maxtx - mintx), (maxty - minty)};
+
+    tdiff *= tsize;
+
+    float2 vdiff = {(maxvx - minvx), (maxvy - minvy)};
+
+    float2 tex_per_pix = tdiff / vdiff;
+
+    //float worst = max(tex_per_pix.x, tex_per_pix.y);
+
+    ///min gives good texture quality
+    //float worst = min(tex_per_pix.x, tex_per_pix.y);
+
+    //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.f;
+
+    float worst = fast_length(tex_per_pix);*/
+
+    int slice=nums[tid2] >> 16;
+    int tsize=sizes[slice];
+
+
+    float2 vtm = vt;
+
+    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
+
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
+
+    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
+
+
+    float worst = fast_length(vtdiff * tsize);
 
     int mip_lower=0;
     int mip_higher=0;
@@ -2635,7 +2946,7 @@ float mdot(float3 v1, float3 v2)
 ///change to 1d
 ///write an outline shader?
 __kernel
-//__attribute__((reqd_work_group_size(8, 8, 1)))
+__attribute__((reqd_work_group_size(16, 16, 1)))
 //__attribute__((vec_type_hint(float3)))
 void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
@@ -2906,7 +3217,49 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         #endif
     }
 
-    float3 col = texture_filter(tris_proj, vt1, vt2, vt3, vt, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    __local float2 vts[16*16];
+
+    int lix = get_local_id(0);
+    int liy = get_local_id(1);
+
+    /*vt.x = vt.x >= 1 ? 1.0f - (vt.x - floor(vt.x)) : vt.x;
+    vt.x = vt.x < 0 ? 1.0f + fabs(vt.x) - fabs(floor(vt.x)) : vt.x;
+    vt.y = vt.y >= 1 ? 1.0f - (vt.y - floor(vt.y)) : vt.y;
+    vt.y = vt.y < 0 ? 1.0f + fabs(vt.y) - fabs(floor(vt.y)) : vt.y;*/
+
+    vts[liy*16 + lix] = vt;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    float2 vdx, vdy;
+
+    float2 vtdiff;
+
+    if(lix != 0)
+    {
+        vdx = vts[liy*16 + lix] - vts[liy*16 + lix - 1];
+    }
+
+    if(lix == 0)
+    {
+        vdx = vts[liy*16 + 1] - vts[liy*16 + 0];
+    }
+
+    if(liy != 0)
+    {
+        vdy = vts[liy*16 + lix] - vts[(liy-1)*16 + lix];
+    }
+
+    if(liy == 0)
+    {
+        vdy = vts[1*16 + lix] - vts[0*16 + lix];
+    }
+
+    //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
+
+    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y};
+
+    float3 col = texture_filter_diff(tris_proj, vt1, vt2, vt3, vt, vtdiff, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;
 
@@ -2929,6 +3282,19 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     #endif // OUTLINE
 
     final_col = clamp(final_col, 0.f, 1.f);
+
+    //final_col.xyz = length(vtdiff);
+
+    ///i'm confused. texture coordinates here are in the triangle space, but the screen coords..
+    ///vt.y isn't screen.y. What's going on?
+    //final_col.xy = vt;
+
+
+    //final_col.xy = clamp(fabs(vtdiff * 50.f), 0.f, 1.f);
+
+    ///low vtdiff = low mipmap level
+    //final_col.xy = clamp(fabs(vt), 0.f, 1.f);
+    //final_col.z = 0;
 
     write_imagef(screen, scoord, final_col.xyzz);
 
@@ -4492,9 +4858,9 @@ float3 catmull(float3 p1, float3 p2, float3 p3, float3 p4, float frac)
 {
     float f2 = frac * frac;
 
-    float3 a0 = -0.5*p1 + 1.5*p2 - 1.5*p3 + 0.5*p4;
-    float3 a1 = p1 - 2.5*p2 + 2*p3 - 0.5*p4;
-    float3 a2 = -0.5*p1 + 0.5*p3;
+    float3 a0 = -0.5f*p1 + 1.5f*p2 - 1.5f*p3 + 0.5f*p4;
+    float3 a1 = p1 - 2.5f*p2 + 2.f*p3 - 0.5f*p4;
+    float3 a2 = -0.5f*p1 + 0.5f*p3;
     float3 a3 = p2;
 
     return a0 * frac * f2 + a1 * f2 + a2 * frac + a3;
