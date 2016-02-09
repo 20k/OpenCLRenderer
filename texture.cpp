@@ -310,8 +310,6 @@ void texture::update_random_lines(cl_int num, texture_gpu& gpu_dat)
 
     run_kernel_with_string("procedural_crack", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 
-    clFinish(cl::cqueue.get());
-
     arg_list margs;
     margs.push_back(&gpu_id);
     margs.push_back(&texture_manager::mipmap_start);
@@ -322,7 +320,7 @@ void texture::update_random_lines(cl_int num, texture_gpu& gpu_dat)
 
     run_kernel_with_string("generate_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, margs);
 
-    for(int i=0; i<MIP_LEVELS; i++)
+    for(int i=0; i<MIP_LEVELS-1; i++)
     {
         cl_uint mip = i;
 

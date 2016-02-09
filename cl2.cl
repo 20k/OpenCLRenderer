@@ -786,27 +786,6 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
     if(x >= width || y >= width)
         return;
 
-    /*float3 accum = 0;
-    float div = 0.f;
-
-    for(int j=-1; j<=1; j++)
-    {
-        for(int i=-1; i<=1; i++)
-        {
-            float v = sqrt(2.f) - fast_length((float2){i, j});
-
-            float3 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
-
-            accum += col * v;
-
-            div += v;
-        }
-    }
-
-    //accum /= 9.f;
-
-    accum /= div;*/
-
     const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
 
     float3 accum = 0;
@@ -826,12 +805,12 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
     accum /= div;
 
 
-    for(int i=0; i<1; i++)
+    //for(int i=0; i<1; i++)
     {
         ///is this just.. wrong?
         ///how on earth has this ever worked???
         ///tex_id is some completely random property
-        int mtexid = proper_id + i;
+        uint mtexid = proper_id + 1;
 
         int w2 = nums[mtexid] >> 16;
         float nwidth = sizes[w2];
@@ -856,29 +835,47 @@ void procedural_crack(int num, float4 col, uint tex_id, uint mipmap_start, __glo
     int slice = nums[tex_id] >> 16;
     float width = sizes[slice];
 
-    int length = 100;
+    int length = 100 * 2 * 5;
 
-    float xp = noise(tex_id * 100.f) * width;
+    float per_texture = tex_id * 100.f;
 
-    float2 cur = {xp, noise(tex_id * 20.f + xp * 100.f) * width};
+    float xp = noise(per_texture) * width;
 
-    float angle_accum = tex_id * 10.f + line_id;
+
+    float angle_accum = tex_id * 10.f;
+
+    float2 cur = {xp, noise(per_texture * 100.f) * width};
+
+    float2 offset = (float2){sin(angle_accum), cos(angle_accum)};
+
+    offset.xy = (float2){offset.y, -offset.x};
+
+    cur += offset * line_id;// * 2;
+
+    //float angle_accum = tex_id * 10.f + line_id * 0.1f;
+
+    if(line_id == 0 || line_id == num-1)
+    {
+        col.xyz += 0.5f;
+    }
 
     for(int i=0; i<length; i++)
     {
         ///0.174533
         ///-10 -> 10
-        float change_angle = 0.174533f * (noise(line_id * 100.f + i * 300.f + tex_id * 100.f) - 0.5f) * 0.1f;
+        //float change_angle = 0.174533f * (noise(line_id * 100.f + i * 300.f + tex_id * 100.f) - 0.5f) * 0.1f;
 
-        angle_accum += change_angle;
+        //float change_angle = 0.174533f * (noise(per_texture) - 0.5f);
 
-        float2 next = cur + (float2){sin(angle_accum), cos(angle_accum)};
+        //angle_accum += change_angle;
+
+        float2 next = cur + (float2){sin(angle_accum), cos(angle_accum)} / 2.f;
 
         uint4 ucol = convert_uint4(col * 255.f);
 
         write_tex_array(ucol, cur, tex_id, nums, sizes, array);
 
-        for(int i=0; i<MIP_LEVELS; i++)
+        /*for(int i=0; i<MIP_LEVELS; i++)
         {
             ///is this just.. wrong?
             ///how on earth has this ever worked???
@@ -889,13 +886,11 @@ void procedural_crack(int num, float4 col, uint tex_id, uint mipmap_start, __glo
             float nwidth = sizes[w2];
 
             write_tex_array(ucol, (cur / width) * nwidth, mtexid, nums, sizes, array);
-        }
+        }*/
 
         cur = next;
     }
 }
-
-
 
 ///fixme
 float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
@@ -1106,7 +1101,6 @@ float3 texture_filter_diff(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, 
     vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
 
     vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
-
 
     float worst = fast_length(vtdiff * tsize);
 
@@ -3094,7 +3088,10 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
 
-    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y};
+    ///1.1f is the seemingly minimum
+    const float mip_bias = 1.1f;
+
+    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} / mip_bias;
 
 
     ///normal maps are just all wrong atm
