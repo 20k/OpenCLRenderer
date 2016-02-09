@@ -292,7 +292,7 @@ void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
     run_kernel_with_string("update_gpu_tex_colour", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 }
 
-void texture::update_random_lines(cl_int num, texture_gpu& gpu_dat)
+void texture::update_random_lines(cl_int num, cl_float2 pos, cl_float2 dir, texture_gpu& gpu_dat)
 {
     if(!is_active)
         return;
@@ -301,6 +301,8 @@ void texture::update_random_lines(cl_int num, texture_gpu& gpu_dat)
 
     arg_list args;
     args.push_back(&num);
+    args.push_back(&pos);
+    args.push_back(&dir);
     args.push_back(&col);
     args.push_back(&gpu_id); ///what's my gpu id?
     args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?

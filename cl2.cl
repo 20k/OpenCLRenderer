@@ -825,7 +825,7 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
 }
 
 __kernel
-void procedural_crack(int num, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
 {
     int line_id = get_global_id(0);
 
@@ -844,13 +844,21 @@ void procedural_crack(int num, float4 col, uint tex_id, uint mipmap_start, __glo
 
     float angle_accum = tex_id * 10.f;
 
-    float2 cur = {xp, noise(per_texture * 100.f) * width};
+    //float2 cur = {xp, noise(per_texture * 100.f) * width};
 
-    float2 offset = (float2){sin(angle_accum), cos(angle_accum)};
+    //float2 offset = (float2){sin(angle_accum), cos(angle_accum)};
 
-    offset.xy = (float2){offset.y, -offset.x};
+    //offset.xy = (float2){offset.y, -offset.x};
+
+    float2 cur = pos;
+
+    float2 offset = {dir.y, -dir.x};
+
+    offset = fast_normalize(offset);
 
     cur += offset * line_id;// * 2;
+
+    angle_accum = atan2(offset.y, offset.x);
 
     //float angle_accum = tex_id * 10.f + line_id * 0.1f;
 
@@ -865,28 +873,17 @@ void procedural_crack(int num, float4 col, uint tex_id, uint mipmap_start, __glo
         ///-10 -> 10
         //float change_angle = 0.174533f * (noise(line_id * 100.f + i * 300.f + tex_id * 100.f) - 0.5f) * 0.1f;
 
-        //float change_angle = 0.174533f * (noise(per_texture) - 0.5f);
+        float change_angle = 0.174533f * (noise(per_texture + i * 100.f) - 0.5f) * 0.1f;
 
-        //angle_accum += change_angle;
+        angle_accum += change_angle;
 
-        float2 next = cur + (float2){sin(angle_accum), cos(angle_accum)} / 2.f;
+        ///
+        float2 next = cur + (float2){cos(angle_accum), sin(angle_accum)} / 2.f;
 
         uint4 ucol = convert_uint4(col * 255.f);
 
         write_tex_array(ucol, cur, tex_id, nums, sizes, array);
 
-        /*for(int i=0; i<MIP_LEVELS; i++)
-        {
-            ///is this just.. wrong?
-            ///how on earth has this ever worked???
-            ///tex_id is some completely random property
-            int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
-
-            int w2 = nums[mtexid] >> 16;
-            float nwidth = sizes[w2];
-
-            write_tex_array(ucol, (cur / width) * nwidth, mtexid, nums, sizes, array);
-        }*/
 
         cur = next;
     }
