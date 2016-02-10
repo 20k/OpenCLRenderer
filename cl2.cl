@@ -881,10 +881,10 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
 
         angle_accum += change_angle;
 
-        if(cur.x < 100 || cur.x >= width - 100 || cur.y < 100 || cur.y >= width - 100)
+        /*if(cur.x < 100 || cur.x >= width - 100 || cur.y < 100 || cur.y >= width - 100)
         {
             angle_accum += 0.01f;
-        }
+        }*/
 
         float2 next = cur + (float2){cos(angle_accum), sin(angle_accum)} / 2.f;
 
@@ -1039,59 +1039,8 @@ float3 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float3 texture_filter_diff(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float2 vtdiff, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float3 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
-    /*int slice=nums[tid2] >> 16;
-    int tsize=sizes[slice];
-
-    float3 rotpoints[3];
-    rotpoints[0] = c_tri[0];
-    rotpoints[1] = c_tri[1];
-    rotpoints[2] = c_tri[2];
-
-
-    float minvx=min3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x); ///these are screenspace coordinates, used relative to each other so +width/2.0 cancels
-    float maxvx=max3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x);
-
-    float minvy=min3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
-    float maxvy=max3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
-
-
-    float mintx=min3(vt1.x, vt2.x, vt3.x);
-    float maxtx=max3(vt1.x, vt2.x, vt3.x);
-
-    float minty=min3(vt1.y, vt2.y, vt3.y);
-    float maxty=max3(vt1.y, vt2.y, vt3.y);
-
-    float2 vtm = vt;
-
-
-    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
-
-    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
-
-    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
-
-    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
-
-
-    float2 tdiff = {(maxtx - mintx), (maxty - minty)};
-
-    tdiff *= tsize;
-
-    float2 vdiff = {(maxvx - minvx), (maxvy - minvy)};
-
-    float2 tex_per_pix = tdiff / vdiff;
-
-    //float worst = max(tex_per_pix.x, tex_per_pix.y);
-
-    ///min gives good texture quality
-    //float worst = min(tex_per_pix.x, tex_per_pix.y);
-
-    //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.f;
-
-    float worst = fast_length(tex_per_pix);*/
-
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
 
@@ -1112,14 +1061,12 @@ float3 texture_filter_diff(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, 
     int mip_higher=0;
     float fractional_mipmap_distance = 0;
 
-
     mip_lower = floor(native_log2(worst));
 
     mip_higher = mip_lower + 1;
 
     mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
     mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
-
 
     int lower_size  = native_exp2((float)mip_lower);
     int higher_size = native_exp2((float)mip_higher);
@@ -3101,7 +3048,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
-        float3 t_normal = texture_filter_diff(tris_proj, vt1, vt2, vt3, vt, vtdiff, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
 
         t_normal.xyz -= 0.5f;
 
@@ -3257,7 +3204,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         #endif
     }
 
-    float3 col = texture_filter_diff(tris_proj, vt1, vt2, vt3, vt, vtdiff, (float)*ft/mulint, camera_pos, camera_rot, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float3 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;
 
