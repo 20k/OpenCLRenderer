@@ -826,6 +826,7 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
 
 ///need to dynamically avoid the texture borders
 ///;_;
+///we're writing directly to the 3d texture array which will be slow :[
 __kernel
 void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
 {

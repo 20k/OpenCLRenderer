@@ -51,6 +51,7 @@ struct texture
     void push();
 
     void generate_mipmaps();
+    void update_gpu_mipmaps(texture_gpu& gpu_dat);
 
     void activate();
     void inactivate();

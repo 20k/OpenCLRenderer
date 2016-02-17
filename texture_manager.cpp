@@ -356,10 +356,17 @@ void texture_manager::activate_texture(int texture_id)
 {
     texture* tex = texture_by_id(texture_id);
 
-    if(tex->is_active != true)
+    if(!tex)
+    {
+        printf("ruh roh, no texture with id %i\n", texture_id);
+        return;
+    }
+
+    if(!tex->is_active)
     {
         active_textures.push_back(texture_id);
         tex->is_active = true;
+
         //return active_textures.size()-1;
     }
 
@@ -372,7 +379,14 @@ void texture_manager::inactivate_texture(int texture_id)
 {
     texture* tex = texture_by_id(texture_id);
 
-    if(tex->is_active == true)
+    if(!tex)
+    {
+        printf("inactivated invalid texture %i\n", texture_id);
+
+        return;
+    }
+
+    if(tex->is_active)
     {
         inactive_textures.push_back(texture_id);
         tex->is_active = false;

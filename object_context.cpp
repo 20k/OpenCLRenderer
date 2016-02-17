@@ -56,15 +56,17 @@ void object_context::load_active()
 
                 *obj = object_cache[obj->file];
 
+                obj->set_active(false);
+                obj->set_active_subobjs(false);
+
                 ///hmm
                 ///needs to be done at a subobject level, otherwise this is incorrect
                 obj->id = save_id;
                 obj->set_pos(save_pos);
                 obj->set_rot(save_rot);
-                obj->set_active(true);
 
                 ///this still dont work ;_;
-                /*for(auto& i : obj->objs)
+                for(auto& i : obj->objs)
                 {
                     ///ptr to array, so when we push it becomes invalid
                     texture* tex = texture_manager::texture_by_id(i.tid);
@@ -73,14 +75,25 @@ void object_context::load_active()
                     {
                         if(tex->is_unique)
                         {
-                            texture cp = *tex;
+                            /*texture cp = *tex;
+                            cp.is_loaded = false;
+                            cp.*/
+
+                            texture cp;
+                            cp.fp = tex->fp;
+                            cp.is_unique = tex->is_unique;
+                            cp.type = tex->type;
+                            cp.texture_location = tex->texture_location;
 
                             cp.push();
 
                             i.tid = cp.id;
                         }
                     }
-                }*/
+                }
+
+                obj->set_active_subobjs(true);
+                obj->set_active(true);
             }
             else
             {
@@ -405,7 +418,7 @@ void object_context::build(bool force)
         }
     }
 
-    rebuild_textures |= force;
+    //rebuild_textures |= force;
 
     if(rebuild_textures)
     {
