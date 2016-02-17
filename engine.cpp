@@ -171,7 +171,7 @@ compute::buffer engine::make_read_write(int size, void* data)
     return buf;
 }
 
-void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d)
+void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d, bool fullscreen)
 {
     #ifdef RIFT
     ovr_Initialize();
@@ -281,9 +281,13 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     #ifdef OCULUS
     window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #else
-    window.create(sf::VideoMode(videowidth, height), name);
-    //window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
+    if(!fullscreen)
+        window.create(sf::VideoMode(videowidth, height), name);
+    else
+        window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #endif
+
+    is_fullscreen = fullscreen;
 
     if(loaded)
     {
@@ -699,6 +703,23 @@ float engine::get_scrollwheel_delta()
 void engine::reset_scrollwheel_delta()
 {
     scrollwheel_delta = 0.f;
+}
+
+bool engine::check_alt_enter()
+{
+    sf::Keyboard key;
+
+    if(key.isKeyPressed(sf::Keyboard::LAlt) && key.isKeyPressed(sf::Keyboard::Return))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void engine::set_focus(bool _focus)
+{
+    focus = _focus;
 }
 
 /*void engine::set_scrollwheel_hack()

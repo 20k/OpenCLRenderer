@@ -170,7 +170,7 @@ struct engine
     void set_tex_data(texture_gpu&);
     void set_object_data(object_context_data&);
 
-    void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false);
+    void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false, bool fullscreen = false);
 
     static cl_float4 rot_about(cl_float4, cl_float4, cl_float4);
     static cl_float4 rot_about_camera(cl_float4);
@@ -214,7 +214,6 @@ struct engine
     void blit_to_screen();
     void flip();
 
-
     void swap_depth_buffers();
 
     void ui_interaction();
@@ -227,6 +226,10 @@ struct engine
     int get_mouse_delta_y();
     void update_scrollwheel_delta(sf::Event& event);
     void reset_scrollwheel_delta();
+
+    bool check_alt_enter();
+
+    void set_focus(bool _focus);
 
     float get_scrollwheel_delta();
     float get_frametime();
@@ -259,6 +262,10 @@ struct engine
     bool manual_input = false;
 
     std::deque<compute::event> event_queue;
+
+    bool is_fullscreen = false;
+
+    bool focus = true;
 };
 
 struct arg_list

@@ -2907,8 +2907,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
                     CLK_FILTER_NEAREST;
 
 
-    const uint x = get_global_id(0);
-    const uint y = get_global_id(1);
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
 
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
