@@ -3204,6 +3204,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         #endif
     }
 
+    ///mip_start is a global parameter, edit it out
     float3 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;

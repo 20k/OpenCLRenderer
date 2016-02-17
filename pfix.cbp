@@ -24,7 +24,6 @@
 					<Add option="-Ofast" />
 					<Add option="-march=native" />
 					<Add option="-msse3 -mavx" />
-					<Add option="-std=gnu++11" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -46,7 +45,7 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-std=gnu++11" />
+			<Add option="-std=gnu++14" />
 			<Add option="-march=native" />
 			<Add option="-DGLEW_STATIC" />
 			<Add option="-DNDEBUG" />

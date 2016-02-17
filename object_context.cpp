@@ -405,6 +405,8 @@ void object_context::build(bool force)
         }
     }
 
+    rebuild_textures |= force;
+
     if(rebuild_textures)
     {
         texture_manager::allocate_textures();

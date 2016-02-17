@@ -301,6 +301,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     else
     {
         //build(loc, width, height, l_size, only_3d);
+
+        cl::cqueue.finish();
+        cl::cqueue2.finish();
+
         oclstuff(loc, width, height, l_size, only_3d);
     }
 

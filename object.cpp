@@ -391,8 +391,10 @@ void object::g_flush(object_context_data& dat, bool force)
 
     int data_id = dat.id;
 
+    bool context_switched = last_object_context_data_id != data_id;
+
     ///if the gpu context has changed, force a write
-    bool force_flush = last_object_context_data_id != data_id;
+    bool force_flush = context_switched;
 
     last_object_context_data_id = data_id;
 
@@ -431,30 +433,54 @@ void object::g_flush(object_context_data& dat, bool force)
         //clReleaseEvent(i);
     }*/
 
+    ///this causes a crash?
+    /*if(context_switched)
+    {
+        for(auto& i : write_events)
+        {
+            clReleaseEvent(i);
+        }
+
+        write_events.clear();
+    }*/
+
     int num_events = write_events.size();
+
+    cl_event* event_ptr = num_events > 0 ? write_events.data() : nullptr;
 
     cl_int ret = -1;
 
     cl_event event;
 
     if(dirty_pos && dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, write_events.data(), &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
     else if(dirty_pos)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, write_events.data(), &event); ///only position
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, event_ptr, &event); ///only position
     else if(dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, write_events.data(), &event); ///only rotation
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, event_ptr, &event); ///only rotation
 
     ///on a flush atm we'll get some slighty data duplication
     ///very minorly bad for performance, but eh
     if(force_flush)
     {
-        if(dirty_pos || dirty_rot)
-            write_events.push_back(event);
+        ///hmm. write_events > 0 causing a crash her
+        //if(dirty_pos || dirty_rot)
+        //    write_events.push_back(event);
+
+        if((dirty_pos || dirty_rot) && ret != CL_SUCCESS)
+        {
+            printf("Crashtime in flush err %i\n", ret);
+        }
 
         num_events = write_events.size();
 
+        cl_event old = event;
+
         ///the cl_true here is a big reason for the slowdown on object context change
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, write_events.data(), &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
+
+        if(dirty_pos || dirty_rot)
+            clReleaseEvent(old);
     }
 
     for(auto& i : write_events)
