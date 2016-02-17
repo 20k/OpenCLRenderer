@@ -461,26 +461,34 @@ void object::g_flush(object_context_data& dat, bool force)
 
     ///on a flush atm we'll get some slighty data duplication
     ///very minorly bad for performance, but eh
+
+    ///still hanging even without this forced flush
+    ///this means that its probably something else
     if(force_flush)
     {
         ///hmm. write_events > 0 causing a crash her
-        //if(dirty_pos || dirty_rot)
-        //    write_events.push_back(event);
+        if(dirty_pos || dirty_rot)
+            write_events.push_back(event);
 
         if((dirty_pos || dirty_rot) && ret != CL_SUCCESS)
         {
             printf("Crashtime in flush err %i\n", ret);
         }
 
-        num_events = write_events.size();
+        num_events = write_events.size() > 0 ? 1 : 0;
 
-        cl_event old = event;
+        event_ptr = num_events > 0 ? &write_events.back() : nullptr;
+
+        //cl_event old = event;
 
         ///the cl_true here is a big reason for the slowdown on object context change
         ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
 
-        if(dirty_pos || dirty_rot)
-            clReleaseEvent(old);
+        ///so if we releaseevent we get a crash
+        ///otherwise a hang
+        ///so this is likely the problem here
+        //if(dirty_pos || dirty_rot)
+        //    clReleaseEvent(old);
     }
 
     for(auto& i : write_events)
@@ -493,6 +501,11 @@ void object::g_flush(object_context_data& dat, bool force)
     if(ret == CL_SUCCESS)
     {
         write_events.push_back(event);
+    }
+
+    else
+    {
+        printf("write err in g_flush %i\n", ret);
     }
 
     ///???
