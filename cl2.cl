@@ -539,7 +539,7 @@ void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3],
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 ///fixme
 ///this should under no circumstances have to index two global arrays just to have to read from a damn texture
-float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
+float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE   |
@@ -583,7 +583,7 @@ float3 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     uint4 col;
     col = read_imageui(array, sam, coord);
 
-    float3 t = convert_float3(col.xyz);
+    float4 t = convert_float4(col);
 
     return t;
 }
@@ -737,14 +737,14 @@ void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __globa
 
     const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
 
-    float3 accum = 0;
+    float4 accum = 0;
     float div = 0.f;
 
     for(int j=-1; j<=1; j++)
     {
         for(int i=-1; i<=1; i++)
         {
-            float3 col = read_tex_array((float2){x*2 + i, y*2 + j}, tex_id, nums, sizes, rarray);
+            float4 col = read_tex_array((float2){x*2 + i, y*2 + j}, tex_id, nums, sizes, rarray);
 
             accum += col * gauss[j+1][i+1];
             div += gauss[j+1][i+1];
@@ -768,7 +768,7 @@ void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __globa
         if(yx.x >= nwidth || yx.y >= nwidth)
             return;
 
-        write_tex_array(convert_uint4(accum.xyzz), yx, mtexid, nums, sizes, array);
+        write_tex_array(convert_uint4(accum), yx, mtexid, nums, sizes, array);
     }
 }
 
@@ -788,14 +788,14 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
 
     const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
 
-    float3 accum = 0;
+    float4 accum = 0;
     float div = 0.f;
 
     for(int j=-1; j<=1; j++)
     {
         for(int i=-1; i<=1; i++)
         {
-            float3 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
+            float4 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
 
             accum += col * gauss[j+1][i+1];
             div += gauss[j+1][i+1];
@@ -820,7 +820,7 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
         if(yx.x >= nwidth || yx.y >= nwidth)
             return;
 
-        write_tex_array(convert_uint4(accum.xyzz), yx, mtexid, nums, sizes, array);
+        write_tex_array(convert_uint4(accum), yx, mtexid, nums, sizes, array);
     }
 }
 
@@ -898,7 +898,7 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
 }
 
 ///fixme
-float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
+float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
 {
     int which=nums[tid];
     float width=sizes[which >> 16];
@@ -915,7 +915,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     coords[3].x=pos.x+1, coords[3].y=pos.y+1;
 
 
-    float3 colours[4];
+    float4 colours[4];
 
     for(int i=0; i<4; i++)
     {
@@ -927,10 +927,11 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
 
-    float3 result;
+    float4 result;
     result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
     result.y=(colours[0].y*buvr.x + colours[1].y*uvratio.x)*buvr.y + (colours[2].y*buvr.x + colours[3].y*uvratio.x)*uvratio.y;
     result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;
+    result.w=(colours[0].w*buvr.x + colours[1].w*uvratio.x)*buvr.y + (colours[2].w*buvr.x + colours[3].w*uvratio.x)*uvratio.y;
 
 
     ///if using hardware linear interpolation
@@ -944,7 +945,7 @@ float3 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float3 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -1022,16 +1023,16 @@ float3 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float
 
     float fmd = fractional_mipmap_distance;
 
-    float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
     if(mip_lower == mip_higher || fmd == 0)
         return native_divide(col1, 255.f);
 
     //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;
 
-    float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
-    float3 finalcol = col1*(1.0f-fmd) + col2*(fmd);
+    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
     return native_divide(finalcol, 255.0f);
 }
@@ -1040,7 +1041,7 @@ float3 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float3 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -1081,16 +1082,16 @@ float3 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
     float fmd = fractional_mipmap_distance;
 
-    float3 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
 
     if(mip_lower == mip_higher || fmd == 0)
         return native_divide(col1, 255.f);
 
     //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;
 
-    float3 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
-    float3 finalcol = col1*(1.0f-fmd) + col2*(fmd);
+    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
     return native_divide(finalcol, 255.0f);
 }
@@ -3049,7 +3050,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
-        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array);
+        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array).xyz;
 
         t_normal.xyz -= 0.5f;
 
@@ -3206,7 +3207,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     }
 
     ///mip_start is a global parameter, edit it out
-    float3 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;
 
@@ -3216,7 +3217,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     float reflected_surface_colour = 0.7f;
 
-    float3 colclamp = col + mandatory_light + specular_sum * reflected_surface_colour;
+    float3 colclamp = col.xyz + mandatory_light + specular_sum * reflected_surface_colour;
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
