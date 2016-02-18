@@ -170,7 +170,7 @@ void gen_miplevel(texture& tex, int level)
             p4[3]=base.getPixel(i*2+1, j*2+1);*/
 
 
-            float xa = 0, ya = 0, za = 0;
+            float xa = 0, ya = 0, za = 0, wa = 0;
 
             int num = 0;
 
@@ -185,6 +185,7 @@ void gen_miplevel(texture& tex, int level)
                 xa += c.r * gauss[y+1][x+1];
                 ya += c.g * gauss[y+1][x+1];
                 za += c.b * gauss[y+1][x+1];
+                wa += c.a * gauss[y+1][x+1];
 
                 num += gauss[y+1][x+1];
             }
@@ -192,6 +193,7 @@ void gen_miplevel(texture& tex, int level)
             xa /= num;
             ya /= num;
             za /= num;
+            wa /= num;
 
 
             /*sf::Color ret;
@@ -199,7 +201,7 @@ void gen_miplevel(texture& tex, int level)
             ret.g=(p4[0].g + p4[1].g + p4[2].g + p4[3].g)/4.0f;
             ret.b=(p4[0].b + p4[1].b + p4[2].b + p4[3].b)/4.0f;*/
 
-            sf::Color ret(xa, ya, za);
+            sf::Color ret(xa, ya, za, wa);
 
             mip.setPixel(i, j, ret);
         }
@@ -259,6 +261,8 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     cl_mem gl_mem = clCreateFromGLTexture(cl::context.get(), CL_MEM_READ_ONLY,
                                           GL_TEXTURE_2D, 0, (GLuint)opengl_id, NULL);
 
+    clEnqueueAcquireGLObjects(cl::cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+
     //printf("gpu %i %i\n", gpu_id & 0x0000FFFF, (gpu_id >> 16) & 0x0000FFFF);
 
     arg_list args;
@@ -270,6 +274,10 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     args.push_back(&gpu_dat.g_texture_array);
 
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+
+    clEnqueueReleaseGLObjects(cl::cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+
+    clReleaseMemObject(gl_mem);
 }
 
 void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)

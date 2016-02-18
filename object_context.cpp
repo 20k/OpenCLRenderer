@@ -433,7 +433,7 @@ void object_context::build(bool force)
         }
     }
 
-    //rebuild_textures |= force;
+    rebuild_textures |= force;
 
     if(rebuild_textures)
     {

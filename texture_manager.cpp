@@ -97,12 +97,14 @@ inline void setpixel(cl_uchar4* buf, sf::Color col, int x, int y, int lx, int ly
 }
 
 ///averages out 4 pixel values
-static sf::Color pixel4(const sf::Color& p0, const sf::Color& p1, const sf::Color& p2, const sf::Color& p3)
+inline
+sf::Color pixel4(const sf::Color& p0, const sf::Color& p1, const sf::Color& p2, const sf::Color& p3)
 {
     sf::Color ret;
     ret.r=(p0.r + p1.r + p2.r + p3.r)/4.0f;
     ret.g=(p0.g + p1.g + p2.g + p3.g)/4.0f;
     ret.b=(p0.b + p1.b + p2.b + p3.b)/4.0f;
+    ret.a=(p0.a + p1.a + p2.a + p3.a)/4.0f;
 
     return ret;
 }
