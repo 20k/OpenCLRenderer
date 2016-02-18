@@ -1015,6 +1015,9 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     cl_uint p1global_ws = dat.tri_num;
     cl_uint local = 128;
 
+    if(dat.tri_num <= 0)
+        return compute::event();
+
     //static cl_uint id_num = 0;
 
     ///do this async
