@@ -1003,7 +1003,7 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
-compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out)
+compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out, object_context_data& dat)
 {
     eng.last_frametype = frametype::RENDER;
 
@@ -1012,7 +1012,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     cl_uint zero = 0;
 
     ///1 thread per triangle
-    cl_uint p1global_ws = eng.obj_data->tri_num;
+    cl_uint p1global_ws = dat.tri_num;
     cl_uint local = 128;
 
     static cl_uint id_num = 0;
@@ -1057,16 +1057,16 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     arg_list prearg_list;
 
-    prearg_list.push_back(&eng.obj_data->g_tri_mem);
-    prearg_list.push_back(&eng.obj_data->g_tri_num);
+    prearg_list.push_back(&dat.g_tri_mem);
+    prearg_list.push_back(&dat.g_tri_num);
     prearg_list.push_back(&position);
     prearg_list.push_back(&rotation);
     prearg_list.push_back(&eng.g_tid_buf);
     prearg_list.push_back(&eng.g_tid_buf_max_len);
     prearg_list.push_back(&eng.g_tid_buf_atomic_count);
-    prearg_list.push_back(&eng.obj_data->g_cut_tri_num);
-    prearg_list.push_back(&eng.obj_data->g_cut_tri_mem);
-    prearg_list.push_back(&eng.obj_data->g_obj_desc);
+    prearg_list.push_back(&dat.g_cut_tri_num);
+    prearg_list.push_back(&dat.g_cut_tri_mem);
+    prearg_list.push_back(&dat.g_obj_desc);
     prearg_list.push_back(&eng.g_distortion_buffer);
 
     //run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
@@ -1080,14 +1080,14 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     ///write depth of triangles to buffer, ie z buffering
 
     arg_list p1arg_list;
-    p1arg_list.push_back(&eng.obj_data->g_tri_mem);
+    p1arg_list.push_back(&dat.g_tri_mem);
     p1arg_list.push_back(&eng.g_tid_buf);
-    p1arg_list.push_back(&eng.obj_data->g_tri_num);
+    p1arg_list.push_back(&dat.g_tri_num);
     p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
     p1arg_list.push_back(&eng.g_tid_buf_atomic_count);
-    p1arg_list.push_back(&eng.obj_data->g_cut_tri_num);
-    p1arg_list.push_back(&eng.obj_data->g_cut_tri_mem);
+    p1arg_list.push_back(&dat.g_cut_tri_num);
+    p1arg_list.push_back(&dat.g_cut_tri_mem);
     p1arg_list.push_back(&eng.g_distortion_buffer);
     p1arg_list.push_back(&eng.g_id_screen_tex);
 
@@ -1104,14 +1104,14 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     ///hmmm. Using second kernel seems to have better depth complexity
     arg_list p2arg_list;
-    p2arg_list.push_back(&eng.obj_data->g_tri_mem);
+    p2arg_list.push_back(&dat.g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);
-    p2arg_list.push_back(&eng.obj_data->g_tri_num);
+    p2arg_list.push_back(&dat.g_tri_num);
     p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p2arg_list.push_back(&eng.g_id_screen_tex);
     p2arg_list.push_back(&eng.g_tid_buf_atomic_count);
-    p2arg_list.push_back(&eng.obj_data->g_cut_tri_num);
-    p2arg_list.push_back(&eng.obj_data->g_cut_tri_mem);
+    p2arg_list.push_back(&dat.g_cut_tri_num);
+    p2arg_list.push_back(&dat.g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
 
     run_kernel_with_string("kernel2", &p2global_ws, &local, 1, p2arg_list);
@@ -1122,8 +1122,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     /// many arguments later
 
     arg_list p3arg_list;
-    p3arg_list.push_back(&eng.obj_data->g_tri_mem);
-    p3arg_list.push_back(&eng.obj_data->g_tri_num);
+    p3arg_list.push_back(&dat.g_tri_mem);
+    p3arg_list.push_back(&dat.g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
@@ -1132,14 +1132,14 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&g_screen_out);
     p3arg_list.push_back(&eng.tex_data->g_texture_nums);
     p3arg_list.push_back(&eng.tex_data->g_texture_sizes);
-    p3arg_list.push_back(&eng.obj_data->g_obj_desc);
-    p3arg_list.push_back(&eng.obj_data->g_obj_num);
+    p3arg_list.push_back(&dat.g_obj_desc);
+    p3arg_list.push_back(&dat.g_obj_num);
     p3arg_list.push_back(&eng.light_data->g_light_num);
     p3arg_list.push_back(&eng.light_data->g_light_mem);
     p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
     p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
     p3arg_list.push_back(&eng.g_tid_buf);
-    p3arg_list.push_back(&eng.obj_data->g_cut_tri_mem);
+    p3arg_list.push_back(&dat.g_cut_tri_mem);
     p3arg_list.push_back(&eng.g_distortion_buffer);
     p3arg_list.push_back(&eng.g_object_id_tex);
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
@@ -1465,7 +1465,7 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
 }
 
 ///this function is horrible and needs to be reworked into multiple smaller functions
-compute::event engine::draw_bulk_objs_n()
+compute::event engine::draw_bulk_objs_n(object_context_data& dat)
 {
     compute::event ret;
 
@@ -1486,7 +1486,7 @@ compute::event engine::draw_bulk_objs_n()
         {
         #endif // USE_REPROJECTION
 
-            ret = render_tris(*this, pos_offset, rot_offset, g_screen);
+            ret = render_tris(*this, pos_offset, rot_offset, g_screen, dat);
             swap_depth_buffers();
 
         #ifdef USE_REPROJECTION
