@@ -1009,13 +1009,13 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     //sf::Clock c;
 
-    cl_uint zero = 0;
+    //cl_uint zero = 0;
 
     ///1 thread per triangle
     cl_uint p1global_ws = dat.tri_num;
     cl_uint local = 128;
 
-    static cl_uint id_num = 0;
+    //static cl_uint id_num = 0;
 
     ///do this async
 
@@ -1042,7 +1042,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     float id_fudge = 1.2f;
 
     ///this is very undefined behaviour
-    clEnqueueReadBuffer(cl::cqueue, eng.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &id_num, 0, NULL, NULL);
+    clEnqueueReadBuffer(cl::cqueue, dat.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &dat.cpu_id_num, 0, NULL, NULL);
 
     /*int tile_size = 32;
     int tile_depth = 1000;
@@ -1063,7 +1063,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     prearg_list.push_back(&rotation);
     prearg_list.push_back(&eng.g_tid_buf);
     prearg_list.push_back(&eng.g_tid_buf_max_len);
-    prearg_list.push_back(&eng.g_tid_buf_atomic_count);
+    prearg_list.push_back(&dat.g_tid_buf_atomic_count);
     prearg_list.push_back(&dat.g_cut_tri_num);
     prearg_list.push_back(&dat.g_cut_tri_mem);
     prearg_list.push_back(&dat.g_obj_desc);
@@ -1075,7 +1075,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     local = 256;
 
     ///infernal satanic magic
-    cl_uint p1global_ws_new = id_num * id_fudge;
+    cl_uint p1global_ws_new = dat.cpu_id_num * id_fudge;
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -1085,7 +1085,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p1arg_list.push_back(&dat.g_tri_num);
     p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
-    p1arg_list.push_back(&eng.g_tid_buf_atomic_count);
+    p1arg_list.push_back(&dat.g_tid_buf_atomic_count);
     p1arg_list.push_back(&dat.g_cut_tri_num);
     p1arg_list.push_back(&dat.g_cut_tri_mem);
     p1arg_list.push_back(&eng.g_distortion_buffer);
@@ -1096,7 +1096,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
-    cl_uint p2global_ws = id_num * id_fudge;
+    cl_uint p2global_ws = dat.cpu_id_num * id_fudge;
 
     cl_uint local2 = 256;
 
@@ -1109,7 +1109,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p2arg_list.push_back(&dat.g_tri_num);
     p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p2arg_list.push_back(&eng.g_id_screen_tex);
-    p2arg_list.push_back(&eng.g_tid_buf_atomic_count);
+    p2arg_list.push_back(&dat.g_tid_buf_atomic_count);
     p2arg_list.push_back(&dat.g_cut_tri_num);
     p2arg_list.push_back(&dat.g_cut_tri_mem);
     p2arg_list.push_back(&eng.g_distortion_buffer);
@@ -1464,21 +1464,48 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
     run_kernel_with_list(cl::warp_oculus, p3global_ws, p3local_ws, 2, distort_arg_list);
 }
 
+bool engine::can_render()
+{
+    return render_events_num < max_render_events;
+}
+
+void engine::increase_render_events()
+{
+    render_events_num++;
+}
+
 ///this function is horrible and needs to be reworked into multiple smaller functions
 compute::event engine::draw_bulk_objs_n(object_context_data& dat)
 {
+    if(dat.s_w != width || dat.s_h != height)
+    {
+        if(dat.s_w != 0 || dat.s_h != 0)
+        {
+            compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+        }
+
+        dat.g_screen = gen_cl_gl_framebuffer_renderbuffer(&dat.gl_framebuffer_id, width, height);
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+
+        dat.s_w = width;
+        dat.s_h = height;
+
+        printf("created screen\n");
+    }
+
     compute::event ret;
 
     ///this is not a shadowmapping kernel. is_light needs to be passed in as a compile time parameter
     cl_float4 pos_offset = c_pos;
     cl_float4 rot_offset = c_rot;
 
-    if(render_events_num >= max_render_events)
-        return ret;
+    //if(render_events_num >= max_render_events)
+    //    return ret;
 
     if(!rift::enabled)
     {
-        render_events_num++;
+        //render_events_num++;
 
         //#define USE_REPROJECTION
         #ifdef USE_REPROJECTION
@@ -1486,8 +1513,8 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
         {
         #endif // USE_REPROJECTION
 
-            ret = render_tris(*this, pos_offset, rot_offset, g_screen, dat);
-            swap_depth_buffers();
+            ret = render_tris(*this, pos_offset, rot_offset, dat.g_screen, dat);
+            //swap_depth_buffers();
 
         #ifdef USE_REPROJECTION
         }
@@ -2295,21 +2322,14 @@ void engine::render_block()
     }
 }
 
-void render_screen(engine& eng)
+void render_screen(engine& eng, object_context_data& dat)
 {
-    static bool once = true;
-
-    ///dangerous if i want to mix 2d and 3d rendering
-    //if(once)
-    {
-
-        //once = false;
-    }
-
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
-    compute::opengl_enqueue_release_gl_objects(1, &eng.g_screen.get(), cl::cqueue);
+    ///this is not THE screen, its A screen
+    ///therefore we don't need to worry about text rendering while its acquired etc
+    compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
 
-    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, eng.gl_framebuffer_id);
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, dat.gl_framebuffer_id);
 
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
 
@@ -2317,12 +2337,14 @@ void render_screen(engine& eng)
     ///blit buffer to screen
     glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
 
+    /*
     ///going to be incorrect on rift
     interact::deplete_stack();
     interact::clear();
 
-    text_handler::render();
+    text_handler::render();*/
 
     //eng.running_frametime_smoothed = (9 * eng.running_frametime_smoothed + eng.get_frametime()) / 10.f;
     //eng.running_frametime_smoothed = eng.get_frametime();
@@ -2339,7 +2361,7 @@ void engine::flip()
 
         window.display();
 
-        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+        //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
     }
 }
 
@@ -2350,7 +2372,7 @@ void engine::flip()
 ///gpu context switch is causing hw stall
 ///investigate binding screen as opencl object
 ///I could use multiple queues and synchronise between them with event objects
-void engine::blit_to_screen()
+void engine::blit_to_screen(object_context_data& dat)
 {
     if(render_me)
     {
@@ -2362,24 +2384,19 @@ void engine::blit_to_screen()
 
         static float wait = 0;
 
-        static float render_total_time_acc = 0;
-        static float reproject_total_time_acc = 0;
-
         ///if nvidia crashes, this code is why
         ///what we really want to do is update the input just before rendering and use that
         ///if we're doing reprojection, we want to update by our estimated smoothed frametime
         ///otherwise use actual frametime
         if(current_frametype == frametype::RENDER)
         {
-            render_screen(*this);
+            render_screen(*this, dat);
 
             if(!manual_input)
                 process_input();
 
             //printf("t%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();
-
-            //running_frametime_smoothed = (20 * running_frametime_smoothed + get_frametime()) / 21.f;
 
             render_time_end = ftime.getElapsedTime().asMicroseconds();
         }
@@ -2390,14 +2407,10 @@ void engine::blit_to_screen()
 
             float render_total_time = render_time_end - reproject_time_end;
 
-            //render_total_time_acc = (render_total_time_acc * 9 + render_total_time) / 10.f;
-
             ///the time at which reproject ends
             reproject_time_end = ftime.getElapsedTime().asMicroseconds();
 
             float reproject_total_time = reproject_time_end - render_time_end;
-
-            //reproject_total_time_acc = (reproject_total_time_acc * 9 + reproject_total_time) / 10.f;
 
             wait = render_total_time/2.f - reproject_total_time;
 
@@ -2411,7 +2424,7 @@ void engine::blit_to_screen()
         {
             reproj_start = false;
 
-            render_screen(*this);
+            render_screen(*this, dat);
 
             printf("r%f\n", clk.getElapsedTime().asMicroseconds()/1000.f);
             clk.restart();

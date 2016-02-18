@@ -11,6 +11,7 @@
 #include <boost/compute/system.hpp>
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
+#include <unordered_map>
 
 namespace compute = boost::compute;
 
@@ -353,6 +354,12 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     build(file, w, h, lres, only_3d);
 }
 
+template<typename T>
+compute::buffer make_single_element()
+{
+    T def = T();
 
+    return compute::buffer(cl::context, sizeof(T), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &def);
+}
 
 #endif // OCL_H_INCLUDED

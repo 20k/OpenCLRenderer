@@ -211,7 +211,7 @@ struct engine
     ///wait until rendering is finished
     void render_block();
     void render_buffers();
-    void blit_to_screen();
+    void blit_to_screen(object_context_data& dat);
     void flip();
 
     void swap_depth_buffers();
@@ -242,6 +242,9 @@ struct engine
     void set_camera_rot(cl_float4);
 
     void check_obj_visibility(); ///unused, likely to be removed
+
+    bool can_render();
+    void increase_render_events();
 
     ///?
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);

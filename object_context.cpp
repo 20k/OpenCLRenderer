@@ -217,6 +217,22 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
     dat.tri_num = tri_num;
 
+    bool first_init = !context.fetch()->gpu_data_finished;
+
+    if(first_init)
+    {
+        context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
+    }
+
+    ///reuse the same buffer
+    dat.g_tid_buf_atomic_count = context.fetch()->g_tid_buf_atomic_count;
+
+    ///heuristic, help prevent flickering
+    dat.cpu_id_num = context.fetch()->cpu_id_num;
+
+    dat.g_screen = context.fetch()->g_screen;
+    dat.gl_framebuffer_id = context.fetch()->gl_framebuffer_id;
+
     cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_num, 0, dat.g_tri_num.size(), &dat.tri_num);
 
     cl_uint running = 0;

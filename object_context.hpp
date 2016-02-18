@@ -4,6 +4,8 @@
 #include <cl/cl.h>
 
 #include <boost/compute/system.hpp>
+#include <boost/compute/interop/opengl.hpp>
+
 #include "texture_manager.hpp"
 
 #include <set>
@@ -32,6 +34,12 @@ struct object_context_data
 
     texture_gpu tex_gpu;
 
+    compute::buffer g_tid_buf_atomic_count;
+
+    compute::opengl_renderbuffer g_screen;
+
+    cl_uint cpu_id_num = 0;
+
     /*compute::buffer pos[3];
     compute::buffer vt[3];
     compute::buffer norm[3];
@@ -44,6 +52,11 @@ struct object_context_data
     ///and so to reflush its data to the gpu
     static cl_uint gid;
     cl_uint id = gid++;
+
+    int s_w = 0;
+    int s_h = 0;
+
+    unsigned int gl_framebuffer_id = -1;
 };
 
 struct object_temporaries

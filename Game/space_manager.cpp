@@ -1,5 +1,6 @@
 #include "space_manager.hpp"
 #include "../engine.hpp"
+#include "../object_context.hpp"
 
 void space_manager::init(int _width, int _height)
 {
@@ -150,10 +151,10 @@ void space_manager::draw_space_nebulae(point_cloud_info& info, compute::buffer& 
     run_kernel_with_list(cl::space_nebulae, p3global_ws, p3local_ws, 2, nebulae_arg_list, true);
 }
 
-compute::event space_manager::blit_space_to_screen()
+compute::event space_manager::blit_space_to_screen(object_context_data& dat)
 {
     arg_list blit_space;
-    blit_space.push_back(g_screen);
+    blit_space.push_back(&dat.g_screen);
     blit_space.push_back(&g_colour_blend);
     blit_space.push_back(&g_space_depth);
     blit_space.push_back(depth_buffer);

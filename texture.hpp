@@ -6,7 +6,7 @@
 #include "obj_g_descriptor.hpp"
 #include <functional>
 
-static cl_uint max_tex_size=2048;
+const static cl_uint max_tex_size=2048;
 
 struct texture;
 
