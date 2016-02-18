@@ -255,7 +255,6 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
                 (*it).tri_list[i].vertices[0].set_pad(obj_id);
             }
 
-
             ///boost::compute fails an assertion if tri_num == 0
             ///we dont care if the data arrives late
             ///this might be causing the freezes

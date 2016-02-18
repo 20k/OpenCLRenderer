@@ -563,7 +563,7 @@ cl_float4 engine::rot_about(cl_float4 point, cl_float4 c_pos, cl_float4 c_rot)
 
     cl_float3 rel = sub(point, c_pos);
 
-    cl_float3 r1, r2, r3;
+    //cl_float3 r1, r2, r3;
 
     cl_float3 ret;
 
@@ -1561,6 +1561,19 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
     #endif
 
     return ret;
+}
+
+void engine::blend(object_context_data& src, object_context_data& dst)
+{
+    cl_int2 dim = {dst.s_w, dst.s_h};
+
+    arg_list args;
+    args.push_back(&src.g_screen);
+    args.push_back(&dst.g_screen);
+    args.push_back(&dst.g_screen);
+    args.push_back(&dim);
+
+    run_kernel_with_string("blend_screens", {dim.x*dim.y}, {128}, 1, args);
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
