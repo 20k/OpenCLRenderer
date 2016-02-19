@@ -94,6 +94,7 @@ inline void setpixel(cl_uchar4* buf, sf::Color col, int x, int y, int lx, int ly
     buf[x + y*lx].x=col.r;
     buf[x + y*lx].y=col.g;
     buf[x + y*lx].z=col.b;
+    buf[x + y*lx].w=col.a;
 }
 
 ///averages out 4 pixel values
@@ -202,6 +203,7 @@ void add_to_unique_size_table(std::vector<std::pair<int,int>>& table, int size)
             break;
         }
     }
+
     if(!iswithin)
     {
         //make new page if we couldnt find a home for the current texture

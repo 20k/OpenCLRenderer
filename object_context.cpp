@@ -400,6 +400,8 @@ void object_context::build(bool force)
 
     bool rebuild_textures = false;
 
+    ///ok so... basically we just need to fix the object texture management
+    ///it being global and this being local is fucking everything
     for(auto& k : containers)
     {
         for(auto& i : k->objs)
