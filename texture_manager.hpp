@@ -46,7 +46,7 @@ struct texture_manager
     static void inactivate_texture(int texture_id);
 
     static void allocate_textures();
-    static texture_gpu build_descriptors();
+    static texture_gpu texture_alloc_gpu();
 
     static bool exists_by_location(const std::string&);
 

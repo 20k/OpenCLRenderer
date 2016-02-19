@@ -351,8 +351,6 @@ int texture_manager::add_texture(texture& tex)
     tex.id = gid++;
     all_textures.push_back(tex);
 
-    //all_textures[tex.id].id = tex.id;
-
     return tex.id;
 }
 
@@ -363,6 +361,7 @@ void texture_manager::activate_texture(int texture_id)
     if(!tex)
     {
         printf("ruh roh, no texture with id %i\n", texture_id);
+
         return;
     }
 
@@ -370,12 +369,7 @@ void texture_manager::activate_texture(int texture_id)
     {
         active_textures.push_back(texture_id);
         tex->is_active = true;
-
-        //return active_textures.size()-1;
     }
-
-    //std::cout << "warning, could not activate texture, already active" << std::endl;
-    //return -1;
 }
 
 ///will auto mop up in texture_manager reallocate
@@ -394,23 +388,42 @@ void texture_manager::inactivate_texture(int texture_id)
     {
         inactive_textures.push_back(texture_id);
         tex->is_active = false;
-        //return inactive_textures.size()-1;
     }
-
-    //std::cout << "warning, could not deactivate texture, already inactive" << std::endl;
-    //return -1;
 }
 
 void texture_manager::allocate_textures()
 {
+    /*for(int i=0; i<active_textures.size(); i++)
+    {
+        texture* t1 = texture_by_id(active_textures[i]);
+
+        bool back = false;
+
+        for(int j=i+1; j<active_textures.size(); j++)
+        {
+            texture* t2 = texture_by_id(active_textures[j]);
+
+            if(t1->id == t2->id)
+            {
+                active_textures.erase(active_textures.begin() + j);
+                j--;
+
+                printf("hi\n");
+
+                back = true;
+            }
+        }
+
+        if(back)
+            i--;
+    }*/
+
     ///remove any not active texture from active texture list
     for(int i=0; i<active_textures.size(); i++)
     {
         if(texture_manager::texture_by_id(texture_manager::active_textures[i])->is_active == false)
         {
-            std::vector<int>::iterator it = active_textures.begin();
-            std::advance(it, i);
-            active_textures.erase(it);
+            active_textures.erase(active_textures.begin() + i);
             i--;
         }
     }
@@ -420,16 +433,13 @@ void texture_manager::allocate_textures()
     {
         if(texture_manager::texture_by_id(texture_manager::inactive_textures[i])->is_active == true)
         {
-            std::vector<int>::iterator it = inactive_textures.begin();
-            std::advance(it, i);
-            inactive_textures.erase(it);
+            inactive_textures.erase(inactive_textures.begin() + i);
             i--;
         }
     }
 
     load_active_textures();
     generate_all_mipmaps();
-
 
     std::vector<std::pair<int, int> > unique_sizes = generate_unique_size_table();
 
@@ -445,7 +455,7 @@ void texture_manager::allocate_textures()
 
 #include "clstate.h"
 
-texture_gpu texture_manager::build_descriptors()
+texture_gpu texture_manager::texture_alloc_gpu()
 {
     texture_gpu tex_gpu;
 

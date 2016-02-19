@@ -25,7 +25,7 @@ void object_context::destroy(objects_container* obj)
     {
         if(containers[i] == obj)
         {
-            delete [] obj;
+            delete obj;
 
             containers.erase(containers.begin() + i);
 
@@ -162,6 +162,9 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
             ///texture stuff should really be done elsewhere
             int tid = texture_manager::get_active_id(it.tid);
             int rid = texture_manager::get_active_id(it.rid);
+
+            if(tid == -1)
+                printf("No texture active id\n");
 
             texture* tex = texture_manager::texture_by_id(it.tid);
 
@@ -453,7 +456,7 @@ void object_context::build(bool force)
     new_gpu_dat = object_context_data();
 
     alloc_gpu(texture_manager::mipmap_start, tri_num, *this, new_gpu_dat);
-    new_gpu_dat.tex_gpu = texture_manager::build_descriptors();
+    new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
 
     alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, new_gpu_dat);
 

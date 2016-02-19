@@ -117,6 +117,11 @@ bool texture::exists()
     return texture_manager::exists_by_location(texture_location);
 }
 
+bool exists_by_id(texture* tex)
+{
+    return texture_manager::texture_by_id(tex->id) != nullptr;
+}
+
 void texture::push()
 {
     if(!exists() || is_unique)
