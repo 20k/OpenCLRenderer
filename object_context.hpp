@@ -3,6 +3,8 @@
 
 #include <cl/cl.h>
 
+#include <gl/glew.h>
+
 #include <boost/compute/system.hpp>
 #include <boost/compute/interop/opengl.hpp>
 

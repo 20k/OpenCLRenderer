@@ -1,6 +1,8 @@
 #ifndef INCLUDED_HPP_OBJECTS_CONTAINER
 #define INCLUDED_HPP_OBJECTS_CONTAINER
 
+#include <gl/glew.h>
+
 #include "object.hpp"
 #include <functional>
 #include <boost/compute/system.hpp>
@@ -39,13 +41,13 @@ struct objects_container
     static std::vector<objects_container*> obj_container_list;
 
     objects_container();
-    cl_uint push();
+    void push();
 
     void    set_pos(cl_float4);
     void    set_rot(cl_float4);
     void    offset_pos(cl_float4);
     void    set_file(const std::string&);
-    cl_uint set_active(bool param);
+    void    set_active(bool param);
     void    set_active_subobjs(bool);
     void    unload_tris();
 

@@ -1,5 +1,6 @@
 #ifndef INCLUDED_H_OBJ_G_DESCRIPTOR
 #define INCLUDED_H_OBJ_G_DESCRIPTOR
+
 #include <CL/CL.h>
 
 #define MIP_LEVELS 4

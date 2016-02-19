@@ -1,6 +1,8 @@
 #ifndef SPACE_MANAGER_H_INCLUDED
 #define SPACE_MANAGER_H_INCLUDED
 
+#include <gl/glew.h>
+
 #include <boost/compute/source.hpp>
 #include <boost/compute/system.hpp>
 #include <boost/compute/algorithm/iota.hpp>

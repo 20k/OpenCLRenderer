@@ -4,6 +4,7 @@
 ///owns every texture
 
 #include <vector>
+#include <gl/glew.h>
 #include "texture.hpp"
 
 #include <boost/compute/source.hpp>
@@ -13,9 +14,9 @@ namespace compute = boost::compute;
 
 struct texture_gpu
 {
-    compute::buffer g_texture_sizes;
-    compute::buffer g_texture_nums;
-    compute::image3d g_texture_array;
+    compute::buffer* g_texture_sizes;
+    compute::buffer* g_texture_nums;
+    compute::image3d* g_texture_array;
 };
 
 struct texture_manager
@@ -61,6 +62,8 @@ struct texture_manager
     static bool dirty;
 
     static int gid;
+
+    static bool any_loaded;
 };
 
 #if 0

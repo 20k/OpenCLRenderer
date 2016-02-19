@@ -160,6 +160,7 @@ void alloc_object_descriptors(temporaries& t, const std::vector<obj_g_descriptor
 
 void allocate_gpu(int mipmap_start, cl_uint trianglecount)
 {
+    #if 0
     cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
 
     compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
@@ -249,6 +250,7 @@ void allocate_gpu(int mipmap_start, cl_uint trianglecount)
     }
 
     t.tri_num = trianglecount;
+    #endif
 }
 
 
@@ -279,6 +281,7 @@ void obj_mem_manager::g_arrange_mem()
 
 void obj_mem_manager::g_changeover(bool force)
 {
+    #if 0
     ///changeover is accomplished as a swapping of variables so that it can be done in parallel
 
     const float refresh_time = 10.f;
@@ -319,4 +322,5 @@ void obj_mem_manager::g_changeover(bool force)
     texture_manager::dirty = false;
 
     dirty = false;
+    #endif
 }

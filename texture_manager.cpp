@@ -25,6 +25,8 @@ bool texture_manager::dirty = false;
 
 int texture_manager::gid = 0;
 
+bool texture_manager::any_loaded = false;
+
 ///this file provides texture gpu allocation functionality, its essentially a gigantic hack around the lack of texture array support in opencl 1.1
 
 texture* texture_manager::texture_by_id(int id)
@@ -313,10 +315,7 @@ void generate_textures_and_mipmaps()
 
     texture_manager::mipmap_start = mipbegin;
 
-    /*for(auto& i : texture_manager::all_textures)
-    {
-        i.
-    }*/
+    printf("mpbegin %i\n", mipbegin);
 }
 
 
@@ -459,9 +458,21 @@ texture_gpu texture_manager::texture_alloc_gpu()
 {
     texture_gpu tex_gpu;
 
+    tex_gpu.g_texture_sizes = &texture_manager::g_texture_sizes;
+    tex_gpu.g_texture_nums  = &texture_manager::g_texture_numbers;
+    tex_gpu.g_texture_array = &texture_manager::g_texture_array;
+
+
     ///this really shouldn't be in here whatsoever
     if(texture_manager::dirty)
     {
+        if(texture_manager::any_loaded)
+        {
+            //clReleaseMemObject(texture_manager::g_texture_sizes.get());
+            //clReleaseMemObject(texture_manager::g_texture_numbers.get());
+            //clReleaseMemObject(texture_manager::g_texture_array.get());
+        }
+
         compute::image_format imgformat(CL_RGBA, CL_UNSIGNED_INT8);
 
         cl_uint number_of_texture_slices = texture_manager::texture_sizes.size();
@@ -469,13 +480,23 @@ texture_gpu texture_manager::texture_alloc_gpu()
         cl_uint clamped_tex_slice = number_of_texture_slices <= 1 ? 2 : number_of_texture_slices;
         cl_uint clamped_ids = texture_manager::new_texture_id.size() == 0 ? 1 : texture_manager::new_texture_id.size();
 
-        tex_gpu.g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*clamped_tex_slice, CL_MEM_READ_ONLY);
-        tex_gpu.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
-        tex_gpu.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
+        texture_manager::g_texture_sizes = compute::buffer(cl::context, sizeof(cl_uint)*clamped_tex_slice, CL_MEM_READ_ONLY);
+        texture_manager::g_texture_numbers = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_ids, CL_MEM_READ_ONLY);
+        texture_manager::g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_tex_slice, 0, 0, NULL);
 
-        texture_manager::g_texture_sizes =   tex_gpu.g_texture_sizes;
+        //printf("tex alloc size %i\n", clamped_tex_slice);
+
+        /*texture_manager::g_texture_sizes =   tex_gpu.g_texture_sizes;
         texture_manager::g_texture_numbers = tex_gpu.g_texture_nums;
-        texture_manager::g_texture_array =   tex_gpu.g_texture_array;
+        texture_manager::g_texture_array =   tex_gpu.g_texture_array;*/
+
+        /*texture_manager::g_texture_sizes.get() =   tex_gpu.g_texture_sizes.get();
+        texture_manager::g_texture_numbers.get() = tex_gpu.g_texture_nums.get();
+        texture_manager::g_texture_array.get() =   tex_gpu.g_texture_array.get();
+
+        clRetainMemObject(texture_manager::g_texture_sizes.get());
+        clRetainMemObject(texture_manager::g_texture_numbers.get());
+        clRetainMemObject(texture_manager::g_texture_numbers.get());*/
 
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};
@@ -486,17 +507,26 @@ texture_gpu texture_manager::texture_alloc_gpu()
             ///need to pin c_texture_array to pcie mem
             //cl::cqueue2.enqueue_write_image(t.g_texture_array, origin, region, texture_manager::c_texture_array, 2048*4, 2048*2048*4);
 
-            clEnqueueWriteImage(cl::cqueue.get(), tex_gpu.g_texture_array.get(), CL_FALSE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
+            clEnqueueWriteImage(cl::cqueue.get(), texture_manager::g_texture_array.get(), CL_TRUE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
 
-            cl::cqueue.enqueue_write_buffer_async(tex_gpu.g_texture_sizes, 0, tex_gpu.g_texture_sizes.size(), texture_manager::texture_sizes.data());
-            cl::cqueue.enqueue_write_buffer_async(tex_gpu.g_texture_nums, 0, tex_gpu.g_texture_nums.size(), texture_manager::new_texture_id.data());
+            cl::cqueue.enqueue_write_buffer(texture_manager::g_texture_sizes, 0, texture_manager::g_texture_sizes.size(), texture_manager::texture_sizes.data());
+            cl::cqueue.enqueue_write_buffer(texture_manager::g_texture_numbers, 0, texture_manager::g_texture_numbers.size(), texture_manager::new_texture_id.data());
         }
+
+        texture_manager::any_loaded = true;
     }
     else
     {
-        tex_gpu.g_texture_sizes = texture_manager::g_texture_sizes;
-        tex_gpu.g_texture_nums  = texture_manager::g_texture_numbers;
-        tex_gpu.g_texture_array = texture_manager::g_texture_array;
+        /*clRetainMemObject(texture_manager::g_texture_sizes.get());
+        clRetainMemObject(texture_manager::g_texture_numbers.get());
+        clRetainMemObject(texture_manager::g_texture_numbers.get());
+
+        ///boost::compute considers this a move ;_;
+        tex_gpu.g_texture_sizes.get() = texture_manager::g_texture_sizes.get();
+        tex_gpu.g_texture_nums.get()  = texture_manager::g_texture_numbers.get();
+        tex_gpu.g_texture_array.get() = texture_manager::g_texture_array.get();*/
+
+
     }
 
     dirty = false;

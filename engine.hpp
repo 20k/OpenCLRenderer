@@ -1,8 +1,12 @@
 #ifndef INCLUDED_HPP_ENGINE
 #define INCLUDED_HPP_ENGINE
+
+#include <gl/glew.h>
+
 #include <SFML/graphics.hpp>
-#include "object.hpp"
 #include <vector>
+
+#include "object.hpp"
 #include "objects_container.hpp"
 #include "light.hpp"
 #include "clstate.h"
@@ -294,16 +298,25 @@ struct arg_list
         sizes.push_back(size);
         can_skip.push_back(false);
     }
+
+    void push_back(std::nullptr_t ptr)
+    {
+        printf("warning, nullptr in arg list\n");
+
+        args.push_back(ptr);
+        sizes.push_back(sizeof(std::nullptr_t));
+        can_skip.push_back(false);
+    }
 };
 
-template<>
+/*template<>
 inline
 void arg_list::push_back<compute::buffer>(compute::buffer* buf)
 {
     args.push_back(buf);
     sizes.push_back(sizeof(compute::buffer));
     can_skip.push_back(true);
-}
+}*/
 
 struct Timer
 {
@@ -380,12 +393,12 @@ inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], 
     for(unsigned int i=0; i<argv.args.size() && args; i++)
     {
         ///I suspect this is already done in the driver
-        const void* previous_buffer = kernel_map[kernel.name][i];
+        /*const void* previous_buffer = kernel_map[kernel.name][i];
 
         if((previous_buffer == argv.args[i]) && argv.can_skip[i])
             continue;
 
-        kernel_map[kernel.name][i] = previous_buffer;
+        kernel_map[kernel.name][i] = previous_buffer;*/
 
         //printf("%s %i\n", kernel.name.c_str(), i);
         ///

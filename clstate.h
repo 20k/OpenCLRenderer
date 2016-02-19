@@ -1,6 +1,9 @@
 #ifndef CLSTATE_H_INCLUDED
 #define CLSTATE_H_INCLUDED
+
 #include <cl/opencl.h>
+
+#include <gl/glew.h>
 
 #include <boost/compute/source.hpp>
 #include <boost/compute/system.hpp>

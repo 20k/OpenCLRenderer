@@ -118,10 +118,10 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     for(int i=0; i<2; i++)
     {
-        g_voxel[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
-        g_velocity_x[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
-        g_velocity_y[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
-        g_velocity_z[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, NULL, NULL);
+        g_voxel[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
+        g_velocity_x[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
+        g_velocity_y[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
+        g_velocity_z[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
 
         if(i == 1)
             continue;
@@ -214,7 +214,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w2.get(), bw2, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w3.get(), bw3, 0, NULL, NULL);
 
-    g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, NULL, NULL);
+    g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, 0, NULL);
 
     delete [] tw1;
     delete [] tw2;

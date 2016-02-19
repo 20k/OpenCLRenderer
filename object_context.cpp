@@ -9,7 +9,8 @@ objects_container* object_context::make_new()
     objects_container* obj = new objects_container;
 
     ///do not remove the id system
-    obj->id = objects_container::gid++;
+    ///already present in constructor
+    //obj->id = objects_container::gid++;
 
     containers.push_back(obj);
 
@@ -216,7 +217,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
     dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*tri_num*3*2 | CL_MEM_HOST_NO_ACCESS);
 
     dat.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
-    dat.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint));
+    dat.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
 
     dat.tri_num = tri_num;
 
@@ -224,7 +225,8 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
     if(first_init)
     {
-        context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
+        cl_uint zero = 0;
+        context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
     }
 
     ///reuse the same buffer
@@ -348,6 +350,7 @@ void flip_buffers(object_context* ctx)
 
     for(auto& i : new_container_data)
     {
+        ///this is its id in the overall objects container system
         int id = i.object_id;
 
         objects_container* obj = nullptr;

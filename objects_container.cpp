@@ -19,6 +19,8 @@ objects_container::objects_container()
     rot = (cl_float4){0,0,0,0};
     set_load_func(std::bind(obj_load, std::placeholders::_1));
     independent_subobjects = false;
+    //id = gid++;
+    id = -1;
 }
 
 ///this method is pretty much useless i believe now
@@ -28,10 +30,11 @@ objects_container::objects_container()
 ///although a global scale is *sort* of acceptable as long as there's
 ///no threading
 ///or perhaps actually desirable if atomics were used?
-cl_uint objects_container::push()
+void objects_container::push()
 {
     obj_container_list.push_back(this);
-    return gid++;
+    //return gid++;
+    id = gid++;
 }
 
 void objects_container::set_pos(cl_float4 _pos) ///both remote and local
@@ -124,13 +127,13 @@ void objects_container::set_active_subobjs(bool param)
     }
 }
 
-cl_uint objects_container::set_active(bool param)
+void objects_container::set_active(bool param)
 {
     if(!isactive && param)
     {
         isactive = param;
-        id = push();
-        return id;
+        push();
+        return;
     }
 
     ///deactivating an object will cause it to be unallocated next g_arrange_mem
@@ -156,7 +159,7 @@ cl_uint objects_container::set_active(bool param)
     }
 
     isactive = param;
-    return id;
+    //return id;
 }
 
 void objects_container::unload_tris()

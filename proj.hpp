@@ -5,9 +5,10 @@
 #include <string>
 #include <iostream>
 
+#include <gl/glew.h>
+
 #include <windows.h>
 
-#include <gl/glew.h>
 #include <gl/gl.h>
 #include <gl/glext.h>
 

@@ -396,8 +396,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     ///creates the two depth buffers and 2d triangle id buffer with size width*height
     depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-    reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-    reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    //reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    //reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
@@ -1072,6 +1072,18 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     prearg_list.push_back(&dat.g_obj_desc);
     prearg_list.push_back(&eng.g_distortion_buffer);
 
+    /*prearg_list.push_back(nullptr);
+    prearg_list.push_back(nullptr);
+    prearg_list.push_back(&position);
+    prearg_list.push_back(&rotation);
+    prearg_list.push_back(&eng.g_tid_buf);
+    prearg_list.push_back(&eng.g_tid_buf_max_len);
+    prearg_list.push_back(&dat.g_tid_buf_atomic_count);
+    prearg_list.push_back(&dat.g_cut_tri_num);
+    prearg_list.push_back(&dat.g_cut_tri_mem);
+    prearg_list.push_back(nullptr);
+    prearg_list.push_back(&eng.g_distortion_buffer);*/
+
     //run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
     run_kernel_with_string("prearrange", &p1global_ws, &local, 1, prearg_list);
 
@@ -1131,10 +1143,10 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&rotation);
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
-    p3arg_list.push_back(&eng.tex_data->g_texture_array);
+    p3arg_list.push_back(eng.tex_data->g_texture_array);
     p3arg_list.push_back(&g_screen_out);
-    p3arg_list.push_back(&eng.tex_data->g_texture_nums);
-    p3arg_list.push_back(&eng.tex_data->g_texture_sizes);
+    p3arg_list.push_back(eng.tex_data->g_texture_nums);
+    p3arg_list.push_back(eng.tex_data->g_texture_sizes);
     p3arg_list.push_back(&dat.g_obj_desc);
     p3arg_list.push_back(&dat.g_obj_num);
     p3arg_list.push_back(&eng.light_data->g_light_num);
@@ -2281,7 +2293,7 @@ void engine::render_buffers()
     interact::deplete_stack();
     interact::clear();
 
-    text_handler::render();
+    //text_handler::render();
 
     #ifdef RIFT
     if(rift::enabled)

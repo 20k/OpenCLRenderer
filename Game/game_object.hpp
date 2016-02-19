@@ -1,6 +1,8 @@
 #ifndef INCLUDED_HPP_GAMEOBJECT
 #define INCLUDED_HPP_GAMEOBJECT
 
+#include <gl/glew.h>
+
 #include <vector>
 #include <utility>
 #include "collision.hpp"

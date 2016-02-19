@@ -1,5 +1,7 @@
 #ifndef INCLUDED_HPP_TEXTURE
 #define INCLUDED_HPP_TEXTURE
+
+#include <gl/glew.h>
 #include <sfml/graphics.hpp>
 #include <cl/cl.h>
 #include <vector>
