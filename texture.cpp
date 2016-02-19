@@ -112,6 +112,11 @@ void texture::set_texture_location(const std::string& loc)
     texture_location = loc;
 }
 
+void texture::set_create_colour(sf::Color col, int w, int h)
+{
+    set_load_func(std::bind(texture_make_blank, std::placeholders::_1, w, h, col));
+}
+
 bool texture::exists()
 {
     return texture_manager::exists_by_location(texture_location);

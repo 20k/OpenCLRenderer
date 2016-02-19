@@ -45,6 +45,7 @@ struct texture
     sf::Image& get_texture_level(int);
 
     void set_texture_location(const std::string&);
+    void set_create_colour(sf::Color col, int w, int h);
 
     bool exists();
 
