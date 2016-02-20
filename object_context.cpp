@@ -50,7 +50,7 @@ void object_context::load_active()
         if(obj->isloaded == false && obj->isactive)
         {
             ///fix the cache later
-            /*if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
+            if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
                 ///can cache
 
@@ -73,29 +73,30 @@ void object_context::load_active()
                 for(auto& i : obj->objs)
                 {
                     ///ptr to array, so when we push it becomes invalid
-                    texture* tex = texture_manager::texture_by_id(i.tid);
+                    texture* tex = obj->parent->tex_ctx.id_to_tex(i.tid);
 
                     if(tex)
                     {
-                        if(tex->is_unique)
+                        if(tex->is_unique || obj->textures_are_unique)
                         {
-                            texture cp;
-                            cp.fp = tex->fp;
-                            cp.is_unique = tex->is_unique;
-                            cp.type = tex->type;
-                            cp.texture_location = tex->texture_location;
+                            texture* cp = obj->parent->tex_ctx.make_new();
 
-                            cp.push();
+                            cp->fp = tex->fp;
+                            cp->is_unique = tex->is_unique; ///leave exactly as it is. Even if incorrect, we want cache to exactly replicate?
+                            cp->type = tex->type;
+                            cp->texture_location = tex->texture_location;
 
-                            i.tid = cp.id;
+                            i.tid = cp->id;
                         }
                     }
                 }
 
+                printf("cache loading from context\n");
+
                 obj->set_active_subobjs(true);
                 obj->set_active(true);
             }
-            else*/
+            else
             {
                 obj->call_load_func(containers[i]);
                 obj->set_active_subobjs(true);
@@ -379,6 +380,11 @@ void flip_buffers(object_context* ctx)
         }
     }
 
+    if(!ctx->new_gpu_dat.has_valid_texture_data)
+    {
+        ctx->new_gpu_dat.tex_gpu_ctx = ctx->gpu_dat.tex_gpu_ctx;
+    }
+
     //ctx->old_dat = ctx->gpu_dat;
     ctx->gpu_dat = ctx->new_gpu_dat;
     ctx->gpu_dat.gpu_data_finished = true;
@@ -409,57 +415,11 @@ void object_context::build(bool force)
     ///this will get cleared and be invalid
     ///how do we deal with this?
 
-    /*bool rebuild_textures = false;
-
-    ///ok so... basically we just need to fix the object texture management
-    ///it being global and this being local is fucking everything
-    for(auto& k : containers)
-    {
-        for(auto& i : k->objs)
-        {
-            bool found = false;
-
-            for(auto& j : last_builds_tids)
-            {
-                if(i.tid == j)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if(!found)
-            {
-                rebuild_textures = true;
-                break;
-            }
-        }
-    }
-
-    last_builds_tids.clear();
-
-    for(auto& k : containers)
-    {
-        for(auto& i : k->objs)
-        {
-            last_builds_tids.insert(i.tid);
-        }
-    }
-
-    rebuild_textures |= force;
-
-    if(rebuild_textures)
-    {
-        texture_manager::allocate_textures();
-
-        printf("rebuild\n");
-    }*/
-
     bool textures_realloc = false;
 
     texture_context_data ctdat;
 
-    //if(tex_ctx.should_realloc(containers) || force)
+    if(tex_ctx.should_realloc(*this) || force)
     {
         ctdat = tex_ctx.alloc_gpu(*this);
 
@@ -480,6 +440,8 @@ void object_context::build(bool force)
     //new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
 
     new_gpu_dat.tex_gpu_ctx = ctdat;
+
+    new_gpu_dat.has_valid_texture_data = textures_realloc;
 
     alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
 

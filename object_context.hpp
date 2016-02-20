@@ -62,6 +62,8 @@ struct object_context_data
     int s_h = 0;
 
     unsigned int gl_framebuffer_id = -1;
+
+    bool has_valid_texture_data = false;
 };
 
 struct object_temporaries
