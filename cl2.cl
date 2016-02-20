@@ -657,7 +657,7 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
 
     write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
 
-    for(int i=0; i<MIP_LEVELS; i++)
+    /*for(int i=0; i<MIP_LEVELS; i++)
     {
         ///is this just.. wrong?
         ///how on earth has this ever worked???
@@ -668,7 +668,7 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
         float nwidth = sizes[w2];
 
         write_tex_array(ucol, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
-    }
+    }*/
 }
 
 __kernel

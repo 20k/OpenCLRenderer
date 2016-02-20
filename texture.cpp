@@ -135,6 +135,10 @@ bool exists_by_id(texture* tex)
 
 void texture::push()
 {
+    printf("warning, pushing is now an error\n");
+
+    throw std::runtime_error("pushed texture\n");
+
     if(!exists() || is_unique)
     {
         id = texture_manager::add_texture(*this);
