@@ -1143,10 +1143,10 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&rotation);
     p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
-    p3arg_list.push_back(eng.tex_data->g_texture_array);
+    p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_array);
     p3arg_list.push_back(&g_screen_out);
-    p3arg_list.push_back(eng.tex_data->g_texture_nums);
-    p3arg_list.push_back(eng.tex_data->g_texture_sizes);
+    p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_nums);
+    p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_sizes);
     p3arg_list.push_back(&dat.g_obj_desc);
     p3arg_list.push_back(&dat.g_obj_num);
     p3arg_list.push_back(&eng.light_data->g_light_num);

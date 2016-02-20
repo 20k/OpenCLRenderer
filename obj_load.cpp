@@ -396,16 +396,21 @@ void obj_load(objects_container* pobj)
         obj.has_bump = isbump;
 
 
-        texture normal;
+        cl_uint normal_id = -1;
+
 
         if(pobj->normal_map != "")
         {
-            normal.type = 0;
-            normal.set_texture_location(pobj->normal_map.c_str());
-            normal.push();
+            texture* normal;
+
+            normal = tex_ctx->make_new_cached(pobj->normal_map);
+
+            normal->set_location(pobj->normal_map);
+
+            normal_id = normal->id;
         }
 
-        obj.rid = normal.id;
+        obj.rid = normal_id;
 
         ///doesn't this perform a double offset?
         obj.pos = c->pos;

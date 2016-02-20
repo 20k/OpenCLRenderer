@@ -36,7 +36,8 @@ struct object_context_data
     compute::buffer g_cut_tri_mem;
     compute::buffer g_cut_tri_num;
 
-    texture_gpu tex_gpu;
+    //texture_gpu tex_gpu;
+    texture_context_data tex_gpu_ctx;
 
     compute::buffer g_tid_buf_atomic_count;
 

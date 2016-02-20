@@ -110,10 +110,11 @@ void object_context::load_active()
     }
 }
 
-#include "texture_manager.hpp"
+//#include "texture_manager.hpp"
 
 ///fills the object descriptors for the objects contained within object_containers
-static int generate_gpu_object_descriptor(const std::vector<objects_container*>& containers, int mipmap_start, std::vector<obj_g_descriptor> &object_descriptors, std::vector<container_temporaries>& new_container_data)
+///texture ids will be broken for async realloc
+static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::vector<objects_container*>& containers, int mipmap_start, std::vector<obj_g_descriptor> &object_descriptors, std::vector<container_temporaries>& new_container_data)
 {
     int n=0;
 
@@ -160,13 +161,13 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
             obj_g_descriptor desc;
 
             ///texture stuff should really be done elsewhere
-            int tid = texture_manager::get_active_id(it.tid);
-            int rid = texture_manager::get_active_id(it.rid);
+            int tid = tex_ctx.get_gpu_position_id(it.tid);
+            int rid = tex_ctx.get_gpu_position_id(it.rid);
 
             if(tid == -1)
                 printf("No texture active id\n");
 
-            texture* tex = texture_manager::texture_by_id(it.tid);
+            /*texture* tex = texture_manager::texture_by_id(it.tid);
 
             if(tex)
                 tex->gpu_id = tid;
@@ -174,7 +175,7 @@ static int generate_gpu_object_descriptor(const std::vector<objects_container*>&
             texture* rtex = texture_manager::texture_by_id(it.rid);
 
             if(rtex)
-                rtex->gpu_id = rid;
+                rtex->gpu_id = rid;*/
 
             ///fill texture and mipmap ids
             ///desc.tid?
@@ -403,7 +404,7 @@ void object_context::build(bool force)
     ///this will get cleared and be invalid
     ///how do we deal with this?
 
-    bool rebuild_textures = false;
+    /*bool rebuild_textures = false;
 
     ///ok so... basically we just need to fix the object texture management
     ///it being global and this being local is fucking everything
@@ -447,20 +448,35 @@ void object_context::build(bool force)
         texture_manager::allocate_textures();
 
         printf("rebuild\n");
+    }*/
+
+    bool textures_realloc = false;
+
+    texture_context_data ctdat;
+
+    //if(tex_ctx.should_realloc(containers) || force)
+    {
+        ctdat = tex_ctx.alloc_gpu(*this);
+
+        textures_realloc = true;
+
+        printf("texture rebuild\n");
     }
 
     object_descriptors.clear();
     new_container_data.clear();
     ready_to_flip = false;
 
-    int tri_num = generate_gpu_object_descriptor(containers, texture_manager::mipmap_start, object_descriptors, new_container_data);
+    int tri_num = generate_gpu_object_descriptor(tex_ctx, containers, tex_ctx.mipmap_start, object_descriptors, new_container_data);
 
     new_gpu_dat = object_context_data();
 
-    alloc_gpu(texture_manager::mipmap_start, tri_num, *this, new_gpu_dat);
-    new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
+    alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat);
+    //new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
 
-    alloc_object_descriptors(object_descriptors, texture_manager::mipmap_start, new_gpu_dat);
+    new_gpu_dat.tex_gpu_ctx = ctdat;
+
+    alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
 
     ///ie we want there to be some valid gpu presence
     if(!gpu_dat.gpu_data_finished || force)
