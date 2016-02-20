@@ -164,6 +164,8 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             int tid = tex_ctx.get_gpu_position_id(it.tid);
             int rid = tex_ctx.get_gpu_position_id(it.rid);
 
+            //printf("ftid %i\n", tid);
+
             if(tid == -1)
                 printf("No texture active id\n");
 
@@ -237,6 +239,9 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
     dat.g_screen = context.fetch()->g_screen;
     dat.gl_framebuffer_id = context.fetch()->gl_framebuffer_id;
+
+    dat.s_w = context.fetch()->s_w;
+    dat.s_h = context.fetch()->s_h;
 
     cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_num, 0, dat.g_tri_num.size(), &dat.tri_num);
 

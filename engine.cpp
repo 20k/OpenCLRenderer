@@ -1160,6 +1160,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
     p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
 
+    //printf("gpuarray %i\n", dat.tex_gpu_ctx.g_texture_array.size());
+
     cl_uint p3global_ws[] = {eng.width, eng.height};
     cl_uint p3local_ws[] = {16, 16};
 
