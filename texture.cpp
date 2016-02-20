@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 #include "texture_manager.hpp"
 #include "engine.hpp"
+#include "texture_context.hpp"
 
 template<typename T>
 static std::string to_str(T i)
@@ -108,6 +109,11 @@ void texture::set_unique()
 }
 
 void texture::set_texture_location(const std::string& loc)
+{
+    texture_location = loc;
+}
+
+void texture::set_location(const std::string& loc)
 {
     texture_location = loc;
 }
@@ -258,7 +264,16 @@ void texture::generate_mipmaps()
     }
 }
 
-void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
+void texture::update_me_to_gpu(texture_context_data& gpu_dat)
+{
+    sf::Texture tex;
+    tex.loadFromImage(c_image);
+
+    update_gpu_texture(tex, gpu_dat);
+    update_gpu_mipmaps(gpu_dat);
+}
+
+void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat)
 {
     if(!is_active)
         return;
@@ -278,10 +293,10 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     arg_list args;
     args.push_back(&gl_mem);
     args.push_back(&gpu_id); ///what's my gpu id?
-    args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?
-    args.push_back(gpu_dat.g_texture_nums);
-    args.push_back(gpu_dat.g_texture_sizes);
-    args.push_back(gpu_dat.g_texture_array);
+    args.push_back(&gpu_dat.mipmap_start); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
 
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 
@@ -290,7 +305,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat)
     clReleaseMemObject(gl_mem);
 }
 
-void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
+void texture::update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat)
 {
     if(!is_active)
         return;
@@ -298,10 +313,10 @@ void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
     arg_list args;
     args.push_back(&col);
     args.push_back(&gpu_id); ///what's my gpu id?
-    args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?
-    args.push_back(gpu_dat.g_texture_nums);
-    args.push_back(gpu_dat.g_texture_sizes);
-    args.push_back(gpu_dat.g_texture_array);
+    args.push_back(&gpu_dat.mipmap_start); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
 
     //printf("%i %i\n", c_image.getSize().x, c_image.getSize().y);
 
@@ -310,15 +325,15 @@ void texture::update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat)
     run_kernel_with_string("update_gpu_tex_colour", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 }
 
-void texture::update_gpu_mipmaps(texture_gpu& gpu_dat)
+void texture::update_gpu_mipmaps(texture_context_data& gpu_dat)
 {
     arg_list margs;
     margs.push_back(&gpu_id);
-    margs.push_back(&texture_manager::mipmap_start);
-    margs.push_back(gpu_dat.g_texture_nums);
-    margs.push_back(gpu_dat.g_texture_sizes);
-    margs.push_back(gpu_dat.g_texture_array);
-    margs.push_back(gpu_dat.g_texture_array);
+    margs.push_back(&gpu_dat.mipmap_start);
+    margs.push_back(&gpu_dat.g_texture_nums);
+    margs.push_back(&gpu_dat.g_texture_sizes);
+    margs.push_back(&gpu_dat.g_texture_array);
+    margs.push_back(&gpu_dat.g_texture_array);
 
     run_kernel_with_string("generate_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, margs);
 
@@ -327,19 +342,20 @@ void texture::update_gpu_mipmaps(texture_gpu& gpu_dat)
         cl_uint mip = i;
 
         arg_list rargs;
+        ///make gpu id part of texture context?
         rargs.push_back(&gpu_id);
         rargs.push_back(&mip);
-        rargs.push_back(&texture_manager::mipmap_start);
-        rargs.push_back(gpu_dat.g_texture_nums);
-        rargs.push_back(gpu_dat.g_texture_sizes);
-        rargs.push_back(gpu_dat.g_texture_array);
-        rargs.push_back(gpu_dat.g_texture_array);
+        rargs.push_back(&gpu_dat.mipmap_start);
+        rargs.push_back(&gpu_dat.g_texture_nums);
+        rargs.push_back(&gpu_dat.g_texture_sizes);
+        rargs.push_back(&gpu_dat.g_texture_array);
+        rargs.push_back(&gpu_dat.g_texture_array);
 
         run_kernel_with_string("generate_mip_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, rargs);
     }
 }
 
-void texture::update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_float2 dir, texture_gpu& gpu_dat)
+void texture::update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_float2 dir, texture_context_data& gpu_dat)
 {
     if(!is_active)
         return;
@@ -350,10 +366,10 @@ void texture::update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_f
     args.push_back(&dir);
     args.push_back(&col);
     args.push_back(&gpu_id); ///what's my gpu id?
-    args.push_back(&texture_manager::mipmap_start); ///what's my gpu id?
-    args.push_back(gpu_dat.g_texture_nums);
-    args.push_back(gpu_dat.g_texture_sizes);
-    args.push_back(gpu_dat.g_texture_array);
+    args.push_back(&gpu_dat.mipmap_start); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
 
     run_kernel_with_string("procedural_crack", {num}, {128}, 1, args);
 }

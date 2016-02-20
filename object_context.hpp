@@ -12,6 +12,8 @@
 
 #include <set>
 
+#include "texture_context.hpp"
+
 namespace compute = boost::compute;
 
 struct objects_container;
@@ -83,6 +85,8 @@ struct container_temporaries
 ///if the order of the objects is swapped around, or a middle one is deleted etc
 struct object_context
 {
+    texture_context tex_ctx;
+
     std::set<cl_uint> last_builds_tids;
     std::vector<objects_container*> containers;
 

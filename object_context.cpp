@@ -8,6 +8,8 @@ objects_container* object_context::make_new()
 {
     objects_container* obj = new objects_container;
 
+    obj->parent = this;
+
     ///do not remove the id system
     ///already present in constructor
     //obj->id = objects_container::gid++;
@@ -47,7 +49,8 @@ void object_context::load_active()
 
         if(obj->isloaded == false && obj->isactive)
         {
-            if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
+            ///fix the cache later
+            /*if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
                 ///can cache
 
@@ -76,10 +79,6 @@ void object_context::load_active()
                     {
                         if(tex->is_unique)
                         {
-                            /*texture cp = *tex;
-                            cp.is_loaded = false;
-                            cp.*/
-
                             texture cp;
                             cp.fp = tex->fp;
                             cp.is_unique = tex->is_unique;
@@ -96,7 +95,7 @@ void object_context::load_active()
                 obj->set_active_subobjs(true);
                 obj->set_active(true);
             }
-            else
+            else*/
             {
                 obj->call_load_func(containers[i]);
                 obj->set_active_subobjs(true);

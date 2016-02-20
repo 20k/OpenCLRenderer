@@ -490,14 +490,6 @@ texture_gpu texture_manager::texture_alloc_gpu()
         texture_manager::g_texture_numbers = tex_gpu.g_texture_nums;
         texture_manager::g_texture_array =   tex_gpu.g_texture_array;*/
 
-        /*texture_manager::g_texture_sizes.get() =   tex_gpu.g_texture_sizes.get();
-        texture_manager::g_texture_numbers.get() = tex_gpu.g_texture_nums.get();
-        texture_manager::g_texture_array.get() =   tex_gpu.g_texture_array.get();
-
-        clRetainMemObject(texture_manager::g_texture_sizes.get());
-        clRetainMemObject(texture_manager::g_texture_numbers.get());
-        clRetainMemObject(texture_manager::g_texture_numbers.get());*/
-
         size_t origin[3] = {0,0,0};
         size_t region[3] = {2048, 2048, number_of_texture_slices};
 
@@ -519,14 +511,7 @@ texture_gpu texture_manager::texture_alloc_gpu()
     {
         /*clRetainMemObject(texture_manager::g_texture_sizes.get());
         clRetainMemObject(texture_manager::g_texture_numbers.get());
-        clRetainMemObject(texture_manager::g_texture_numbers.get());
-
-        ///boost::compute considers this a move ;_;
-        tex_gpu.g_texture_sizes.get() = texture_manager::g_texture_sizes.get();
-        tex_gpu.g_texture_nums.get()  = texture_manager::g_texture_numbers.get();
-        tex_gpu.g_texture_array.get() = texture_manager::g_texture_array.get();*/
-
-
+        clRetainMemObject(texture_manager::g_texture_numbers.get());*/
     }
 
     dirty = false;
@@ -590,19 +575,3 @@ int texture_manager::get_active_id(int id)
 
     return num_id;
 }
-
-#if 0
-texture* texture_context::make_new()
-{
-    auto tex = new texture;
-
-    all_textures.push_back(tex);
-
-    return tex;
-}
-
-void texture_context::destroy(texture* tex)
-{
-    for(int i=0; i<texture)
-}
-#endif

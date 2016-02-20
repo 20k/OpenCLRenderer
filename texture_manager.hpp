@@ -66,50 +66,5 @@ struct texture_manager
     static bool any_loaded;
 };
 
-#if 0
-struct texture_context
-{
-    std::vector<texture*> all_textures;
-    std::vector<int> active_textures; ///its a pointer but they reallocate... so it needs to be texture_ids instead
-    std::vector<int> inactive_textures;
-
-    std::vector<int> texture_numbers;
-    std::vector<int> texture_sizes;
-
-    ///which texture number structure am i in below?
-    std::vector<int> texture_nums_id;
-    std::vector<int> texture_active_id;
-    std::vector<int> new_texture_id; ///texture information
-    ///
-
-    cl_uchar4* c_texture_array;
-
-    compute::image3d g_texture_array;
-    compute::buffer g_texture_numbers;
-    compute::buffer g_texture_sizes;
-
-    texture* make_new();
-    void destroy(texture* tex);
-
-    int mipmap_start;
-
-    int activate_texture(int texture_id);
-    int inactivate_texture(int texture_id);
-
-    void allocate_textures();
-
-    bool exists_by_location(const std::string&);
-
-    bool exists(int texture_id);
-
-    int id_by_location(const std::string&);
-
-    texture* texture_by_id(int);
-
-    bool dirty;
-};
-#endif
-
-
 
 #endif // TEXTURE_MANAGER_INCLUDED_HPP

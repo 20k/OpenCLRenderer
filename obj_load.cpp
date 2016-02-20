@@ -332,22 +332,33 @@ void obj_load(objects_container* pobj)
 
     usemtl_pos.push_back(tris.size());
 
+    texture_context* tex_ctx = &c->parent->tex_ctx;
+
     for(unsigned int i=0; i<usemtl_pos.size()-1; i++)///?
     {
         std::string texture_name = retrieve_diffuse_new(mtlf_contents, usemtl_name[i]);
         std::string bumpmap_name = retrieve_bumpmap    (mtlf_contents, usemtl_name[i]);
         std::string full = dir + "/" + texture_name;
 
-        texture tex;
+        //texture tex;
+
+        texture* tex;
 
         if(pobj->textures_are_unique)
         {
-            tex.set_unique();
+            //tex->set_unique();
+            tex = tex_ctx->make_new();
+        }
+        else
+        {
+            tex = tex_ctx->make_new_cached(full);
         }
 
-        tex.type = 0;
-        tex.set_texture_location(full);
-        tex.push();
+        tex->set_location(full);
+
+        //tex.type = 0;
+        //tex.set_texture_location(full);
+        //tex.push();
 
         //printf("%s %i\n", full.c_str(), tex.id);
 
@@ -357,14 +368,14 @@ void obj_load(objects_container* pobj)
         if(bumpmap_name != std::string("None"))
         {
             isbump = true;
-            texture bumpmap;
             std::string bump_full = dir + "/" + bumpmap_name;
 
-            bumpmap.type = 1;
-            bumpmap.set_texture_location(bump_full);
-            bumpmap.push();
+            texture* bumpmap = tex_ctx->make_new_cached(bump_full);
 
-            b_id = bumpmap.id;
+            bumpmap->type = 1;
+            bumpmap->set_location(bump_full);
+
+            b_id = bumpmap->id;
         }
 
         object obj;
@@ -379,7 +390,7 @@ void obj_load(objects_container* pobj)
 
         obj.tri_num = obj.tri_list.size(); ///needs to be removed
 
-        obj.tid = tex.id; ///this is potentially bad if textures are removed
+        obj.tid = tex->id; ///this is potentially bad if textures are removed
         //std::cout << obj.tid << std::endl;
         obj.bid = b_id;
         obj.has_bump = isbump;

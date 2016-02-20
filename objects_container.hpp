@@ -17,6 +17,8 @@ struct object_context_data;
 
 struct objects_container
 {
+    object_context* parent = nullptr;
+
     cl_uint id;
     static cl_uint gid;
 

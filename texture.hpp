@@ -16,6 +16,7 @@ void texture_load(texture*);
 void texture_make_blank(texture* tex, int w, int h, sf::Color col);
 
 struct texture_gpu;
+struct texture_context_data;
 
 struct texture
 {
@@ -45,6 +46,7 @@ struct texture
     sf::Image& get_texture_level(int);
 
     void set_texture_location(const std::string&);
+    void set_location(const std::string&);
     void set_create_colour(sf::Color col, int w, int h);
 
     bool exists();
@@ -54,7 +56,7 @@ struct texture
     void push();
 
     void generate_mipmaps();
-    void update_gpu_mipmaps(texture_gpu& gpu_dat);
+    void update_gpu_mipmaps(texture_context_data& gpu_dat);
 
     void activate();
     void inactivate();
@@ -65,9 +67,10 @@ struct texture
 
     texture();
 
-    void update_gpu_texture(const sf::Texture& tex, texture_gpu& gpu_dat);
-    void update_gpu_texture_col(cl_float4 col, texture_gpu& gpu_dat);
-    void update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_float2 dir, texture_gpu& gpu_dat);
+    void update_me_to_gpu(texture_context_data& gpu_dat);
+    void update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat);
+    void update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat);
+    void update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_float2 dir, texture_context_data& gpu_dat);
 
     cl_uint get_largest_dimension() const;
 
