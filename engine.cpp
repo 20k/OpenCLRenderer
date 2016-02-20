@@ -1580,7 +1580,7 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
     return ret;
 }
 
-void engine::blend(object_context_data& src, object_context_data& dst)
+compute::event engine::blend(object_context_data& src, object_context_data& dst)
 {
     cl_int2 dim = {dst.s_w, dst.s_h};
 
@@ -1590,7 +1590,7 @@ void engine::blend(object_context_data& src, object_context_data& dst)
     args.push_back(&dst.g_screen);
     args.push_back(&dim);
 
-    run_kernel_with_string("blend_screens", {dim.x*dim.y}, {128}, 1, args);
+    return run_kernel_with_string("blend_screens", {dim.x*dim.y}, {128}, 1, args);
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)

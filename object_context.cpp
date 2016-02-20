@@ -91,7 +91,9 @@ void object_context::load_active()
                     }
                 }
 
+                #ifdef DEBUGGING
                 printf("cache loading from context\n");
+                #endif
 
                 obj->set_active_subobjs(true);
                 obj->set_active(true);
@@ -419,7 +421,7 @@ void object_context::build(bool force)
 
     texture_context_data ctdat;
 
-    if(tex_ctx.should_realloc(*this) || force)
+    if(tex_ctx.should_realloc(*this))// || force)
     {
         ctdat = tex_ctx.alloc_gpu(*this);
 

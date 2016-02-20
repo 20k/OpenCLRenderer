@@ -30,7 +30,9 @@ texture* texture_context::make_new_cached(const std::string& loc)
     {
         if(i->cacheable && !i->is_unique && i->texture_location == loc)
         {
-            printf("cache load\n");
+            #ifdef DEBUGGING
+            printf("cached texture load\n");
+            #endif // DEBUGGING
 
             return i;
         }
@@ -244,10 +246,6 @@ std::vector<cl_uint> get_texture_sizes(const std::vector<texture_page>& texture_
     return ret;
 }
 
-/*texture_gpu convert_to_ptr_texture_gpu(texture_context_data& dat)
-{
-    return {&dat.g_texture_sizes, &dat.g_texture_position, &dat.g_texture_array};
-}*/
 
 bool texture_context::should_realloc(object_context& ctx)
 {

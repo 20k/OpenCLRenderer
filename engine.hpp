@@ -250,7 +250,7 @@ struct engine
     bool can_render();
     void increase_render_events();
 
-    void blend(object_context_data& _src, object_context_data& _dst);
+    compute::event blend(object_context_data& _src, object_context_data& _dst);
 
     ///?
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);
