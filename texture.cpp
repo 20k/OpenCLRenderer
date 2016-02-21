@@ -268,16 +268,17 @@ void texture::generate_mipmaps()
     }
 }
 
-void texture::update_me_to_gpu(texture_context_data& gpu_dat)
+void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_queue cqueue)
 {
     sf::Texture tex;
     tex.loadFromImage(c_image);
 
-    update_gpu_texture(tex, gpu_dat);
-    update_gpu_mipmaps(gpu_dat);
+    ///?
+    update_gpu_texture(tex, gpu_dat, true, cqueue);
+    update_gpu_mipmaps(gpu_dat, cqueue);
 }
 
-void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip)
+void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue)
 {
     if(id == -1)
         return;
@@ -292,7 +293,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
     cl_mem gl_mem = clCreateFromGLTexture(cl::context.get(), CL_MEM_READ_ONLY,
                                           GL_TEXTURE_2D, 0, (GLuint)opengl_id, NULL);
 
-    clEnqueueAcquireGLObjects(cl::cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+    clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
 
     //printf("gpu %i %i\n", gpu_id & 0x0000FFFF, (gpu_id >> 16) & 0x0000FFFF);
 
@@ -305,9 +306,9 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
     args.push_back(&gpu_dat.g_texture_array);
     args.push_back(&flip);
 
-    run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
+    run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue);
 
-    clEnqueueReleaseGLObjects(cl::cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+    clEnqueueReleaseGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
 
     //cl::cqueue.finish();
 
@@ -334,7 +335,7 @@ void texture::update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_da
     run_kernel_with_string("update_gpu_tex_colour", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 }
 
-void texture::update_gpu_mipmaps(texture_context_data& gpu_dat)
+void texture::update_gpu_mipmaps(texture_context_data& gpu_dat, compute::command_queue cqueue)
 {
     arg_list margs;
     margs.push_back(&gpu_id);
@@ -344,7 +345,7 @@ void texture::update_gpu_mipmaps(texture_context_data& gpu_dat)
     margs.push_back(&gpu_dat.g_texture_array);
     margs.push_back(&gpu_dat.g_texture_array);
 
-    run_kernel_with_string("generate_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, margs);
+    run_kernel_with_string("generate_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, margs, cqueue);
 
     for(int i=0; i<MIP_LEVELS-1; i++)
     {
@@ -360,7 +361,7 @@ void texture::update_gpu_mipmaps(texture_context_data& gpu_dat)
         rargs.push_back(&gpu_dat.g_texture_array);
         rargs.push_back(&gpu_dat.g_texture_array);
 
-        run_kernel_with_string("generate_mip_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, rargs);
+        run_kernel_with_string("generate_mip_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, rargs, cqueue);
     }
 }
 

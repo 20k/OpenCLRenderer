@@ -335,8 +335,8 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
     //clEnqueueWriteImage(cl::cqueue.get(), texture_manager::g_texture_array.get(), CL_TRUE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
 
     ///if we make this async, remember to adjust the above memory to be persistent
-    cl::cqueue.enqueue_write_buffer(tex_data.g_texture_nums, 0, tex_data.g_texture_nums.size(), texture_slice_descriptors.data());
-    cl::cqueue.enqueue_write_buffer(tex_data.g_texture_sizes, 0, tex_data.g_texture_sizes.size(), texture_sizes.data());
+    cl::cqueue2.enqueue_write_buffer(tex_data.g_texture_nums, 0, tex_data.g_texture_nums.size(), texture_slice_descriptors.data());
+    cl::cqueue2.enqueue_write_buffer(tex_data.g_texture_sizes, 0, tex_data.g_texture_sizes.size(), texture_sizes.data());
 
     tex_data.mipmap_start = mipmap_start;
 
@@ -348,7 +348,7 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
         tex->gpu_id = c;
 
-        tex->update_me_to_gpu(tex_data);
+        tex->update_me_to_gpu(tex_data, cl::cqueue2);
         //tex->update_gpu_texture_col({255, 255, 255, 255}, tex_data);
 
         c++;

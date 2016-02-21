@@ -438,7 +438,7 @@ void object::g_flush(object_context_data& dat, bool force)
     }*/
 
     ///this causes a crash?
-    /*if(context_switched)
+    if(context_switched)
     {
         for(auto& i : write_events)
         {
@@ -446,7 +446,7 @@ void object::g_flush(object_context_data& dat, bool force)
         }
 
         write_events.clear();
-    }*/
+    }
 
     int num_events = write_events.size();
 
