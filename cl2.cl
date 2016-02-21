@@ -63,6 +63,7 @@ struct light
     float brightness;
     float radius;
     float diffuse;
+    float godray_intensity;
 };
 
 
@@ -1181,7 +1182,7 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
-    const float samples = 100.f;
+    float samples = 80.f;
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE   |
@@ -1191,14 +1192,14 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 
     uint my_depth = *ft;
 
-    float ldepth = idcalc((float)my_depth/mulint);
+    //float ldepth = idcalc((float)my_depth/mulint);
 
     ///unprojected pixel coordinate
-    float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+    //float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
 
     ///backrotate pixel coordinate into globalspace
-    float3 global_position = back_rot(local_position, 0, camera_rot.xyz);
-    global_position += camera_pos.xyz;
+    //float3 global_position = back_rot(local_position, 0, camera_rot.xyz);
+    //global_position += camera_pos.xyz;
 
 
     float4 my_col = read_imagef(screen_in, sam, (float2){x, y} - 0.25f);
@@ -1208,10 +1209,19 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 
     float2 spos = {x, y};
 
-    float max_length = 200.f;
+    float max_length = 400.f;
+
+    //samples /= 4;
 
     for(int i=0; i<*lnum; i++)
     {
+        float ray_intensity = lights[i].godray_intensity;
+
+        if(ray_intensity <= 0)
+        {
+            continue;
+        }
+
         float idecay = 1.f;
 
         float3 iter_col = 0;
@@ -1222,33 +1232,10 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 
         slpos = depth_project_singular(slpos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-        /*if(slpos.z < 0)
-        {
-            //slpos.xy = (-(slpos.xy - (float2){SCREENWIDTH, SCREENHEIGHT}/2.f)) + (float2){SCREENWIDTH, SCREENHEIGHT/2.f};
-            slpos.xy -= (float2){SCREENWIDTH, SCREENHEIGHT}/2.f;
-
-            //slpos.x = -slpos.x;
-
-            slpos.xy += (float2){SCREENWIDTH, SCREENHEIGHT}/2.f;
-        }*/
-
-        //slpos.xy += (float2){SCREENWIDTH, SCREENHEIGHT}/2.f;
-
-        /*if(slpos.z < 0)
-        {
-            slpos.xy = (-(slpos.xy - (float2){SCREENWIDTH, SCREENHEIGHT}/2.f)) + (float2){SCREENWIDTH, SCREENHEIGHT/2.f};
-
-            float2 ndir = fast_normalize(slpos.xy) * fast_length((float2){SCREENWIDTH, SCREENHEIGHT});
-
-            slpos.xy = ndir;
-        }*/
-
         ///use fp bresenham etc
         float screen_distance = fast_length(slpos.xy - spos);
 
         screen_distance = min(screen_distance, samples);
-
-        //float3 current_pos = global_position;
 
         float3 current_pos = {x, y, idcalc((float)my_depth / mulint)};
         float3 destination_pos = slpos;
@@ -1260,9 +1247,6 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
             destination_pos = (current_pos - destination_pos) + current_pos;
         }
 
-
-        //float3 dir = fast_normalize(lpos - current_pos);
-
         float2 vdist = current_pos.xy - destination_pos.xy;
 
         vdist = fabs(vdist);
@@ -1272,6 +1256,8 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
         float3 dir = (destination_pos - current_pos) / mnum;
 
         dir *= max_length / samples;
+
+        float3 col = lights[i].col.xyz;
 
         for(int j=0; j<mnum && j < samples; j++)
         {
@@ -1284,14 +1270,11 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 
             float3 val = 0;
 
-            //if(fdepth > current_pos.z - 10)
-            //    val = 1;
-
-            if(fdepth < original.z - 10 && cdepth != mulint)
+            if(fdepth < original.z - 5 && cdepth != mulint)
             {
                 idecay *= 0.9f;
 
-                val = 1;
+                val = col * ray_intensity;
             }
 
             val = val * idecay * weight;
@@ -1300,11 +1283,16 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 
             idecay *= decay_factor;
 
+            //if(idecay < 0.01f)
+            //    break;
+
             current_pos = current_pos + dir;
         }
 
         my_col.xyz += iter_col.xyz;
     }
+
+    my_col.w = 1;
 
     const float exposure = 0.99f;
 

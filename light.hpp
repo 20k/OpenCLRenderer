@@ -13,6 +13,8 @@ struct light_gpu
 {
     compute::buffer g_light_num;
     compute::buffer g_light_mem;
+
+    cl_int any_godray = false;
 };
 
 ///lights need to be able to be activated and deactivated
@@ -24,6 +26,7 @@ struct light
     cl_float brightness;
     cl_float radius;
     cl_float diffuse;
+    cl_float godray_intensity;
 
     light();
 
@@ -35,6 +38,7 @@ struct light
     void set_radius(cl_float);
     void set_diffuse(cl_float);
     void set_active(bool);
+    void set_godray_intensity(cl_float);
 
     static std::vector<light*> lightlist;
     static std::vector<cl_uint> active;

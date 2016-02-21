@@ -1003,6 +1003,9 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
 compute::event engine::draw_godrays(object_context_data& dat)
 {
+    if(!light_data->any_godray)
+        return compute::event();
+
     arg_list args;
     args.push_back(&depth_buffer[nbuf]);
     args.push_back(&dat.g_screen);

@@ -47,6 +47,11 @@ void light::set_diffuse(cl_float d)
     diffuse = d;
 }
 
+void light::set_godray_intensity(cl_float g)
+{
+    godray_intensity = g;
+}
+
 void light::set_active(bool s)
 {
     int id = get_light_id(this);
@@ -65,6 +70,7 @@ light::light()
     radius = FLT_MAX/100000.0f;
     brightness = 1.f;
     diffuse = 1.f;
+    godray_intensity = 0;
 }
 
 int light::get_light_id(light* l)
@@ -105,8 +111,6 @@ void light::remove_light(light* l)
     delete l;
 }
 
-
-
 light_gpu light::build() ///for the moment, just reallocate everything
 {
     cl_uint lnum = light::lightlist.size();
@@ -119,6 +123,8 @@ light_gpu light::build() ///for the moment, just reallocate everything
     light_straight.clear();
     found_num = 0;
 
+    bool any_godray = false;
+
     for(int i=0; i<light::lightlist.size(); i++)
     {
         if(light::active[i] == false)
@@ -127,6 +133,9 @@ light_gpu light::build() ///for the moment, just reallocate everything
         }
 
         found_num++;
+
+        if(light::lightlist[i]->godray_intensity > 0)
+            any_godray = true;
 
         light_straight.push_back(*light::lightlist[i]);
     }
@@ -151,6 +160,9 @@ light_gpu light::build() ///for the moment, just reallocate everything
 
     dat.g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY, nullptr);
     cl::cqueue.enqueue_write_buffer_async(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
+
+    dat.any_godray = any_godray;
+
 
     ///sacrifice soul to chaos gods, allocate light buffers here
 
