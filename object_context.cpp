@@ -384,10 +384,10 @@ void flip_buffers(object_context* ctx)
 
     if(!ctx->new_gpu_dat.has_valid_texture_data)
     {
+        ///nick current data
         ctx->new_gpu_dat.tex_gpu_ctx = ctx->gpu_dat.tex_gpu_ctx;
     }
 
-    //ctx->old_dat = ctx->gpu_dat;
     ctx->gpu_dat = ctx->new_gpu_dat;
     ctx->gpu_dat.gpu_data_finished = true;
 
@@ -421,7 +421,7 @@ void object_context::build(bool force)
 
     texture_context_data ctdat;
 
-    if(tex_ctx.should_realloc(*this))// || force)
+    if(tex_ctx.should_realloc(*this) || force)
     {
         ctdat = tex_ctx.alloc_gpu(*this);
 

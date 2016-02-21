@@ -287,6 +287,8 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
     sf::Texture::bind( &tex );
     glGetIntegerv( GL_TEXTURE_BINDING_2D, &opengl_id );
 
+    //glFinish();
+
     cl_mem gl_mem = clCreateFromGLTexture(cl::context.get(), CL_MEM_READ_ONLY,
                                           GL_TEXTURE_2D, 0, (GLuint)opengl_id, NULL);
 
@@ -305,6 +307,8 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 
     clEnqueueReleaseGLObjects(cl::cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+
+    //cl::cqueue.finish();
 
     clReleaseMemObject(gl_mem);
 }
