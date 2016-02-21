@@ -67,9 +67,12 @@ object::~object()
 }
 
 ///activate the textures in an object
+///due to the new texture system, this method largely doesn't do anything
 void object::set_active(bool param)
 {
-    if(param)
+    isactive = param;
+
+    /*if(param)
     {
         if(!isactive)
         {
@@ -138,7 +141,7 @@ void object::set_active(bool param)
         {
             return;
         }
-    }
+    }*/
 }
 
 void object::set_pos(cl_float4 _pos)
