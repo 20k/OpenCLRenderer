@@ -220,7 +220,8 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
 
 #include "clstate.h"
 
-void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_context_data& dat)
+///ok, so we need to know if we've got to force a build
+void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_context_data& dat, bool force)
 {
     dat.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
     dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*tri_num*3*2 | CL_MEM_HOST_NO_ACCESS);
@@ -232,7 +233,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
     bool first_init = !context.fetch()->gpu_data_finished;
 
-    if(first_init)
+    if(first_init || force)
     {
         cl_uint zero = 0;
         context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
@@ -442,7 +443,7 @@ void object_context::build(bool force)
 
     new_gpu_dat = object_context_data();
 
-    alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat);
+    alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
     //new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
 
     new_gpu_dat.tex_gpu_ctx = ctdat;

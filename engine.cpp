@@ -1498,7 +1498,8 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
     {
         if(dat.s_w != 0 || dat.s_h != 0)
         {
-            compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+            ///might have been created on a different context? what do?
+            //compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
         }
 
         dat.g_screen = gen_cl_gl_framebuffer_renderbuffer(&dat.gl_framebuffer_id, width, height);
@@ -2404,6 +2405,21 @@ void engine::flip()
 ///I could use multiple queues and synchronise between them with event objects
 void engine::blit_to_screen(object_context_data& dat)
 {
+    if(dat.s_w != width || dat.s_h != height)
+    {
+        if(dat.s_w != 0 || dat.s_h != 0)
+        {
+            //compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+        }
+
+        dat.g_screen = gen_cl_gl_framebuffer_renderbuffer(&dat.gl_framebuffer_id, width, height);
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+
+        dat.s_w = width;
+        dat.s_h = height;
+    }
+
     if(render_me)
     {
         static sf::Clock clk;
