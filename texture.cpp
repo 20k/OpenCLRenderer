@@ -277,7 +277,7 @@ void texture::update_me_to_gpu(texture_context_data& gpu_dat)
     update_gpu_mipmaps(gpu_dat);
 }
 
-void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat)
+void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip)
 {
     if(id == -1)
         return;
@@ -303,6 +303,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
     args.push_back(&gpu_dat.g_texture_nums);
     args.push_back(&gpu_dat.g_texture_sizes);
     args.push_back(&gpu_dat.g_texture_array);
+    args.push_back(&flip);
 
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args);
 

@@ -631,7 +631,7 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, 
 }
 
 ///why is the texture actually floats, not 32bit rgba? surface format optimisation?
-__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array, int flip)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -657,20 +657,10 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
     int slice = nums[tex_id] >> 16;
     float width = sizes[slice];
 
-    write_tex_array(ucol, (float2){x, width - y}, tex_id, nums, sizes, array);
+    if(flip)
+        y = width - y;
 
-    /*for(int i=0; i<MIP_LEVELS; i++)
-    {
-        ///is this just.. wrong?
-        ///how on earth has this ever worked???
-        ///tex_id is some completely random property
-        int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
-
-        int w2 = nums[mtexid] >> 16;
-        float nwidth = sizes[w2];
-
-        write_tex_array(ucol, ((float2){x, y} / width) * nwidth, mtexid, nums, sizes, array);
-    }*/
+    write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
 }
 
 __kernel

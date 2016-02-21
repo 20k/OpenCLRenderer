@@ -68,7 +68,7 @@ struct texture
     texture();
 
     void update_me_to_gpu(texture_context_data& gpu_dat);
-    void update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat);
+    void update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip = true);
     void update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat);
     void update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_float2 dir, texture_context_data& gpu_dat);
 
