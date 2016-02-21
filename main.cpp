@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     l.set_shadow_casting(1);
     l.set_brightness(1);
     l.radius = 100000;
-    l.set_pos((cl_float4){-200, 500, -100, 0});
+    l.set_pos((cl_float4){-200, 2000, -100, 0});
     //window.add_light(&l);
 
     light::add_light(&l);
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     l.set_shadow_casting(1);
     l.radius = 100000;
 
-    light::add_light(&l);
+    //light::add_light(&l);
 
     auto light_data = light::build();
     ///
@@ -162,7 +162,10 @@ int main(int argc, char *argv[])
         if(window.can_render())
         {
             ///do manual async on thread
+            ///make a enforce_screensize method, rather than make these hackily do it
             event = window.draw_bulk_objs_n(*context.fetch());
+
+            event = window.draw_godrays(*context.fetch());
 
             window.increase_render_events();
 
@@ -182,6 +185,7 @@ int main(int argc, char *argv[])
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary
+    window.render_block();
     cl::cqueue.finish();
     glFinish();
 }

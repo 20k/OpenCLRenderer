@@ -198,6 +198,8 @@ struct engine
     ///completely externalise all possible state
     ///except for persistent data like the screen
     compute::event draw_bulk_objs_n(object_context_data& dat); ///draw objects to scene
+    compute::event draw_godrays(object_context_data& dat);
+
     void draw_fancy_projectiles(compute::image2d&, compute::buffer&, int); ///fancy looking projectiles
     void draw_ui();
     void draw_holograms();

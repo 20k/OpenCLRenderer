@@ -1001,6 +1001,20 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
 #include "light.hpp"
 
+compute::event engine::draw_godrays(object_context_data& dat)
+{
+    arg_list args;
+    args.push_back(&depth_buffer[nbuf]);
+    args.push_back(&dat.g_screen);
+    args.push_back(&dat.g_screen);
+    args.push_back(&light_data->g_light_num);
+    args.push_back(&light_data->g_light_mem);
+    args.push_back(&c_pos);
+    args.push_back(&c_rot);
+
+    return run_kernel_with_string("screenspace_godrays", {width, height}, {16, 16}, 2, args);
+}
+
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
 compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out, object_context_data& dat)

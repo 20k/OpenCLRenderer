@@ -1171,6 +1171,146 @@ int ret_cubeface(float3 point, float3 light)
     return 2;
 }
 
+__kernel
+void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t screen_in, __write_only image2d_t screen_out,
+                         __global uint* lnum, __global struct light* lights, float4 camera_pos, float4 camera_rot)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    const float samples = 100.f;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE   |
+                    CLK_FILTER_LINEAR;
+
+    __global uint* ft = &depth_buffer[y*SCREENWIDTH + x];
+
+    uint my_depth = *ft;
+
+    float ldepth = idcalc((float)my_depth/mulint);
+
+    ///unprojected pixel coordinate
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, camera_rot.xyz);
+    global_position += camera_pos.xyz;
+
+
+    float4 my_col = read_imagef(screen_in, sam, (float2){x, y} - 0.25f);
+
+    const float decay_factor = 0.97f;
+    const float weight = 0.01f;
+
+    float2 spos = {x, y};
+
+    float max_length = 200.f;
+
+    for(int i=0; i<*lnum; i++)
+    {
+        float idecay = 1.f;
+
+        float3 iter_col = 0;
+
+        float3 lpos = lights[i].pos.xyz;
+
+        float3 slpos = rot(lpos, camera_pos.xyz, camera_rot.xyz);
+
+        slpos = depth_project_singular(slpos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+        /*if(slpos.z < 0)
+        {
+            //slpos.xy = (-(slpos.xy - (float2){SCREENWIDTH, SCREENHEIGHT}/2.f)) + (float2){SCREENWIDTH, SCREENHEIGHT/2.f};
+            slpos.xy -= (float2){SCREENWIDTH, SCREENHEIGHT}/2.f;
+
+            //slpos.x = -slpos.x;
+
+            slpos.xy += (float2){SCREENWIDTH, SCREENHEIGHT}/2.f;
+        }*/
+
+        //slpos.xy += (float2){SCREENWIDTH, SCREENHEIGHT}/2.f;
+
+        /*if(slpos.z < 0)
+        {
+            slpos.xy = (-(slpos.xy - (float2){SCREENWIDTH, SCREENHEIGHT}/2.f)) + (float2){SCREENWIDTH, SCREENHEIGHT/2.f};
+
+            float2 ndir = fast_normalize(slpos.xy) * fast_length((float2){SCREENWIDTH, SCREENHEIGHT});
+
+            slpos.xy = ndir;
+        }*/
+
+        ///use fp bresenham etc
+        float screen_distance = fast_length(slpos.xy - spos);
+
+        screen_distance = min(screen_distance, samples);
+
+        //float3 current_pos = global_position;
+
+        float3 current_pos = {x, y, idcalc((float)my_depth / mulint)};
+        float3 destination_pos = slpos;
+
+        float3 original = current_pos;
+
+        if(slpos.z < 0)
+        {
+            destination_pos = (current_pos - destination_pos) + current_pos;
+        }
+
+
+        //float3 dir = fast_normalize(lpos - current_pos);
+
+        float2 vdist = current_pos.xy - destination_pos.xy;
+
+        vdist = fabs(vdist);
+
+        float mnum = vdist.x > vdist.y ? vdist.x : vdist.y;
+
+        float3 dir = (destination_pos - current_pos) / mnum;
+
+        dir *= max_length / samples;
+
+        for(int j=0; j<mnum && j < samples; j++)
+        {
+            if(any(current_pos.xy < 0) || any(current_pos.xy >= (float2){SCREENWIDTH, SCREENHEIGHT} - 1))
+                continue;
+
+            uint cdepth = depth_buffer[((int)current_pos.y) * SCREENWIDTH + (int)current_pos.x];
+
+            float fdepth = idcalc((float)cdepth / mulint);
+
+            float3 val = 0;
+
+            //if(fdepth > current_pos.z - 10)
+            //    val = 1;
+
+            if(fdepth < original.z - 10 && cdepth != mulint)
+            {
+                idecay *= 0.9f;
+
+                val = 1;
+            }
+
+            val = val * idecay * weight;
+
+            iter_col += val;
+
+            idecay *= decay_factor;
+
+            current_pos = current_pos + dir;
+        }
+
+        my_col.xyz += iter_col.xyz;
+    }
+
+    const float exposure = 0.99f;
+
+    write_imagef(screen_out, (int2){x, y}, my_col * exposure);
+}
+
 
 float get_horizon_direction_depth(const int2 start, const float2 dir, const int nsamples, __global uint * depth_buffer, float cdepth, float radius, float* dist)
 {
