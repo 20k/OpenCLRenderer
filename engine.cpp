@@ -2405,6 +2405,9 @@ void engine::flip()
 ///I could use multiple queues and synchronise between them with event objects
 void engine::blit_to_screen(object_context_data& dat)
 {
+    ///if we resize the window to exactly the same size, itll break
+    ///not sure how to resolve the "cannot release object on other context" problem. Lets just release it for the moment
+    ///and hope the api doesn't notice
     if(dat.s_w != width || dat.s_h != height)
     {
         if(dat.s_w != 0 || dat.s_h != 0)

@@ -239,7 +239,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
     }
 
-    ///reuse the same buffer
+    ///reuse the same buffer, will be recreated on context change
     dat.g_tid_buf_atomic_count = context.fetch()->g_tid_buf_atomic_count;
 
     ///heuristic, help prevent flickering
