@@ -49,16 +49,17 @@ int main(int argc, char *argv[])
 
     sponza->set_specular(0.f);
 
-    texture_manager::allocate_textures();
+    //texture_manager::allocate_textures();
 
     //auto tex_gpu = texture_manager::build_descriptors();
     //window.set_tex_data(tex_gpu);
 
     context.build();
+
     auto object_dat = context.fetch();
     window.set_object_data(*object_dat);
 
-    window.set_tex_data(context.fetch()->tex_gpu);
+    //window.set_tex_data(context.fetch()->tex_gpu);
 
     sf::Event Event;
 
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
     window.set_light_data(light_data);
     window.construct_shadowmaps();
 
-    sf::Texture updated_tex;
+    /*sf::Texture updated_tex;
     updated_tex.loadFromFile("Res/test.png");
 
     for(auto& i : sponza->objs)
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
 
             //printf("howdy\n");
         }
-    }
+    }*/
 
     printf("load_time %f\n", load_time.getElapsedTime().asMicroseconds() / 1000.f);
 
@@ -156,12 +157,21 @@ int main(int argc, char *argv[])
                 window.window.close();
         }
 
-        ///do manual async on thread
-        auto event = window.draw_bulk_objs_n();
+        compute::event event;
+
+        if(window.can_render())
+        {
+            ///do manual async on thread
+            event = window.draw_bulk_objs_n(*context.fetch());
+
+            window.increase_render_events();
+
+            window.swap_depth_buffers();
+        }
 
         window.set_render_event(event);
 
-        window.blit_to_screen();
+        window.blit_to_screen(*context.fetch());
 
         window.flip();
 

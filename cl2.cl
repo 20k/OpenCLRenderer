@@ -568,10 +568,10 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float tx = tnumx*width;
     float ty = tnumy*width;
 
-    y = width - y;
-
     x = fmod(x, width);
     y = fmod(y, width);
+
+    y = width - y;
 
     x = clamp(x, 0.001f, width - 0.001f);
     y = clamp(y, 0.001f, width - 0.001f);
@@ -613,10 +613,12 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, 
     float tx = tnumx*width;
     float ty = tnumy*width;
 
-    y = width - y;
 
     x = fmod(x, width);
     y = fmod(y, width);
+
+    y = width - y;
+
 
     x = clamp(x, 0.001f, width - 0.001f);
     y = clamp(y, 0.001f, width - 0.001f);
@@ -655,7 +657,7 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
     int slice = nums[tex_id] >> 16;
     float width = sizes[slice];
 
-    write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
+    write_tex_array(ucol, (float2){x, width - y}, tex_id, nums, sizes, array);
 
     /*for(int i=0; i<MIP_LEVELS; i++)
     {
