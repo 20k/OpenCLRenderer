@@ -163,6 +163,7 @@ void object::offset_pos(cl_float4 _offset)
 void object::translate_centre(cl_float4 _centre)
 {
     centre = _centre;
+
     for(int i=0; i<tri_list.size(); i++)
     {
         for(int j=0; j<3; j++)

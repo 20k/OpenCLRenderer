@@ -34,7 +34,9 @@ void objects_container::push()
 {
     obj_container_list.push_back(this);
     //return gid++;
-    id = gid++;
+    //id = gid++;
+
+    printf("fine\n");
 }
 
 void objects_container::set_pos(cl_float4 _pos) ///both remote and local
@@ -48,16 +50,17 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
         objs[i].set_pos(pos);
     }
 
-    if(isactive)
+    /*if(isactive)
     {
         int tid = get_object_by_id(id);
 
         obj_container_list[tid]->pos = _pos;
+
         for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
         {
             obj_container_list[tid]->objs[i].set_pos(_pos);
         }
-    }
+    }*/
 }
 
 void objects_container::set_rot(cl_float4 _rot) ///both remote and local
@@ -69,7 +72,7 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
         objs[i].set_rot(rot);
     }
 
-    if(isactive)
+    /*if(isactive)
     {
         int tid = get_object_by_id(id);
 
@@ -78,7 +81,7 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
         {
             obj_container_list[tid]->objs[i].set_rot(_rot);
         }
-    }
+    }*/
 }
 
 void objects_container::offset_pos(cl_float4 _offset)
@@ -132,13 +135,13 @@ void objects_container::set_active(bool param)
     if(!isactive && param)
     {
         isactive = param;
-        push();
+        //push();
         return;
     }
 
     ///deactivating an object will cause it to be unallocated next g_arrange_mem
     ///this is how useless
-    if(isactive && !param)
+    /*if(isactive && !param)
     {
         std::vector<objects_container*>::iterator it = objects_container::obj_container_list.begin();
 
@@ -156,7 +159,7 @@ void objects_container::set_active(bool param)
         {
             std::cout << "Warning: could not remove object, not found" << std::endl;
         }
-    }
+    }*/
 
     isactive = param;
     //return id;
@@ -354,6 +357,10 @@ bool objects_container::has_independent_subobjects()
 
 int objects_container::get_object_by_id(int in)
 {
+    printf("get_object_by_id\n");
+
+    throw std::runtime_error("get_object_by_id");
+
     for(int i=0; i<objects_container::obj_container_list.size(); i++)
     {
         if(objects_container::obj_container_list[i]->id == in)

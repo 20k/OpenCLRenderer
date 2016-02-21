@@ -121,6 +121,8 @@ struct object_context
 
     int frames_since_flipped = 0;
 
+    static cl_uint gid;
+
 private:
 
     ///so we can use write async

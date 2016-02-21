@@ -4,6 +4,8 @@
 
 #include "engine.hpp"
 
+cl_uint object_context::gid = 0;
+
 objects_container* object_context::make_new()
 {
     objects_container* obj = new objects_container;
@@ -13,6 +15,8 @@ objects_container* object_context::make_new()
     ///do not remove the id system
     ///already present in constructor
     //obj->id = objects_container::gid++;
+
+    obj->id = gid++;
 
     containers.push_back(obj);
 

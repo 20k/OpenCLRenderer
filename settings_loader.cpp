@@ -25,7 +25,7 @@ void settings::load(const std::string& loc)
         content.push_back(str);
     }
 
-    if(content.size() < 4)
+    if(content.size() < 5)
     {
         printf("invalid settings file\n");
         return;
@@ -35,4 +35,5 @@ void settings::load(const std::string& loc)
     height = atoi(content[1].c_str());
     ip = content[2];
     quality = atoi(content[3].c_str());
+    name = content[4];
 }
