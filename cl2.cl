@@ -127,6 +127,12 @@ float calc_third_areas(struct interp_container *C, float x, float y)
     return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
 }
 
+///wikipedia is wrong, this is the XYZ rotation
+///http://wims.unice.fr/~wims/wims.cgi?session=JQDCD8CAA0.5&lang=en&cmd=reply&module=tool%2Flinear%2Fmatmult.en&matA=c2%2C0%2C-s2%0D%0As2*s1%2Cc1%2Cc2*s1%0D%0As2*c1%2C-s1%2Cc2*c1&matB=c3%2C+s3%2C+0%0D%0A-s3%2C+c3%2C+0%0D%0A0%2C+0%2C+1&show=A*B
+/*c3*c2,s3*c2,-s2
+(c3*s1*s2-s3*c1),(s3*s1*s2+c3*c1),s1*c2
+(c3*c1*s2+s3*s1),(s3*c1*s2-c3*s1),c1*c2*/
+
 ///intrinsic xyz (extrinsic zyx)
 ///rotates point about camera
 ///no, extrinsic xyz

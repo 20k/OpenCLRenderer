@@ -278,8 +278,6 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
             ///this might be causing the freezes
             if(it->tri_num > 0)
             {
-                //clEnqueueFillBuffer(cl::cqueue2.get(), dat.g_tri_mem.get(), &obj_id, sizeof(obj_id), 0, dat.g_tri_mem.size(), 0, nullptr, nullptr);
-
                 cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), (*it).tri_list.data());
             }
 
@@ -474,7 +472,9 @@ void object_context::build(bool force)
     ///errhghg
     ///this fixes the flashing
     ///im not sure markers are working how i want
-    cl::cqueue2.finish();
+    ///so, I need to order all of these writes
+    if(!force)
+        cl::cqueue2.finish();
 }
 
 object_context_data* object_context::fetch()
