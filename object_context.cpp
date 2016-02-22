@@ -271,6 +271,8 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
     }
 
+    ///I need to put all of these into a "is_saved" buffer
+
     ///reuse the same buffer, will be recreated on context change
     dat.g_tid_buf_atomic_count = context.fetch()->g_tid_buf_atomic_count;
 
@@ -280,6 +282,12 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
     dat.g_screen = context.fetch()->g_screen;
     dat.gl_framebuffer_id = context.fetch()->gl_framebuffer_id;
 
+    for(int i=0; i<2; i++)
+    {
+        dat.depth_buffer[i] = context.fetch()->depth_buffer[i];
+    }
+
+    ///I'm going to forget this every time
     dat.s_w = context.fetch()->s_w;
     dat.s_h = context.fetch()->s_h;
 
