@@ -424,7 +424,8 @@ void flip_buffers(object_context* ctx)
     ctx->new_gpu_dat.g_tid_buf_atomic_count = ctx->fetch()->g_tid_buf_atomic_count;
 
     ///heuristic, help prevent flickering
-    ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
+    //ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
+
 
     ///???
     if(ctx->gpu_dat.cpu_id_num == nullptr)
@@ -434,7 +435,7 @@ void flip_buffers(object_context* ctx)
     }
     else
     {
-        ctx->new_gpu_dat.cpu_id_num = ctx->gpu_dat.cpu_id_num;
+        ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
     }
 
     ctx->new_gpu_dat.g_screen = ctx->fetch()->g_screen;
