@@ -53,7 +53,6 @@ void object_context::load_active()
 
         if(obj->isloaded == false && obj->isactive)
         {
-            ///fix the cache later
             if(obj->cache && object_cache.find(obj->file)!=object_cache.end())
             {
                 ///can cache
