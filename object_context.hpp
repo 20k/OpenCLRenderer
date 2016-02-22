@@ -44,7 +44,7 @@ struct object_context_data
     compute::opengl_renderbuffer g_screen;
     compute::buffer depth_buffer[2];
 
-    cl_uint cpu_id_num = 0;
+    cl_uint* cpu_id_num = nullptr;
 
     int nbuf = 0;
 
@@ -68,7 +68,7 @@ struct object_context_data
 
     bool has_valid_texture_data = false;
 
-    void ensure_screen_buffers(int _w, int _h);
+    void ensure_screen_buffers(int _w, int _h, bool force = false);
     void swap_depth_buffers();
 };
 

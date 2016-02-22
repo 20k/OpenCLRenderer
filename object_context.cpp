@@ -9,9 +9,12 @@ void object_context_data::swap_depth_buffers()
     nbuf = (nbuf + 1) % 2;
 }
 
-void object_context_data::ensure_screen_buffers(int _w, int _h)
+void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 {
-    if(s_w != _w || s_h != _h)
+    if(_w == 0 || _h == 0)
+        return;
+
+    if(s_w != _w || s_h != _h || force)
     {
         /*if(dat.s_w != 0 || dat.s_h != 0)
         {
@@ -21,7 +24,9 @@ void object_context_data::ensure_screen_buffers(int _w, int _h)
 
         g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
 
-        cl_uint *arr = new cl_uint[_w*_h]();
+        cl_uint *arr = new cl_uint[_w*_h];
+
+        memset(arr, UINT_MAX, sizeof(cl_uint)*_w*_h);
 
         depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
         depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
@@ -263,28 +268,21 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
     dat.tri_num = tri_num;
 
+
     bool first_init = !context.fetch()->gpu_data_finished;
 
     if(first_init || force)
     {
+        ///well, lets just leak 4 bytes of memory
+        //if(dat.cpu_id_num)
+        //    delete dat.cpu_id_num;
+
         cl_uint zero = 0;
         context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
-    }
 
-    ///I need to put all of these into a "is_saved" buffer
+        //dat.cpu_id_num = new cl_uint();
 
-    ///reuse the same buffer, will be recreated on context change
-    dat.g_tid_buf_atomic_count = context.fetch()->g_tid_buf_atomic_count;
-
-    ///heuristic, help prevent flickering
-    dat.cpu_id_num = context.fetch()->cpu_id_num;
-
-    dat.g_screen = context.fetch()->g_screen;
-    dat.gl_framebuffer_id = context.fetch()->gl_framebuffer_id;
-
-    for(int i=0; i<2; i++)
-    {
-        dat.depth_buffer[i] = context.fetch()->depth_buffer[i];
+        //printf("alloc\n");
     }
 
     ///I'm going to forget this every time
@@ -381,11 +379,6 @@ void flip_buffers(object_context* ctx)
 {
     ctx->frames_since_flipped++;
 
-    if(ctx->frames_since_flipped == 5)
-    {
-        //ctx->old_dat = object_context_data();
-    }
-
     if(!ctx->ready_to_flip)
         return;
 
@@ -423,6 +416,38 @@ void flip_buffers(object_context* ctx)
             obj->objs[k].gpu_tri_start = i.new_object_data[k].gpu_tri_start;
             obj->objs[k].gpu_tri_end   = i.new_object_data[k].gpu_tri_end;
         }
+    }
+
+
+    ///I need to put all of these into a "is_saved" buffer
+    ///reuse the same buffer, will be recreated on context change
+    ctx->new_gpu_dat.g_tid_buf_atomic_count = ctx->fetch()->g_tid_buf_atomic_count;
+
+    ///heuristic, help prevent flickering
+    ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
+
+    ///???
+    if(ctx->gpu_dat.cpu_id_num == nullptr)
+    {
+        ctx->new_gpu_dat.cpu_id_num = new cl_uint();
+
+    }
+    else
+    {
+        ctx->new_gpu_dat.cpu_id_num = ctx->gpu_dat.cpu_id_num;
+    }
+
+    ctx->new_gpu_dat.g_screen = ctx->fetch()->g_screen;
+    ctx->new_gpu_dat.gl_framebuffer_id = ctx->fetch()->gl_framebuffer_id;
+    ctx->new_gpu_dat.nbuf = (ctx->fetch()->nbuf) % 2;
+
+    ///wait. In doing this, we're... well, nicking the old one's actual stored
+    ///owned resource
+    ///I smell a fuckup
+    for(int i=0; i<2; i++)
+    {
+        ctx->new_gpu_dat.depth_buffer[i] = ctx->fetch()->depth_buffer[i];
+        //ctx->new_gpu_dat.ensure_screen_buffers(ctx->gpu_dat.s_w, ctx->gpu_dat.s_h, true);
     }
 
     if(!ctx->new_gpu_dat.has_valid_texture_data)
