@@ -3623,6 +3623,38 @@ void blend_screens(__read_only image2d_t src, __read_only image2d_t _dst, __writ
     write_imagef(dst, (int2){ix, iy}, acol);
 }
 
+__kernel
+void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _dst, __write_only image2d_t dst, __global uint* src_depth, __global uint* dst_depth, int2 dim)
+{
+    int id = get_global_id(0);
+
+    int ix = id % dim.x;
+    int iy = id / dim.x;
+
+    if(iy >= dim.y)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    uint d1 = src_depth[iy*SCREENWIDTH + ix];
+    uint d2 = dst_depth[iy*SCREENWIDTH + ix];
+
+    if(d2 < d1)
+        return;
+
+    float4 fc1 = read_imagef(src, sam, (int2){ix, iy});
+
+    float4 fc2 = read_imagef(_dst, sam, (int2){ix, iy});
+
+    float3 col = fc1.xyz * fc1.w + fc2.xyz;
+
+    float4 acol = (float4)(col.xyz, fc1.w);
+
+    write_imagef(dst, (int2){ix, iy}, acol);
+}
+
 #ifdef OCULUS
 
 struct p2

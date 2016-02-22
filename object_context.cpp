@@ -4,6 +4,39 @@
 
 #include "engine.hpp"
 
+void object_context_data::swap_depth_buffers()
+{
+    nbuf = (nbuf + 1) % 2;
+}
+
+void object_context_data::ensure_screen_buffers(int _w, int _h)
+{
+    if(s_w != _w || s_h != _h)
+    {
+        /*if(dat.s_w != 0 || dat.s_h != 0)
+        {
+            ///might have been created on a different context? what do?
+            //compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+        }*/
+
+        g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
+
+        cl_uint *arr = new cl_uint[_w*_h]();
+
+        depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+        depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+
+        delete [] arr;
+
+        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+
+        printf("created screen dim %i %i\n", _w, _h);
+    }
+
+    s_w = _w;
+    s_h = _h;
+}
+
 cl_uint object_context::gid = 0;
 
 objects_container* object_context::make_new()

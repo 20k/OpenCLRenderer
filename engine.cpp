@@ -1115,7 +1115,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p1arg_list.push_back(&dat.g_tri_mem);
     p1arg_list.push_back(&eng.g_tid_buf);
     p1arg_list.push_back(&dat.g_tri_num);
-    p1arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p1arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
     //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
     p1arg_list.push_back(&dat.g_tid_buf_atomic_count);
     p1arg_list.push_back(&dat.g_cut_tri_num);
@@ -1139,7 +1139,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p2arg_list.push_back(&dat.g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);
     p2arg_list.push_back(&dat.g_tri_num);
-    p2arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p2arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
     p2arg_list.push_back(&eng.g_id_screen_tex);
     p2arg_list.push_back(&dat.g_tid_buf_atomic_count);
     p2arg_list.push_back(&dat.g_cut_tri_num);
@@ -1149,7 +1149,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     run_kernel_with_string("kernel2", &p2global_ws, &local, 1, p2arg_list);
 
     //sf::Clock c3;
-    int nnbuf = (eng.nbuf + 1) % 2;
+    int nnbuf = (dat.nbuf + 1) % 2;
 
     /// many arguments later
 
@@ -1158,7 +1158,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&dat.g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
-    p3arg_list.push_back(&eng.depth_buffer[eng.nbuf]);
+    p3arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
     p3arg_list.push_back(&eng.g_id_screen_tex);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_array);
     p3arg_list.push_back(&g_screen_out);
@@ -1169,7 +1169,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&eng.light_data->g_light_num);
     p3arg_list.push_back(&eng.light_data->g_light_mem);
     p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
-    p3arg_list.push_back(&eng.depth_buffer[nnbuf]);
+    p3arg_list.push_back(&dat.depth_buffer[nnbuf]);
     p3arg_list.push_back(&eng.g_tid_buf);
     p3arg_list.push_back(&dat.g_cut_tri_mem);
     p3arg_list.push_back(&eng.g_distortion_buffer);
@@ -1511,7 +1511,7 @@ void engine::increase_render_events()
 ///this function is horrible and needs to be reworked into multiple smaller functions
 compute::event engine::draw_bulk_objs_n(object_context_data& dat)
 {
-    if(dat.s_w != width || dat.s_h != height)
+    /*if(dat.s_w != width || dat.s_h != height)
     {
         if(dat.s_w != 0 || dat.s_h != 0)
         {
@@ -1527,7 +1527,9 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
         dat.s_h = height;
 
         printf("created screen\n");
-    }
+    }*/
+
+    dat.ensure_screen_buffers(width, height);
 
     compute::event ret;
 
@@ -1609,6 +1611,25 @@ compute::event engine::blend(object_context_data& src, object_context_data& dst)
     args.push_back(&dim);
 
     return run_kernel_with_string("blend_screens", {dim.x*dim.y}, {128}, 1, args);
+}
+
+compute::event engine::blend_with_depth(object_context_data& src, object_context_data& dst)
+{
+    cl_int2 dim = {dst.s_w, dst.s_h};
+
+    arg_list args;
+    //args.push_back(&src.)
+
+    args.push_back(&src.g_screen);
+    args.push_back(&dst.g_screen);
+    args.push_back(&dst.g_screen);
+
+    args.push_back(&src.depth_buffer[src.nbuf]);
+    args.push_back(&dst.depth_buffer[dst.nbuf]);
+
+    args.push_back(&dim);
+
+    return run_kernel_with_string("blend_screens_with_depth", {dim.x*dim.y}, {128}, 1, args);
 }
 
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
@@ -2425,7 +2446,7 @@ void engine::blit_to_screen(object_context_data& dat)
     ///if we resize the window to exactly the same size, itll break
     ///not sure how to resolve the "cannot release object on other context" problem. Lets just release it for the moment
     ///and hope the api doesn't notice
-    if(dat.s_w != width || dat.s_h != height)
+    /*if(dat.s_w != width || dat.s_h != height)
     {
         if(dat.s_w != 0 || dat.s_h != 0)
         {
@@ -2438,7 +2459,9 @@ void engine::blit_to_screen(object_context_data& dat)
 
         dat.s_w = width;
         dat.s_h = height;
-    }
+    }*/
+
+    dat.ensure_screen_buffers(width, height);
 
     if(render_me)
     {

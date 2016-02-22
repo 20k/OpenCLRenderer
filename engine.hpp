@@ -253,6 +253,7 @@ struct engine
     void increase_render_events();
 
     compute::event blend(object_context_data& _src, object_context_data& _dst);
+    compute::event blend_with_depth(object_context_data& _src, object_context_data& _dst);
 
     ///?
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);
