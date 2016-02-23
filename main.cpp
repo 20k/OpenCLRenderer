@@ -159,17 +159,19 @@ int main(int argc, char *argv[])
 
         compute::event event;
 
-        if(window.can_render())
+        //if(window.can_render())
         {
             ///do manual async on thread
             ///make a enforce_screensize method, rather than make these hackily do it
             event = window.draw_bulk_objs_n(*context.fetch());
 
-            event = window.draw_godrays(*context.fetch());
+            //event = window.draw_godrays(*context.fetch());
 
             window.increase_render_events();
 
-            window.swap_depth_buffers();
+            context.fetch()->swap_depth_buffers();
+
+            //window.swap_depth_buffers();
         }
 
         window.set_render_event(event);

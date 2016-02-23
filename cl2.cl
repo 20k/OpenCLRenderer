@@ -22,6 +22,8 @@
 
 #define depth_no_clear (mulint-1)
 
+#define supports_3d_writes cl_khr_3d_image_writes
+
 //#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
 struct interp_container;
@@ -542,11 +544,59 @@ void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3],
     }
 }
 
+#ifdef supports_3d_writes
+typedef __write_only image3d_t image_3d_write;
+#else
+typedef __global uint4* image_3d_write;
+#endif
+
+#ifdef supports_3d_writes
+typedef __read_only image3d_t image_3d_read;
+#else
+typedef __global uint4* image_3d_read;
+#endif
+
+#ifdef supports_3d_writes
+void write_image_3d_hardware(int4 coord, __write_only image3d_t array, uint4 to_write, int width, int height)
+#else
+void write_image_3d_hardware(int4 coord, __global uint4* array, int width, int height)
+#endif
+{
+    #ifdef supports_3d_writes
+    write_imageui(array, convert_int4(coord), to_write);
+    #else
+    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+        return;
+
+    array[coord.z * width * height + coord.y * width + coord.x];
+    #endif
+}
+
+#ifdef supports_3d_writes
+uint4 read_image_3d_hardware(int4 coord, __read_only image3d_t array, int width, int height)
+#else
+uint4 read_image_3d_hardware(int4 coord, __global uint4* array, int width, int height)
+#endif
+{
+    #ifdef supports_3d_writes
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP   |
+                    CLK_FILTER_NEAREST;
+
+    return read_imageui(array, sam, coord);
+    #else
+
+    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+        return 0;
+
+    return array[coord.z * width * height + coord.y * width + coord.x];
+    #endif
+}
 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 ///fixme
 ///this should under no circumstances have to index two global arrays just to have to read from a damn texture
-float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, __read_only image3d_t array)
+float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, image_3d_read array)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE   |
@@ -588,16 +638,18 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float4 coord = {tx + x, ty + y, slice, 0};
 
     uint4 col;
-    col = read_imageui(array, sam, coord);
+    //col = read_imageui(array, sam, coord);
+    col = read_image_3d_hardware(convert_int4(coord), array, max_tex_size, max_tex_size);
 
     float4 t = convert_float4(col);
 
     return t;
 }
 
+
 ///0 -> 255
 ///this is gpu_id weird combination
-void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, global uint* size, __write_only image3d_t array)
+void write_tex_array(uint4 to_write, float2 coords, uint tid, __global uint* num, __global uint* size, image_3d_write array)
 {
     //cannot do linear interpolation on uchars
     float x = coords.x;
@@ -634,11 +686,13 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, global uint* num, 
     ///remember to add 0.5f to this
     float4 coord = {tx + x, ty + y, slice, 0};
 
-    write_imageui(array, convert_int4(coord), to_write);
+    //write_imageui(array, convert_int4(coord), to_write);
+
+    write_image_3d_hardware(convert_int4(coord), array, to_write, max_tex_size, max_tex_size);
 }
 
 ///why is the texture actually floats, not 32bit rgba? surface format optimisation?
-__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array, int flip)
+__kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, image_3d_write array, int flip)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -671,7 +725,7 @@ __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap
 }
 
 __kernel
-void update_gpu_tex_colour(float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+void update_gpu_tex_colour(float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, image_3d_write array)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -723,7 +777,7 @@ float noise(int x)
 }
 
 __kernel
-void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __global uint* sizes, __write_only image3d_t array, __read_only image3d_t rarray)
+void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -772,7 +826,7 @@ void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __globa
 }
 
 __kernel
-void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array, __read_only image3d_t rarray)
+void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -827,7 +881,7 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
 ///;_;
 ///we're writing directly to the 3d texture array which will be slow :[
 __kernel
-void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, __write_only image3d_t array)
+void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, image_3d_write array)
 {
     int line_id = get_global_id(0);
 
@@ -897,7 +951,7 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
 }
 
 ///fixme
-float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, __read_only image3d_t array) ///takes a normalised input
+float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, image_3d_read array) ///takes a normalised input
 {
     int which=nums[tid];
     float width=sizes[which >> 16];
@@ -944,7 +998,7 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -1040,7 +1094,7 @@ float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, __read_only image3d_t array)
+float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
 {
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
@@ -3022,7 +3076,7 @@ __kernel
 __attribute__((reqd_work_group_size(16, 16, 1)))
 //__attribute__((vec_type_hint(float3)))
 void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
-           __read_only image3d_t array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
+           image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer
            )

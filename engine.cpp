@@ -1006,8 +1006,10 @@ compute::event engine::draw_godrays(object_context_data& dat)
     if(!light_data->any_godray)
         return compute::event();
 
+    dat.ensure_screen_buffers(width, height);
+
     arg_list args;
-    args.push_back(&depth_buffer[nbuf]);
+    args.push_back(&dat.depth_buffer[dat.nbuf]);
     args.push_back(&dat.g_screen);
     args.push_back(&dat.g_screen);
     args.push_back(&light_data->g_light_num);
