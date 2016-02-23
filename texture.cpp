@@ -79,6 +79,8 @@ sf::Image& texture::get_texture_level(int num)
 
 cl_uint texture::get_active_id()
 {
+    printf("err, get_active_id is deprecated\n");
+
     for(int i=0; i<texture_manager::active_textures.size(); i++)
     {
         if(texture_manager::texture_by_id(texture_manager::active_textures[i])->id == id)
@@ -93,6 +95,8 @@ cl_uint texture::get_active_id()
 
 void texture::activate()
 {
+    printf("warning, activating a texture is deprecated\n");
+
     texture_manager::activate_texture(id);
 }
 

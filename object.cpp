@@ -306,6 +306,8 @@ void object::scale(float f)
 
 texture* object::get_texture()
 {
+    printf("err, get_texture is deprecated\n");
+
     return texture_manager::texture_by_id(tid);
 }
 
