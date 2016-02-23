@@ -2664,3 +2664,8 @@ void engine::check_obj_visibility()
         }
     }
 }
+
+bool supports_3d_writes()
+{
+    return supports_extension("cl_khr_3d_image_writes");
+}

@@ -134,6 +134,8 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
 
 extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
+bool supports_3d_writes();
+
 inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
 {
     int src_size=0;
@@ -172,8 +174,14 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
     if(only_3d)
         pure_3d = " -D ONLY_3D";
 
+
     ///does not compile properly without (breaks texture filtering), investigate this at some point
     std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
+
+    if(supports_3d_writes())
+    {
+        buildoptions = buildoptions + " -D supports_3d_writes";
+    }
 
     #ifdef BECKY_HACK
     buildoptions = buildoptions + std::string(" -D BECKY_HACK=1");

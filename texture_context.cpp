@@ -79,7 +79,7 @@ void prepare_textures_in_use(texture_context& tex_ctx, std::set<texture_id_t>& t
 
 unsigned int max_textures_in_slice(int texture_size)
 {
-    return (max_tex_size/texture_size) * (max_tex_size/texture_size);
+    return (TEXTURE_CONTEXT_MAX_SIZE_IMAGE/texture_size) * (TEXTURE_CONTEXT_MAX_SIZE_IMAGE/texture_size);
 }
 
 struct texture_page
@@ -282,6 +282,8 @@ int texture_context::get_gpu_position_id(texture_id_t id)
     return -1;
 }
 
+bool supports_3d_writes();
+
 texture_context_data texture_context::alloc_gpu(object_context& ctx)
 {
     ///id
@@ -326,7 +328,23 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
     texture_context_data tex_data;
 
-    tex_data.g_texture_array = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_array_len, 0, 0, NULL);
+    if(supports_3d_writes())
+    {
+        printf("Using mainstream texture write path\n");
+
+        compute::image3d temp = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_array_len, 0, 0, NULL);
+
+        ///steal and retain buffer
+        tex_data.g_texture_array = compute::buffer(temp.get(), true);
+    }
+    else
+    {
+        printf("Using alternate texture write path\n");
+
+        tex_data.g_texture_array = compute::buffer(cl::context, sizeof(cl_uint) * 4 * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * clamped_array_len, CL_MEM_READ_WRITE, nullptr);
+    }
+
+
     ///position in array
     tex_data.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_position_len, CL_MEM_READ_ONLY);
 

@@ -1,4 +1,4 @@
-#pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
+//#pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
 
 #pragma OPENCL FP_CONTRACT ON
 
@@ -8,7 +8,9 @@
 
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
-#define M_PI 3.1415927f
+#ifndef M_PI
+    #define M_PI 3.1415927f
+#endif // M_PI
 
 #define depth_far 350000.0f
 
@@ -22,7 +24,15 @@
 
 #define depth_no_clear (mulint-1)
 
-#define supports_3d_writes cl_khr_3d_image_writes
+/*
+///What's that? We're nvidia and define cl_khr_3d_image_writes even though they're unsupported
+///and then produce the cryptic error message relating to clang ptx of invalid image format in sust.
+///????????
+#ifdef cl_khr_3d_image_writes
+    #define supports_3d_writes cl_khr_3d_image_writes
+#endif
+
+#undef supports_3d_writes*/
 
 //#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
@@ -559,16 +569,16 @@ typedef __global uint4* image_3d_read;
 #ifdef supports_3d_writes
 void write_image_3d_hardware(int4 coord, __write_only image3d_t array, uint4 to_write, int width, int height)
 #else
-void write_image_3d_hardware(int4 coord, __global uint4* array, int width, int height)
+void write_image_3d_hardware(int4 coord, __global uint4* array, uint4 to_write, int width, int height)
 #endif
 {
     #ifdef supports_3d_writes
     write_imageui(array, convert_int4(coord), to_write);
     #else
-    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
-        return;
+    //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+    //    return;
 
-    array[coord.z * width * height + coord.y * width + coord.x];
+    array[coord.z * width * height + coord.y * width + coord.x] = to_write;
     #endif
 }
 
@@ -586,8 +596,8 @@ uint4 read_image_3d_hardware(int4 coord, __global uint4* array, int width, int h
     return read_imageui(array, sam, coord);
     #else
 
-    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
-        return 0;
+    //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+    //    return 0;
 
     return array[coord.z * width * height + coord.y * width + coord.x];
     #endif
@@ -7119,6 +7129,7 @@ __kernel void reproject_screen(__global uint* depth, float4 old_pos, float4 old_
     write_imagef(new_screen, (int2){x, y}, col);
 }
 
+#if 0
 //Renders a point cloud which renders correct wrt the depth buffer
 ///make a half resolution depth map, then expand?
 __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer,
@@ -7182,6 +7193,7 @@ __kernel void point_cloud_depth_pass(__global uint* num, __global float4* positi
     atomic_min(depth_pointer3, idepth);
     atomic_min(depth_pointer4, idepth);
 }
+#endif
 
 typedef union
 {
@@ -7198,6 +7210,7 @@ void accumulate_to_buffer(__global intconv* buf, int x, int y, float4 val)
     atomic_add(&buf[y*SCREENWIDTH + x].m_ints[2], uval.z);
 }
 
+#if 0
 __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* positions, __global uint* colours, __global float4* g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer,
                                         __global float2* distortion_buffer)
 {
@@ -7383,6 +7396,7 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
         }
     }
 }
+#endif
 
 __kernel void galaxy_rendering_modern(__global uint* num, __global float4* positions, __global uint* colours, float4 g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer, __global uint* game_depth_buffer)
 {
@@ -7519,7 +7533,7 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
                 my_col = final_col;
 
             ///if hypergiant and i or j but not both equal to 1
-            if(hypergiant && (abs(i) == 1 && abs(j) == 0 || abs(i) == 0 && abs(j) == 1 || abs(i) == 1 && abs(j) == 1))
+            if(hypergiant && ((abs(i) == 1 && abs(j) == 0) || (abs(i) == 0 && abs(j) == 1) || (abs(i) == 1 && abs(j)) == 1))
             {
                 my_col = final_col * (w1 * 1.1f);
             }

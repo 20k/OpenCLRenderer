@@ -502,10 +502,6 @@ bool supports_extension(const std::string& ext_name)
     return false;
 }
 
-inline
-bool supports_3d_writes()
-{
-    return supports_extension("cl_khr_3d_image_writes");
-}
+bool supports_3d_writes();
 
 #endif

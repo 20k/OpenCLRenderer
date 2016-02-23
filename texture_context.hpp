@@ -11,7 +11,7 @@
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
 
-#define TEXTURE_CONTEXT_MAX_SIZE 2048
+#define TEXTURE_CONTEXT_MAX_SIZE_IMAGE 2048
 #define TEXTURE_CONTEXT_MIP_LEVELS 4
 
 struct object_context;
@@ -26,7 +26,9 @@ struct texture_context_data
 {
     compute::buffer g_texture_sizes;
     compute::buffer g_texture_nums; ///cant be arsed to rename every single instance of this
-    compute::image3d g_texture_array;
+
+    ///either an image3d OR a uint4 buffer depending on hardware support
+    compute::buffer g_texture_array;
     cl_uint mipmap_start;
 };
 
