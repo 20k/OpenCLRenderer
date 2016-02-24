@@ -1041,7 +1041,7 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     float2 coords[4];
 
-    int2 pos = {floor(mcoord.x), floor(mcoord.y)};
+    float2 pos = floor(mcoord);//{floor(mcoord.x), floor(mcoord.y)};
 
     coords[0].x=pos.x, coords[0].y=pos.y;
     coords[1].x=pos.x+1, coords[1].y=pos.y;
@@ -1057,16 +1057,13 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     }
 
 
-    float2 uvratio = {mcoord.x-pos.x, mcoord.y-pos.y};
+    float2 uvratio = mcoord - pos;
 
-    float2 buvr = {1.0f-uvratio.x, 1.0f-uvratio.y};
+    float2 buvr = 1.f - uvratio;
 
     float4 result;
-    result.x=(colours[0].x*buvr.x + colours[1].x*uvratio.x)*buvr.y + (colours[2].x*buvr.x + colours[3].x*uvratio.x)*uvratio.y;
-    result.y=(colours[0].y*buvr.x + colours[1].y*uvratio.x)*buvr.y + (colours[2].y*buvr.x + colours[3].y*uvratio.x)*uvratio.y;
-    result.z=(colours[0].z*buvr.x + colours[1].z*uvratio.x)*buvr.y + (colours[2].z*buvr.x + colours[3].z*uvratio.x)*uvratio.y;
-    result.w=(colours[0].w*buvr.x + colours[1].w*uvratio.x)*buvr.y + (colours[2].w*buvr.x + colours[3].w*uvratio.x)*uvratio.y;
 
+    result = mad(colours[0], buvr.x, colours[1] * uvratio.x) * buvr.y + mad(colours[2], buvr.x, colours[3] * uvratio.x) * uvratio.y;
 
     ///if using hardware linear interpolation
     ///can't while we're still using integers
