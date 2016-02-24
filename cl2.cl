@@ -24,15 +24,7 @@
 
 #define depth_no_clear (mulint-1)
 
-/*
-///What's that? We're nvidia and define cl_khr_3d_image_writes even though they're unsupported
-///and then produce the cryptic error message relating to clang ptx of invalid image format in sust.
-///????????
-#ifdef cl_khr_3d_image_writes
-    #define supports_3d_writes cl_khr_3d_image_writes
-#endif
-
-#undef supports_3d_writes*/
+#undef supports_3d_writes
 
 //#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
@@ -575,8 +567,8 @@ void write_image_3d_hardware(int4 coord, __global uchar4* array, uint4 to_write,
     #ifdef supports_3d_writes
     write_imageui(array, convert_int4(coord), to_write);
     #else
-    //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
-    //    return;
+    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+        return;
 
     array[coord.z * width * height + coord.y * width + coord.x] = convert_uchar4(to_write);
     #endif
@@ -596,8 +588,8 @@ uint4 read_image_3d_hardware(int4 coord, __global uchar4* array, int width, int 
     return read_imageui(array, sam, coord);
     #else
 
-    //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
-    //    return 0;
+    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+        return 0;
 
     return convert_uint4(array[coord.z * width * height + coord.y * width + coord.x]);
     #endif
