@@ -328,39 +328,6 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
     }
 
     printf("Allocated %i mb of tris\n", ((sizeof(triangle) * tri_num) / 1024) / 1024);
-
-    /*for(auto& i : dat.pos)
-        i = compute::buffer(cl::context, sizeof(cl_float4) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
-
-    for(auto& i : dat.vt)
-        i = compute::buffer(cl::context, sizeof(cl_float2) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
-
-    for(auto& i : dat.norm)
-        i = compute::buffer(cl::context, sizeof(cl_float4) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
-
-    dat.object_ids = compute::buffer(cl::context, sizeof(cl_uint) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
-
-    dat.tri_num = tri_num;
-
-    clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 0, nullptr, nullptr);
-
-    arg_list args;
-
-    args.push_back(&dat.g_tri_mem);
-
-    for(auto& i : dat.pos)
-        args.push_back(&i);
-
-    for(auto& i : dat.vt)
-        args.push_back(&i);
-
-    for(auto& i : dat.norm)
-        args.push_back(&i);
-
-    args.push_back(&dat.object_ids);
-    args.push_back(&dat.tri_num);
-
-    run_kernel_with_string("shim_old_triangle_format_to_new", {dat.tri_num}, {256}, 1, args, cl::cqueue2);*/
 }
 
 void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
@@ -485,6 +452,7 @@ void update_object_status(cl_event event, cl_int event_command_exec_status, void
 ///make textures autoreallocate if  necessary
 /// and B
 ///make this function not naively rebuild every time its asked if its not necessary
+///Ok so. All of the writes here need to be ordered with events, using a queue is not good enough
 void object_context::build(bool force)
 {
     ///if we call build rapidly

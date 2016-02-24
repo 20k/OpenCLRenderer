@@ -56,6 +56,7 @@ struct object_context_data
 
     compute::buffer object_ids;*/
 
+    ///we want to use atomics for this really
     volatile bool gpu_data_finished = false;
 
     ///necessary for stuff to know that the object context has changed
