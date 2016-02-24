@@ -108,17 +108,35 @@ struct interp_container
     float rconstant;
 };
 
-float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
+/*float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+}*/
+
+float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
+{
+    return (//fabs(mad(x2, y, mad(-x3, y, mad(-x,y2,x3*y2)+mad(-x2, y3, x*y3)))) + ///redo this, move -s to the end
+            fabs(mad(x2,y,mad(x3,y2,x*y3)-mad(x3,y,mad(x,y2,x2*y3)))) +
+            fabs(mad(x,y1,mad(x3,y,x1*y3)-mad(x3,y1,mad(x1,y,x*y3)))) +
+            fabs(mad(x2,y1,mad(x,y2,x1*y)-mad(x,y1,mad(x1,y2,x2*y))))) * 0.5f;
+
+            //fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+
+            //fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) +
+            //fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
 }
 
-float get_third_areas(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* a1, float* a2, float* a3)
+/*float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
+{
+    return (fabs(x2*y-mad(x, y2, x3*y2)+mad(-x2, y3, x*y3)-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
+}*/
+
+/*float get_third_areas(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* a1, float* a2, float* a3)
 {
     *a1 = x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y;
     *a2 = x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1;
     *a3 = x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1;
-}
+}*/
 
 /*float calc_third_areas_get(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y, float* A, float* B, float* C)
 {
@@ -127,10 +145,10 @@ float get_third_areas(float x1, float x2, float x3, float y1, float y2, float y3
     *C = fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1) * 0.5f;
 }*/
 
-float calc_third_areas(struct interp_container *C, float x, float y)
+/*float calc_third_areas(struct interp_container *C, float x, float y)
 {
     return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
-}
+}*/
 
 ///wikipedia is wrong, this is the XYZ rotation
 ///http://wims.unice.fr/~wims/wims.cgi?session=JQDCD8CAA0.5&lang=en&cmd=reply&module=tool%2Flinear%2Fmatmult.en&matA=c2%2C0%2C-s2%0D%0As2*s1%2Cc1%2Cc2*s1%0D%0As2*c1%2C-s1%2Cc2*c1&matB=c3%2C+s3%2C+0%0D%0A-s3%2C+c3%2C+0%0D%0A0%2C+0%2C+1&show=A*B
