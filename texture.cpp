@@ -295,6 +295,8 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
 
     sf::Texture::bind( &tex );
     glGetIntegerv( GL_TEXTURE_BINDING_2D, &opengl_id );
+    ///a glfinish here makes it crash?
+
     sf::Texture::bind(nullptr);
 
     //glFinish();
@@ -318,6 +320,8 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue);
 
     clEnqueueReleaseGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+
+    cqueue.finish();
 
     //cl::cqueue.finish();
 

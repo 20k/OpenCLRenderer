@@ -522,7 +522,8 @@ void object_context::build(bool force)
     alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
 
     ///ie we want there to be some valid gpu presence
-    if(!gpu_dat.gpu_data_finished || force)
+    //if(!gpu_dat.gpu_data_finished || force)
+    if(true)
     {
         cl::cqueue2.finish();
 

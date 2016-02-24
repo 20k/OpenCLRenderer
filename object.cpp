@@ -483,6 +483,7 @@ void object::g_flush(object_context_data& dat, bool force)
         if((dirty_pos || dirty_rot) && ret != CL_SUCCESS)
         {
             printf("Crashtime in flush err %i\n", ret);
+            write_events.pop_back();
         }
 
         num_events = write_events.size() > 0 ? 1 : 0;
