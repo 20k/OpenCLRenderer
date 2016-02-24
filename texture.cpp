@@ -81,7 +81,7 @@ cl_uint texture::get_active_id()
 {
     printf("err, get_active_id is deprecated\n");
 
-    for(int i=0; i<texture_manager::active_textures.size(); i++)
+    /*for(int i=0; i<texture_manager::active_textures.size(); i++)
     {
         if(texture_manager::texture_by_id(texture_manager::active_textures[i])->id == id)
         {
@@ -89,7 +89,7 @@ cl_uint texture::get_active_id()
         }
     }
 
-    std::cout << "warning, could not find texture in active textures" << std::endl;
+    std::cout << "warning, could not find texture in active textures" << std::endl;*/
     return -1;
 }
 
@@ -97,12 +97,12 @@ void texture::activate()
 {
     printf("warning, activating a texture is deprecated\n");
 
-    texture_manager::activate_texture(id);
+    //texture_manager::activate_texture(id);
 }
 
 void texture::inactivate()
 {
-    texture_manager::inactivate_texture(id);
+    //texture_manager::inactivate_texture(id);
 }
 
 void texture::set_unique()
@@ -129,12 +129,14 @@ void texture::set_create_colour(sf::Color col, int w, int h)
 
 bool texture::exists()
 {
-    return texture_manager::exists_by_location(texture_location);
+    throw std::runtime_error("exists is deprecated\n");
+    //return texture_manager::exists_by_location(texture_location);
 }
 
 bool exists_by_id(texture* tex)
 {
-    return texture_manager::texture_by_id(tex->id) != nullptr;
+    throw std::runtime_error("exists by idis deprecated\n");
+    //return texture_manager::texture_by_id(tex->id) != nullptr;
 }
 
 void texture::push()
@@ -143,7 +145,7 @@ void texture::push()
 
     throw std::runtime_error("pushed texture\n");
 
-    if(!exists() || is_unique)
+    /*if(!exists() || is_unique)
     {
         id = texture_manager::add_texture(*this);
     }
@@ -161,7 +163,7 @@ void texture::push()
             }
         }
 
-    }
+    }*/
 }
 
 void texture::load()
@@ -235,6 +237,8 @@ void gen_miplevel(texture& tex, int level)
 ///generate mipmaps if necessary
 void texture::generate_mipmaps()
 {
+    printf("generating cpu side mipmaps is deprecated\n");
+
     if(!has_mipmaps)
     {
         has_mipmaps = true;
@@ -291,6 +295,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
 
     sf::Texture::bind( &tex );
     glGetIntegerv( GL_TEXTURE_BINDING_2D, &opengl_id );
+    sf::Texture::bind(nullptr);
 
     //glFinish();
 

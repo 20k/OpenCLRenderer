@@ -18,6 +18,8 @@ namespace compute = boost::compute;
 
 struct objects_container;
 
+extern std::map<std::string, objects_container> object_cache;
+
 struct object_context_data
 {
     cl_uint tri_num;
@@ -117,7 +119,6 @@ struct object_context
 
     ///this is currently useless, as we'are always using a pointer to gpu_dat
     ///we're just duplicating the data ;_;
-    object_context_data old_dat;
     object_context_data gpu_dat;
     object_context_data new_gpu_dat;
 

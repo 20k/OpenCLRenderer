@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     auto sponza = context.make_new();
     sponza->set_file("sp2/sp2.obj");
     sponza->set_active(true);
-    sponza->cache = false;
+    //sponza->cache = false;
 
     engine window;
 
@@ -55,6 +55,22 @@ int main(int argc, char *argv[])
     //window.set_tex_data(tex_gpu);
 
     context.build();
+
+
+    ///so allocating one thing, then a second, makes memory usage explod
+    auto sp2 = context.make_new();
+    sp2->set_file("sp2/sp2.obj");
+    sp2->set_active(true);
+
+    context.load_active();
+    context.build(true);
+    context.flip();
+
+    context.build();
+    //context.flip();
+
+    ///if that is uncommented, we use a metric tonne less memory (300mb)
+    ///I do not know why
 
     auto object_dat = context.fetch();
     window.set_object_data(*object_dat);
@@ -84,8 +100,11 @@ int main(int argc, char *argv[])
     auto light_data = light::build();
     ///
 
+
     window.set_light_data(light_data);
     window.construct_shadowmaps();
+
+    //context.flip();
 
     /*sf::Texture updated_tex;
     updated_tex.loadFromFile("Res/test.png");
@@ -144,6 +163,9 @@ int main(int argc, char *argv[])
 
     sf::Keyboard key;
 
+
+
+
     ///use event callbacks for rendering to make blitting to the screen and refresh
     ///asynchronous to actual bits n bobs
     ///clSetEventCallback
@@ -181,6 +203,8 @@ int main(int argc, char *argv[])
         window.flip();
 
         window.render_block();
+
+        context.flip();
 
         if(key.isKeyPressed(sf::Keyboard::M))
             std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

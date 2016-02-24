@@ -557,19 +557,19 @@ void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3],
 #ifdef supports_3d_writes
 typedef __write_only image3d_t image_3d_write;
 #else
-typedef __global uint4* image_3d_write;
+typedef __global uchar4* image_3d_write;
 #endif
 
 #ifdef supports_3d_writes
 typedef __read_only image3d_t image_3d_read;
 #else
-typedef __global uint4* image_3d_read;
+typedef __global uchar4* image_3d_read;
 #endif
 
 #ifdef supports_3d_writes
 void write_image_3d_hardware(int4 coord, __write_only image3d_t array, uint4 to_write, int width, int height)
 #else
-void write_image_3d_hardware(int4 coord, __global uint4* array, uint4 to_write, int width, int height)
+void write_image_3d_hardware(int4 coord, __global uchar4* array, uint4 to_write, int width, int height)
 #endif
 {
     #ifdef supports_3d_writes
@@ -578,19 +578,19 @@ void write_image_3d_hardware(int4 coord, __global uint4* array, uint4 to_write, 
     //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
     //    return;
 
-    array[coord.z * width * height + coord.y * width + coord.x] = to_write;
+    array[coord.z * width * height + coord.y * width + coord.x] = convert_uchar4(to_write);
     #endif
 }
 
 #ifdef supports_3d_writes
 uint4 read_image_3d_hardware(int4 coord, __read_only image3d_t array, int width, int height)
 #else
-uint4 read_image_3d_hardware(int4 coord, __global uint4* array, int width, int height)
+uint4 read_image_3d_hardware(int4 coord, __global uchar4* array, int width, int height)
 #endif
 {
     #ifdef supports_3d_writes
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP   |
+                    CLK_ADDRESS_NONE   |
                     CLK_FILTER_NEAREST;
 
     return read_imageui(array, sam, coord);
@@ -599,7 +599,7 @@ uint4 read_image_3d_hardware(int4 coord, __global uint4* array, int width, int h
     //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
     //    return 0;
 
-    return array[coord.z * width * height + coord.y * width + coord.x];
+    return convert_uint4(array[coord.z * width * height + coord.y * width + coord.x]);
     #endif
 }
 

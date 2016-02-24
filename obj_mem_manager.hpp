@@ -67,7 +67,6 @@ struct obj_mem_manager
 
 struct objects_container;
 
-extern std::map<std::string, objects_container> object_cache;
 
 
 #endif

@@ -308,7 +308,11 @@ texture* object::get_texture()
 {
     printf("err, get_texture is deprecated\n");
 
-    return texture_manager::texture_by_id(tid);
+    throw std::runtime_error("get_texture deprecated");
+
+    //return texture_manager::texture_by_id(tid);
+
+    return nullptr;
 }
 
 cl_float4 object::get_centre()

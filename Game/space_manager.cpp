@@ -35,7 +35,7 @@ void space_manager::set_depth_buffer(compute::buffer& d_buf)
 
 void space_manager::set_distortion_buffer(compute::buffer& buf)
 {
-    g_distortion_buffer = buf;
+    g_distortion_buffer = &buf;
 
     distortion_set = true;
 }
@@ -58,7 +58,7 @@ void space_manager::draw_galaxy_cloud(point_cloud_info& pc, compute::buffer& g_c
     compute::buffer* none = nullptr;
 
     if(distortion_set)
-        p1arg_list.push_back(&g_distortion_buffer);
+        p1arg_list.push_back(g_distortion_buffer);
     else
         p1arg_list.push_back(&none);
 
@@ -100,7 +100,7 @@ void space_manager::draw_space_dust_cloud(point_cloud_info& pc, compute::buffer&
     p1arg_list.push_back(g_screen);
     p1arg_list.push_back(g_screen);
     p1arg_list.push_back(depth_buffer);
-    p1arg_list.push_back(&g_distortion_buffer);
+    p1arg_list.push_back(g_distortion_buffer);
 
 
     cl_uint local = 128;
@@ -122,7 +122,7 @@ void space_manager::draw_space_dust_no_tile(point_cloud_info& pc, compute::buffe
     p1arg_list.push_back(&c_rot);
     p1arg_list.push_back(g_screen);
     p1arg_list.push_back(depth_buffer);
-    p1arg_list.push_back(&g_distortion_buffer);
+    p1arg_list.push_back(g_distortion_buffer);
 
     cl_uint local = 128;
 

@@ -10,6 +10,7 @@ struct settings
     std::string ip = "192.168.1.2";
     int quality = 0;
     std::string name = "Lumberjack";
+    bool enable_debugging;
 
     void load(const std::string& loc);
 };

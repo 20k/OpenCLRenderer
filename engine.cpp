@@ -9,10 +9,10 @@
 #include "clstate.h"
 #include <iostream>
 #include <gl/gl.h>
-#include "obj_mem_manager.hpp"
+//#include "obj_mem_manager.hpp"
 #include <stdio.h>
 #include <limits.h>
-#include "texture_manager.hpp"
+//#include "texture_manager.hpp"
 #include "interact_manager.hpp"
 #include "text_handler.hpp"
 #include "point_cloud.hpp"
@@ -295,7 +295,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     }
 
     ///passed in as compilation parameter to opencl
-    l_size = 2048;
+    l_size = 1024;
 
     sf::Clock ocltime;
 
@@ -378,15 +378,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
 
-    g_screen_edge_smoothed = gen_cl_gl_framebuffer_renderbuffer(&gl_smoothed_framebuffer_id, width, height);
+    //g_screen_edge_smoothed = gen_cl_gl_framebuffer_renderbuffer(&gl_smoothed_framebuffer_id, width, height);
 
     //? compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
     compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
-    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_edge_smoothed.get(), cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_edge_smoothed.get(), cl::cqueue);
 
 
     ///this is a completely arbitrary size to store triangle uids in
-    cl_uint size_of_uid_buffer = 40*1024*1024*2;
+    cl_uint size_of_uid_buffer = 40*1024*1024;
     cl_uint zero=0;
 
     cl_float2* distortion_clear = new cl_float2[width*height];
@@ -398,6 +398,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     //reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     //reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+
+
+    ///release old memory
+    g_tid_buf = compute::buffer();
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
@@ -427,7 +431,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_tid_buf_len = size_of_uid_buffer;
 
     ///number of lights
-    obj_mem_manager::g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &zero);
+    //obj_mem_manager::g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &zero);
 
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
@@ -1179,6 +1183,23 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
     p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
 
+    /*for(auto& i : p3arg_list.args)
+    {
+        if()
+    }*/
+
+    int c = 0;
+
+    for(int i=0; i<p3arg_list.args.size(); i++)
+    {
+        if(p3arg_list.can_skip[i])
+        {
+            c += ((compute::memory_object*)p3arg_list.args[i])->get_memory_size();
+        }
+    }
+
+    printf("salloc %i\n", (c / 1024) / 1024);
+
     //printf("gpuarray %i\n", dat.tex_gpu_ctx.g_texture_array.size());
 
     cl_uint p3global_ws[] = {eng.width, eng.height};
@@ -1320,6 +1341,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     return event;
 }
 
+#if 0
 compute::event render_reproject(engine& eng, cl_float4 old_position, cl_float4 old_rotation, cl_float4 new_position, cl_float4 new_rotation, compute::opengl_renderbuffer& g_screen_out)
 {
     eng.last_frametype = frametype::REPROJECT;
@@ -1499,6 +1521,7 @@ void render_tris_oculus(engine& eng, cl_float4 position[2], cl_float4 rotation[2
 
     run_kernel_with_list(cl::warp_oculus, p3global_ws, p3local_ws, 2, distort_arg_list);
 }
+#endif
 
 bool engine::can_render()
 {
@@ -1659,7 +1682,7 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
 }
 
 ///never going to work, would have to reproject?
-void engine::draw_ui()
+/*void engine::draw_ui()
 {
     cl_uint global_ws = obj_mem_manager::obj_num;
 
@@ -1673,7 +1696,7 @@ void engine::draw_ui()
     p1arg_list.push_back(&c_rot);
 
     run_kernel_with_list(cl::draw_ui, &global_ws, &local2, 1, p1arg_list, true);
-}
+}*/
 
 template<typename T, typename Q>
 float vmin(T t, Q q)
@@ -1837,7 +1860,7 @@ void engine::draw_voxel_octree(g_voxel_info& info)
 
 void engine::draw_raytrace()
 {
-    //__kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
+    /*//__kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
     arg_list ray_args;
     ray_args.push_back(&obj_mem_manager::g_tri_mem);
     ray_args.push_back(&obj_mem_manager::g_tri_num);
@@ -1845,7 +1868,7 @@ void engine::draw_raytrace()
     ray_args.push_back(&c_rot);
     ray_args.push_back(&obj_mem_manager::g_light_mem);
     ray_args.push_back(&obj_mem_manager::g_light_num);
-    ray_args.push_back(&g_screen);
+    ray_args.push_back(&g_screen);*/
     //ray_args.push_back(&texture_manager::g_texture_numbers);
     //ray_args.push_back(&texture_manager::g_texture_sizes);
     //ray_args.push_back(&obj_mem_manager::g_obj_desc);
@@ -1859,11 +1882,11 @@ void engine::draw_raytrace()
     ray_args.push_back(&g_occlusion_intermediate_tex);
     ray_args.push_back(&g_diffuse_intermediate_tex);*/
 
-    cl_uint global_ws[2] = {width, height};
+    /*cl_uint global_ws[2] = {width, height};
     cl_uint local_ws[2] = {16, 16};
 
     ///this is the deferred screenspace pass
-    run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);
+    run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);*/
 }
 
 void engine::draw_smoke(smoke& s, cl_int solid)
@@ -2646,7 +2669,7 @@ void engine::set_camera_rot(cl_float4 r)
 }
 
 ///unused, and due to change in plans may be removed
-void engine::check_obj_visibility()
+/*void engine::check_obj_visibility()
 {
     for(unsigned int i=0; i<objects_container::obj_container_list.size(); i++)
     {
@@ -2663,9 +2686,11 @@ void engine::check_obj_visibility()
             }
         }
     }
-}
+}*/
 
 bool supports_3d_writes()
 {
+    return false;
+
     return supports_extension("cl_khr_3d_image_writes");
 }

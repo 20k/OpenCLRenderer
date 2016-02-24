@@ -4,6 +4,8 @@
 
 #include "engine.hpp"
 
+std::map<std::string, objects_container> object_cache;
+
 void object_context_data::swap_depth_buffers()
 {
     nbuf = (nbuf + 1) % 2;
@@ -325,6 +327,8 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         }
     }
 
+    printf("Allocated %i mb of tris\n", ((sizeof(triangle) * tri_num) / 1024) / 1024);
+
     /*for(auto& i : dat.pos)
         i = compute::buffer(cl::context, sizeof(cl_float4) * tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
 
@@ -426,7 +430,6 @@ void flip_buffers(object_context* ctx)
     ///heuristic, help prevent flickering
     //ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
 
-
     ///???
     if(ctx->gpu_dat.cpu_id_num == nullptr)
     {
@@ -459,6 +462,8 @@ void flip_buffers(object_context* ctx)
 
     ctx->gpu_dat = ctx->new_gpu_dat;
     ctx->gpu_dat.gpu_data_finished = true;
+
+    ctx->new_gpu_dat = object_context_data();
 
     ///already flipped!
     ctx->ready_to_flip = false;

@@ -36,7 +36,7 @@ void settings::load(const std::string& loc)
     ip = content[2];
     quality = atoi(content[3].c_str());
     name = content[4];
-
+    enable_debugging = content[5] == "DEBUG";
 
     if(name.length() == 0)
     {

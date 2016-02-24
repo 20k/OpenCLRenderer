@@ -36,7 +36,6 @@ sf::Clock obj_mem_manager::event_clock;
 temporaries obj_mem_manager::temporary_objects;
 
 
-std::map<std::string, objects_container> object_cache;
 
 ///loads every active object in the scene
 void obj_mem_manager::load_active_objects()

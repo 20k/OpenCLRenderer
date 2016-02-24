@@ -138,6 +138,8 @@
 		<Unit filename="texture.hpp">
 			<Option weight="0" />
 		</Unit>
+		<Unit filename="texture_context.cpp" />
+		<Unit filename="texture_context.hpp" />
 		<Unit filename="texture_manager.cpp" />
 		<Unit filename="texture_manager.hpp">
 			<Option weight="0" />

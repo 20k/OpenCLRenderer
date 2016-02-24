@@ -27,7 +27,7 @@ struct space_manager
 
     compute::opengl_renderbuffer* g_screen;
     compute::buffer* depth_buffer; ///regular rendering depth buffer
-    compute::buffer g_distortion_buffer;
+    compute::buffer* g_distortion_buffer;
 
     int width, height;
 

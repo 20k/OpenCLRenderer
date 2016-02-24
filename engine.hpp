@@ -312,14 +312,23 @@ struct arg_list
     }
 };
 
-/*template<>
+template<>
 inline
 void arg_list::push_back<compute::buffer>(compute::buffer* buf)
 {
     args.push_back(buf);
     sizes.push_back(sizeof(compute::buffer));
     can_skip.push_back(true);
-}*/
+}
+
+template<>
+inline
+void arg_list::push_back<compute::image2d>(compute::image2d* buf)
+{
+    args.push_back(buf);
+    sizes.push_back(sizeof(compute::image2d));
+    can_skip.push_back(true);
+}
 
 struct Timer
 {

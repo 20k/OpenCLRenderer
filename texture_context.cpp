@@ -341,9 +341,14 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
     {
         printf("Using alternate texture write path\n");
 
-        tex_data.g_texture_array = compute::buffer(cl::context, sizeof(cl_uint) * 4 * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * clamped_array_len, CL_MEM_READ_WRITE, nullptr);
+        tex_data.g_texture_array = compute::buffer(cl::context, sizeof(cl_uchar) * 4 * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * clamped_array_len, CL_MEM_READ_WRITE, nullptr);
     }
 
+    printf("array length size %i\n", clamped_array_len);
+
+    printf("Allocated %i mb of texture info\n", ((2048 * 2048 * clamped_array_len * 4) / 1024) / 1024);
+
+    printf("real_size = %i mb\n", tex_data.g_texture_array.size() / 1024 / 1024);
 
     ///position in array
     tex_data.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_position_len, CL_MEM_READ_ONLY);
