@@ -3061,11 +3061,16 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     }
 }
 
-float mdot(float3 v1, float3 v2)
+float mdot_norm(float3 v1, float3 v2)
 {
     v1 = fast_normalize(v1);
     v2 = fast_normalize(v2);
 
+    return max(0.f, dot(v1, v2));
+}
+
+float mdot(float3 v1, float3 v2)
+{
     return max(0.f, dot(v1, v2));
 }
 
