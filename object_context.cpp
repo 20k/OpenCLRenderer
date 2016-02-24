@@ -547,3 +547,13 @@ void object_context::flip()
 {
     flip_buffers(this);
 }
+
+void object_context::increment_context_id()
+{
+    context_id++;
+}
+
+int object_context::get_context_id()
+{
+    return context_id;
+}

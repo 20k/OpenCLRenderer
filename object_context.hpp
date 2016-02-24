@@ -131,6 +131,13 @@ struct object_context
 
     static cl_uint gid;
 
+
+    void increment_context_id();
+    int get_context_id();
+
+    ///if the context id has changed, everyone needs to reallocate their shit
+    int context_id = 0;
+
 private:
 
     ///so we can use write async
