@@ -3368,6 +3368,12 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     float3 l2p = camera_pos - global_position;
     l2p = fast_normalize(l2p);
 
+
+    int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
+
+    int flip_normals = !is_front && G->two_sided == 1;
+
+
     for(int i=0; i<num_lights; i++)
     {
         const float ambient = 0.2f;
@@ -3415,11 +3421,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float light = dot(l2c, normal); ///diffuse
 
-        int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
-
-        int cond = !is_front && G->two_sided == 1;
-
-        if(cond)
+        if(flip_normals)
         {
             ///really this should reflect, not sure how to do that fast
             normal = -normal;
