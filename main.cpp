@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
 
     ///if that is uncommented, we use a metric tonne less memory (300mb)
     ///I do not know why
+    ///it might be opencl taking a bad/any time to reclaim. Investigate
 
     auto object_dat = context.fetch();
     window.set_object_data(*object_dat);

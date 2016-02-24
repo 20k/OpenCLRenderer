@@ -1188,7 +1188,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
         if()
     }*/
 
-    int c = 0;
+    /*int c = 0;
 
     for(int i=0; i<p3arg_list.args.size(); i++)
     {
@@ -1198,7 +1198,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
         }
     }
 
-    printf("salloc %i\n", (c / 1024) / 1024);
+    printf("salloc %i\n", (c / 1024) / 1024);*/
 
     //printf("gpuarray %i\n", dat.tex_gpu_ctx.g_texture_array.size());
 
