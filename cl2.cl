@@ -3084,7 +3084,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     //mod = max(1.f, mod);
 
-    float x = (pixel_along  % width) + min_max.x - 1;
+    float x = (pixel_along % width) + min_max.x - 1;
 
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max.z;
 
@@ -3470,13 +3470,13 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         const float F0 = 0.4f;
 
-        float fresnel = F0 + (1 - F0) * pow((1.f - vdh), 5.f);
+        float fresnel = F0 + (1 - F0) * native_powr((1.f - vdh), 5.f);
 
 
         float rough = clamp(1.f - G->specular, 0.001f, 10.f);
 
-        float microfacet = (1.f / (M_PI * rough * rough * pow(ndh, 4.f))) *
-                            exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
+        float microfacet = (1.f / (M_PI * rough * rough * native_powr(ndh, 4.f))) *
+                            native_exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
 
         float c1 = 2 * ndh * ndv / vdh;
         float c2 = 2 * ndh * ndl / ldh;
