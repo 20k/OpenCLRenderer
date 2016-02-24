@@ -7600,7 +7600,7 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
             float transition_frac = radius_frac / transition_period;
 
             transition_frac = clamp(transition_frac, 0.f, 1.f);
-            transition_frac = sqrt(transition_frac);
+            transition_frac = native_sqrt(transition_frac);
 
 
             ///make all final col?
