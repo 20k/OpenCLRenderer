@@ -359,7 +359,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     {
         if(gl_framebuffer_id != -1)
         {
-            compute::opengl_enqueue_release_gl_objects(1, &g_screen.get(), cl::cqueue);
+            //compute::opengl_enqueue_release_gl_objects(1, &g_screen.get(), cl::cqueue);
         }
 
         g_screen = gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, width, height);
