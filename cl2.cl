@@ -2852,7 +2852,9 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
         {
-            float fmydepth = A * x + B * y + C;
+            //float fmydepth = A * x + B * y + C;
+
+            float fmydepth = mad(A, x, mad(B, y, C));
 
             uint mydepth = native_divide((float)mulint, fmydepth);
 
@@ -3127,7 +3129,9 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         if(cond)
         {
-            float fmydepth = A * x + B * y + C;
+            //float fmydepth = A * x + B * y + C;
+
+            float fmydepth = mad(A, x, mad(B, y, C));
 
             uint mydepth = native_divide((float)mulint, fmydepth);
 
