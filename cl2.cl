@@ -471,23 +471,16 @@ void depth_project(float3 rotated[3], float width, float height, float fovc, flo
 {
     for(int i=0; i<3; i++)
     {
-        float rx;
-        rx=(rotated[i].x) * (fovc/rotated[i].z);
-        float ry;
-        ry=(rotated[i].y) * (fovc/rotated[i].z);
+        float2 rxy = mad(rotated[i].xy, fovc / rotated[i].z, (float2){width/2.f, height/2.f});
 
-        rx+=width/2.f;
-        ry+=height/2.f;
-
-        ret[i].x = rx;
-        ret[i].y = ry;
+        ret[i].xy = rxy;
         ret[i].z = rotated[i].z;
     }
 }
 
 float3 depth_project_singular(float3 rotated, float width, float height, float fovc)
 {
-    float rx;
+    /*float rx;
     rx=(rotated.x) * (fovc/rotated.z);
     float ry;
     ry=(rotated.y) * (fovc/rotated.z);
@@ -499,6 +492,13 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
 
     ret.x = rx;
     ret.y = ry;
+    ret.z = rotated.z;*/
+
+    float2 rxy = mad(rotated.xy, fovc / rotated.z, (float2){width/2.f, height/2.f});
+
+    float3 ret;
+
+    ret.xy = rxy;
     ret.z = rotated.z;
 
     return ret;
@@ -550,10 +550,15 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
 
     if(n_behind==1)
     {
+        int id = ids_behind[0];
+
         ///n0, v1, v2
-        g1 = ids_behind[0];
-        g2 = (ids_behind[0] + 1) % 3;
-        g3 = (ids_behind[0] + 2) % 3;
+        g1 = id;
+        //g2 = (ids_behind[0] + 1) % 3;
+        //g3 = (ids_behind[0] + 2) % 3;
+
+        g2 = (id + 1) >= 3 ? id - 2 : id + 1;
+        g3 = (id + 2) >= 3 ? id - 1 : id + 2;
     }
 
     if(n_behind==2)
@@ -1041,13 +1046,12 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 
     float2 coords[4];
 
-    float2 pos = floor(mcoord);//{floor(mcoord.x), floor(mcoord.y)};
+    float2 pos = floor(mcoord);
 
     coords[0].x=pos.x, coords[0].y=pos.y;
     coords[1].x=pos.x+1, coords[1].y=pos.y;
     coords[2].x=pos.x, coords[2].y=pos.y+1;
     coords[3].x=pos.x+1, coords[3].y=pos.y+1;
-
 
     float4 colours[4];
 
@@ -1055,7 +1059,6 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     {
         colours[i]=read_tex_array(coords[i], tid, nums, sizes, array);
     }
-
 
     float2 uvratio = mcoord - pos;
 
@@ -1120,12 +1123,6 @@ float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float
 
     float2 tex_per_pix = tdiff / vdiff;
 
-    //float worst = max(tex_per_pix.x, tex_per_pix.y);
-
-    ///min gives good texture quality
-    //float worst = min(tex_per_pix.x, tex_per_pix.y);
-
-    //float worst = (tex_per_pix.x + tex_per_pix.y) / 2.f;
 
     float worst = fast_length(tex_per_pix);
 
@@ -2524,7 +2521,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         if(!valid || cond)
             continue;
 
-        for(int j=0; j<3; j++)
+        /*for(int j=0; j<3; j++)
         {
             int xc = round(tris_proj[i][j].x);
             int yc = round(tris_proj[i][j].y);
@@ -2533,7 +2530,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 continue;
 
             tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
-        }
+        }*/
 
         float3 xpv, ypv;
 
