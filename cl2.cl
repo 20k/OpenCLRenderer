@@ -189,15 +189,43 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
     return ret;
 }
 
-///a rot then a back rot 'cancel' out
+
+///the inverse of a rotation matrix is its transpose
 float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
+{
+    float3 c = native_cos(c_rot);
+    float3 s = native_sin(c_rot);
+
+    ///so the forward rotation matrix is
+    /*c3*c2, s3*c2, -s2
+    (c3*s1*s2-s3*c1),(s3*s1*s2+c3*c1),s1*c2
+    (c3*c1*s2+s3*s1),(s3*c1*s2-c3*s1),c1*c*/
+
+    ///so the transpose is
+    /*c2*c3, s1*s2*c3-c1*s3, c1*s2*c3+s1*s3
+    s3*c2, c1*c3+s1*s2*s3, -s1*c3+c1*s2*s3
+    -s2, s1*c2, c1*c2*/
+
+    float3 rel = point - c_pos;
+
+    float3 ret;
+
+    ret.x = c.y * c.z * rel.x + (s.x * s.y * c.z - c.x * s.z) * rel.y + (c.x * s.y * c.z + s.x * s.z) * rel.z;
+    ret.y = (s.z * c.y) * rel.x + (c.x * c.z + s.x * s.y * s.z) * rel.y + (-s.x * c.z + c.x * s.y * s.z) * rel.z;
+    ret.z = -s.y * rel.x + (s.x * c.y) * rel.y + (c.x * c.y) * rel.z;
+
+    return ret;
+}
+
+///a rot then a back rot 'cancel' out
+/*float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
     float3 pos = rot(point, c_pos, (float3){-c_rot.x, 0, 0});
     pos = rot(pos, c_pos, (float3){0, -c_rot.y, 0});
     pos = rot(pos, c_pos, (float3){0, 0, -c_rot.z});
 
     return pos;
-}
+}*/
 
 /*float3 optirot(float3 point, float3 c_pos, float3 sin_c_rot, float3 cos_c_rot)
 {
@@ -3326,6 +3354,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         if(cond)
         {
+            ///really this should reflect, not sure how to do that fast
             normal = -normal;
 
             light = dot(l2c, normal);

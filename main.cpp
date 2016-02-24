@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
 
     ///so allocating one thing, then a second, makes memory usage explod
-    auto sp2 = context.make_new();
+    /*auto sp2 = context.make_new();
     sp2->set_file("sp2/sp2.obj");
     sp2->set_active(true);
 
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     context.build(true);
     context.flip();
 
-    context.build();
+    context.build();*/
     //context.flip();
 
     ///if that is uncommented, we use a metric tonne less memory (300mb)
