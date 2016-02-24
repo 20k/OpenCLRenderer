@@ -150,9 +150,14 @@ float3 rot(const float3 point, const float3 c_pos, const float3 c_rot)
 
     float3 ret;
 
-    ret.x = c.y * (s.z * rel.y + c.z*rel.x) - s.y*rel.z;
-    ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
-    ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);
+    ///this is correct
+    //ret.x = c.y * (s.z * rel.y + c.z*rel.x) - s.y*rel.z;
+    //ret.y = s.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) + c.x*(c.z*rel.y - s.z*rel.x);
+    //ret.z = c.x * (c.y * rel.z + s.y*(s.z*rel.y + c.z*rel.x)) - s.x*(c.z*rel.y - s.z*rel.x);
+
+    ret.x = mad(c.y, (mad(s.z, rel.y,  c.z*rel.x)), - s.y*rel.z);
+    ret.y = mad(s.x, (mad(c.y, rel.z, s.y*(mad(s.z, rel.y, c.z*rel.x)))), c.x*(mad(c.z, rel.y, - s.z*rel.x)));
+    ret.z = mad(c.x, (mad(c.y, rel.z, s.y*(mad(s.z, rel.y, c.z*rel.x)))), - s.x*(mad(c.z, rel.y, - s.z*rel.x)));
 
       /*cl_float4 cos_rot;
     cos_rot.x = cos(c_rot.x);
@@ -210,9 +215,55 @@ float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 
     float3 ret;
 
-    ret.x = c.y * c.z * rel.x + (s.x * s.y * c.z - c.x * s.z) * rel.y + (c.x * s.y * c.z + s.x * s.z) * rel.z;
+    /*ret.x = c.y * c.z * rel.x + (s.x * s.y * c.z - c.x * s.z) * rel.y + (c.x * s.y * c.z + s.x * s.z) * rel.z;
     ret.y = (s.z * c.y) * rel.x + (c.x * c.z + s.x * s.y * s.z) * rel.y + (-s.x * c.z + c.x * s.y * s.z) * rel.z;
-    ret.z = -s.y * rel.x + (s.x * c.y) * rel.y + (c.x * c.y) * rel.z;
+    ret.z = -s.y * rel.x + (s.x * c.y) * rel.y + (c.x * c.y) * rel.z;*/
+
+    ///mad(a, b, c) = a*b + c
+
+    /*ret.x =
+    c.z * (
+    c.y  * rel.x +
+    (s.x * s.y) * rel.y +
+    (c.x * s.y) * rel.z)
+
+    + s.z *
+     (s.x * rel.z
+    - c.x * rel.y);
+
+
+    ret.y =
+    (s.z * c.y) * rel.x +
+    (c.x * c.z + s.x * s.y * s.z) * rel.y +
+    (-s.x * c.z + c.x * s.y * s.z) * rel.z;
+
+    ret.z =
+    -s.y * rel.x +
+    c.y *
+    (s.x * rel.y +
+    c.x * rel.z);*/
+
+    ret.x =
+    c.z * (
+    mad(c.y,  rel.x,
+    mad(s.x, s.y * rel.y,
+    c.x * s.y * rel.z)))
+
+    + s.z *
+     (s.x * rel.z
+    - c.x * rel.y);
+
+
+    ret.y =
+    (s.z * c.y) * rel.x +
+    mad(mad(c.x, c.z, s.x * s.y * s.z), rel.y,
+    (mad(-s.x, c.z, c.x * s.y * s.z) * rel.z));
+
+    ret.z =
+    mad(-s.y, rel.x,
+    c.y *
+    mad(s.x, rel.y,
+    c.x * rel.z));
 
     return ret;
 }
