@@ -1193,6 +1193,8 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
     float worst_id_frac = native_log2(worst);
 
+    worst_id_frac = max(worst_id_frac, 0.f);
+
     float mip_lower = floor(worst_id_frac);
 
     mip_lower = clamp(mip_lower, 0.f, (float)MIP_LEVELS);
@@ -3165,7 +3167,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
                     CLK_ADDRESS_NONE            |
                     CLK_FILTER_NEAREST;
 
-
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
@@ -3754,7 +3755,7 @@ void blend_screens(__read_only image2d_t src, __read_only image2d_t _dst, __writ
 
     float4 fc2 = read_imagef(_dst, sam, (int2){ix, iy});
 
-    float3 col = fc1.xyz * fc1.w + fc2.xyz;
+    float3 col = mad(fc1.xyz, fc1.w, fc2.xyz);
 
     float4 acol = (float4)(col.xyz, fc1.w);
 
@@ -3786,7 +3787,7 @@ void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _
 
     float4 fc2 = read_imagef(_dst, sam, (int2){ix, iy});
 
-    float3 col = fc1.xyz * fc1.w + fc2.xyz;
+    float3 col = mad(fc1.xyz, fc1.w, fc2.xyz);
 
     float4 acol = (float4)(col.xyz, fc1.w);
 
@@ -7939,7 +7940,7 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
         return;
     }
 
-    float4 col = convert_float4(my_col) / 255.f;
+    float4 col = native_divide(convert_float4(my_col), 255.f);
 
     col = clamp(col, 0.f, 1.f);
 
