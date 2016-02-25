@@ -1209,43 +1209,6 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
     return native_divide(finalcol, 255.0f);
-
-
-    /*int mip_lower;
-    int mip_higher;
-    float fractional_mipmap_distance;
-
-    mip_lower = floor(native_log2(worst));
-
-    mip_higher = mip_lower + 1;
-
-    mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
-    mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
-
-    float lower_size  = floor(native_exp2((float)mip_lower));
-    float higher_size = floor(native_exp2((float)mip_higher));
-
-    fractional_mipmap_distance = native_divide(fabs(worst - lower_size), fabs(higher_size - lower_size));
-
-    fractional_mipmap_distance = (mip_lower == mip_higher) ? 0 : fractional_mipmap_distance;
-
-    int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + mul24(tid2, MIP_LEVELS);
-    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + mul24(tid2, MIP_LEVELS);
-
-    float fmd = fractional_mipmap_distance;
-
-    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
-
-    if(mip_lower == mip_higher || fmd == 0)
-        return native_divide(col1, 255.f);
-
-    //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;
-
-    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
-
-    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
-
-    return native_divide(finalcol, 255.0f);*/
 }
 
 
