@@ -2768,7 +2768,9 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+    float3 depths = {dcalc(tris_proj_n[0].z), dcalc(tris_proj_n[1].z), dcalc(tris_proj_n[2].z)};
+
+    depths = native_recip(depths);
 
     ///calculate area by triangle 3rd area method
 
@@ -2798,9 +2800,14 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         float ty = y;
 
-        y = floor((float)(pixel_along + pcount) * iwidth) + min_max[2];
+        //y = floor((float)(pixel_along + pcount) * iwidth) + min_max[2];
+
+        y = floor(mad(pixel_along + pcount, iwidth, min_max[2]));
 
         x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+
+        //x = y != ty ? pixel_along + pcount - (y - min_max[2]) * width + min_max[0] : x;
+
 
         if(y >= min_max[3])
         {
@@ -3042,8 +3049,9 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     //float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
 
     ///have to interpolate inverse to be perspective correct
-    float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
+    float3 depths = {dcalc(tris_proj_n[0].z), dcalc(tris_proj_n[1].z), dcalc(tris_proj_n[2].z)};
 
+    depths = native_recip(depths);
 
     int pcount = -1;
 
@@ -3076,9 +3084,13 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         ///finally going to have to fix this to get optimal performance
 
-        y = floor((float)(pixel_along + pcount) * iwidth) + min_max.z;
+        //y = floor((float)(pixel_along + pcount) * iwidth) + min_max.z;
+
+        y = floor(mad(pixel_along + pcount, iwidth, min_max.z));
 
         x = y != ty ? ((pixel_along + pcount) % width) + min_max.x : x;
+
+        //x = y != ty ? pixel_along + pcount - (y - min_max.z) * width + min_max.x : x;
 
         if(y >= min_max.w)
         {
@@ -3240,11 +3252,11 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     get_barycentric(object_local, p1, p2, p3, &l1, &l2, &l3);
 
     float2 vt;
-    vt = vt1 * l1 + vt2 * l2 + vt3 * l3;
+    vt = mad(vt1, l1, mad(vt2, l2, vt3 * l3));
 
     ///interpolated normal
     float3 normal;
-    normal = n1 * l1 + n2 * l2 + n3 * l3;
+    normal = mad(n1, l1, mad(n2, l2, n3 * l3));
 
     normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
 
