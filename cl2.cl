@@ -719,16 +719,21 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float tnumy = floor(native_divide(which, hnum));
     float tnumx = mad(-tnumy, hnum, which);//which - tnumy * hnum;
 
-    float tx = tnumx*width;
-    float ty = tnumy*width;
+    //float tx = tnumx*width;
+    //float ty = tnumy*width;
 
+    ///???? wow, 6.3 -> 6 from removing this line
     //coords = fmod(coords, width);
 
     coords = clamp(coords, 0.001f, width - 0.001f);
 
+    float2 res = mad((float2){tnumx, tnumy}, width, coords);
+
     ///width - fixes bug
     ///remember to add 0.5f to this
-    int4 coord = {tx + coords.x, ty + coords.y, slice, 0};
+    int4 coord;
+    coord.xy = convert_int2(res);
+    coord.z = slice;
 
     uint4 col;
     col = read_image_3d_hardware(coord, array, max_tex_size, max_tex_size);
@@ -737,6 +742,7 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
 
     return t;
 }
+
 
 ///0 -> 255
 ///this is gpu_id weird combination
@@ -1185,9 +1191,9 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
     float worst = fast_length(vtdiff * tsize);
 
-    int mip_lower=0;
-    int mip_higher=0;
-    float fractional_mipmap_distance = 0;
+    int mip_lower;
+    int mip_higher;
+    float fractional_mipmap_distance;
 
     mip_lower = floor(native_log2(worst));
 
@@ -1196,15 +1202,15 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
     mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
 
-    int lower_size  = native_exp2((float)mip_lower);
-    int higher_size = native_exp2((float)mip_higher);
+    float lower_size  = floor(native_exp2((float)mip_lower));
+    float higher_size = floor(native_exp2((float)mip_higher));
 
-    fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
+    fractional_mipmap_distance = native_divide(fabs(worst - lower_size), fabs(higher_size - lower_size));
 
     fractional_mipmap_distance = (mip_lower == mip_higher) ? 0 : fractional_mipmap_distance;
 
-    int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
-    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;
+    int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + mul24(tid2, MIP_LEVELS);
+    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + mul24(tid2, MIP_LEVELS);
 
     float fmd = fractional_mipmap_distance;
 
