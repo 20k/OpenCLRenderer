@@ -1191,7 +1191,27 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
     float worst = fast_length(vtdiff * tsize);
 
-    int mip_lower;
+    float worst_id_frac = native_log2(worst);
+
+    float mip_lower = floor(worst_id_frac);
+
+    mip_lower = clamp(mip_lower, 0.f, (float)MIP_LEVELS);
+
+    ///? Do I need to go into exponential space?
+    float fmd = worst_id_frac - mip_lower;
+
+    int tid_lower = mip_lower == 0 ? tid2 : mip_lower - 1 + mip_start + mul24(tid2, MIP_LEVELS);
+    int tid_higher = clamp(mip_lower, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
+
+    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+
+    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
+
+    return native_divide(finalcol, 255.0f);
+
+
+    /*int mip_lower;
     int mip_higher;
     float fractional_mipmap_distance;
 
@@ -1225,7 +1245,7 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
     float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
-    return native_divide(finalcol, 255.0f);
+    return native_divide(finalcol, 255.0f);*/
 }
 
 
