@@ -7600,7 +7600,7 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
         {
             float2 bright = {i, j};
 
-            float len = length(bright);
+            float len = fast_length(bright);
 
             len = clamp(len, 0.f, bound);
 
@@ -7952,7 +7952,6 @@ void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_
 
     uint4 my_col = colour_buf[y*SCREENWIDTH + x];
 
-    //space_depth_buffer[y*SCREENWIDTH + x] = mulint;
     colour_buf[y*SCREENWIDTH + x] = 0;
 
     if(d2 != mulint)
