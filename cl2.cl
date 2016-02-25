@@ -8,9 +8,9 @@
 
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
-#ifndef M_PI
+//#ifndef M_PI
     #define M_PI 3.1415927f
-#endif // M_PI
+//#endif // M_PI
 
 #define depth_far 350000.0f
 
@@ -1676,21 +1676,13 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
 
     float3 local_pos = rot(global_position, lpos, rotation); ///replace me with a n*90degree swizzle
 
-    float3 postrotate_pos;
-    postrotate_pos.x = local_pos.x * LFOV_CONST/local_pos.z;
-    postrotate_pos.y = local_pos.y * LFOV_CONST/local_pos.z;
-    postrotate_pos.z = local_pos.z;
-
+    float3 postrotate_pos = depth_project_singular(local_pos, LIGHTBUFFERDIM, LIGHTBUFFERDIM, LFOV_CONST);
 
     ///find the absolute distance as an angle between 0 and 1 that would be required to make it backface, that approximates occlusion
-
 
     //postrotate_pos.z = dcalc(postrotate_pos.z);
 
     float dpth = postrotate_pos.z;
-
-    postrotate_pos.x += LIGHTBUFFERDIM/2.0f;
-    postrotate_pos.y += LIGHTBUFFERDIM/2.0f;
 
     ///cubemap depth buffer
     const __global uint* ldepth_map = &light_depth_buffer[(ldepth_map_id + shnum*6)*LIGHTBUFFERDIM*LIGHTBUFFERDIM];
@@ -1698,8 +1690,10 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     ///off by one error hack, yes this is appallingly bad
     postrotate_pos.xy = clamp(postrotate_pos.xy, 1.f, LIGHTBUFFERDIM-2.f);
 
+    postrotate_pos.xy = round(postrotate_pos.xy);
 
-    float ldp = idcalc(native_divide((float)ldepth_map[(int)round(postrotate_pos.y)*LIGHTBUFFERDIM + (int)round(postrotate_pos.x)], mulint));
+
+    float ldp = idcalc(native_divide((float)ldepth_map[((int)postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)], mulint));
 
     ///offset to prevent depth issues causing artifacting
     float len = 20;
@@ -3305,9 +3299,9 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
 
     ///1.1f is the seemingly minimum
-    const float mip_bias = 1.1f;
+    const float mip_bias = 1.f / 1.1f;
 
-    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} / mip_bias;
+    vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} * mip_bias;
 
 
     ///normal maps are just all wrong atm
@@ -3376,6 +3370,10 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
         ///for the moment, im abusing diffuse to mean both ambient and diffuse
         ///yes it is bad
         ambient_sum += ambient * l.col.xyz * distance_modifier * l.brightness * l.diffuse * G->diffuse;
+
+        ///this is madness. no, this is SPARTA. This expression is slightly slower than the one above
+        ///I guess this is not the use case for mad
+        //ambient_sum = mad(l.col.xyz, ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse, ambient_sum);
 
         bool occluded = 0;
 
@@ -3457,15 +3455,15 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
         float rough = clamp(1.f - G->specular, 0.001f, 10.f);
 
-        float microfacet = (1.f / (M_PI * rough * rough * native_powr(ndh, 4.f))) *
-                            native_exp((ndh*ndh - 1.f) / (rough*rough * ndh*ndh));
+        float microfacet = (native_recip(M_PI * rough * rough * native_powr(ndh, 4.f))) *
+                            native_exp(native_divide((ndh*ndh - 1.f), (rough*rough * ndh*ndh)));
 
-        float c1 = 2 * ndh * ndv / vdh;
-        float c2 = 2 * ndh * ndl / ldh;
+        float c1 = native_divide(2 * ndh * ndv, vdh);
+        float c2 = native_divide(2 * ndh * ndl, ldh);
 
         float geometric = min3(1.f, c1, c2);
 
-        float spec = fresnel * microfacet * geometric / (M_PI * ndl * ndv);
+        float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
         specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
         #endif
@@ -3486,7 +3484,8 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
     colclamp = clamp(colclamp, 0.0f, 1.0f);
 
-    float3 final_col = colclamp * diffuse_sum + specular_sum * (1.f - reflected_surface_colour);
+
+    float3 final_col = mad(colclamp, diffuse_sum, specular_sum * (1.f - reflected_surface_colour));
 
     //#define OUTLINE
     #ifdef OUTLINE
