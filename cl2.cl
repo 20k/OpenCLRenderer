@@ -3370,7 +3370,6 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
 
 
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
-
     int flip_normals = !is_front && G->two_sided == 1;
 
 
@@ -7643,10 +7642,10 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
             if(y + j >= SCREENHEIGHT || x + i >= SCREENWIDTH || y + j < 0 || x + i < 0)
                 continue;
 
-            __global uint* depth_pointer = &depth_buffer[(y+j)*SCREENWIDTH + x + i];
+            //__global uint* depth_pointer = &depth_buffer[(y+j)*SCREENWIDTH + x + i];
 
             accumulate_to_buffer(screen_buf, x + i, y + j, my_col * final_modifier);
-            atomic_min(depth_pointer, idepth);
+            //atomic_min(depth_pointer, idepth);
         }
     }
 }
@@ -7938,24 +7937,24 @@ void clear_space_buffers(__global uint4* colour_buf, __global uint* depth_buffer
 }
 
 __kernel
-void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_buf, __global uint* space_depth_buffer, __global uint* depth_buffer)
+void blit_space_to_screen(__write_only image2d_t screen, __global uint4* colour_buf, __global uint* space_depth_buffer, __global uint* depth_buffer, int width, int height)
 {
     int x = get_global_id(0);
-    int y = get_global_id(1);
 
-    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+    int y = x / width;
+
+    if(y >= height)
         return;
 
-    uint d1 = space_depth_buffer[y*SCREENWIDTH + x];
+    x = x - y * width;
+
     uint d2 = depth_buffer[y*SCREENWIDTH + x];
 
     uint4 my_col = colour_buf[y*SCREENWIDTH + x];
 
-    space_depth_buffer[y*SCREENWIDTH + x] = mulint;
+    //space_depth_buffer[y*SCREENWIDTH + x] = mulint;
     colour_buf[y*SCREENWIDTH + x] = 0;
 
-    ///???
-    ///leave it alone
     if(d2 != mulint)
     {
         return;

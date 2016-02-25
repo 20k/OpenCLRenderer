@@ -153,13 +153,18 @@ void space_manager::draw_space_nebulae(point_cloud_info& info, compute::buffer& 
 
 compute::event space_manager::blit_space_to_screen(object_context_data& dat)
 {
+    cl_int width = dat.s_w;
+    cl_int height = dat.s_h;
+
     arg_list blit_space;
     blit_space.push_back(&dat.g_screen);
     blit_space.push_back(&g_colour_blend);
     blit_space.push_back(&g_space_depth);
     blit_space.push_back(depth_buffer);
+    blit_space.push_back(&width);
+    blit_space.push_back(&height);
 
-    return run_kernel_with_string("blit_space_to_screen", {width, height, 0}, {16, 16, 0}, 2, blit_space);
+    return run_kernel_with_string("blit_space_to_screen", {width*height}, {128}, 1, blit_space);
 }
 
 compute::event space_manager::clear_buffers()
