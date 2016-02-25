@@ -459,12 +459,19 @@ void object_context::build(bool force)
     ///this will get cleared and be invalid
     ///how do we deal with this?
 
+    const bool async = false;
+
     bool textures_realloc = false;
 
     texture_context_data ctdat;
 
     if(tex_ctx.should_realloc(*this) || force)
     {
+        if(!async)
+        {
+            gpu_dat.tex_gpu_ctx = texture_context_data();
+        }
+
         ctdat = tex_ctx.alloc_gpu(*this);
 
         textures_realloc = true;
@@ -480,6 +487,12 @@ void object_context::build(bool force)
 
     new_gpu_dat = object_context_data();
 
+    if(!async)
+    {
+        gpu_dat.g_tri_mem = compute::buffer();
+        gpu_dat.g_cut_tri_mem = compute::buffer();
+    }
+
     alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
     //new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
 
@@ -490,8 +503,7 @@ void object_context::build(bool force)
     alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
 
     ///ie we want there to be some valid gpu presence
-    //if(!gpu_dat.gpu_data_finished || force)
-    if(true)
+    if(!gpu_dat.gpu_data_finished || force || !async)
     {
         cl::cqueue2.finish();
 
