@@ -115,15 +115,10 @@ struct interp_container
 
 float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
-    return (//fabs(mad(x2, y, mad(-x3, y, mad(-x,y2,x3*y2)+mad(-x2, y3, x*y3)))) + ///redo this, move -s to the end
+    return (
             fabs(mad(x2,y,mad(x3,y2,x*y3)-mad(x3,y,mad(x,y2,x2*y3)))) +
             fabs(mad(x,y1,mad(x3,y,x1*y3)-mad(x3,y1,mad(x1,y,x*y3)))) +
             fabs(mad(x2,y1,mad(x,y2,x1*y)-mad(x,y1,mad(x1,y2,x2*y))))) * 0.5f;
-
-            //fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
-
-            //fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) +
-            //fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
 }
 
 /*float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
@@ -233,12 +228,14 @@ float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 
     float3 ret;
 
+    ///transpose, simple form
     /*ret.x = c.y * c.z * rel.x + (s.x * s.y * c.z - c.x * s.z) * rel.y + (c.x * s.y * c.z + s.x * s.z) * rel.z;
     ret.y = (s.z * c.y) * rel.x + (c.x * c.z + s.x * s.y * s.z) * rel.y + (-s.x * c.z + c.x * s.y * s.z) * rel.z;
     ret.z = -s.y * rel.x + (s.x * c.y) * rel.y + (c.x * c.y) * rel.z;*/
 
     ///mad(a, b, c) = a*b + c
 
+    ///transpose, factorised
     /*ret.x =
     c.z * (
     c.y  * rel.x +
@@ -261,6 +258,7 @@ float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
     (s.x * rel.y +
     c.x * rel.z);*/
 
+    ///transposed, with mads
     ret.x =
     c.z * (
     mad(c.y,  rel.x,
@@ -273,9 +271,9 @@ float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 
 
     ret.y =
-    (s.z * c.y) * rel.x +
+    mad(s.z, c.y * rel.x,
     mad(mad(c.x, c.z, s.x * s.y * s.z), rel.y,
-    (mad(-s.x, c.z, c.x * s.y * s.z) * rel.z));
+    (mad(-s.x, c.z, c.x * s.y * s.z) * rel.z)));
 
     ret.z =
     mad(-s.y, rel.x,
@@ -669,8 +667,9 @@ void write_image_3d_hardware(int4 coord, __global uchar4* array, uint4 to_write,
     #ifdef supports_3d_writes
     write_imageui(array, convert_int4(coord), to_write);
     #else
-    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
-        return;
+
+    //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+    //    return;
 
     array[coord.z * width * height + coord.y * width + coord.x] = convert_uchar4(to_write);
     #endif
@@ -690,8 +689,8 @@ uint4 read_image_3d_hardware(int4 coord, __global uchar4* array, int width, int 
     return read_imageui(array, sam, coord);
     #else
 
-    if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
-        return 0;
+    //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
+    //    return 0;
 
     return convert_uint4(array[coord.z * width * height + coord.y * width + coord.x]);
     #endif
@@ -702,97 +701,78 @@ uint4 read_image_3d_hardware(int4 coord, __global uchar4* array, int width, int 
 ///this should under no circumstances have to index two global arrays just to have to read from a damn texture
 float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, image_3d_read array)
 {
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_NONE   |
-                    CLK_FILTER_NEAREST;
-
     //cannot do linear interpolation on uchars
 
-    float x = coords.x;
-    float y = coords.y;
+    int nv = num[tid];
 
-    int slice = num[tid] >> 16;
+    int slice = nv >> 16;
 
-    int which = num[tid] & 0x0000FFFF;
+    int which = nv & 0x0000FFFF;
 
     const float max_tex_size = 2048;
 
     float width = size[slice];
 
-    int hnum = native_divide(max_tex_size, width);
+    float hnum = floor(native_divide(max_tex_size, width));
     ///max horizontal and vertical nums
 
-    float tnumx = which % hnum;
-    float tnumy = which / hnum;
-
+    float tnumy = floor(native_divide(which, hnum));
+    float tnumx = mad(-tnumy, hnum, which);//which - tnumy * hnum;
 
     float tx = tnumx*width;
     float ty = tnumy*width;
 
-    x = fmod(x, width);
-    y = fmod(y, width);
+    //coords = fmod(coords, width);
 
-    y = width - y;
-
-    x = clamp(x, 0.001f, width - 0.001f);
-    y = clamp(y, 0.001f, width - 0.001f);
+    coords = clamp(coords, 0.001f, width - 0.001f);
 
     ///width - fixes bug
     ///remember to add 0.5f to this
-    float4 coord = {tx + x, ty + y, slice, 0};
+    int4 coord = {tx + coords.x, ty + coords.y, slice, 0};
 
     uint4 col;
-    //col = read_imageui(array, sam, coord);
-    col = read_image_3d_hardware(convert_int4(coord), array, max_tex_size, max_tex_size);
+    col = read_image_3d_hardware(coord, array, max_tex_size, max_tex_size);
 
     float4 t = convert_float4(col);
 
     return t;
 }
 
-
 ///0 -> 255
 ///this is gpu_id weird combination
 void write_tex_array(uint4 to_write, float2 coords, uint tid, __global uint* num, __global uint* size, image_3d_write array)
 {
     //cannot do linear interpolation on uchars
-    float x = coords.x;
-    float y = coords.y;
+    int nv = num[tid];
 
-    int slice = num[tid] >> 16;
+    int slice = nv >> 16;
 
-    int which = num[tid] & 0x0000FFFF;
+    int which = nv & 0x0000FFFF;
 
     const float max_tex_size = 2048;
 
     float width = size[slice];
 
-    int hnum = native_divide(max_tex_size, width);
+    float hnum = floor(native_divide(max_tex_size, width));
     ///max horizontal and vertical nums
 
-    float tnumx = which % hnum;
-    float tnumy = which / hnum;
+    float tnumy = floor(native_divide(which, hnum));
+    float tnumx = mad(-tnumy, hnum, which);//which - tnumy * hnum;
 
     float tx = tnumx*width;
     float ty = tnumy*width;
 
+    coords = fmod(coords, width);
 
-    x = fmod(x, width);
-    y = fmod(y, width);
-
-    y = width - y;
-
-
-    x = clamp(x, 0.001f, width - 0.001f);
-    y = clamp(y, 0.001f, width - 0.001f);
+    coords = clamp(coords, 0.001f, width - 0.001f);
 
     ///width - fixes bug
     ///remember to add 0.5f to this
-    float4 coord = {tx + x, ty + y, slice, 0};
+    int4 coord = {tx + coords.x, ty + coords.y, slice, 0};
 
     //write_imageui(array, convert_int4(coord), to_write);
 
-    write_image_3d_hardware(convert_int4(coord), array, to_write, max_tex_size, max_tex_size);
+    write_image_3d_hardware(coord, array, to_write, max_tex_size, max_tex_size);
 }
 
 ///why is the texture actually floats, not 32bit rgba? surface format optimisation?

@@ -166,6 +166,7 @@ int main(int argc, char *argv[])
     sf::Keyboard key;
 
 
+    float avg_ftime = 6000;
 
 
     ///use event callbacks for rendering to make blitting to the screen and refresh
@@ -194,8 +195,6 @@ int main(int argc, char *argv[])
             window.increase_render_events();
 
             context.fetch()->swap_depth_buffers();
-
-            //window.swap_depth_buffers();
         }
 
         window.set_render_event(event);
@@ -208,8 +207,15 @@ int main(int argc, char *argv[])
 
         context.flip();
 
+        avg_ftime += c.getElapsedTime().asMicroseconds();
+
+        avg_ftime /= 2;
+
         if(key.isKeyPressed(sf::Keyboard::M))
             std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+
+        if(key.isKeyPressed(sf::Keyboard::Comma))
+            std::cout << avg_ftime << std::endl;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary
