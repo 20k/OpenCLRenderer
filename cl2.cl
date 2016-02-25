@@ -7511,8 +7511,8 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
 
     float depth = projected.z;
 
-    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
-        return;
+    //if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+    //    return;
 
     if(depth < 1)
         return;

@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
     l.set_brightness(1);
     l.radius = 100000;
     l.set_pos((cl_float4){-200, 2000, -100, 0});
+    //l.set_godray_intensity(1.f);
     //window.add_light(&l);
 
     light::add_light(&l);
