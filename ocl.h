@@ -176,7 +176,7 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
 
 
     ///does not compile properly without (breaks texture filtering), investigate this at some point
-    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
+    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-strict-aliasing -cl-mad-enable -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
 
     if(supports_3d_writes())
     {
