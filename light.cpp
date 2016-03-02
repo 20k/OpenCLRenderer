@@ -100,7 +100,10 @@ void light::remove_light(light* l)
     int lid = get_light_id(l);
 
     if(lid == -1)
+    {
+        printf("warning, could not remove light, not found\n");
         return;
+    }
 
     if(l->shadow)
         dirty_shadow = true;
@@ -111,6 +114,7 @@ void light::remove_light(light* l)
     delete l;
 }
 
+///the writes here need ordering!
 light_gpu light::build() ///for the moment, just reallocate everything
 {
     cl_uint lnum = light::lightlist.size();
@@ -142,15 +146,7 @@ light_gpu light::build() ///for the moment, just reallocate everything
 
     light_gpu dat;
 
-    /*if(light_straight.size() == 0)
-    {
-        printf("Warning, no lights is currently an error\n");
-        throw;
-    }*/
-
     int clamped_num = std::max((int)found_num, 1);
-
-    //printf("LFnum: %i\n", found_num);
 
     ///gpu light memory
     dat.g_light_mem = compute::buffer(cl::context, sizeof(light)*clamped_num, CL_MEM_READ_ONLY);
