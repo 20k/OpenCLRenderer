@@ -48,6 +48,9 @@ texture* texture_context::make_new_cached(const std::string& loc)
 
 void texture_context::destroy(texture* tex)
 {
+    if(!tex)
+        return;
+
     for(int i=0; i<all_textures.size(); i++)
     {
         int id_me = tex->id;
