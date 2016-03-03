@@ -42,7 +42,7 @@ cl_uint texture::get_largest_dimension() const
 {
     if(!is_loaded)
     {
-        std::cout << "tried to find dimension of non loaded texture" << std::endl;
+        lg::log("tried to find dimension of non loaded texture");
         exit(32323);
     }
 
@@ -56,7 +56,7 @@ cl_uint texture::get_largest_num(int num) const
 
     if(!has_mipmaps)
     {
-        std::cout << "fatal error, mipmaps not created" << std::endl;
+        lg::log("fatal error, mipmaps not created");
         exit(3434);
     }
     else
@@ -70,7 +70,7 @@ sf::Image& texture::get_texture_level(int num)
 
     if(!has_mipmaps)
     {
-        std::cout << "fatal error, mipmaps not created for texture level" << std::endl;
+        lg::log("fatal error, mipmaps not created for texture level");
         exit(3434);
     }
     else
@@ -79,7 +79,7 @@ sf::Image& texture::get_texture_level(int num)
 
 cl_uint texture::get_active_id()
 {
-    printf("err, get_active_id is deprecated\n");
+    lg::log("err, get_active_id is deprecated");
 
     /*for(int i=0; i<texture_manager::active_textures.size(); i++)
     {
@@ -95,7 +95,7 @@ cl_uint texture::get_active_id()
 
 void texture::activate()
 {
-    printf("warning, activating a texture is deprecated\n");
+    lg::log("warning, activating a texture is deprecated");
 
     //texture_manager::activate_texture(id);
 }
@@ -141,7 +141,7 @@ bool exists_by_id(texture* tex)
 
 void texture::push()
 {
-    printf("warning, pushing is now an error\n");
+    lg::log("warning, pushing is now an error");
 
     throw std::runtime_error("pushed texture\n");
 
@@ -237,7 +237,7 @@ void gen_miplevel(texture& tex, int level)
 ///generate mipmaps if necessary
 void texture::generate_mipmaps()
 {
-    printf("generating cpu side mipmaps is deprecated\n");
+    lg::log("generating cpu side mipmaps is deprecated");
 
     if(!has_mipmaps)
     {
@@ -255,7 +255,7 @@ void texture::generate_mipmaps()
             ///file does not exist, generate and cache
             if(pFile == nullptr || !cacheable)
             {
-                printf("generated mipmap\n");
+                lg::log("generated mipmap");
 
                 gen_miplevel(*this, i);
 
@@ -266,7 +266,7 @@ void texture::generate_mipmaps()
             }
             else
             {
-                printf("loaded cached mipmap\n");
+                lg::log("loaded cached mipmap");
 
                 sf::Image& img = mipmaps[i];
 
@@ -404,7 +404,7 @@ void texture_load(texture* tex)
 
     if(tex->get_largest_dimension() > max_tex_size)
     {
-        std::cout << "Error, texture larger than max texture size @" << __LINE__ << " @" << __FILE__ << std::endl;
+        lg::log("Error, texture larger than max texture size @", __LINE__, " @", __FILE__);
         ///error? set isloaded to false? return bad id or throw?
     }
 }
@@ -416,7 +416,7 @@ void texture_make_blank(texture* tex, int w, int h, sf::Color col)
 
     if(tex->get_largest_dimension() > max_tex_size)
     {
-        std::cout << "Error, texture larger than max texture size @" << __LINE__ << " @" << __FILE__ << std::endl;
+        lg::log("Error, texture larger than max texture size @", __LINE__, " @", __FILE__);
         ///error? set isloaded to false? return bad id or throw?
     }
 }

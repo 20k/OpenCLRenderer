@@ -13,6 +13,8 @@
 #include <boost/compute/interop/opengl.hpp>
 #include <unordered_map>
 
+#include "logging.hpp"
+
 namespace compute = boost::compute;
 
 ///blatantly nicked from nvidia
@@ -30,14 +32,20 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
 
     if(ciErrNum != CL_SUCCESS)
     {
-        printf(" Error %i in clGetPlatformIDs Call !!!\n\n", ciErrNum);
+        //printf(" Error %i in clGetPlatformIDs Call !!!\n\n", ciErrNum);
+
+        lg::log("Error ", ciErrNum, " in clGetPlatformIDs");
+
         return -1000;
     }
     else
     {
         if(num_platforms == 0)
         {
-            printf("No OpenCL platform found!\n\n");
+            //printf("No OpenCL platform found!\n\n");
+
+            lg::log("Could not find valid opencl platform, num_platforms == 0");
+
             return -2000;
         }
         else
@@ -45,14 +53,17 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
             // if there's a platform or more, make space for ID's
             if((clPlatformIDs = (cl_platform_id*)malloc(num_platforms * sizeof(cl_platform_id))) == NULL)
             {
-                printf("Failed to allocate memory for cl_platform ID's!\n\n");
+                //printf("Failed to allocate memory for cl_platform ID's!\n\n");
+                lg::log("Malloc error for allocating platform ids");
+
                 return -3000;
             }
 
             // get platform info for each platform and trap the NVIDIA platform if found
 
             ciErrNum = clGetPlatformIDs(num_platforms, clPlatformIDs, NULL);
-            printf("Available platforms:\n");
+            //printf("Available platforms:\n");
+            lg::log("Available platforms:");
 
             for(i = 0; i < num_platforms; ++i)
             {
@@ -60,7 +71,9 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
 
                 if(ciErrNum == CL_SUCCESS)
                 {
-                    printf("platform %d: %s\n", i, chBuffer);
+                    //printf("platform %d: %s\n", i, chBuffer);
+
+                    lg::log("platform ", i, " ", chBuffer);
 
                     /*std::string name(chBuffer);
 
@@ -71,7 +84,8 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
 
                     if(strstr(chBuffer, "NVIDIA") != NULL)// || strstr(chBuffer, "Intel") != NULL)
                     {
-                        printf("selected platform %d\n", i);
+                        //printf("selected platform %d\n", i);
+                        lg::log("selected platform ", i);
                         *clSelectedPlatformID = clPlatformIDs[i];
                         break;
                     }
@@ -81,7 +95,8 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
             // default to zeroeth platform if NVIDIA not found
             if(*clSelectedPlatformID == NULL)
             {
-                printf("selected platform: %d\n", num_platforms-1);
+                //printf("selected platform: %d\n", num_platforms-1);
+                lg::log("selected platform ", num_platforms-1);
                 *clSelectedPlatformID = clPlatformIDs[num_platforms-1];
             }
 
@@ -100,7 +115,7 @@ static char* file_contents(const char *filename, int *length)
 
     if(!f)
     {
-        fprintf(stderr, "Unable to open %s for reading\n", filename);
+        lg::log("Unable to open ", filename, " for reading");
         return NULL;
     }
 
@@ -143,13 +158,13 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
 
     source = file_contents(file.c_str(), &src_size);
 
-    std::cout << "Loaded file" << std::endl;
+    lg::log("Loaded file");
 
     compute::program program = compute::program::create_with_source(source, cl::context);
 
     free(source);
 
-    std::cout << "Created Program" << std::endl;
+    lg::log("Created program");
 
     std::ostringstream convert;
 
@@ -193,12 +208,12 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
     }
     catch(...)
     {
-        std::cout << program.build_log() << std::endl;
+        lg::log(program.build_log());
 
         exit(1232345);
     }
 
-    std::cout << "Built program" << std::endl;
+    lg::log("Built program");
 
     cl::program = program;
 
@@ -269,7 +284,7 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
     kernel_map.clear();
     cl::kernels.clear();
 
-    std::cout << "Loaded obscene numbers of kernels" << std::endl;
+    lg::log("Loaded obscene numbers of kernels");
 }
 
 inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
@@ -286,12 +301,12 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     if(error != CL_SUCCESS)
     {
-        std::cout << "Error getting platform id: " << std::endl;
+        lg::log("Error getting platform id: ");
         exit(error);
     }
     else
     {
-        std::cout << "Got platform IDs" << std::endl;
+        lg::log("Got platform IDs");
     }
 
     ///this is essentially black magic
@@ -311,16 +326,16 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     // Device
     error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, device, &num);
 
-    std::cout << "Found " << num << " devices" << std::endl;
+    lg::log("Found ", num, " devices");
 
     if(error != CL_SUCCESS)
     {
-        std::cout << "Error getting device ids: ";
+        lg::log("Error getting device ids: ", error);
         exit(error);
     }
     else
     {
-        std::cout << "Got device ids" << std::endl;
+        lg::log("Got device ids");
     }
 
     ///I think the context is invalid
@@ -331,22 +346,22 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     if(error != CL_SUCCESS)
     {
-        std::cout << "Error creating context: ";
+        lg::log("Error creating context: ", error);
         exit(error);
     }
     else
     {
-        std::cout << "Created context" << std::endl;
+        lg::log("Created context");
     }
 
 
     cl::context = compute::context(context, true);
 
-    std::cout << "Bound context" << std::endl;
+    lg::log("Bound context");
 
     cl::device = compute::device(device[0], true);
 
-    std::cout << "Bound device" << std::endl;
+    lg::log("Bound device");
 
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
@@ -357,7 +372,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     #endif
 
 
-    std::cout << "Created command queue" << std::endl;
+    lg::log("Created command queue");
 
     build(file, w, h, lres, only_3d);
 }

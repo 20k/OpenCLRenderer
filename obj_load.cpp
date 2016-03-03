@@ -11,6 +11,7 @@
 #include <math.h>
 #include <list>
 #include "vec.hpp"
+#include "logging.hpp"
 
 std::map<std::string, objects_container> cache_map;
 
@@ -125,7 +126,7 @@ void obj_load(objects_container* pobj)
 {
     if(!pobj)
     {
-        std::cout << "something has gone horribly wrong in obj_load.cpp" << std::endl;
+        lg::log("something has gone horribly wrong in obj_load.cpp");
         exit(0xDEAD);
     }
 
@@ -157,13 +158,13 @@ void obj_load(objects_container* pobj)
 
     if(!file.is_open())
     {
-        std::cout << filename << " could not be opened" << std::endl;
+        lg::log(filename, " could not be opened");
         return;
     }
 
     if(!mtlfile.is_open())
     {
-        std::cout << mtlname << " could not be found" << std::endl;
+        lg::log(mtlname, " could not be found");
     }
 
     ///load .obj file contents
@@ -424,7 +425,7 @@ void obj_load(objects_container* pobj)
 
     c->isloaded = true;
 
-    printf("Loaded\n");
+    lg::log("Loaded object with id ", c->id);
 
     //std::cout << "Object load time " <<  clk.getElapsedTime().asSeconds() << std::endl;
 }

@@ -2,6 +2,7 @@
 #include <iostream>
 #include "obj_load.hpp"
 #include "vec.hpp"
+#include "logging.hpp"
 
 cl_uint objects_container::gid = 0;
 std::vector<objects_container*> objects_container::obj_container_list;
@@ -36,7 +37,7 @@ void objects_container::push()
     //return gid++;
     //id = gid++;
 
-    printf("fine\n");
+    lg::log("Err, push is deprecated (or at least I'm pretty sure it is)");
 }
 
 void objects_container::set_pos(cl_float4 _pos) ///both remote and local
@@ -357,7 +358,7 @@ bool objects_container::has_independent_subobjects()
 
 int objects_container::get_object_by_id(int in)
 {
-    printf("get_object_by_id\n");
+    lg::log("Err get_object_by_id");
 
     throw std::runtime_error("get_object_by_id");
 

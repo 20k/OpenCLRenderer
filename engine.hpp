@@ -304,7 +304,7 @@ struct arg_list
 
     void push_back(std::nullptr_t ptr)
     {
-        printf("warning, nullptr in arg list\n");
+        lg::log("warning, nullptr in arg list");
 
         args.push_back(ptr);
         sizes.push_back(sizeof(std::nullptr_t));
@@ -415,7 +415,12 @@ inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], 
         //printf("%s %i\n", kernel.name.c_str(), i);
         ///
 
-        clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
+        cl_int rarg = clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
+
+        if(rarg != CL_SUCCESS)
+        {
+            lg::log("clSetKernelArg err ", rarg);
+        }
     }
 
     compute::event event = cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, l_ws);
@@ -449,12 +454,12 @@ inline compute::event run_kernel_with_string(const std::string& name, cl_uint gl
 
     if(!k.loaded)
     {
-        printf("trying to load %s\n", name.c_str());
+        lg::log("trying to load ", name.c_str());
 
         k = load_kernel(cl::program, name);
         cl::kernels[name] = k;
 
-        printf("loaded\n");
+        lg::log("loaded");
     }
 
     return run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue);

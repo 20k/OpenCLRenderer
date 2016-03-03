@@ -1,4 +1,5 @@
 #include "clstate.h"
+#include "logging.hpp"
 
 ///kernel information and opencl stuff
 
@@ -8,7 +9,7 @@ void* cl::map(compute::buffer& v, cl_map_flags flag, int size)
 
     if(ptr == nullptr)
     {
-        printf("error in cl::map\n");
+        lg::log("error in cl::map");
     }
 
     return ptr;

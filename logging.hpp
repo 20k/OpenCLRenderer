@@ -43,6 +43,14 @@ namespace lg
         log_b(std::string(dat));
     }
 
+    template<>
+    inline
+    void
+    log_b(char* const& dat)
+    {
+        log_b(std::string(dat));
+    }
+
     template<typename T>
     inline
     void

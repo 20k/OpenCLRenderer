@@ -37,7 +37,7 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 
         compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
 
-        printf("created screen dim %i %i\n", _w, _h);
+        lg::log("created screen dim ", _w, " ", _h);
     }
 
     s_w = _w;
@@ -135,7 +135,7 @@ void object_context::load_active()
                 }
 
                 #ifdef DEBUGGING
-                printf("cache loading from context\n");
+                lg::log("cache loading from context");
                 #endif
 
                 obj->set_active_subobjs(true);
@@ -213,7 +213,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             //printf("ftid %i\n", tid);
 
             if(tid == -1)
-                printf("No texture active id\n");
+                lg::log("No texture active id");
 
             /*texture* tex = texture_manager::texture_by_id(it.tid);
 
@@ -327,7 +327,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         }
     }
 
-    printf("Allocated %i mb of tris\n", ((sizeof(triangle) * tri_num) / 1024) / 1024);
+    lg::log("Allocated ", ((sizeof(triangle) * tri_num) / 1024) / 1024, " mb of tris");
 }
 
 void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
@@ -476,7 +476,7 @@ void object_context::build(bool force)
 
         textures_realloc = true;
 
-        printf("texture rebuild\n");
+        lg::log("texture rebuild");
     }
 
     object_descriptors.clear();

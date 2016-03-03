@@ -31,7 +31,7 @@ texture* texture_context::make_new_cached(const std::string& loc)
         if(i->cacheable && !i->is_unique && i->texture_location == loc)
         {
             #ifdef DEBUGGING
-            printf("cached texture load\n");
+            lg::log("cached texture load");
             #endif // DEBUGGING
 
             return i;
@@ -146,7 +146,7 @@ std::vector<texture_page> calculate_fitted_texture_pages(const std::map<size_t, 
 
         if(textures_remaining < 0)
         {
-            printf("something went wrong, negative %i texture stuff\n", textures_remaining);
+            lg::log("something went wrong, negative ", textures_remaining, " texture stuff");
         }
     }
 
@@ -183,8 +183,8 @@ std::vector<cl_uint> calculate_texture_slice_descriptor(texture_context& tex_ctx
 
         if(free_num < 0)
         {
-            printf("could not find a free texture page, this is an error\n");
-            throw std::runtime_error("broken\n");
+            lg::log("could not find a free texture page, this is an error");
+            throw std::runtime_error("texture broken\n");
         }
 
         ///gpu texture format is slice << 16 | texture_number
@@ -223,8 +223,8 @@ std::vector<cl_uint> calculate_texture_slice_descriptor(texture_context& tex_ctx
 
             if(free_num < 0)
             {
-                printf("could not find a free mip %i texture page, this is an error\n", j);
-                throw std::runtime_error("broken\n");
+                lg::log("could not find a free mip ", j, " texture page, this is an error");
+                throw std::runtime_error("mip broken\n");
             }
 
             ///gpu texture format is slice << 16 | texture_number
@@ -333,7 +333,7 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
     if(supports_3d_writes())
     {
-        printf("Using mainstream texture write path\n");
+        lg::log("Using mainstream texture write path");
 
         compute::image3d temp = compute::image3d(cl::context, CL_MEM_READ_WRITE, imgformat, 2048, 2048, clamped_array_len, 0, 0, NULL);
 
@@ -342,16 +342,16 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
     }
     else
     {
-        printf("Using alternate texture write path\n");
+        lg::log("Using alternate texture write path");
 
         tex_data.g_texture_array = compute::buffer(cl::context, sizeof(cl_uchar) * 4 * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * TEXTURE_CONTEXT_MAX_SIZE_IMAGE * clamped_array_len, CL_MEM_READ_WRITE, nullptr);
     }
 
-    printf("array length size %i\n", clamped_array_len);
+    lg::log("array length size ", clamped_array_len);
 
-    printf("Allocated %i mb of texture info\n", ((2048 * 2048 * clamped_array_len * 4) / 1024) / 1024);
+    lg::log("Allocated %i mb of texture info ", ((2048 * 2048 * clamped_array_len * 4) / 1024) / 1024);
 
-    printf("real_size = %i mb\n", tex_data.g_texture_array.size() / 1024 / 1024);
+    lg::log("real_size = %i mb ", tex_data.g_texture_array.size() / 1024 / 1024);
 
     ///position in array
     tex_data.g_texture_nums = compute::buffer(cl::context,  sizeof(cl_uint)*clamped_position_len, CL_MEM_READ_ONLY);

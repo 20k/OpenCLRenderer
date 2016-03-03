@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include "logging.hpp"
 
 void settings::load(const std::string& loc)
 {
@@ -12,7 +13,7 @@ void settings::load(const std::string& loc)
 
     if(!f.is_open())
     {
-        printf("Could not find file\n");
+        lg::log("Could not find file");
         return;
     }
 
@@ -27,7 +28,7 @@ void settings::load(const std::string& loc)
 
     if(content.size() < 5)
     {
-        printf("invalid settings file\n");
+        lg::log("invalid settings file");
         return;
     }
 

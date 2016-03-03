@@ -6,6 +6,7 @@
 #include <iostream>
 #include "texture_manager.hpp"
 #include "vec.hpp"
+#include "logging.hpp"
 
 cl_uint object::gid = 0;
 
@@ -277,7 +278,7 @@ void object::stretch(int dim, float amount)
                 pos.z *= amount;
             else
             {
-                printf("Invalid dimension passed to object with id\n");
+                lg::log("Invalid dimension passed to object in stretch with dim ", dim);
             }
 
             tri_list[i].vertices[j].set_pos(pos);
@@ -306,7 +307,7 @@ void object::scale(float f)
 
 texture* object::get_texture()
 {
-    printf("err, get_texture is deprecated\n");
+    lg::log("err, get_texture is deprecated");
 
     throw std::runtime_error("get_texture deprecated");
 
@@ -482,7 +483,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
         if((dirty_pos || dirty_rot) && ret != CL_SUCCESS)
         {
-            printf("Crashtime in flush err %i\n", ret);
+            lg::log("Crashtime in flush err ", ret);
             write_events.pop_back();
         }
 
@@ -516,7 +517,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
     else
     {
-        printf("write err in g_flush %i\n", ret);
+        lg::log("write err in g_flush ", ret);
     }
 
     ///???

@@ -101,7 +101,7 @@ void light::remove_light(light* l)
 
     if(lid == -1)
     {
-        printf("warning, could not remove light, not found\n");
+        lg::log("warning, could not remove light, not found");
         return;
     }
 
