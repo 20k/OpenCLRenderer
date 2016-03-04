@@ -7,7 +7,7 @@
 
 namespace lg
 {
-    extern std::ofstream output;
+    extern std::ofstream* output;
 
     extern std::string logfile;
 
@@ -23,7 +23,7 @@ namespace lg
     void
     log_b(const T& dat)
     {
-        output << std::to_string(dat);
+        *output << std::to_string(dat);
     }
 
     ///I think there's a better sfinae solution to this, but
@@ -32,7 +32,7 @@ namespace lg
     void
     log_b(const std::string& dat)
     {
-        output << dat;
+        *output << dat;
     }
 
     template<>
@@ -86,7 +86,7 @@ namespace lg
     {
         log_r(param...);
 
-        output << std::endl;
+        *output << std::endl;
     }
 };
 
