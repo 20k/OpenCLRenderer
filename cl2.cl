@@ -3157,7 +3157,8 @@ __attribute__((reqd_work_group_size(16, 16, 1)))
 void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer
+           __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer,
+           float4 screen_clear_colour
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -3195,7 +3196,7 @@ void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 
     {
         ///temp, remember to fix when we're back in action
         //write_imagei(object_ids, (int2){x, y}, -1);
-        write_imagef(screen, (int2){x, y}, 0.0f);
+        write_imagef(screen, (int2){x, y}, screen_clear_colour);
         return;
     }
 

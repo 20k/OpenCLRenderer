@@ -411,9 +411,9 @@ void flip_buffers(object_context* ctx)
     ctx->new_gpu_dat.g_screen = ctx->fetch()->g_screen;
     ctx->new_gpu_dat.gl_framebuffer_id = ctx->fetch()->gl_framebuffer_id;
     ctx->new_gpu_dat.nbuf = (ctx->fetch()->nbuf) % 2;
+    ctx->new_gpu_dat.g_clear_col = ctx->gpu_dat.g_clear_col;
 
-    ///wait. In doing this, we're... well, nicking the old one's actual stored
-    ///owned resource
+    ///wait. In doing this, we're... well, sharing the old one's actual stored resource
     ///I smell a fuckup
     for(int i=0; i<2; i++)
     {
@@ -545,6 +545,11 @@ object_context_data* object_context::fetch()
 object_context_data* object_context::get_current_gpu()
 {
     return &gpu_dat;
+}
+
+void object_context::set_clear_colour(const cl_float4& col)
+{
+    gpu_dat.g_clear_col = col;
 }
 
 void object_context::flush_locations(bool force)

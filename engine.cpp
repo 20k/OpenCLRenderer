@@ -1187,6 +1187,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&eng.g_object_id_tex);
     p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
     p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
+    p3arg_list.push_back(&dat.g_clear_col);
 
     /*for(auto& i : p3arg_list.args)
     {

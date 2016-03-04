@@ -46,6 +46,8 @@ struct object_context_data
     compute::opengl_renderbuffer g_screen;
     compute::buffer depth_buffer[2];
 
+    cl_float4 g_clear_col = (cl_float4){0};
+
     cl_uint* cpu_id_num = nullptr;
 
     int nbuf = 0;
@@ -116,6 +118,7 @@ struct object_context
     object_context_data* fetch();
     object_context_data* get_current_gpu();
 
+    void set_clear_colour(const cl_float4& col);
     void flush_locations(bool force = false);
 
     ///this is currently useless, as we'are always using a pointer to gpu_dat
