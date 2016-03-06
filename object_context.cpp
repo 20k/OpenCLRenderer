@@ -465,7 +465,7 @@ void object_context::build(bool force)
 
     texture_context_data ctdat;
 
-    if(tex_ctx.should_realloc(*this) || force)
+    if(!gpu_dat.gpu_data_finished || tex_ctx.should_realloc(*this) || force)
     {
         if(!async)
         {
