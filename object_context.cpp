@@ -262,8 +262,10 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
 ///ok, so we need to know if we've got to force a build
 ///so make this return a vector of events, that we wait on
 ///so, reallocating seems to leak a little bit of gpu memory somewehere
-void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_context_data& dat, bool force)
+std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_context_data& dat, bool force)
 {
+    std::vector<compute::event> events;
+
     dat.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
     dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*tri_num*3*2 | CL_MEM_HOST_NO_ACCESS);
 
@@ -284,16 +286,16 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         cl_uint zero = 0;
         context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-        //dat.cpu_id_num = new cl_uint();
-
-        //printf("alloc\n");
+        lg::log("alloced g_tid_buf_atomic_count");
     }
 
     ///I'm going to forget this every time
     dat.s_w = context.fetch()->s_w;
     dat.s_h = context.fetch()->s_h;
 
-    cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_num, 0, dat.g_tri_num.size(), &dat.tri_num);
+    auto event = cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_num, 0, dat.g_tri_num.size(), &dat.tri_num);
+
+    events.push_back(event);
 
     cl_uint running = 0;
 
@@ -323,7 +325,9 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
             ///this might be causing the freezes
             if(it->tri_num > 0)
             {
-                cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), (*it).tri_list.data());
+                event = cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), (*it).tri_list.data());
+
+                events.push_back(event);
             }
 
             running += (*it).tri_list.size();
@@ -333,22 +337,34 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
     }
 
     lg::log("Allocated ", ((dat.g_tri_mem.size() / 1024) / 1024), " mb of tris");
+
+    return events;
 }
 
-void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
+std::vector<compute::event> alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
 {
+    std::vector<compute::event> events;
+
     dat.obj_num = object_descriptors.size();
 
     dat.g_obj_desc = compute::buffer(cl::context, sizeof(obj_g_descriptor)*dat.obj_num, CL_MEM_READ_ONLY);
     dat.g_obj_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
 
     ///dont care if data arrives late
-    cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_num, 0, dat.g_obj_num.size(), &dat.obj_num);
+    auto event = cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_num, 0, dat.g_obj_num.size(), &dat.obj_num);
+
+    events.push_back(event);
 
     ///this is the only element where we do care if the data arrives late
     ///because we are writing to it from the cpu side
     if(dat.obj_num > 0)
-        cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_desc, 0, dat.g_obj_desc.size(), object_descriptors.data());
+    {
+        event = cl::cqueue2.enqueue_write_buffer_async(dat.g_obj_desc, 0, dat.g_obj_desc.size(), object_descriptors.data());
+
+        events.push_back(event);
+    }
+
+    return events;
 }
 
 void flip_buffers(object_context* ctx)
@@ -517,18 +533,32 @@ void object_context::build(bool force)
         gpu_dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE);
     }
 
-    alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
-    //new_gpu_dat.tex_gpu = texture_manager::texture_alloc_gpu();
+    auto gpu_alloc_events = alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
 
     new_gpu_dat.tex_gpu_ctx = ctdat;
 
     new_gpu_dat.has_valid_texture_data = textures_realloc;
 
-    alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
+    auto descriptor_events = alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
+
+    std::vector<cl_event> flattened;
+
+    for(auto& i : gpu_alloc_events)
+        flattened.push_back(i.get());
+
+    for(auto& i : descriptor_events)
+        flattened.push_back(i.get());
+
+    for(auto& i : flattened)
+    {
+        //clRetainEvent(i);
+    }
 
     ///ie we want there to be some valid gpu presence
     if(!gpu_dat.gpu_data_finished || force || !async)
     {
+        ///1.2?
+        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), flattened.size(), &flattened[0], nullptr);
         cl::cqueue2.finish();
 
         update_object_status(0, 0, this);
