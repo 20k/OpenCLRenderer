@@ -2432,7 +2432,7 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 ///can skip fragmentation stage if every thread does the same amount of work in tile deferred step
 __kernel
 void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
-                __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj, __global float2* distort_buffer)
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj)
 {
     uint id = get_global_id(0);
 
@@ -2581,7 +2581,7 @@ __kernel void tile_clear(__global uint* tile_count)
 
 __kernel
 void prearrange_light(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
-                __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj, __global float2* distort_buffer,
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj,
                 __global float4* tile_info, __global uint* tile_count)
 {
     uint id = get_global_id(0);
@@ -2713,8 +2713,8 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
 __kernel
-void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, __global float2* distort_buffer, __write_only image2d_t id_buffer)
+void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* depth_buffer, __global uint* f_len,
+           __global float4* cutdown_tris, __write_only image2d_t id_buffer)
 {
     uint id = get_global_id(0);
 
@@ -2844,7 +2844,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
 __kernel
 void kernel1_light(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
-           __global float4* cutdown_tris, uint is_light, __global float2* distort_buffer, __write_only image2d_t id_buffer,
+           __global float4* cutdown_tris, uint is_light, __write_only image2d_t id_buffer,
            __global float4* tile_info, __global uint* tile_count)
 {
     uint id = get_global_id(0);
@@ -2993,9 +2993,8 @@ void get_barycentric(float3 p, float3 a, float3 b, float3 c, float* u, float* v,
 
 ///exactly the same as part 1 except it checks if the triangle has the right depth at that point and write the corresponding id. It also only uses valid triangles so it is somewhat faster than part1
 __kernel
-void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer,
-            __write_only image2d_t id_buffer, __global uint* f_len, __global uint* id_cutdown_tris, __global float4* cutdown_tris,
-            __global float2* distort_buffer)
+void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* depth_buffer,
+            __write_only image2d_t id_buffer, __global uint* f_len, __global float4* cutdown_tris)
 {
 
     int id = get_global_id(0);
@@ -3154,10 +3153,9 @@ float mdot(float3 v1, float3 v2)
 __kernel
 __attribute__((reqd_work_group_size(16, 16, 1)))
 //__attribute__((vec_type_hint(float3)))
-void kernel3(__global struct triangle *triangles,__global uint *tri_num, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
-           image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj, __global uint * gnum,
+void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+           image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           __global float2* distort_buffer, __write_only image2d_t object_ids, __write_only image2d_t occlusion_buffer, __write_only image2d_t diffuse_buffer,
            float4 screen_clear_colour
            )
 

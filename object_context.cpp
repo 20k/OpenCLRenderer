@@ -260,6 +260,8 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
 #include "clstate.h"
 
 ///ok, so we need to know if we've got to force a build
+///so make this return a vector of events, that we wait on
+///so, reallocating seems to leak a little bit of gpu memory somewehere
 void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_context_data& dat, bool force)
 {
     dat.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
@@ -299,6 +301,9 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
 
     ///write triangle data to gpu
     ///this will break if objects are activated at some point between the last and current fun
+    ///so, what we really want to do
+    ///is copy old tries to new tris with a gpu copy
+    ///and only write new tris
     for(std::vector<objects_container*>::iterator it2 = context.containers.begin(); it2!=context.containers.end(); ++it2)
     {
         objects_container* obj = (*it2);
@@ -327,7 +332,7 @@ void alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_c
         }
     }
 
-    lg::log("Allocated ", ((sizeof(triangle) * tri_num) / 1024) / 1024, " mb of tris");
+    lg::log("Allocated ", ((dat.g_tri_mem.size() / 1024) / 1024), " mb of tris");
 }
 
 void alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
@@ -489,8 +494,8 @@ void object_context::build(bool force)
 
     if(!async)
     {
-        gpu_dat.g_tri_mem = compute::buffer();
-        gpu_dat.g_cut_tri_mem = compute::buffer();
+        gpu_dat.g_tri_mem = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE);
+        gpu_dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE);
     }
 
     alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);

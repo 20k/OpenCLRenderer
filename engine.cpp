@@ -381,17 +381,17 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         }
     }
 
-    g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
+    //g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
 
     //g_screen_edge_smoothed = gen_cl_gl_framebuffer_renderbuffer(&gl_smoothed_framebuffer_id, width, height);
 
     //? compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
-    compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
+    //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_reprojected.get(), cl::cqueue);
     //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen_edge_smoothed.get(), cl::cqueue);
 
 
     ///this is a completely arbitrary size to store triangle uids in
-    cl_uint size_of_uid_buffer = 40*1024*1024;
+    cl_uint size_of_uid_buffer = 10*1024*1024;
     cl_uint zero=0;
 
     cl_float2* distortion_clear = new cl_float2[width*height];
@@ -399,14 +399,14 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     memset(distortion_clear, 0, sizeof(cl_float2)*width*height);
 
     ///creates the two depth buffers and 2d triangle id buffer with size width*height
-    depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-    depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    //depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    //depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     //reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     //reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
 
     ///release old memory
-    g_tid_buf = compute::buffer();
+    g_tid_buf = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
@@ -432,6 +432,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     g_tile_information     = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_float4)*tile_depth, CL_MEM_READ_WRITE, nullptr);
     g_tile_count           = compute::buffer(cl::context, (tilew+1)*(tileh+1)*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);*/
 
+    lg::log("Real uid buffer size ", g_tid_buf.size() / 1024 / 1024, " mb");
+
     ///length of the fragment buffer id thing, stored cpu side
     c_tid_buf_len = size_of_uid_buffer;
 
@@ -446,16 +448,16 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
     g_id_screen_tex             = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
-    g_reprojected_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
-    g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
+    //g_reprojected_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
+    //g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
-    g_occlusion_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
-    g_occlusion_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
+    //g_occlusion_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
+    //g_occlusion_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_occ, width, height, 0, NULL);
 
-    g_diffuse_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_diffuse, width, height, 0, NULL);
-    g_diffuse_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_diffuse, width, height, 0, NULL);
+    //g_diffuse_intermediate_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_diffuse, width, height, 0, NULL);
+    //g_diffuse_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_diffuse, width, height, 0, NULL);
 
-    g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
+    //g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
     ///fixme
     delete [] blank;
@@ -933,7 +935,7 @@ void engine::construct_shadowmaps()
                 prearg_list.push_back(&obj_data->g_cut_tri_mem);
                 prearg_list.push_back(&juan);
                 prearg_list.push_back(&obj_data->g_obj_desc);
-                prearg_list.push_back(&g_distortion_buffer);
+                //prearg_list.push_back(&g_distortion_buffer);
                 prearg_list.push_back(&g_tile_information);
                 prearg_list.push_back(&g_tile_count);
 
@@ -954,7 +956,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&obj_data->g_cut_tri_num);
                 p1arg_list.push_back(&obj_data->g_cut_tri_mem);
                 p1arg_list.push_back(&juan);
-                p1arg_list.push_back(&g_distortion_buffer);
+                //p1arg_list.push_back(&g_distortion_buffer);
                 p1arg_list.push_back(&g_id_screen_tex);
                 p1arg_list.push_back(&g_tile_information);
                 p1arg_list.push_back(&g_tile_count);
@@ -1113,7 +1115,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     prearg_list.push_back(&dat.g_cut_tri_num);
     prearg_list.push_back(&dat.g_cut_tri_mem);
     prearg_list.push_back(&dat.g_obj_desc);
-    prearg_list.push_back(&eng.g_distortion_buffer);
+    //prearg_list.push_back(&eng.g_distortion_buffer);
 
     /*prearg_list.push_back(nullptr);
     prearg_list.push_back(nullptr);
@@ -1140,13 +1142,13 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     arg_list p1arg_list;
     p1arg_list.push_back(&dat.g_tri_mem);
     p1arg_list.push_back(&eng.g_tid_buf);
-    p1arg_list.push_back(&dat.g_tri_num);
+    //p1arg_list.push_back(&dat.g_tri_num);
     p1arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
     //p1arg_list.push_back(&reprojected_depth_buffer[nbuf]);
     p1arg_list.push_back(&dat.g_tid_buf_atomic_count);
-    p1arg_list.push_back(&dat.g_cut_tri_num);
+    //p1arg_list.push_back(&dat.g_cut_tri_num);
     p1arg_list.push_back(&dat.g_cut_tri_mem);
-    p1arg_list.push_back(&eng.g_distortion_buffer);
+    //p1arg_list.push_back(&eng.g_distortion_buffer);
     p1arg_list.push_back(&eng.g_id_screen_tex);
 
     run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
@@ -1164,13 +1166,13 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     arg_list p2arg_list;
     p2arg_list.push_back(&dat.g_tri_mem);
     p2arg_list.push_back(&eng.g_tid_buf);
-    p2arg_list.push_back(&dat.g_tri_num);
+    //p2arg_list.push_back(&dat.g_tri_num);
     p2arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
     p2arg_list.push_back(&eng.g_id_screen_tex);
     p2arg_list.push_back(&dat.g_tid_buf_atomic_count);
-    p2arg_list.push_back(&dat.g_cut_tri_num);
+    //p2arg_list.push_back(&dat.g_cut_tri_num);
     p2arg_list.push_back(&dat.g_cut_tri_mem);
-    p2arg_list.push_back(&eng.g_distortion_buffer);
+    //p2arg_list.push_back(&eng.g_distortion_buffer);
 
     run_kernel_with_string("kernel2", &p2global_ws, &local, 1, p2arg_list);
 
@@ -1181,7 +1183,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     arg_list p3arg_list;
     p3arg_list.push_back(&dat.g_tri_mem);
-    p3arg_list.push_back(&dat.g_tri_num);
+    //p3arg_list.push_back(&dat.g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
     p3arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
@@ -1191,17 +1193,17 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_nums);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_sizes);
     p3arg_list.push_back(&dat.g_obj_desc);
-    p3arg_list.push_back(&dat.g_obj_num);
+    //p3arg_list.push_back(&dat.g_obj_num);
     p3arg_list.push_back(&eng.light_data->g_light_num);
     p3arg_list.push_back(&eng.light_data->g_light_mem);
     p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
     p3arg_list.push_back(&dat.depth_buffer[nnbuf]);
     p3arg_list.push_back(&eng.g_tid_buf);
     p3arg_list.push_back(&dat.g_cut_tri_mem);
-    p3arg_list.push_back(&eng.g_distortion_buffer);
-    p3arg_list.push_back(&eng.g_object_id_tex);
-    p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
-    p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
+    //p3arg_list.push_back(&eng.g_distortion_buffer);
+    //p3arg_list.push_back(&eng.g_object_id_tex);
+    //p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
+    //p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
     p3arg_list.push_back(&dat.g_clear_col);
 
     /*for(auto& i : p3arg_list.args)
