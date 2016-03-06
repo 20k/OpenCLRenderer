@@ -32,12 +32,34 @@ void settings::load(const std::string& loc)
         return;
     }
 
+    for(auto& i : content)
+    {
+        size_t it = i.find('#');
+
+        if(it == std::string::npos)
+            continue;
+
+        if(it > 0)
+        {
+            ///also remove the preceding space before the comment
+            ///should probably strip all spaces, but this is good enough
+            if(i[it-1] == ' ')
+            {
+                it--;
+            }
+
+            i.erase(it, std::string::npos);
+        }
+    }
+
     width = atoi(content[0].c_str());
     height = atoi(content[1].c_str());
     ip = content[2];
     quality = atoi(content[3].c_str());
     name = content[4];
     enable_debugging = content[5] == "DEBUG";
+
+    std::cout << name << std::endl;
 
     if(name.length() == 0)
     {
