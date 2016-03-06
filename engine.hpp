@@ -230,6 +230,9 @@ struct engine
     int get_mouse_y();
     int get_mouse_delta_x();
     int get_mouse_delta_y();
+    float get_mouse_sens_adjusted_x();
+    float get_mouse_sens_adjusted_y();
+    void set_mouse_sens(float sens);
     void update_scrollwheel_delta(sf::Event& event);
     void reset_scrollwheel_delta();
 
@@ -278,6 +281,8 @@ struct engine
     bool is_fullscreen = false;
 
     bool focus = true;
+
+    float mouse_sens = 1.f;
 };
 
 struct arg_list

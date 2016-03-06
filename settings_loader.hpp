@@ -11,6 +11,7 @@ struct settings
     int quality = 0;
     std::string name = "Lumberjack";
     bool enable_debugging;
+    float mouse_sens = 1.f;
 
     void load(const std::string& loc);
 };

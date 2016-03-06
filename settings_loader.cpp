@@ -26,7 +26,7 @@ void settings::load(const std::string& loc)
         content.push_back(str);
     }
 
-    if(content.size() < 5)
+    if(content.size() < 6)
     {
         lg::log("invalid settings file");
         return;
@@ -58,8 +58,7 @@ void settings::load(const std::string& loc)
     quality = atoi(content[3].c_str());
     name = content[4];
     enable_debugging = content[5] == "DEBUG";
-
-    std::cout << name << std::endl;
+    mouse_sens = atof(content[6].c_str());
 
     if(name.length() == 0)
     {

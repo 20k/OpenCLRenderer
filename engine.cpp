@@ -693,6 +693,21 @@ int engine::get_mouse_delta_y()
     return mdy;
 }
 
+float engine::get_mouse_sens_adjusted_x()
+{
+    return get_mouse_delta_x() * mouse_sens;
+}
+
+float engine::get_mouse_sens_adjusted_y()
+{
+    return get_mouse_delta_y() * mouse_sens;
+}
+
+void engine::set_mouse_sens(float sens)
+{
+    mouse_sens = sens;
+}
+
 void engine::update_scrollwheel_delta(sf::Event& event)
 {
     if(event.mouseWheelScroll.wheel != sf::Mouse::VerticalWheel)
