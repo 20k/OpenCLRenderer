@@ -321,7 +321,7 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
 
     clEnqueueReleaseGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
 
-    cqueue.finish();
+    //cqueue.finish();
 
     //cl::cqueue.finish();
 

@@ -114,6 +114,9 @@ struct object_context
     ///this causes a gpu reallocation
     void build(bool force = false);
 
+    void build_request();
+    void build_tick();
+
     ///this fetches the internal context data
     object_context_data* fetch();
     object_context_data* get_current_gpu();
@@ -140,6 +143,8 @@ struct object_context
 
     ///if the context id has changed, everyone needs to reallocate their shit
     int context_id = 0;
+
+    bool request_dirty = false;
 
 private:
 

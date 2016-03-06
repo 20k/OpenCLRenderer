@@ -451,6 +451,25 @@ void update_object_status(cl_event event, cl_int event_command_exec_status, void
     object_context* ctx = (object_context*)user_data;
 
     ctx->ready_to_flip = true;
+
+    ctx->request_dirty = false;
+}
+
+void object_context::build_request()
+{
+    request_dirty = true;
+}
+
+void object_context::build_tick()
+{
+    if(request_dirty)
+    {
+        build();
+
+        ///this is set in update_object_status, but for ease of looking
+        ///its here so I can conceptually make sure this is what happens
+        request_dirty = false;
+    }
 }
 
 /// need to A
