@@ -280,6 +280,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     lg::log("Initialised with width ", videowidth, " and height ", height);
 
 
+
     ///window.create might invalidate the context
     #ifdef OCULUS
     window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
@@ -314,6 +315,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
         oclstuff(loc, width, height, l_size, only_3d);
     }
+
+    lg::log("Does this device support opengl interop: ", supports_extension("cl_khr_gl_sharing"));
+
 
     //printf("kernel compilation time: %f\n", ocltime.getElapsedTime().asMicroseconds() / 1000.f);
 

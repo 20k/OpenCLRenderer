@@ -402,6 +402,28 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     if(size_device.size() == sizeof(cl_ulong))
         lg::log("Mem size of device ", *(cl_ulong*)&size_device[0] / 1024 / 1024);
 
+    std::vector<char> opencl_version = get_device_info(cl::device.get(), CL_DEVICE_OPENCL_C_VERSION);
+
+    lg::log("Opencl version ", &opencl_version[0]);
+
+    std::vector<char> interop_sync = get_device_info(cl::device.get(), CL_DEVICE_PREFERRED_INTEROP_USER_SYNC);
+
+    if(interop_sync.size() == sizeof(cl_bool))
+        lg::log("Does device perfer user interop sync ", *(cl_bool*)&interop_sync[0]);
+
+    std::vector<char> unified_memory = get_device_info(cl::device.get(), CL_DEVICE_HOST_UNIFIED_MEMORY);
+
+    if(unified_memory.size() == sizeof(cl_bool))
+        lg::log("Does device have unified memory ", *(cl_bool*)&unified_memory[0]);
+
+    std::vector<char> device_name = get_device_info(cl::device.get(), CL_DEVICE_NAME);
+
+    lg::log("Device name ", &device_name[0]);
+
+    std::vector<char> device_vendor = get_device_info(cl::device.get(), CL_DEVICE_VENDOR);
+
+    lg::log("Device vendor ", &device_vendor[0]);
+
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
     cl::cqueue2 = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
