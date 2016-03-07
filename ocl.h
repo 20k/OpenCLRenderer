@@ -151,6 +151,39 @@ extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 bool supports_3d_writes();
 
+inline
+std::vector<char> get_device_info(cl_device_id id, cl_device_info inf)
+{
+    size_t size_ret;
+
+    clGetDeviceInfo(id, inf, 0, nullptr, &size_ret);
+
+    if(size_ret <= 1)
+        return std::vector<char>(1);
+
+    char* ret = new char[size_ret]();
+
+    clGetDeviceInfo(id, inf, size_ret, ret, nullptr);
+
+    /*printf("hithere %s %i\n", ret, size_ret);
+
+    std::string rstr;
+
+    if(std::is_integral<T>::value || std::is_floating_point)
+        rstr = std::to_string(ret);*/
+
+    std::vector<char> rstr;
+
+    for(int i=0; i<size_ret; i++)
+    {
+        rstr.push_back(ret[i]);
+    }
+
+    delete [] ret;
+
+    return rstr;
+}
+
 inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
 {
     int src_size=0;
@@ -338,6 +371,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         lg::log("Got device ids");
     }
 
+
     ///I think the context is invalid
     ///because all the resources were created under the other context
     ///maybe create a new reload function which skips all this
@@ -362,6 +396,11 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     cl::device = compute::device(device[0], true);
 
     lg::log("Bound device");
+
+    std::vector<char> size_device = get_device_info(cl::device.get(), CL_DEVICE_GLOBAL_MEM_SIZE);
+
+    if(size_device.size() == sizeof(cl_ulong))
+        lg::log("Mem size of device ", *(cl_ulong*)&size_device[0] / 1024 / 1024);
 
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
