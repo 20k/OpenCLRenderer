@@ -18,6 +18,7 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 
     if(s_w != _w || s_h != _h || force)
     {
+        lg::log("Pre ensure screen buffers ", _w, " ", _h);
         /*if(dat.s_w != 0 || dat.s_h != 0)
         {
             ///might have been created on a different context? what do?
@@ -25,6 +26,8 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
         }*/
 
         g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
+
+        lg::log("Created g_screen in ensure_screen_buffers");
 
         cl_uint *arr = new cl_uint[_w*_h];
 

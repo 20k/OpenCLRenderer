@@ -277,7 +277,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     //printf("Initialised with width %i and height %i\n", videowidth, height);
 
-    lg::log("Initialised with width ", videowidth, " and height ", height);
+    lg::log("Trying to initialise with width ", videowidth, " and height ", height);
 
 
 
@@ -291,6 +291,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
     #endif
 
+    lg::log("Successful init");
+
     is_fullscreen = fullscreen;
 
     if(loaded)
@@ -302,6 +304,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     l_size = 1024;
 
     sf::Clock ocltime;
+
+    lg::log("pre opencl");
 
     ///including opencl compilation parameters
     if(!loaded)
@@ -315,6 +319,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
         oclstuff(loc, width, height, l_size, only_3d);
     }
+
+    lg::log("post opencl");
 
     lg::log("Does this device support opengl interop: ", supports_extension("cl_khr_gl_sharing"));
 
@@ -355,6 +361,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     d_depth_buf = new cl_uint[width*height];
     #endif
 
+    lg::log("Pre opengl ptrs");
+
     ///opengl is the best, getting function ptrs
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)wglGetProcAddress("glGenFramebuffersEXT");
     PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
@@ -362,6 +370,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
     PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)wglGetProcAddress("glRenderbufferStorageEXT");
     PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wglGetProcAddress("glFramebufferRenderbufferEXT");
+
+    lg::log("Post opengl ptrs");
 
     ///generate and bind renderbuffers
     if(!rift::enabled)
@@ -384,6 +394,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             compute::opengl_enqueue_acquire_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
         }
     }
+
+    lg::log("Acquired shared main opengl screen renderwindow");
 
     //g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
 
@@ -408,21 +420,26 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //reprojected_depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
     //reprojected_depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
+    lg::log("Pre cl alloc");
 
     ///release old memory
     g_tid_buf = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
+    lg::log("Allocated g_tid_buf");
+
     g_tid_buf_max_len      = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &size_of_uid_buffer);
 
     g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+
+    lg::log("Allocated g_tid/max_len/atomic_count");
 
     //g_valid_fragment_num   = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     //g_valid_fragment_mem   = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
-    g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+    //g_ui_id_screen         = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
     //g_reprojected_ids      = compute::buffer(cl::context, width*height*sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
@@ -446,6 +463,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
+    lg::log("post pseudo shadow light buffer");
+
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
     compute::image_format format_ids(CL_R, CL_UNSIGNED_INT32);
     compute::image_format format_occ(CL_R, CL_FLOAT);
@@ -463,6 +482,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     //g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
+    lg::log("post g_id_screen_tex");
+
     ///fixme
     delete [] blank;
 
@@ -479,6 +500,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //glEnable(GL_TEXTURE2D); ///?
 
     loaded = true;
+
+    lg::log("end engine::load()");
 }
 
 void engine::set_light_data(light_gpu& ldat)
