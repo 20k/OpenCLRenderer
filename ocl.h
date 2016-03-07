@@ -404,7 +404,15 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     std::vector<char> opencl_version = get_device_info(cl::device.get(), CL_DEVICE_OPENCL_C_VERSION);
 
-    lg::log("Opencl version ", &opencl_version[0]);
+    lg::log("OpenCL version ", &opencl_version[0]);
+
+    std::vector<char> device_version = get_device_info(cl::device.get(), CL_DEVICE_VERSION);
+
+    lg::log("Device OpenCL version ", &device_version[0]);
+
+    std::vector<char> driver_version = get_device_info(cl::device.get(), CL_DRIVER_VERSION);
+
+    lg::log("Driver OpenCL version ", &driver_version[0]);
 
     std::vector<char> interop_sync = get_device_info(cl::device.get(), CL_DEVICE_PREFERRED_INTEROP_USER_SYNC);
 
@@ -423,6 +431,37 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     std::vector<char> device_vendor = get_device_info(cl::device.get(), CL_DEVICE_VENDOR);
 
     lg::log("Device vendor ", &device_vendor[0]);
+
+    std::vector<char> image_width = get_device_info(cl::device.get(), CL_DEVICE_IMAGE3D_MAX_WIDTH);
+
+    if(image_width.size() == sizeof(size_t))
+        lg::log("Max image width ", *(size_t*)&image_width[0]);
+
+    std::vector<char> image_height = get_device_info(cl::device.get(), CL_DEVICE_IMAGE3D_MAX_HEIGHT);
+
+    if(image_height.size() == sizeof(size_t))
+        lg::log("Max image height ", *(size_t*)&image_height[0]);
+
+    std::vector<char> image_depth = get_device_info(cl::device.get(), CL_DEVICE_IMAGE3D_MAX_DEPTH);
+
+    if(image_depth.size() == sizeof(size_t))
+        lg::log("Max image depth ", *(size_t*)&image_depth[0]);
+
+    std::vector<char> supports_images = get_device_info(cl::device.get(), CL_DEVICE_IMAGE_SUPPORT);
+
+    if(supports_images.size() == sizeof(cl_bool))
+        lg::log("Supports images ", *(cl_bool*)&supports_images[0]);
+
+    std::vector<char> max_allocation_size = get_device_info(cl::device.get(), CL_DEVICE_MAX_MEM_ALLOC_SIZE);
+
+    if(max_allocation_size.size() == sizeof(cl_ulong))
+        lg::log("Max allocation size ", *(cl_ulong*)&max_allocation_size[0] / 1024 / 1024);
+
+    std::vector<char> max_parameter_size = get_device_info(cl::device.get(), CL_DEVICE_MAX_PARAMETER_SIZE);
+
+    if(max_parameter_size.size() == sizeof(size_t))
+        lg::log("Max parameter size ", *(size_t*)&max_parameter_size[0], " bytes");
+
 
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
