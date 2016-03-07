@@ -373,7 +373,8 @@ float idcalc(float);
 extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 ///runs a kernel with a particular set of arguments
-inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true, compute::command_queue& cqueue = cl::cqueue)
+inline
+compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true, compute::command_queue& cqueue = cl::cqueue)
 {
     size_t g_ws[dimensions];
     size_t l_ws[dimensions];
@@ -453,9 +454,12 @@ inline compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], 
     return event;
 }
 
-inline compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
+inline
+compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
 {
     kernel k = cl::kernels[name];
+
+    bool did_load = false;
 
     if(!k.loaded)
     {
@@ -465,12 +469,22 @@ inline compute::event run_kernel_with_string(const std::string& name, cl_uint gl
         cl::kernels[name] = k;
 
         lg::log("loaded");
+
+        did_load = true;
     }
 
-    return run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue);
+    auto ev = run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue);
+
+    if(did_load)
+    {
+        lg::log("Successful kernel invocation after load");
+    }
+
+    return ev;
 }
 
-inline compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
+inline
+compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
 {
     return run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv, cqueue);
 }
