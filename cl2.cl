@@ -3177,7 +3177,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     __global uint *ft = &depth_buffer[y*SCREENWIDTH + x];
 
     //?
-    prefetch(ft, 1);
+    //prefetch(ft, 1);
 
     to_clear[y*SCREENWIDTH + x] = mulint;
 
