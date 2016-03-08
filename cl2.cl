@@ -3145,13 +3145,15 @@ float mdot(float3 v1, float3 v2)
     return max(0.f, dot(v1, v2));
 }
 
+#define DIM_KERNEL3 8
+
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
 ///change to 1d
 ///write an outline shader?
 __kernel
-__attribute__((reqd_work_group_size(16, 16, 1)))
+__attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
 //__attribute__((vec_type_hint(float3)))
 void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
@@ -3263,12 +3265,12 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
 
-    __local float2 vts[16*16];
+    __local float2 vts[DIM_KERNEL3*DIM_KERNEL3];
 
     int lix = get_local_id(0);
     int liy = get_local_id(1);
 
-    vts[liy*16 + lix] = vt;
+    vts[liy*DIM_KERNEL3 + lix] = vt;
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -3278,22 +3280,22 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     if(lix != 0)
     {
-        vdx = vts[liy*16 + lix] - vts[liy*16 + lix - 1];
+        vdx = vts[liy*DIM_KERNEL3 + lix] - vts[liy*DIM_KERNEL3 + lix - 1];
     }
 
     if(lix == 0)
     {
-        vdx = vts[liy*16 + 1] - vts[liy*16 + 0];
+        vdx = vts[liy*DIM_KERNEL3 + 1] - vts[liy*DIM_KERNEL3 + 0];
     }
 
     if(liy != 0)
     {
-        vdy = vts[liy*16 + lix] - vts[(liy-1)*16 + lix];
+        vdy = vts[liy*DIM_KERNEL3 + lix] - vts[(liy-1)*DIM_KERNEL3 + lix];
     }
 
     if(liy == 0)
     {
-        vdy = vts[1*16 + lix] - vts[0*16 + lix];
+        vdy = vts[1*DIM_KERNEL3 + lix] - vts[0*DIM_KERNEL3 + lix];
     }
 
     //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};

@@ -462,6 +462,32 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     if(max_parameter_size.size() == sizeof(size_t))
         lg::log("Max parameter size ", *(size_t*)&max_parameter_size[0], " bytes");
 
+    std::vector<char> max_work_group_size = get_device_info(cl::device.get(), CL_DEVICE_MAX_WORK_GROUP_SIZE);
+
+    if(max_work_group_size.size() == sizeof(size_t))
+        lg::log("Max work group size ", *(size_t*)&max_work_group_size[0]);
+
+    std::vector<char> max_work_item_dims = get_device_info(cl::device.get(), CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS);
+
+    cl_uint nargs = 0;
+
+    if(max_work_item_dims.size() == sizeof(cl_uint))
+    {
+        nargs = *(cl_uint*)&max_work_item_dims[0];
+        lg::log("Max work item dims ", nargs);
+    }
+
+    std::vector<char> max_item_sizes = get_device_info(cl::device.get(), CL_DEVICE_MAX_WORK_ITEM_SIZES);
+
+    for(int i=0; i<nargs; i++)
+    {
+        int c = i * sizeof(size_t);
+
+        size_t n = *(size_t*)&max_item_sizes[c];
+
+        lg::log("Item max dim i ", i, " ", n);
+    }
+
 
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);

@@ -1253,7 +1253,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //printf("gpuarray %i\n", dat.tex_gpu_ctx.g_texture_array.size());
 
     cl_uint p3global_ws[] = {eng.width, eng.height};
-    cl_uint p3local_ws[] = {16, 16};
+    cl_uint p3local_ws[] = {8, 8};
 
     ///this is the deferred screenspace pass
     auto event = run_kernel_with_string("kernel3", p3global_ws, p3local_ws, 2, p3arg_list);
