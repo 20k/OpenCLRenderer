@@ -446,9 +446,11 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
     {
         for(int i=0; i<dimensions; i++)
         {
-            lg::log("g_ws ", i, " ", g_ws[i]);
-            lg::log("l_ws ", i, " ", l_ws[i]);
-        }(
+            lg::log("g_ws id: ", i, " val: ", g_ws[i]);
+            lg::log("l_ws id: ", i, " val: ", l_ws[i]);
+        }
+
+        lg::log("Dims ", dimensions);
     }
 
     compute::event event;
