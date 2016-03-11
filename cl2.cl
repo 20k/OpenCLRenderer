@@ -446,6 +446,7 @@ void calc_min_max_oc(float3 points[3], float mx, float my, float width, float he
 }
 
 ///small holes are not this fault
+///cannot be float as || float is not valid on some platforms
 int backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
     return cross(p1-p0, p2-p0).z < 0;
