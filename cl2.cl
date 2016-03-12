@@ -1464,7 +1464,6 @@ float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 
 
     float furthest = depth;
-    int2 fpos = spos;
 
     int rad = 1;
 
@@ -1481,7 +1480,6 @@ float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
         if(new_depth > furthest)
         {
             furthest = new_depth;
-            fpos = pos;
         }
     }
 
@@ -1500,7 +1498,6 @@ float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
         if(fabs(new_depth - depth) > fabs(furthest - depth) && new_depth > depth_icutoff && d != 0)
         {
             furthest = new_depth;
-            fpos = pos;
         }
     }
 
@@ -1516,7 +1513,6 @@ float generate_outline(int2 spos, __global uint* depth_buffer, float3 normal)
     depth = idcalc(depth);
 
     float furthest = depth;
-    int2 fpos = spos;
 
     int rad = 1;
 
@@ -1533,7 +1529,6 @@ float generate_outline(int2 spos, __global uint* depth_buffer, float3 normal)
         if(new_depth > furthest)
         {
             furthest = new_depth;
-            fpos = pos;
         }
     }
 
@@ -1552,7 +1547,6 @@ float generate_outline(int2 spos, __global uint* depth_buffer, float3 normal)
         if(fabs(new_depth - depth) > fabs(furthest - depth) && new_depth > depth_icutoff && d != 0)
         {
             furthest = new_depth;
-            fpos = pos;
         }
     }
 
@@ -2761,9 +2755,6 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     xpv = round(xpv);
     ypv = round(ypv);
 
-    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
-    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
-
     ///have to interpolate inverse to be perspective correct
     float3 depths = {dcalc(tris_proj_n[0].z), dcalc(tris_proj_n[1].z), dcalc(tris_proj_n[2].z)};
 
@@ -2892,9 +2883,6 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
     xpv = round(xpv);
     ypv = round(ypv);
 
-    float p0y = ypv.x, p1y = ypv.y, p2y = ypv.z;
-    float p0x = xpv.x, p1x = xpv.y, p2x = xpv.z;
-
     ///have to interpolate inverse to be perspective correct
     float3 depths = {native_recip(dcalc(tris_proj_n[0].z)), native_recip(dcalc(tris_proj_n[1].z)), native_recip(dcalc(tris_proj_n[2].z))};
 
@@ -3008,7 +2996,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     }
 
     ///cannot collide
-    uint tri_id = fragment_id_buffer[id*5 + 0];
+    //uint tri_id = fragment_id_buffer[id*5 + 0];
 
     uint distance = fragment_id_buffer[id*5 + 1];
 
@@ -3535,9 +3523,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 __kernel
 void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
 {
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_NONE            |
-                    CLK_FILTER_NEAREST;
+    //sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+    //                CLK_ADDRESS_NONE            |
+    //                CLK_FILTER_NEAREST;
 
     const uint x = get_global_id(0);
     const uint y = get_global_id(1);
@@ -3604,7 +3592,7 @@ void reproject_forward_recovery(__read_only image2d_t ids_in, __write_only image
 
     __global uint *ft = &depth_in[y*SCREENWIDTH + x];
 
-    uint idepth = *ft;
+    //uint idepth = *ft;
 
     uint id = read_imageui(ids_in, sam, (int2){x, y}).x;//ids_in[y*SCREENWIDTH + x];
 
@@ -3674,14 +3662,12 @@ void fill_holes(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __
 
 
     uint found_id = UINT_MAX;
-    uint found_id_disc = UINT_MAX;
+    //uint found_id_disc = UINT_MAX;
     uint found_depth = UINT_MAX;
-    uint found_depth_disc = UINT_MAX;
+    //uint found_depth_disc = UINT_MAX;
     int depth_discont = 0;
 
     uint cutoff = dcalc(10) * mulint;
-
-    float sdepth = 0;
 
     for(int ly = -1; ly <= 1; ly++)
     {
@@ -3712,8 +3698,8 @@ void fill_holes(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __
                 if(my_id != UINT_MAX && my_depth - cutoff > current_depth)
                 {
                     depth_discont++;
-                    found_depth_disc = current_depth;
-                    found_id_disc = current_id;
+                    //found_depth_disc = current_depth;
+                    //found_id_disc = current_id;
                 }
             }
         }
@@ -5015,7 +5001,7 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
     acc = to_move;
 
     ///gravity needs to scale with the number of nodes
-    float grav = 0.98 / 10;
+    float grav = 0.98f / 10;
 
     acc.y -= grav;
 
@@ -5035,8 +5021,8 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
 
     write_imagef(screen, (int2){new_pos.x + 400, new_pos.y + 500}, 1.f);
 
-    int t1 = id * 2 + 0;
-    int t2 = id * 2 + 1;
+    //int t1 = id * 2 + 0;
+    //int t2 = id * 2 + 1;
 
     //there'll be two triangles left over because i've confused segments with nodes
 
@@ -5047,8 +5033,6 @@ void string_simulate(__global struct triangle* tris, int tri_start, int tri_end,
 
 float3 shortest_to_line(float3 lp, float3 ldir, float3 p)
 {
-    float3 ret;
-
     float3 n = fast_normalize(ldir);
 
     return (lp - p) - dot(lp - p, n) * n;
@@ -7118,7 +7102,7 @@ __kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_cl
         return;
 
     __global uint* old_ft = &old_depth[y*SCREENWIDTH + x];
-    new_to_clear[y*SCREENWIDTH + x] = -1;
+    new_to_clear[y*SCREENWIDTH + x] = mulint;
 
     float ldepth = idcalc((float)*old_ft/mulint);
 
@@ -9685,7 +9669,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     return y1 * (1.0f - zfrac) + y2 * zfrac;
 }*/
 
-
+#if 0
 ///make xvel, yvel, zvel 1 3d texture? or keep as independent properties incase i want to generalise the advection of other properties like colour?
 __kernel void goo_advect(int width, int height, int depth, int bound, __write_only image3d_t d_out, __read_only image3d_t d_in, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, float dt, float force_add)
 {
@@ -9790,8 +9774,9 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
         val += read_imagef(d_in, sam_lin, fpos.xyzz + 0.5f).x * dist / sqrt(3.f);
 
         //printf("%f ", val);
+        #if 0
 
-        /*float3 base = floor(read_pos);
+        float3 base = floor(read_pos);
         float3 upper = base + 1;
 
 
@@ -9828,7 +9813,8 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
 
         float zfrac = vz - floor(vz);
 
-        return y1 * (1.0f - zfrac) + y2 * zfrac;*/
+        return y1 * (1.0f - zfrac) + y2 * zfrac;
+        #endif
     //}
 
     /*if(bound == -1 && (x == width-1 || y == height-1 || z == depth-1 || x == 0 || y == 0 || z == 0))
@@ -9907,6 +9893,7 @@ __kernel void goo_advect(int width, int height, int depth, int bound, __write_on
 
     write_imagef(d_out, (int4){x, y, z, 0}, rval);*/
 }
+#endif
 
 __kernel void update_boundary(__read_only image3d_t in, __write_only image3d_t out, int bound)
 {
