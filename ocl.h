@@ -220,11 +220,11 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
     std::string pure_3d;
 
     if(only_3d)
-        pure_3d = " -D ONLY_3D";
+        pure_3d = " -D fONLY_3D";
 
 
     ///does not compile properly without (breaks texture filtering), investigate this at some point
-    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-strict-aliasing -cl-mad-enable -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
+    std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
 
     if(supports_3d_writes())
     {
