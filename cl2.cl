@@ -45,6 +45,7 @@ float max3(float x,  float y,  float z)
     return max(max(x,y),z);
 }
 
+///mad
 float calc_area(float3 x, float3 y)
 {
     return fabs((x.x*(y.y - y.z) + x.y*(y.z - y.x) + x.z*(y.x - y.y)) * 0.5f);
