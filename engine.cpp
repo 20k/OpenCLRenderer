@@ -16,9 +16,9 @@
 #include "interact_manager.hpp"
 #include "text_handler.hpp"
 #include "point_cloud.hpp"
-#include "hologram.hpp"
+//#include "hologram.hpp"
 #include "vec.hpp"
-#include "ui_manager.hpp"
+//#include "ui_manager.hpp"
 #include <chrono>
 #include "ocl.h"
 #include "controls.hpp"
@@ -1014,9 +1014,6 @@ void engine::generate_distortion(compute::buffer& points, int num)
     run_kernel_with_list(cl::create_distortion_offset, p3global_ws, p3local_ws, 2, distort_arg_list, true);
 }
 
-PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
-PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
-
 ///so, this can trample render_events_num
 void render_async(cl_event event, cl_int event_command_exec_status, void *user_data)
 {
@@ -1777,6 +1774,7 @@ bool within_bounds(float v, float min, float max)
     return v >= min && v < max;
 }
 
+#if 0
 void engine::draw_holograms()
 {
     for(int i=0; i<hologram_manager::tex_id.size(); i++)
@@ -1896,6 +1894,7 @@ void engine::draw_holograms()
         hologram_manager::release(i);
     }
 }
+#endif
 
 void engine::draw_voxel_octree(g_voxel_info& info)
 {
@@ -2406,8 +2405,8 @@ void engine::render_buffers()
     }
 
     ///going to be incorrect on rift
-    interact::deplete_stack();
-    interact::clear();
+    //interact::deplete_stack();
+    //interact::clear();
 
     //text_handler::render();
 
@@ -2468,20 +2467,37 @@ void engine::render_block()
 
 void render_screen(engine& eng, object_context_data& dat)
 {
+    PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+    PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
+
+
+    lg::log("redrer");
+
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
     ///this is not THE screen, its A screen
     ///therefore we don't need to worry about text rendering while its acquired etc
     compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
 
+    lg::log("prerender");
+
+
     glBindFramebufferEXT(GL_READ_FRAMEBUFFER, dat.gl_framebuffer_id);
 
+    lg::log("rererdfdfer");
+
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+    lg::log("pprender");
 
 
     ///blit buffer to screen
     glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    lg::log("rrender");
+
     compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+
+    lg::log("postrender");
 
     /*
     ///going to be incorrect on rift
@@ -2614,6 +2630,7 @@ void engine::swap_depth_buffers()
     nbuf = nbuf % 2;
 }
 
+#if 0
 ///does this need to be somewhere more fun? Minimap vs UI
 void engine::ui_interaction()
 {
@@ -2687,6 +2704,7 @@ void engine::ui_interaction()
         }
     }
 }
+#endif
 
 int engine::get_mouse_x()
 {

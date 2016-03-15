@@ -23,6 +23,19 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
 ///7ish pre tile deferred
 int main(int argc, char *argv[])
 {
+    lg::set_logfile("./logging.txt");
+
+    std::streambuf* b1 = std::cout.rdbuf();
+
+    std::streambuf* b2 = lg::output->rdbuf();
+
+    std::ios* r1 = &std::cout;
+    std::ios* r2 = lg::output;
+
+    r2->rdbuf(b1);
+
+
+
     sf::Clock load_time;
 
     object_context context;
@@ -54,7 +67,7 @@ int main(int argc, char *argv[])
     //auto tex_gpu = texture_manager::build_descriptors();
     //window.set_tex_data(tex_gpu);
 
-    context.build();
+    context.build(true);
 
 
     ///so allocating one thing, then a second, makes memory usage explod
@@ -199,13 +212,17 @@ int main(int argc, char *argv[])
 
         window.set_render_event(event);
 
+        lg::log("hi");
+
         window.blit_to_screen(*context.fetch());
+
+        lg::log("end");
 
         window.flip();
 
         window.render_block();
 
-        context.flip();
+        context.build_tick();
 
         avg_ftime += c.getElapsedTime().asMicroseconds();
 
