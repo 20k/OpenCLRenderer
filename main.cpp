@@ -212,11 +212,7 @@ int main(int argc, char *argv[])
 
         window.set_render_event(event);
 
-        lg::log("hi");
-
         window.blit_to_screen(*context.fetch());
-
-        lg::log("end");
 
         window.flip();
 

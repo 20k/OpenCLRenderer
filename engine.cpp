@@ -2467,47 +2467,23 @@ void engine::render_block()
 
 void render_screen(engine& eng, object_context_data& dat)
 {
-    PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
-    PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
+    static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+    static PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
-
-    lg::log("redrer");
 
     ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
     ///this is not THE screen, its A screen
     ///therefore we don't need to worry about text rendering while its acquired etc
     compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
 
-    lg::log("prerender");
-
-
     glBindFramebufferEXT(GL_READ_FRAMEBUFFER, dat.gl_framebuffer_id);
 
-    lg::log("rererdfdfer");
-
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
-
-    lg::log("pprender");
-
 
     ///blit buffer to screen
     glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-    lg::log("rrender");
-
     compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
-
-    lg::log("postrender");
-
-    /*
-    ///going to be incorrect on rift
-    interact::deplete_stack();
-    interact::clear();
-
-    text_handler::render();*/
-
-    //eng.running_frametime_smoothed = (9 * eng.running_frametime_smoothed + eng.get_frametime()) / 10.f;
-    //eng.running_frametime_smoothed = eng.get_frametime();
 }
 
 void engine::flip()
@@ -2537,21 +2513,6 @@ void engine::blit_to_screen(object_context_data& dat)
     ///if we resize the window to exactly the same size, itll break
     ///not sure how to resolve the "cannot release object on other context" problem. Lets just release it for the moment
     ///and hope the api doesn't notice
-    /*if(dat.s_w != width || dat.s_h != height)
-    {
-        if(dat.s_w != 0 || dat.s_h != 0)
-        {
-            //compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
-        }
-
-        dat.g_screen = gen_cl_gl_framebuffer_renderbuffer(&dat.gl_framebuffer_id, width, height);
-
-        compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
-
-        dat.s_w = width;
-        dat.s_h = height;
-    }*/
-
     dat.ensure_screen_buffers(width, height);
 
     if(render_me)
