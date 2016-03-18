@@ -21,6 +21,7 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
 
 ///gamma correct mipmap filtering
 ///7ish pre tile deferred
+///try first bounce in SS, then go to global if fail
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");

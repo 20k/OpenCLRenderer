@@ -21,8 +21,7 @@
 				<Option type="1" />
 				<Option compiler="mingw64" />
 				<Compiler>
-					<Add option="-Ofast" />
-					<Add option="-march=native" />
+					<Add option="-O2" />
 					<Add option="-msse3 -mavx" />
 				</Compiler>
 				<Linker>
@@ -82,11 +81,9 @@
 		<Unit filename="engine.hpp">
 			<Option weight="0" />
 		</Unit>
-		<Unit filename="hologram.cpp" />
 		<Unit filename="hologram.hpp">
 			<Option weight="0" />
 		</Unit>
-		<Unit filename="interact_manager.cpp" />
 		<Unit filename="interact_manager.hpp">
 			<Option weight="0" />
 		</Unit>
@@ -94,11 +91,11 @@
 		<Unit filename="light.hpp">
 			<Option weight="0" />
 		</Unit>
+		<Unit filename="logging.cpp" />
 		<Unit filename="main.cpp" />
 		<Unit filename="obj_g_descriptor.hpp">
 			<Option weight="0" />
 		</Unit>
-		<Unit filename="obj_info_struct.cpp" />
 		<Unit filename="obj_info_struct.hpp">
 			<Option weight="0" />
 		</Unit>
@@ -146,7 +143,6 @@
 		<Unit filename="triangle.hpp">
 			<Option weight="0" />
 		</Unit>
-		<Unit filename="ui_manager.cpp" />
 		<Unit filename="ui_manager.hpp">
 			<Option weight="0" />
 		</Unit>
