@@ -82,7 +82,7 @@ static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
                         continue;
                     }*/
 
-                    if(strstr(chBuffer, "NVIDIA") != NULL)// || strstr(chBuffer, "Intel") != NULL)
+                    if(strstr(chBuffer, "NVIDIA") != NULL || strstr(chBuffer, "AMD") != NULL)// || strstr(chBuffer, "Intel") != NULL)
                     {
                         //printf("selected platform %d\n", i);
                         lg::log("selected platform ", i);
