@@ -57,17 +57,17 @@ void set_obstacle(int mx, int my, lattice<N, cl_type>& lat, cl_uchar val)
 ///fix memory management to not be atrocious
 int main(int argc, char *argv[])
 {
-    ///remember to make g_arrange_mem run faster!
+    lg::set_logfile("./logging.txt");
 
-    //objects_container sponza;
+    std::streambuf* b1 = std::cout.rdbuf();
 
-    //sponza.set_file("sp2/sp2.obj");
-    //sponza.set_file("Objects/pre-ruin.obj");
-    //sponza.set_file("../../sp2/cornellfixed.obj");
-    //sponza.set_load_func(std::bind(create_terrain, std::placeholders::_1, 1000, 1000));
+    std::streambuf* b2 = lg::output->rdbuf();
 
-    //sponza.set_active(true);
-    //sponza.cache = false;
+    std::ios* r1 = &std::cout;
+    std::ios* r2 = lg::output;
+
+    r2->rdbuf(b1);
+
 
     object_context context;
 
@@ -94,12 +94,7 @@ int main(int argc, char *argv[])
 
     context.load_active();
 
-    texture_manager::allocate_textures();
-
-    auto tex_gpu = texture_manager::build_descriptors();
-    window.set_tex_data(tex_gpu);
-
-    context.build();
+    context.build(true);
 
     auto object_dat = context.fetch();
     window.set_object_data(*object_dat);
@@ -155,7 +150,9 @@ int main(int argc, char *argv[])
 
         //window.input();
 
-        window.draw_bulk_objs_n();
+        window.draw_bulk_objs_n(*context.fetch());
+
+        context.fetch()->swap_depth_buffers();
 
         //lat.tick(NULL);
 
@@ -264,14 +261,16 @@ int main(int argc, char *argv[])
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
 
-        window.draw_smoke(gloop, gloop.is_solid);
+        window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
         window.render_me = true;
         window.last_frametype = frametype::RENDER;
 
         //window.render_buffers();
 
-        window.display();
+        window.blit_to_screen(*context.fetch());
+
+        window.flip();
         window.render_block();
 
         //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;

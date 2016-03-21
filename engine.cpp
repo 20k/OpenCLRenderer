@@ -1938,7 +1938,7 @@ void engine::draw_raytrace()
     run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);*/
 }
 
-void engine::draw_smoke(smoke& s, cl_int solid)
+void engine::draw_smoke(object_context_data& dat, smoke& s, cl_int solid)
 {
     /*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)*/
@@ -2147,9 +2147,9 @@ void engine::draw_smoke(smoke& s, cl_int solid)
     smoke_args.push_back(&c_rot);
     smoke_args.push_back(&s.pos);
     smoke_args.push_back(&s.rot);
-    smoke_args.push_back(&g_screen); ///trolol undefined behaviour
-    smoke_args.push_back(&g_screen);
-    smoke_args.push_back(&depth_buffer[nbuf]);
+    smoke_args.push_back(&dat.g_screen); ///trolol undefined behaviour
+    smoke_args.push_back(&dat.g_screen);
+    smoke_args.push_back(&dat.depth_buffer[dat.nbuf]);
     smoke_args.push_back(&offset);
     smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
     smoke_args.push_back(&s.render_size);
@@ -2163,14 +2163,14 @@ void engine::draw_smoke(smoke& s, cl_int solid)
     offset.x = std::max(offset.x, 0.0f);
     offset.y = std::max(offset.y, 0.0f);
 
-    c_width = std::min(c_width, (int)width);
-    c_height = std::min(c_height, (int)height);
+    c_width = std::min(c_width, (int)dat.s_w);
+    c_height = std::min(c_height, (int)dat.s_h);
 
     if(any_behind)
     {
         offset = {0,0};
-        c_width = width;
-        c_height = height;
+        c_width = dat.s_w;
+        c_height = dat.s_h;
     }
 
 
