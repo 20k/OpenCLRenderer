@@ -363,8 +363,12 @@ struct kernel_helper
         {
             args[c++] = i;
 
-            if(c >= 2)
+            if(c > 2)
+            {
+                lg::log("Too many args in kernel helper");
+
                 return;
+            }
         }
     }
 };
@@ -386,7 +390,11 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
         l_ws[i] = local_ws[i];
 
         if(g_ws[i] <= 0)
+        {
+            lg::log("Invalid gws <= 0 ", i);
+
             return compute::event();
+        }
 
         ///how do i do this for 2d? Or probably best to convert
         ///2d kernels into 1d because its much faster (I hate everyone)

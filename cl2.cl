@@ -1751,12 +1751,13 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
 
     vel = clamp(vel, -3.f, 3.f);
 
+    ///DEBUGGING
+    vel.x = 10.f;
+
     write_imagef(x_out, pos.xyzz, vel.x);
     write_imagef(y_out, pos.xyzz, vel.y);
     write_imagef(z_out, pos.xyzz, vel.z);
 }
-
-
 
 typedef enum diffuse_type
 {
@@ -1930,7 +1931,6 @@ float advect_func_tex(float x, float y, float z,
     v3 = read_imagef(zvel, sam, (float4){x, y, z, 0.0f} + 0.5f).x;
 
     return advect_func_vel_tex(x, y, z, width, height, depth, d_in, v1, v2, v3, dt);
-
 }
 
 
@@ -8979,8 +8979,9 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 
     ///start off literally hitler
 }
+#endif
 
-
+#ifdef FLUID
 ///draw from front backwards until we hit something?
 ///do separate rendering onto real sized buffer, then back project from screen into that
 ///this really needs doing next
@@ -9100,7 +9101,7 @@ __kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int heig
 
     write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval, 0, 0, 0});
 }
-#endif
+#endif // FLUID
 
 #ifdef FLUID
 struct cube

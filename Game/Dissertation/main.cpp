@@ -128,14 +128,12 @@ int main(int argc, char *argv[])
 
     float box_size = 12.f/upscale;
     float force = 0.4f;
-    float displace_amount = 0.f;
+    float displace_amount = 0.0f;
 
     cl_float4 last_c_pos = window.c_pos;
 
     float avg_time = 0.f;
     int avg_count = 0;
-
-
 
 
     while(window.window.isOpen())
@@ -147,6 +145,9 @@ int main(int argc, char *argv[])
             if(Event.type == sf::Event::Closed)
                 window.window.close();
         }
+
+
+        gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, force, box_size, displace_amount);
 
         gloop.tick(0.33f);
 
@@ -260,7 +261,6 @@ int main(int argc, char *argv[])
 
         ///do camera gloopdisplace!!
 
-
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
 
         window.increase_render_events();
@@ -271,22 +271,14 @@ int main(int argc, char *argv[])
 
         window.set_render_event(event);
 
-        //clFinish(cl::cqueue.get());
-
-
         window.render_me = true;
         window.last_frametype = frametype::RENDER;
-
-        //window.render_buffers();
-
 
         window.flip();
         window.render_block();
         window.blit_to_screen(*context.fetch());
 
-        //window.render_block();
-
-        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
         //avg_time += c.getElapsedTime().asMicroseconds();
         //avg_count ++;

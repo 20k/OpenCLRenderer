@@ -237,14 +237,14 @@ void smoke::tick(float dt)
     cl_uint local_ws[3] = {64, 2, 2};
 
 
-    int type_density = 0;
-    int type_velocity = 1;
+    cl_int type_density = 0;
+    cl_int type_velocity = 1;
 
 
-    int zero = 0;
+    cl_int zero = 0;
 
-    float diffuse_const = 1;
-    float dt_const = 0.01f;
+    cl_float diffuse_const = 1;
+    cl_float dt_const = 0.01f;
 
     int next_dens = (n_dens + 1) % 2;
     int next_vel = (n_vel + 1) % 2;
@@ -338,5 +338,22 @@ void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box
     displace_args.push_back(&g_velocity_z[n_vel]);
     displace_args.push_back(&g_voxel[n_dens]);
 
+    ///its like the kernel just isn't being run
     run_kernel_with_string("advect_at_position", {box_size, box_size, box_size}, {16, 16, 1}, 3, displace_args);
+
+
+ 	/*cl_float val = 10.f;
+
+ 	const size_t origin[3] = {50/2, 50/2, 50/2};
+ 	const size_t region[3] = {1,1,1};
+
+ 	clEnqueueWriteImage(cl::cqueue.get(),
+                      g_velocity_x[n_vel].get(),
+                      CL_TRUE,
+                      origin,
+                      region,
+                      0,
+                      0,
+                      &val,
+                      0, nullptr, nullptr);*/
 }
