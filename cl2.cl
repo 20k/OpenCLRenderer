@@ -1701,7 +1701,11 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
+#define FLUID
 #ifdef FLUID
+
+#define IX(x, y, z) ((z)*width*height + (y)*width + (x))
+
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
 ///force_pos is offset within the box
 __kernel
@@ -8738,8 +8742,9 @@ void triangle_intersection_always(const float3   V1,  // Triangle vertices
     // No hit, no win
 }
 
+#endif
 
-
+#ifdef FLUID
 #define EPSILON 0.001f
 
 void triangle_intersection(const float3   V1,  // Triangle vertices
@@ -8804,6 +8809,9 @@ void triangle_intersection(const float3   V1,  // Triangle vertices
     // No hit, no win
 }
 
+#endif // FLUID
+
+#if 0
 
 ///use reverse reprojection as heuristic
 __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, float4 c_pos, float4 c_rot, __constant struct light* lights, __constant uint* lnum, __write_only image2d_t screen)
@@ -9092,7 +9100,9 @@ __kernel void render_voxels_tex(__read_only image3d_t voxel, int width, int heig
 
     write_imagef(screen, (int2){projected.x, projected.y}, (float4){myval, 0, 0, 0});
 }
+#endif
 
+#ifdef FLUID
 struct cube
 {
     float4 corners[8];
@@ -9598,7 +9608,9 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     //write_imagef(screen, (int2){x, y}, 0);
 }
+#endif
 
+#if 0
 ///?__kernel void add_source(int width, int height, int depth, )
 
 

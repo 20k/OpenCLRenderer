@@ -136,6 +136,8 @@ int main(int argc, char *argv[])
     int avg_count = 0;
 
 
+
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -150,7 +152,7 @@ int main(int argc, char *argv[])
 
         //window.input();
 
-        window.draw_bulk_objs_n(*context.fetch());
+        //window.draw_bulk_objs_n(*context.fetch());
 
         context.fetch()->swap_depth_buffers();
 
@@ -261,23 +263,34 @@ int main(int argc, char *argv[])
 
         //window.draw_voxel_grid(lat.out[0], lat.width, lat.height, lat.depth);
 
-        window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
+        window.increase_render_events();
+
+        window.clear_screen(*context.fetch());
+
+        auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
+
+        window.set_render_event(event);
+
+        //clFinish(cl::cqueue.get());
+
 
         window.render_me = true;
         window.last_frametype = frametype::RENDER;
 
         //window.render_buffers();
 
-        window.blit_to_screen(*context.fetch());
 
         window.flip();
         window.render_block();
+        window.blit_to_screen(*context.fetch());
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        //window.render_block();
 
-        avg_time += c.getElapsedTime().asMicroseconds();
-        avg_count ++;
+        std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
-        printf("%f\n", avg_time / avg_count);
+        //avg_time += c.getElapsedTime().asMicroseconds();
+        //avg_count ++;
+
+        //printf("%f\n", avg_time / avg_count);
     }
 }

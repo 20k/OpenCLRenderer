@@ -1938,7 +1938,7 @@ void engine::draw_raytrace()
     run_kernel_with_list(cl::raytrace, global_ws, local_ws, 2, ray_args, true);*/
 }
 
-void engine::draw_smoke(object_context_data& dat, smoke& s, cl_int solid)
+compute::event engine::draw_smoke(object_context_data& dat, smoke& s, cl_int solid)
 {
     /*__kernel void render_voxels(__global float* voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
                             __write_only image2d_t screen, __global uint* depth_buffer)*/
@@ -2090,7 +2090,7 @@ void engine::draw_smoke(object_context_data& dat, smoke& s, cl_int solid)
     }
 
     if(all_behind)
-        return;
+        return compute::event();
 
     bool any_behind = false;
 
@@ -2182,7 +2182,7 @@ void engine::draw_smoke(object_context_data& dat, smoke& s, cl_int solid)
     cl_uint render_lws[2] = {16, 16};
 
     //run_kernel_with_list(cl::render_voxel_cube, render_ws, render_lws, 2, smoke_args);
-    run_kernel_with_string("render_voxel_cube", render_ws, render_lws, 2, smoke_args);
+    auto event = run_kernel_with_string("render_voxel_cube", render_ws, render_lws, 2, smoke_args);
 
     //compute::opengl_enqueue_release_gl_objects(1, &s.output.get(), cl::cqueue);
 
@@ -2219,6 +2219,8 @@ void engine::draw_smoke(object_context_data& dat, smoke& s, cl_int solid)
     #endif
 
     ///temp while debuggingf
+
+    return event;
 }
 
 void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
@@ -2467,6 +2469,8 @@ void engine::render_block()
 
 void render_screen(engine& eng, object_context_data& dat)
 {
+    dat.ensure_screen_buffers(eng.width, eng.height);
+
     static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
     static PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
 
@@ -2583,6 +2587,16 @@ void engine::blit_to_screen(object_context_data& dat)
             printf("Fixing minor event race condition\n");
         }*/
     }
+}
+
+void engine::clear_screen(object_context_data& dat)
+{
+    dat.ensure_screen_buffers(width, height);
+
+    arg_list args;
+    args.push_back(&dat.g_screen);
+
+    run_kernel_with_string("clear_screen_tex", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
 }
 
 void engine::swap_depth_buffers()

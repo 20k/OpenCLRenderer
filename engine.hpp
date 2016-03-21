@@ -205,7 +205,7 @@ struct engine
     void draw_holograms();
     void draw_voxel_octree(g_voxel_info& info);
     void draw_raytrace();
-    void draw_smoke(object_context_data& dat, smoke& s, cl_int solid);
+    compute::event draw_smoke(object_context_data& dat, smoke& s, cl_int solid);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
     ///i hate this function
     void draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, compute::buffer defx, compute::buffer defy, compute::buffer defz, int w, int h, int d); ///why has nobody fixed this
@@ -218,6 +218,7 @@ struct engine
     void render_block();
     void render_buffers();
     void blit_to_screen(object_context_data& dat);
+    void clear_screen(object_context_data& dat);
     void flip();
 
     void swap_depth_buffers();
