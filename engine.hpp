@@ -361,14 +361,14 @@ struct kernel_helper
 
         for(auto& i : init)
         {
-            args[c++] = i;
-
             if(c > 2)
             {
                 lg::log("Too many args in kernel helper");
 
                 return;
             }
+
+            args[c++] = i;
         }
     }
 };

@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
         }
 
 
-        gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, force, box_size, displace_amount);
+        //gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, force, box_size, displace_amount);
 
         gloop.tick(0.33f);
 

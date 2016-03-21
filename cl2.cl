@@ -1751,9 +1751,6 @@ void advect_at_position(float4 force_pos, float4 force_dir, float force, float b
 
     vel = clamp(vel, -3.f, 3.f);
 
-    ///DEBUGGING
-    vel.x = 10.f;
-
     write_imagef(x_out, pos.xyzz, vel.x);
     write_imagef(y_out, pos.xyzz, vel.y);
     write_imagef(z_out, pos.xyzz, vel.z);
