@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
-    int upscale = 2;
+    int upscale = 3;
     int res = 50;
 
     smoke gloop;
@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
     smoke_particles.make(10000);
     smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
 
+    gloop.roughness += 500.f;
 
     while(window.window.isOpen())
     {
@@ -218,6 +219,11 @@ int main(int argc, char *argv[])
             gloop.is_solid = true;
         }
 
+        if(key.isKeyPressed(sf::Keyboard::C))
+        {
+            smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
+        }
+
         if(key.isKeyPressed(sf::Keyboard::RBracket))
         {
             gloop.roughness += 1.f;
@@ -277,7 +283,7 @@ int main(int argc, char *argv[])
 
         auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
-        smoke_particles.tick(*context.fetch(), gloop);
+        smoke_particles.tick(*context.fetch(), gloop, window);
 
         window.set_render_event(event);
 

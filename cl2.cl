@@ -2171,34 +2171,59 @@ __kernel void post_upscale(int width, int height, int depth,
 
 __kernel
 void
-update_particles(int num, __global float4* positions, __write_only image2d_t screen, __read_only image3d_t diffuse, int4 dim)
+update_particles(int num, __global float4* positions, __global float4* old_pos,
+                 __global float4* velocities, __write_only image2d_t screen, __read_only image3d_t diffuse, int4 dim,
+                 float4 camera_pos, float4 camera_rot)
 {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-    int z = get_global_id(2);
+    int id = get_global_id(0);
 
-    if(x >= dim.x || y >= dim.y || z >= dim.z)
+    if(id >= num)
         return;
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP_TO_EDGE |
                     CLK_FILTER_NEAREST;
 
-    int4 pos = {x, y, z, 0};
+    float4 pos = positions[id];
+    float4 old = old_pos[id];
+    float4 vel = velocities[id];
 
     ///so we want to take the negative of this, go from high to low
-    float dx = read_imagef(diffuse, sam, pos + (int4){1, 0, 0, 0}).x
-             - read_imagef(diffuse, sam, pos + (int4){-1, 0, 0, 0}).x;
+    float dx = read_imagef(diffuse, sam, pos + (float4){1, 0, 0, 0}).x
+             - read_imagef(diffuse, sam, pos + (float4){-1, 0, 0, 0}).x;
 
-    float dy = read_imagef(diffuse, sam, pos + (int4){0, 1, 0, 0}).x
-             - read_imagef(diffuse, sam, pos + (int4){0, -1, 0, 0}).x;
+    float dy = read_imagef(diffuse, sam, pos + (float4){0, 1, 0, 0}).x
+             - read_imagef(diffuse, sam, pos + (float4){0, -1, 0, 0}).x;
 
-    float dz = read_imagef(diffuse, sam, pos + (int4){0, 0, 1, 0}).x
-             - read_imagef(diffuse, sam, pos + (int4){0, 0, -1, 0}).x;
+    float dz = read_imagef(diffuse, sam, pos + (float4){0, 0, 1, 0}).x
+             - read_imagef(diffuse, sam, pos + (float4){0, 0, -1, 0}).x;
 
     dx = -dx;
     dy = -dy;
     dz = -dz;
+
+    float3 ndv = {dx, dy, dz};
+
+    ///xi+1 = xi + (xi - xi-1) + a * dt * dt
+
+    float3 new_pos = pos.xyz + (pos.xyz - old.xyz) * 0.9995 + ndv / 100.f;
+
+    old_pos[id] = new_pos.xyzz;
+
+
+    //rotate it around the camera
+    float3 rotated = rot(new_pos, camera_pos.xyz, camera_rot.xyz);
+
+    if(rotated.z < depth_icutoff)
+        return;
+
+    //project it into screenspace
+    float3 projected = depth_project_singular(rotated, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 | projected.y >= SCREENHEIGHT)
+        return;
+
+    write_imagef(screen, convert_int2(projected.xy), 1.f);
 }
 
 
@@ -5999,10 +6024,7 @@ void clear_screen_buffer(__global uint4* buf)
     if(id >= SCREENWIDTH * SCREENHEIGHT)
         return;
 
-    buf[id].x = 0;
-    buf[id].y = 0;
-    buf[id].z = 0;
-    buf[id].w = 0;
+    buf[id] = 0;
 }
 
 __kernel
