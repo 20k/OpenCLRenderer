@@ -350,7 +350,7 @@ struct Timer
 
 struct kernel_helper
 {
-    cl_uint args[3] = {0};
+    cl_uint args[4] = {0};
 
     kernel_helper(std::initializer_list<cl_uint> init)
     {

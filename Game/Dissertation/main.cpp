@@ -1,6 +1,7 @@
 #include "../../proj.hpp"
 #include "../../vec.hpp"
 #include "../../goo.hpp"
+#include "../smoke_particles.hpp"
 
 template<int N, typename cl_type>
 void do_fluid_displace(int mx, int my, lattice<N, cl_type>& lat)
@@ -55,6 +56,9 @@ void set_obstacle(int mx, int my, lattice<N, cl_type>& lat, cl_uchar val)
 
 ///todo
 ///fix memory management to not be atrocious
+///so what I want to do now is put gpu particles down that follow
+///the density gradient
+///of the post upscaled smoke
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");
@@ -134,6 +138,10 @@ int main(int argc, char *argv[])
 
     float avg_time = 0.f;
     int avg_count = 0;
+
+    smoke_particle_manager smoke_particles;
+    smoke_particles.make(10000);
+    smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
 
 
     while(window.window.isOpen())
@@ -268,6 +276,8 @@ int main(int argc, char *argv[])
         window.clear_screen(*context.fetch());
 
         auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
+
+        smoke_particles.tick(*context.fetch(), gloop);
 
         window.set_render_event(event);
 

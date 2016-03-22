@@ -1907,7 +1907,6 @@ float advect_func(float x, float y, float z,
                   float dt)
 {
     return advect_func_vel(x, y, z, width, height, depth, d_in, xvel[IX((int)x,(int)y,(int)z)], yvel[IX((int)x,(int)y,(int)z)], zvel[IX((int)x,(int)y,(int)z)], dt);
-
 }
 
 float advect_func_tex(float x, float y, float z,
@@ -1979,7 +1978,6 @@ void advect_tex(int width, int height, int depth, int b, __write_only image3d_t 
 
     write_imagef(d_out, (int4){x, y, z, 0}, rval);
 }
-
 
 
 ///not supported on nvidia :(
@@ -2171,6 +2169,37 @@ __kernel void post_upscale(int width, int height, int depth,
     write_imagef(d_out, (int4){x, y, z, 0}, val);
 }
 
+__kernel
+void
+update_particles(int num, __global float4* positions, __write_only image2d_t screen, __read_only image3d_t diffuse, int4 dim)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= dim.x || y >= dim.y || z >= dim.z)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_NEAREST;
+
+    int4 pos = {x, y, z, 0};
+
+    ///so we want to take the negative of this, go from high to low
+    float dx = read_imagef(diffuse, sam, pos + (int4){1, 0, 0, 0}).x
+             - read_imagef(diffuse, sam, pos + (int4){-1, 0, 0, 0}).x;
+
+    float dy = read_imagef(diffuse, sam, pos + (int4){0, 1, 0, 0}).x
+             - read_imagef(diffuse, sam, pos + (int4){0, -1, 0, 0}).x;
+
+    float dz = read_imagef(diffuse, sam, pos + (int4){0, 0, 1, 0}).x
+             - read_imagef(diffuse, sam, pos + (int4){0, 0, -1, 0}).x;
+
+    dx = -dx;
+    dy = -dy;
+    dz = -dz;
+}
 
 
 __kernel void draw_fancy_projectile(__global uint* depth_buffer, __global float4* const projectile_pos, int projectile_num, float4 c_pos, float4 c_rot, __read_only image2d_t effects_image, __write_only image2d_t screen)

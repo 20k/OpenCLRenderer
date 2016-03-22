@@ -1471,7 +1471,7 @@
 	<boost/compute/interop/opengl.hpp>
 	<initializer_list>
 
-1458597319 c:\users\james\desktop\render_projects\openclrenderer\engine.hpp
+1458613006 c:\users\james\desktop\render_projects\openclrenderer\engine.hpp
 	<gl/glew.h>
 	<SFML/graphics.hpp>
 	<vector>
@@ -2222,10 +2222,11 @@
 
 1420032596 c:\users\james\desktop\render_projects\openclrenderer\game\asteroid\asteroid_gen.hpp
 
-1458596533 source:c:\users\james\desktop\render_projects\openclrenderer\game\dissertation\main.cpp
+1458611887 source:c:\users\james\desktop\render_projects\openclrenderer\game\dissertation\main.cpp
 	"../../proj.hpp"
 	"../../vec.hpp"
 	"../../goo.hpp"
+	"../smoke_particles.hpp"
 
 1443850278 source:c:\users\james\desktop\render_projects\openclrenderer\controls.cpp
 	"controls.hpp"
@@ -2271,4 +2272,18 @@
 	"texture.hpp"
 	"objects_container.hpp"
 	"ocl.h"
+
+1458613273 source:c:\users\james\desktop\render_projects\openclrenderer\game\smoke_particles.cpp
+	"smoke_particles.hpp"
+	"../clstate.h"
+	"../goo.hpp"
+	<vec/vec.hpp>
+
+1458611665 c:\users\james\desktop\render_projects\openclrenderer\game\smoke_particles.hpp
+	<gl/glew.h>
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+	"../object_context.hpp"
 
