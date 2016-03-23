@@ -198,8 +198,8 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         ///energy bands correspond to frequencies
         ///which correspond to spacial coherence
         ///negative frequencies?
-        int imin = -4;
-        int imax = 2;
+        int imin = -6;
+        int imax = -2;
 
         ///tinker with this
         cl_float3 val = y_of(x, y, z, uwidth, uheight, udepth, tw1, tw2, tw3, imin, imax);
