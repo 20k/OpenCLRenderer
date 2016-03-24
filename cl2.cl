@@ -2105,9 +2105,17 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float len = fast_length(vel);
 
-    len = native_sqrt(len);
+    //len = native_sqrt(len);
 
-    len += 0.01f;
+    //len = 50 * len;
+
+    //len += 10000.1f;
+
+    //len += 0.1f;
+
+    len += 0.5f;
+
+    len *= 10.f;
 
     ///i think this is good?
     //len = min(len, 0.2f);
@@ -2116,13 +2124,13 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     len = max(len, 0.001f);
 
-    len = clamp(len, 0.f, 1.f);
+    //len = clamp(len, 0.f, 50.f);
 
     //len = 1.f - len;
 
     len = 1.f / len;
 
-    len = clamp(len, 0.f, 0.4f);
+    len = clamp(len, 0.00001f, 0.8f);
 
     ///squared maybe not best
     ///bump these numbers up for AWESOME smoke
