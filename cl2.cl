@@ -2105,7 +2105,12 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float len = fast_length(vel);
 
-    //len = native_sqrt(len);
+    len = native_sqrt(len);
+
+    len += 0.01f;
+
+    ///i think this is good?
+    len = min(len, 0.2f);
 
     ///squared maybe not best
     ///bump these numbers up for AWESOME smoke
@@ -2117,6 +2122,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     //float3 vval = vel + wval;
 
+    ///slightly better rendering if we dont use currently velocity as well in advection
     float3 vval = len * wval * roughness;
 
 
