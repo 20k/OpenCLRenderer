@@ -2110,7 +2110,19 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     len += 0.01f;
 
     ///i think this is good?
-    len = min(len, 0.2f);
+    //len = min(len, 0.2f);
+
+    //len = min(len, 0.001f);
+
+    len = max(len, 0.001f);
+
+    len = clamp(len, 0.f, 1.f);
+
+    //len = 1.f - len;
+
+    len = 1.f / len;
+
+    len = clamp(len, 0.f, 0.4f);
 
     ///squared maybe not best
     ///bump these numbers up for AWESOME smoke

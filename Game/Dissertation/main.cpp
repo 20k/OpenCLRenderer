@@ -55,10 +55,13 @@ void set_obstacle(int mx, int my, lattice<N, cl_type>& lat, cl_uchar val)
 ///split into dynamic and static objects
 
 ///todo
-///fix memory management to not be atrocious
 ///so what I want to do now is put gpu particles down that follow
 ///the density gradient
 ///of the post upscaled smoke
+
+
+///so, a high roughness value is like super non accurate but awesome diffusion
+///I wonder if I could locally increase the roughness in areas with very little energy;
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");
