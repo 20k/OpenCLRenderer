@@ -2105,11 +2105,19 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float len = fast_length(vel);
 
+    //len = native_sqrt(len);
+
     ///squared maybe not best
     ///bump these numbers up for AWESOME smoke
-    float3 vval = vel + len*wval*roughness;
 
+    ///2015
+    //float3 vval = vel + len*wval*roughness;
 
+    //float3 vval = vel * len*wval*roughness + vel * wval * 0.1f;
+
+    //float3 vval = vel + wval;
+
+    float3 vval = len * wval * roughness;
 
 
     //float mag = length(vx + val.x/100.0f);
