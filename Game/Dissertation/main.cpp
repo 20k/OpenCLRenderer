@@ -78,12 +78,14 @@ int main(int argc, char *argv[])
 
     object_context context;
 
-    auto c1 = context.make_new();
-    c1->set_file("../../objects/cylinder.obj");
-    c1->set_pos({-20000, 0, 0});
-    c1->set_active(true);
+    //auto c1 = context.make_new();
+    //c1->set_file("../../objects/cylinder.obj");
+    //c1->set_pos({-20000, 0, 0});
+    //c1->set_active(true);
 
     engine window;
+
+    window.set_opencl_extra_command_line("-D FLUID");
     window.load(1680,1050,1000, "James Berrow", "../../cl2.cl", true);
 
     window.set_camera_pos({0,100,-300,0});
@@ -99,12 +101,12 @@ int main(int argc, char *argv[])
     smoke gloop;
     gloop.init(res, res, res, upscale, 300, false, 80.f, 1.f);
 
-    context.load_active();
+    //context.load_active();
 
-    context.build(true);
+    //context.build(true);
 
-    auto object_dat = context.fetch();
-    window.set_object_data(*object_dat);
+    //auto object_dat = context.fetch();
+    //window.set_object_data(*object_dat);
 
 
     sf::Event Event;

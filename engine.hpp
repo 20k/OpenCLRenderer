@@ -284,6 +284,10 @@ struct engine
     bool focus = true;
 
     float mouse_sens = 1.f;
+
+    void set_opencl_extra_command_line(const std::string& str);
+
+    std::string opencl_extra_command_line;
 };
 
 struct arg_list
@@ -582,6 +586,8 @@ bool supports_extension(const std::string& ext_name)
     return false;
 }
 
-bool supports_3d_writes();
+bool can_write_3d_textures();
+
+bool use_3d_texture_array();
 
 #endif

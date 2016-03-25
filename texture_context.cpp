@@ -285,7 +285,7 @@ int texture_context::get_gpu_position_id(texture_id_t id)
     return -1;
 }
 
-bool supports_3d_writes();
+bool use_3d_texture_array();
 
 texture_context_data texture_context::alloc_gpu(object_context& ctx)
 {
@@ -331,7 +331,7 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
     texture_context_data tex_data;
 
-    if(supports_3d_writes())
+    if(use_3d_texture_array())
     {
         lg::log("Using mainstream texture write path");
 

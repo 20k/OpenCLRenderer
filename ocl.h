@@ -149,7 +149,7 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
 
 extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
-bool supports_3d_writes();
+bool use_3d_texture_array();
 
 inline
 std::vector<char> get_device_info(cl_device_id id, cl_device_info inf)
@@ -184,7 +184,7 @@ std::vector<char> get_device_info(cl_device_id id, cl_device_info inf)
     return rstr;
 }
 
-inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
+inline void build(const std::string& file, int w, int h, int lres, bool only_3d, const std::string& extra_build_commands)
 {
     int src_size=0;
     char *source;
@@ -226,10 +226,12 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
     ///does not compile properly without (breaks texture filtering), investigate this at some point
     std::string buildoptions = "-cl-fast-relaxed-math -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero -D SCREENWIDTH=" + wstr + " -D SCREENHEIGHT=" + hstr + " -D LIGHTBUFFERDIM=" + lresstr + pure_3d;// + " -D BECKY_HACK=" + sbecky;
 
-    if(supports_3d_writes())
+    if(use_3d_texture_array())
     {
         buildoptions = buildoptions + " -D supports_3d_writes";
     }
+
+    buildoptions = buildoptions + " " + extra_build_commands;
 
     #ifdef BECKY_HACK
     buildoptions = buildoptions + std::string(" -D BECKY_HACK=1");
@@ -320,7 +322,7 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d)
     lg::log("Loaded obscene numbers of kernels");
 }
 
-inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d)
+inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_3d, const std::string& extra_build_commands)
 {
     ///need to initialise context and the like
     ///cant use boost::compute as it does not support opengl context sharing on windows
@@ -500,7 +502,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     lg::log("Created command queue");
 
-    build(file, w, h, lres, only_3d);
+    build(file, w, h, lres, only_3d, extra_build_commands);
 }
 
 template<typename T>

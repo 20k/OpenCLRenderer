@@ -309,7 +309,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     ///including opencl compilation parameters
     if(!loaded)
-        oclstuff(loc, width, height, l_size, only_3d);
+        oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
     else
     {
         //build(loc, width, height, l_size, only_3d);
@@ -317,7 +317,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         cl::cqueue.finish();
         cl::cqueue2.finish();
 
-        oclstuff(loc, width, height, l_size, only_3d);
+        oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
     }
 
     lg::log("post opencl");
@@ -2731,9 +2731,17 @@ void engine::set_camera_rot(cl_float4 r)
     }
 }*/
 
-bool supports_3d_writes()
+void engine::set_opencl_extra_command_line(const std::string& str)
+{
+    opencl_extra_command_line = str;
+}
+
+bool can_write_3d_textures()
+{
+    return supports_extension("cl_khr_3d_image_writes");
+}
+
+bool use_3d_texture_array()
 {
     return false;
-
-    return supports_extension("cl_khr_3d_image_writes");
 }

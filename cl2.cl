@@ -1701,7 +1701,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
-#define FLUID
+//#define FLUID
 #ifdef FLUID
 
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
