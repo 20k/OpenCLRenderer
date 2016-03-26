@@ -360,13 +360,22 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
     //clEnqueueWriteImage(cl::cqueue.get(), texture_manager::g_texture_array.get(), CL_TRUE, origin, region, 0, 0, texture_manager::c_texture_array, 0, nullptr, nullptr);
 
+    lg::log("Pre write1, ", tex_data.g_texture_nums.size(), " ", texture_slice_descriptors.size());
+
     ///if we make this async, remember to adjust the above memory to be persistent
-    cl::cqueue2.enqueue_write_buffer(tex_data.g_texture_nums, 0, tex_data.g_texture_nums.size(), texture_slice_descriptors.data());
-    cl::cqueue2.enqueue_write_buffer(tex_data.g_texture_sizes, 0, tex_data.g_texture_sizes.size(), texture_sizes.data());
+    if(texture_slice_descriptors.size() != 0)
+        cl::cqueue2.enqueue_write_buffer(tex_data.g_texture_nums, 0, texture_slice_descriptors.size() * sizeof(cl_uint), texture_slice_descriptors.data());
+
+    lg::log("Pre write2");
+
+    if(texture_sizes.size() != 0)
+        cl::cqueue2.enqueue_write_buffer(tex_data.g_texture_sizes, 0, texture_sizes.size() * sizeof(cl_uint), texture_sizes.data());
 
     tex_data.mipmap_start = mipmap_start;
 
     int c = 0;
+
+    lg::log("Pre gpu update");
 
     for(auto& id : texture_order)
     {
@@ -379,6 +388,8 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
         c++;
     }
+
+    lg::log("Texture end");
 
     last_build_textures = textures_in_use;
 

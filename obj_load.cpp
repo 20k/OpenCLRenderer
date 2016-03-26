@@ -489,3 +489,74 @@ void obj_rect(objects_container* pobj, texture& tex, cl_float2 dim)
 
     pobj->isloaded = true;
 }
+
+struct ttri
+{
+    cl_float4 pos[3];
+};
+
+///dont bother with correct normals or anything for the moment
+void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
+{
+    //struct triangle t1, t2, t3, t4, t5, t6, t7, t8, t9, t10. t11, t12;
+
+    std::vector<cl_float4> pos;
+
+    for(int i=0; i<2; i++)
+    {
+        for(int j=0; j<2; j++)
+        {
+            for(int k=0; k<2; k++)
+            {
+                cl_float4 r = mult({i,j,k,0}, dim);
+
+                pos.push_back(r);
+            }
+        }
+    }
+
+    std::vector<ttri> locs;
+
+    for(int i=0; i<pos.size(); i += 2)
+    {
+        if(i % 4 == 0)
+        {
+            locs.push_back({pos[i], pos[i+1], pos[i+2]});
+        }
+        else
+        {
+            locs.push_back({pos[i-1], pos[i], pos[i+1]});
+        }
+    }
+
+
+    object obj;
+
+    obj.isloaded = true;
+
+
+    for(auto& i : locs)
+    {
+        triangle tri;
+        tri.vertices[0].set_pos(i.pos[0]);
+        tri.vertices[1].set_pos(i.pos[1]);
+        tri.vertices[2].set_pos(i.pos[2]);
+
+        for(int j=0; j<3; j++)
+        {
+            tri.vertices[j].set_vt({0,0});
+            tri.vertices[j].set_normal({0,0,0});
+        }
+
+        obj.tri_list.push_back(tri);
+    }
+
+
+    obj.tri_num = obj.tri_list.size();
+
+    obj.tid = tex.id;
+
+    pobj->objs.push_back(obj);
+
+    pobj->isloaded = true;
+}

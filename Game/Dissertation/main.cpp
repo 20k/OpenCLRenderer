@@ -62,6 +62,11 @@ void set_obstacle(int mx, int my, lattice<N, cl_type>& lat, cl_uchar val)
 
 ///so, a high roughness value is like super non accurate but awesome diffusion
 ///I wonder if I could locally increase the roughness in areas with very little energy;
+
+///next up, fix the bloody rendering! Its so slow!
+///Render cube to a seccondary context, then use that as raytracing info?
+
+///Ergh. Lets just do the triangle thing
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");
@@ -75,14 +80,6 @@ int main(int argc, char *argv[])
 
     r2->rdbuf(b1);
 
-
-    object_context context;
-
-    //auto c1 = context.make_new();
-    //c1->set_file("../../objects/cylinder.obj");
-    //c1->set_pos({-20000, 0, 0});
-    //c1->set_active(true);
-
     engine window;
 
     window.set_opencl_extra_command_line("-D FLUID");
@@ -92,6 +89,9 @@ int main(int argc, char *argv[])
 
     window.window.setPosition({-20, -20});
 
+
+    object_context context;
+
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
@@ -99,14 +99,7 @@ int main(int argc, char *argv[])
     int res = 100;
 
     smoke gloop;
-    gloop.init(res, res, res, upscale, 300, false, 80.f, 1.f);
-
-    //context.load_active();
-
-    //context.build(true);
-
-    //auto object_dat = context.fetch();
-    //window.set_object_data(*object_dat);
+    gloop.init(res, res, res, upscale, 200, false, 80.f, 1.f);
 
 
     sf::Event Event;
@@ -144,9 +137,27 @@ int main(int argc, char *argv[])
     float avg_time = 0.f;
     int avg_count = 0;
 
-    smoke_particle_manager smoke_particles;
-    smoke_particles.make(10000);
-    smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
+    texture* tex = context.tex_ctx.make_new();
+
+    tex->set_create_colour(sf::Color(255, 255, 255), 512, 512);
+
+    objects_container* cube = context.make_new();
+
+    cube->set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, (cl_float4){100, 100, 100}));
+
+    context.load_active();
+    context.build(true);
+
+    auto object_dat = context.fetch();
+    window.set_object_data(*object_dat);
+
+    //window.set_light_data(light_data);
+    window.construct_shadowmaps();
+
+
+    //smoke_particle_manager smoke_particles;
+    //smoke_particles.make(10000);
+    //smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
 
     //gloop.roughness += 500.f;
 
@@ -224,10 +235,10 @@ int main(int argc, char *argv[])
             gloop.is_solid = true;
         }
 
-        if(key.isKeyPressed(sf::Keyboard::C))
-        {
-            smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
-        }
+        //if(key.isKeyPressed(sf::Keyboard::C))
+        //{
+            //smoke_particles.distribute({res*upscale, res*upscale, res*upscale, 0});
+        //}
 
         if(key.isKeyPressed(sf::Keyboard::RBracket))
         {

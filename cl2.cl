@@ -9421,9 +9421,10 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
         return;
     }
 
+    //const float base_size = 100.f;
+
 
     float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
-
 
     ///backrotate pixel coordinate into globalspace
     float3 global_position = back_rot(spos, 0, c_rot.xyz);

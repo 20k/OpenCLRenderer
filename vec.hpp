@@ -69,6 +69,17 @@ inline cl_float4 mult(cl_float4 v1, float v)
     return nv;
 }
 
+inline cl_float4 mult(cl_float4 v1, cl_float4 v)
+{
+    cl_float4 nv;
+    nv.x = v1.x * v.x;
+    nv.y = v1.y * v.y;
+    nv.z = v1.z * v.z;
+    nv.w = v1.w * v.w;
+
+    return nv;
+}
+
 inline float dist(cl_float4 v1, cl_float4 v2) ///w discarded because hmm
 {
     cl_float4 nv;
