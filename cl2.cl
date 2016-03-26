@@ -1877,7 +1877,7 @@ void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* 
         return;
 
     int imin = -6;
-    int imax = -2;
+    int imax = -1;
 
     float3 yval = y_of(x, y, z, dim.x, dim.y, dim.z, w1, w2, w3, imin, imax);
 

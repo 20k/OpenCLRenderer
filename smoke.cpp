@@ -89,6 +89,11 @@ cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1,
     return accum;
 }
 
+void del_data(cl_event event, cl_int event_command_exec_status, void *user_data)
+{
+    delete [] ((float*)user_data);
+}
+
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
 {
     n_dens = 0;
@@ -118,9 +123,9 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     compute::image_format format(CL_R, CL_FLOAT);
 
     cl_float* buf = new cl_float[width*height*depth]();
-    cl_float* buf1 = new cl_float[width*height*depth]();
-    cl_float* buf2 = new cl_float[width*height*depth]();
-    cl_float* buf3 = new cl_float[width*height*depth]();
+    cl_float4 fill_col = {0};
+
+    cl_event eimg;
 
     for(int i=0; i<2; i++)
     {
@@ -148,24 +153,18 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
                 if(lpos < 0)
                     continue;
 
-                buf[lpos] = 1000.0f;
-
-                buf2[lpos] = 10;
+                buf[lpos] = 10.0f;
             }
         }
 
-        clEnqueueWriteImage(cl::cqueue.get(), g_voxel[i].get(), CL_FALSE, origin, region, 0, 0, buf, 0, NULL, NULL);
-        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_x[i].get(), CL_FALSE, origin, region, 0, 0, buf1, 0, NULL, NULL);
-        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_y[i].get(), CL_FALSE, origin, region, 0, 0, buf2, 0, NULL, NULL);
-        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_z[i].get(), CL_FALSE, origin, region, 0, 0, buf3, 0, NULL, NULL);
+        clEnqueueWriteImage(cl::cqueue.get(), g_voxel[i].get(), CL_FALSE, origin, region, 0, 0, buf, 0, NULL, &eimg);
+
+        clEnqueueFillImage(cl::cqueue.get(), g_velocity_x[i].get(), &fill_col, origin, region, 0, nullptr, nullptr);
+        clEnqueueFillImage(cl::cqueue.get(), g_velocity_y[i].get(), &fill_col, origin, region, 0, nullptr, nullptr);
+        clEnqueueFillImage(cl::cqueue.get(), g_velocity_z[i].get(), &fill_col, origin, region, 0, nullptr, nullptr);
     }
 
-    cl::cqueue.finish();
-
-    delete [] buf;
-    delete [] buf1;
-    delete [] buf2;
-    delete [] buf3;
+    clSetEventCallback(eimg, CL_COMPLETE, &del_data, buf);
 
     g_w1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
     g_w2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
@@ -176,24 +175,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     auto gnw3 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
     cl_int ntotal = uwidth*uheight*udepth;
-
-    /*cl_int offset = 0;
-
-    arg_list fill_random_args;
-    fill_random_args.push_back(&ntotal);
-    fill_random_args.push_back(&gnw1);
-    fill_random_args.push_back(&offset);
-
-    compute::buffer bufs[3] = {gnw1, gnw2, gnw3};
-
-    for(auto& i : bufs)
-    {
-        fill_random_args.args[1] = &i;
-
-        run_kernel_with_string("fill_random_buffer", {ntotal}, {128}, 1, fill_random_args);
-
-        offset += ntotal;
-    }*/
 
     float* tw1, *tw2, *tw3;
 
@@ -232,10 +213,13 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     clEnqueueMarkerWithWaitList(cl::cqueue.get(), wl.size(), &wl[0], nullptr);
 
+    ///there's still some squareness in the gpu upscaling
+    ///turns out its present in cpu side as well
     run_kernel_with_string("get_y_of", {uwidth, uheight, udepth}, {16, 16, 1}, 3, y_args);
 
     g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, 0, NULL);
 
+    clEnqueueMarkerWithWaitList(cl::cqueue.get(), 1, &eimg, nullptr);
 
     #if 0
 
