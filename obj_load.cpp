@@ -515,7 +515,7 @@ void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
         }
     }
 
-    std::vector<ttri> locs;
+    /*std::vector<ttri> locs;
 
     for(int i=0; i<pos.size(); i += 2)
     {
@@ -525,10 +525,61 @@ void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
         }
         else
         {
-            locs.push_back({pos[i-1], pos[i], pos[i+1]});
+            locs.push_back({pos[i+1], pos[i], pos[i-1]});
         }
+
+        if(i >= 4)
+        {
+            std::swap(locs[i/2].pos[0], locs[i/2].pos[1]);
+        }
+    }*/
+
+    quad q[6];
+
+    q[0].p1 = pos[0];
+    q[0].p2 = pos[1];
+    q[0].p3 = pos[2];
+    q[0].p4 = pos[3];
+
+    q[1].p1 = pos[4];
+    q[1].p2 = pos[5];
+    q[1].p3 = pos[6];
+    q[1].p4 = pos[7];
+
+    q[2].p1 = pos[0];
+    q[2].p2 = pos[1];
+    q[2].p3 = pos[4];
+    q[2].p4 = pos[5];
+
+    q[3].p1 = pos[2];
+    q[3].p2 = pos[3];
+    q[3].p3 = pos[6];
+    q[3].p4 = pos[7];
+
+    q[4].p1 = pos[0];
+    q[4].p2 = pos[2];
+    q[4].p3 = pos[4];
+    q[4].p4 = pos[6];
+
+    q[5].p1 = pos[1];
+    q[5].p2 = pos[3];
+    q[5].p3 = pos[5];
+    q[5].p4 = pos[7];
+
+    std::vector<ttri> locs;
+
+    for(auto& i : q)
+    {
+        std::array<cl_float4, 6> p = i.decompose();
+
+        locs.push_back({p[0], p[1], p[2]});
+        locs.push_back({p[3], p[4], p[5]});
     }
 
+    /*for(auto& i : locs)
+    {
+        cl_float4 centre = div(dim, 2);
+    }*/
 
     object obj;
 
@@ -545,7 +596,7 @@ void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
         for(int j=0; j<3; j++)
         {
             tri.vertices[j].set_vt({0,0});
-            tri.vertices[j].set_normal({0,0,0});
+            tri.vertices[j].set_normal({0,1,0});
         }
 
         obj.tri_list.push_back(tri);
@@ -559,4 +610,6 @@ void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
     pobj->objs.push_back(obj);
 
     pobj->isloaded = true;
+
+    pobj->set_two_sided(true);
 }

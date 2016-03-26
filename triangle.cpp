@@ -30,5 +30,6 @@ std::array<cl_float4, 6> quad::decompose()
     }
 
     ///sorted anticlockwise, now return both halves
-    return {conv[0], conv[2], conv[1], conv[1], conv[2], conv[3]};
+    //return {conv[0], conv[2], conv[1], conv[1], conv[2], conv[3]};
+    return {conv[0], conv[2], conv[1], conv[0], conv[3], conv[2]};
 }

@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     l.set_col({1.0, 1.0, 1.0, 0});
     l.set_shadow_casting(0);
     l.set_brightness(1);
-    l.set_pos({100, 350, -300, 0});
+    l.set_pos({100, 3500, -300, 0});
     l.shadow=0;
 
     light::add_light(&l);
@@ -145,6 +145,8 @@ int main(int argc, char *argv[])
 
     cube->set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, (cl_float4){100, 100, 100}));
 
+    cube->set_active(true);
+
     context.load_active();
     context.build(true);
 
@@ -178,7 +180,7 @@ int main(int argc, char *argv[])
 
         //window.input();
 
-        //window.draw_bulk_objs_n(*context.fetch());
+        window.draw_bulk_objs_n(*context.fetch());
 
         context.fetch()->swap_depth_buffers();
 
@@ -295,22 +297,24 @@ int main(int argc, char *argv[])
 
         window.increase_render_events();
 
-        window.clear_screen(*context.fetch());
+        //window.clear_screen(*context.fetch());
 
-        auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
+        //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
         //smoke_particles.tick(*context.fetch(), gloop, window);
 
-        window.set_render_event(event);
+        //window.set_render_event(event);
 
         window.render_me = true;
         window.last_frametype = frametype::RENDER;
 
-        window.flip();
-        window.render_block();
         window.blit_to_screen(*context.fetch());
 
-        //std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+        window.flip();
+        window.render_block();
+
+        if(key.isKeyPressed(sf::Keyboard::M))
+            std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
         //avg_time += c.getElapsedTime().asMicroseconds();
         //avg_count ++;
