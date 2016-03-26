@@ -2272,6 +2272,23 @@ compute::event engine::draw_smoke(object_context_data& dat, smoke& s, cl_int sol
     return event;
 }
 
+compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
+{
+    cl_int4 udim = {s.uwidth, s.uheight, s.udepth, 0};
+
+    arg_list args;
+    args.push_back(&s.g_voxel_upscale);
+    args.push_back(&udim);
+    args.push_back(&dat.g_screen);
+    args.push_back(&dat.g_screen);
+    args.push_back(&dat.depth_buffer[dat.nbuf]);
+    args.push_back(&this->c_pos);
+    args.push_back(&this->c_rot);
+    args.push_back(&s.pos);
+
+    return run_kernel_with_string("dbuf_render_fluid", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
+}
+
 void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
 {
     cl_float4 pos = {0};
@@ -2646,6 +2663,16 @@ void engine::clear_screen(object_context_data& dat)
     args.push_back(&dat.g_screen);
 
     run_kernel_with_string("clear_screen_tex", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
+}
+
+void engine::clear_depth_buffer(object_context_data& dat)
+{
+    dat.ensure_screen_buffers(width, height);
+
+    arg_list args;
+    args.push_back(&dat.depth_buffer[dat.nbuf]);
+
+    run_kernel_with_string("clear_depth_buffer", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
 }
 
 void engine::swap_depth_buffers()

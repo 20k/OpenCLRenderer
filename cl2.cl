@@ -6262,7 +6262,7 @@ void clear_depth_buffer(__global uint* dbuf)
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
-    dbuf[y*SCREENWIDTH + x] = UINT_MAX;
+    dbuf[y*SCREENWIDTH + x] = mulint;
 }
 
 __kernel
@@ -9391,6 +9391,61 @@ float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
     float3 normal = -normalize((float3){dx, dy, dz});
 
     return normal;
+}
+
+__kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
+                                __write_only image2d_t screen, __read_only image2d_t r_screen,
+                                __global uint* depth_buffer,
+                                float4 c_pos, float4 c_rot,
+                                float4 smoke_loc)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    uint depth = depth_buffer[y*SCREENWIDTH + x];
+
+    if(depth == mulint)
+        return;
+
+    float ldepth = idcalc((float)depth/mulint);
+
+    ///unprojected pixel coordinate
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, c_rot.xyz);
+
+    global_position += c_pos.xyz;
+
+    float3 ray_dir = global_position - c_pos.xyz;
+
+    float3 ray_origin = global_position;
+
+    float3 ndir = fast_normalize(ray_dir);
+
+    float3 pos = ray_origin - smoke_loc.xyz;
+
+
+    sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP |
+                    CLK_FILTER_LINEAR;
+
+    float accum = 0;
+
+    ///vecme
+    while(pos.x >= 0 && pos.x < dim.x && pos.y >= 0 && pos.y < dim.y && pos.z >= 0 && pos.z < dim.z)
+    {
+        float val = read_imagef(voxel, sam_lin, pos.xyzz).x;
+
+        accum += val;
+
+        pos += ndir;
+    }
+
+    write_imagef(screen, (int2){x, y}, accum);
 }
 
 ///textures

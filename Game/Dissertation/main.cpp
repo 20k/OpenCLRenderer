@@ -180,9 +180,8 @@ int main(int argc, char *argv[])
 
         //window.input();
 
-        window.draw_bulk_objs_n(*context.fetch());
+        //window.draw_bulk_objs_n(*context.fetch());
 
-        context.fetch()->swap_depth_buffers();
 
         //lat.tick(NULL);
 
@@ -297,9 +296,12 @@ int main(int argc, char *argv[])
 
         window.increase_render_events();
 
-        //window.clear_screen(*context.fetch());
+        window.clear_screen(*context.fetch());
 
-        //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
+        ///need to clear depth buffer
+        window.generate_depth_buffer(*context.fetch());
+
+        auto event = window.draw_smoke_dbuf(*context.fetch(), gloop);
 
         //smoke_particles.tick(*context.fetch(), gloop, window);
 
@@ -312,6 +314,10 @@ int main(int argc, char *argv[])
 
         window.flip();
         window.render_block();
+
+        window.clear_depth_buffer(*context.fetch());
+
+        context.fetch()->swap_depth_buffers();
 
         if(key.isKeyPressed(sf::Keyboard::M))
             std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
