@@ -1701,10 +1701,190 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
-//#define FLUID
+#define FLUID
 #ifdef FLUID
 
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
+
+///fix this stupidity
+///need to do b-spline trilinear? What?
+float3 get_wavelet(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3)
+{
+    x = x % width;
+    y = y % height;
+    z = z % depth;
+
+    int x1, y1, z1;
+
+    x1 = (x + width - 1) % width;
+    y1 = (y + height - 1) % height;
+    z1 = (z + depth - 1) % depth;
+
+    float d1y = w1[IX(x, y, z)] - w1[IX(x, y1, z)];
+    float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z1)];
+
+    float d3z = w3[IX(x, y, z)] - w3[IX(x, y, z1)];
+    float d1x = w1[IX(x, y, z)] - w1[IX(x1, y, z)];
+
+    float d2x = w2[IX(x, y, z)] - w2[IX(x1, y, z)];
+    float d3y = w3[IX(x, y, z)] - w3[IX(x, y1, z)];
+
+    return (float3)(d1y - d2z, d3z - d1x, d2x - d3y);
+}
+
+float3 get_wavelet_interpolated(float lx, float ly, float lz, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3)
+{
+    float3 v1, v2, v3, v4, v5, v6, v7, v8;
+
+    int x = lx, y = ly, z = lz;
+
+    v1 = get_wavelet(x, y, z, width, height, depth, w1, w2, w3);
+    v2 = get_wavelet(x+1, y, z, width, height, depth, w1, w2, w3);
+    v3 = get_wavelet(x, y+1, z, width, height, depth, w1, w2, w3);
+    v4 = get_wavelet(x+1, y+1, z, width, height, depth, w1, w2, w3);
+    v5 = get_wavelet(x, y, z+1, width, height, depth, w1, w2, w3);
+    v6 = get_wavelet(x+1, y, z+1, width, height, depth, w1, w2, w3);
+    v7 = get_wavelet(x, y+1, z+1, width, height, depth, w1, w2, w3);
+    v8 = get_wavelet(x+1, y+1, z+1, width, height, depth, w1, w2, w3);
+
+    float3 x1, x2, x3, x4;
+
+    float xfrac = lx - floor(lx);
+
+    /*x1 = add(mult(v1, (1.0f - xfrac)), mult(v2, xfrac));
+    x2 = add(mult(v3, (1.0f - xfrac)), mult(v4, xfrac));
+    x3 = add(mult(v5, (1.0f - xfrac)), mult(v6, xfrac));
+    x4 = add(mult(v7, (1.0f - xfrac)), mult(v8, xfrac));*/
+
+    x1 = v1 * (1.f - xfrac) + v2 * xfrac;
+    x2 = v3 * (1.f - xfrac) + v4 * xfrac;
+    x3 = v5 * (1.f - xfrac) + v6 * xfrac;
+    x4 = v7 * (1.f - xfrac) + v8 * xfrac;
+
+
+    float yfrac = ly - floor(ly);
+
+    float3 y1, y2;
+
+    //y1 = add(mult(x1, (1.0f - yfrac)), mult(x2, yfrac));
+    //y2 = add(mult(x3, (1.0f - yfrac)), mult(x4, yfrac));
+
+    y1 = x1 * (1.f - yfrac) + x2 * yfrac;
+    y2 = x3 * (1.f - yfrac) + x4 * yfrac;
+
+    float zfrac = lz - floor(lz);
+
+    //return add(mult(y1, (1.0f - zfrac)), mult(y2, zfrac));
+
+    return y1 * (1.f - zfrac) + y2 * zfrac;
+}
+
+
+float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
+            int imin, int imax)
+{
+    float3 accum = 0;
+
+    for(int i=imin; i<imax; i++)
+    {
+        float3 new_pos = (float3)(x, y, z);
+
+        new_pos *= pow(2.0f, (float)i);
+
+        float3 w_val = get_wavelet_interpolated(new_pos.x, new_pos.y, new_pos.z, width, height, depth, w1, w2, w3);
+
+        w_val *= pow(2.0f, (-5.0f/6.0f)*(i - imin));
+
+        accum += w_val;
+    }
+
+    return accum;
+}
+
+#if 0
+long TausStep(long z, int S1, int S2, int S3, long M)
+{
+  long b=(((z << S1) ^ z) >> S2);
+
+  return (((z & M) << S3) ^ b);
+}
+
+long LCGStep(long z, long A, long C)
+{
+  return (A*z+C);
+}
+
+float hybrid(int z1, int z2, int z3, int z4)
+{
+    return 2.3283064365387e-10 * (              // Periods
+        TausStep(z1, 13, 19, 12, 4294967294UL) ^  // p1=2^31-1
+        TausStep(z2, 2, 25, 4, 4294967288UL) ^    // p2=2^30-1
+        TausStep(z3, 3, 11, 17, 4294967280UL) ^   // p3=2^28-1
+        LCGStep(z4, 1664525, 1013904223UL)        // p4=2^32
+       );
+}
+
+float get_random_numberf(int seed)
+{
+    return seed / 2147483647.f;
+}
+
+__kernel
+void fill_random_buffer(int num, __global float* to_fill, int offset)
+{
+    int id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    /*uint v = get_random_number(id + offset + 40);
+    v = get_random_number(v);
+    v = get_random_number(v);
+    v = get_random_number(v);
+    v = get_random_number(v);
+    v = get_random_number(v);
+    v = get_random_number(v);
+    v = get_random_number(v);
+    v = get_random_number(v);*/
+
+    int z1 = id + 200;
+    int z2 = offset + 500;
+    int z3 = offset * 7 + 400 + id * 20;
+    int z4 = id * 23 + offset * 3 + 300;
+
+    float n = hybrid(z1, z2, z3, z4);
+
+    float iptr;
+
+    n = modf(n, &iptr);
+
+
+    //float n = get_random_numberf(v);
+
+    to_fill[id] = n;
+}
+#endif
+
+__kernel
+void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* w3,
+              __global float* ow1, __global float* ow2, __global float* ow3)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= dim.x || y >= dim.y || z >= dim.z)
+        return;
+
+    int imin = -6;
+    int imax = -2;
+
+    float3 yval = y_of(x, y, z, dim.x, dim.y, dim.z, w1, w2, w3, imin, imax);
+
+    ow1[z*dim.x*dim.y + y*dim.x + x] = yval.x;
+    ow2[z*dim.x*dim.y + y*dim.x + x] = yval.y;
+    ow3[z*dim.x*dim.y + y*dim.x + x] = yval.z;
+}
 
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
 ///force_pos is offset within the box
@@ -9064,6 +9244,8 @@ __kernel void raytrace(__global struct triangle* tris, __global uint* tri_num, f
 #endif
 
 #ifdef FLUID
+
+
 ///draw from front backwards until we hit something?
 ///do separate rendering onto real sized buffer, then back project from screen into that
 ///this really needs doing next
@@ -10125,32 +10307,6 @@ void fluid_amount(__read_only image3d_t quantity, __global uint* amount)
 }
 
 //#define IX(x, y, z) ((z)*width*height + (y)*width + (x))
-
-///fix this stupidity
-///need to do b-spline trilinear? What?
-float3 get_wavelet(int3 pos, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3)
-{
-    int x = pos.x;
-    int y = pos.y;
-    int z = pos.z;
-
-    x = x % width;
-    y = y % height;
-    z = z % depth;
-
-    float d1y = w1[IX(x, y, z)] - w1[IX(x, y-1, z)];
-    float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z-1)];
-
-    float d3z = w3[IX(x, y, z)] - w3[IX(x, y, z-1)];
-    float d1x = w1[IX(x, y, z)] - w1[IX(x-1, y, z)];
-
-    float d2x = w2[IX(x, y, z)] - w2[IX(x-1, y, z)];
-    float d3y = w3[IX(x, y, z)] - w3[IX(x, y-1, z)];
-
-    return (float3)(d1y - d2z, d3z - d1x, d2x - d3y);
-}
-
-
 
 typedef struct t_speed
 {
@@ -11561,26 +11717,6 @@ __kernel void fluid_timestep_3d(__global uchar* obstacles,
     //printf("%f %i %i\n", speed, x, y);
 }
 
-
-/*float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
-            int imin, int imax)
-{
-    float3 accum = 0;
-
-    for(int i=imin; i<imax; i++)
-    {
-        int3 new_pos = (int3)(x, y, z);
-
-        new_pos *= pow(2.0f, (float)i);
-
-        float3 w_val = get_wavelet(new_pos, width, height, depth, w1, w2, w3);
-        w_val *= pow(2.0f, (-5.0f/6.0f)*(i - imin));
-
-        accum += w_val;
-    }
-
-    return accum;
-}*/
 
 //#endif
 

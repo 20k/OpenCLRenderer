@@ -67,6 +67,7 @@ cl_float3 get_wavelet_interpolated(float lx, float ly, float lz, int width, int 
     return add(mult(y1, (1.0f - zfrac)), mult(y2, zfrac));
 }
 
+///need to port this to gpu
 cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3,
             int imin, int imax)
 {
@@ -116,6 +117,11 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     compute::image_format format(CL_R, CL_FLOAT);
 
+    cl_float* buf = new cl_float[width*height*depth]();
+    cl_float* buf1 = new cl_float[width*height*depth]();
+    cl_float* buf2 = new cl_float[width*height*depth]();
+    cl_float* buf3 = new cl_float[width*height*depth]();
+
     for(int i=0; i<2; i++)
     {
         g_voxel[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
@@ -128,11 +134,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
         size_t origin[3] = {0,0,0};
         size_t region[3] = {width, height, depth};
-
-        cl_float* buf = new cl_float[width*height*depth]();
-        cl_float* buf1 = new cl_float[width*height*depth]();
-        cl_float* buf2 = new cl_float[width*height*depth]();
-        cl_float* buf3 = new cl_float[width*height*depth]();
 
         ///init some stuff in the centre of the array
         for(int k=-10/scale; k<=10/scale; k++)
@@ -153,16 +154,90 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
             }
         }
 
-        clEnqueueWriteImage(cl::cqueue.get(), g_voxel[i].get(), CL_TRUE, origin, region, 0, 0, buf, 0, NULL, NULL);
-        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_x[i].get(), CL_TRUE, origin, region, 0, 0, buf1, 0, NULL, NULL);
-        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_y[i].get(), CL_TRUE, origin, region, 0, 0, buf2, 0, NULL, NULL);
-        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_z[i].get(), CL_TRUE, origin, region, 0, 0, buf3, 0, NULL, NULL);
-
-        delete [] buf;
-        delete [] buf1;
-        delete [] buf2;
-        delete [] buf3;
+        clEnqueueWriteImage(cl::cqueue.get(), g_voxel[i].get(), CL_FALSE, origin, region, 0, 0, buf, 0, NULL, NULL);
+        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_x[i].get(), CL_FALSE, origin, region, 0, 0, buf1, 0, NULL, NULL);
+        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_y[i].get(), CL_FALSE, origin, region, 0, 0, buf2, 0, NULL, NULL);
+        clEnqueueWriteImage(cl::cqueue.get(), g_velocity_z[i].get(), CL_FALSE, origin, region, 0, 0, buf3, 0, NULL, NULL);
     }
+
+    cl::cqueue.finish();
+
+    delete [] buf;
+    delete [] buf1;
+    delete [] buf2;
+    delete [] buf3;
+
+    g_w1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w3 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    auto gnw1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw3 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    cl_int ntotal = uwidth*uheight*udepth;
+
+    /*cl_int offset = 0;
+
+    arg_list fill_random_args;
+    fill_random_args.push_back(&ntotal);
+    fill_random_args.push_back(&gnw1);
+    fill_random_args.push_back(&offset);
+
+    compute::buffer bufs[3] = {gnw1, gnw2, gnw3};
+
+    for(auto& i : bufs)
+    {
+        fill_random_args.args[1] = &i;
+
+        run_kernel_with_string("fill_random_buffer", {ntotal}, {128}, 1, fill_random_args);
+
+        offset += ntotal;
+    }*/
+
+    float* tw1, *tw2, *tw3;
+
+    ///needs to be nw, nh, nd
+    tw1 = new float[uwidth*uheight*udepth];
+    tw2 = new float[uwidth*uheight*udepth];
+    tw3 = new float[uwidth*uheight*udepth];
+
+    for(unsigned int i = 0; i<uwidth*uheight*udepth; i++)
+    {
+        tw1[i] = (float)rand() / RAND_MAX;
+        tw2[i] = (float)rand() / RAND_MAX;
+        tw3[i] = (float)rand() / RAND_MAX;
+    }
+
+    cl_event e1, e2, e3;
+
+    clEnqueueWriteBuffer(cl::cqueue, gnw1.get(), CL_FALSE, 0, sizeof(cl_float)*ntotal, tw1, 0, nullptr, &e1); ///both position and rotation dirty
+    clEnqueueWriteBuffer(cl::cqueue, gnw2.get(), CL_FALSE, 0, sizeof(cl_float)*ntotal, tw2, 0, nullptr, &e2); ///both position and rotation dirty
+    clEnqueueWriteBuffer(cl::cqueue, gnw3.get(), CL_FALSE, 0, sizeof(cl_float)*ntotal, tw3, 0, nullptr, &e3); ///both position and rotation dirty
+
+
+    cl_int4 dims = {uwidth, uheight, udepth};
+
+    arg_list y_args;
+
+    y_args.push_back(&dims);
+    y_args.push_back(&gnw1);
+    y_args.push_back(&gnw2);
+    y_args.push_back(&gnw3);
+    y_args.push_back(&g_w1);
+    y_args.push_back(&g_w2);
+    y_args.push_back(&g_w3);
+
+    std::vector<cl_event> wl = {e1, e2, e3};
+
+    clEnqueueMarkerWithWaitList(cl::cqueue.get(), wl.size(), &wl[0], nullptr);
+
+    run_kernel_with_string("get_y_of", {uwidth, uheight, udepth}, {16, 16, 1}, 3, y_args);
+
+    g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, 0, NULL);
+
+
+    #if 0
 
     float* tw1, *tw2, *tw3;
 
@@ -209,7 +284,6 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         bw3[upscaled_pos] = (val.z);
     }
 
-
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w1.get(), bw1, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w2.get(), bw2, 0, NULL, NULL);
     clEnqueueUnmapMemObject(cl::cqueue.get(), g_w3.get(), bw3, 0, NULL, NULL);
@@ -219,6 +293,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     delete [] tw1;
     delete [] tw2;
     delete [] tw3;
+    #endif
 }
 
 ///do async
