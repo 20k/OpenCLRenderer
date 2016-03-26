@@ -9424,8 +9424,12 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
 
     global_position += c_pos.xyz;
 
+    //global_position += (float3){dim.x/2.f, 0, dim.z/2.f};
+
+
     float3 ray_dir = global_position - c_pos.xyz;
 
+    ///if we're in the cube, this needs to be c_pos
     float3 ray_origin = global_position;
 
     float3 ndir = fast_normalize(ray_dir);
@@ -9433,23 +9437,61 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
     float3 pos = ray_origin - smoke_loc.xyz;
 
 
+
     sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP |
                     CLK_FILTER_LINEAR;
 
+    float3 fdim = convert_float3(dim.xyz);
+
+    int n = 0;
+    int p = 0;
+
     float accum = 0;
 
+    float melement = max3(fabs(ndir.x), fabs(ndir.y), fabs(ndir.z));
+
+    ndir = ndir / melement;
+
+    pos += ndir;
+
+    bool backup = false;
+
+    float skip_multiplier = 5;
+
+    float threshold = 1.f;
+
     ///vecme
-    while(pos.x >= 0 && pos.x < dim.x && pos.y >= 0 && pos.y < dim.y && pos.z >= 0 && pos.z < dim.z)
+    ///8.5ms vanilla
+    while(all(pos >= 0) && all(pos < fdim))
     {
         float val = read_imagef(voxel, sam_lin, pos.xyzz).x;
 
         accum += val;
 
         pos += ndir;
+
+        if(accum <= 0.001f)
+        {
+            pos += ndir * skip_multiplier;
+            backup = true;
+        }
+        else
+        {
+            if(backup)
+            {
+                pos -= ndir * (skip_multiplier + 1);
+                backup = false;
+            }
+        }
+
+        if(accum >= 1.f)
+            break;
     }
 
+    ///dkfjkdsfj
     write_imagef(screen, (int2){x, y}, accum);
+    //write_imagef(screen, (int2){x, y}, pos.xyzz / 255.f);
 }
 
 ///textures

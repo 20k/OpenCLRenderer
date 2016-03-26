@@ -143,9 +143,11 @@ int main(int argc, char *argv[])
 
     objects_container* cube = context.make_new();
 
-    cube->set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, (cl_float4){100, 100, 100}));
+    cube->set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, (cl_float4){gloop.uwidth, gloop.uheight, gloop.udepth}));
 
     cube->set_active(true);
+
+    cube->set_pos({0, gloop.uheight/2.f, -gloop.udepth/2.f});
 
     context.load_active();
     context.build(true);
@@ -315,7 +317,7 @@ int main(int argc, char *argv[])
         window.flip();
         window.render_block();
 
-        window.clear_screen(*context.fetch());
+        //window.clear_screen(*context.fetch());
 
         window.clear_depth_buffer(*context.fetch());
 

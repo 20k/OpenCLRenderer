@@ -2276,6 +2276,35 @@ compute::event engine::draw_smoke(object_context_data& dat, smoke& s, cl_int sol
 
 compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
 {
+    int n_dens = s.n_dens;
+    int n_vel = s.n_vel;
+
+    arg_list post_args;
+    post_args.push_back(&s.width);
+    post_args.push_back(&s.height);
+    post_args.push_back(&s.depth);
+    post_args.push_back(&s.uwidth);
+    post_args.push_back(&s.uheight);
+    post_args.push_back(&s.udepth);
+    post_args.push_back(&s.g_velocity_x[n_vel]);
+    post_args.push_back(&s.g_velocity_y[n_vel]);
+    post_args.push_back(&s.g_velocity_z[n_vel]);
+    post_args.push_back(&s.g_w1);
+    post_args.push_back(&s.g_w2);
+    post_args.push_back(&s.g_w3);
+    post_args.push_back(&s.g_voxel[n_dens]);
+    post_args.push_back(&s.g_voxel_upscale);
+    post_args.push_back(&s.scale);
+    post_args.push_back(&s.roughness);
+
+    ///make linear
+    cl_uint global_ws[3] = {s.uwidth, s.uheight, s.udepth};
+    cl_uint local_ws[3] = {16, 16, 1};
+
+    ///this also upscales the diffusion buffer
+    run_kernel_with_string("post_upscale", global_ws, local_ws, 3, post_args);
+
+
     dat.ensure_screen_buffers(width, height);
 
     cl_int4 udim = {s.uwidth, s.uheight, s.udepth, 0};
