@@ -164,7 +164,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
         clEnqueueFillImage(cl::cqueue.get(), g_velocity_z[i].get(), &fill_col, origin, region, 0, nullptr, nullptr);
     }
 
-    clSetEventCallback(eimg, CL_COMPLETE, &del_data, buf);
+    //clSetEventCallback(eimg, CL_COMPLETE, &del_data, buf);
 
     g_w1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
     g_w2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);

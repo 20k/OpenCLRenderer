@@ -9405,10 +9405,14 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
+    write_imagef(screen, (int2){x, y}, 0.5f);
+
+
     uint depth = depth_buffer[y*SCREENWIDTH + x];
 
     if(depth == mulint)
         return;
+
 
     float ldepth = idcalc((float)depth/mulint);
 

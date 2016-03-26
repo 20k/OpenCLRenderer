@@ -1072,6 +1072,8 @@ compute::event engine::draw_godrays(object_context_data& dat)
 
 compute::event engine::generate_depth_buffer(object_context_data& dat)
 {
+    dat.ensure_screen_buffers(width, height);
+
     this->last_frametype = frametype::RENDER;
 
     ///1 thread per triangle
@@ -1116,7 +1118,7 @@ compute::event engine::generate_depth_buffer(object_context_data& dat)
     p1arg_list.push_back(&dat.g_cut_tri_mem);
     p1arg_list.push_back(&this->g_id_screen_tex);
 
-    run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
+    return run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
 }
 
 ///the beginnings of making rendering more configurable
@@ -2274,6 +2276,8 @@ compute::event engine::draw_smoke(object_context_data& dat, smoke& s, cl_int sol
 
 compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
 {
+    dat.ensure_screen_buffers(width, height);
+
     cl_int4 udim = {s.uwidth, s.uheight, s.udepth, 0};
 
     arg_list args;

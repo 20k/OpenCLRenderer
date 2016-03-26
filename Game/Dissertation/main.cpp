@@ -315,6 +315,8 @@ int main(int argc, char *argv[])
         window.flip();
         window.render_block();
 
+        window.clear_screen(*context.fetch());
+
         window.clear_depth_buffer(*context.fetch());
 
         context.fetch()->swap_depth_buffers();
