@@ -197,6 +197,7 @@ struct engine
     ///replaceme to take a object_context_data and render it
     ///completely externalise all possible state
     ///except for persistent data like the screen
+    compute::event generate_depth_buffer(object_context_data& dat);
     compute::event draw_bulk_objs_n(object_context_data& dat); ///draw objects to scene
     compute::event draw_godrays(object_context_data& dat);
 

@@ -1070,6 +1070,55 @@ compute::event engine::draw_godrays(object_context_data& dat)
     return run_kernel_with_string("screenspace_godrays", {width, height}, {16, 16}, 2, args);
 }
 
+compute::event engine::generate_depth_buffer(object_context_data& dat)
+{
+    this->last_frametype = frametype::RENDER;
+
+    ///1 thread per triangle
+    cl_uint p1global_ws = dat.tri_num;
+    cl_uint local = 128;
+
+    if(dat.tri_num <= 0)
+        return compute::event();
+
+    float id_fudge = 1.2f;
+
+    ///this is very undefined behaviour
+    clEnqueueReadBuffer(cl::cqueue, dat.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), dat.cpu_id_num, 0, NULL, NULL);
+
+    arg_list prearg_list;
+
+    prearg_list.push_back(&dat.g_tri_mem);
+    prearg_list.push_back(&dat.g_tri_num);
+    prearg_list.push_back(&this->c_pos);
+    prearg_list.push_back(&this->c_rot);
+    prearg_list.push_back(&this->g_tid_buf);
+    prearg_list.push_back(&this->g_tid_buf_max_len);
+    prearg_list.push_back(&dat.g_tid_buf_atomic_count);
+    prearg_list.push_back(&dat.g_cut_tri_num);
+    prearg_list.push_back(&dat.g_cut_tri_mem);
+    prearg_list.push_back(&dat.g_obj_desc);
+
+    run_kernel_with_string("prearrange", &p1global_ws, &local, 1, prearg_list);
+
+    local = 256;
+
+    ///infernal satanic magic
+    cl_uint p1global_ws_new = *dat.cpu_id_num * id_fudge;
+
+    ///write depth of triangles to buffer, ie z buffering
+
+    arg_list p1arg_list;
+    p1arg_list.push_back(&dat.g_tri_mem);
+    p1arg_list.push_back(&this->g_tid_buf);
+    p1arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
+    p1arg_list.push_back(&dat.g_tid_buf_atomic_count);
+    p1arg_list.push_back(&dat.g_cut_tri_mem);
+    p1arg_list.push_back(&this->g_id_screen_tex);
+
+    run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
+}
+
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
 compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out, object_context_data& dat)
