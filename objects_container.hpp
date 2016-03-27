@@ -82,7 +82,7 @@ struct objects_container
 
     bool    has_independent_subobjects();
 
-    //objects_container* get_remote();
+    void    set_buffer_offset(int offset);
 
     ///currently uncached
     ///local centre, not world
@@ -98,6 +98,8 @@ struct objects_container
     bool cache = true;
 
     bool textures_are_unique = false;
+
+    int buffer_offset = 0;
 
     //texture* override_tex = nullptr;
 };

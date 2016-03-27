@@ -17,6 +17,7 @@ struct obj_g_descriptor
     cl_float specular;
     cl_float diffuse;
     cl_uint two_sided;
+    cl_int buffer_offset;
     ///add in a type here for shaders?
 };
 

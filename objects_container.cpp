@@ -128,6 +128,8 @@ void objects_container::set_active_subobjs(bool param)
 
         objs[i].set_rot(rot);
         objs[i].set_active(param);
+
+        objs[i].set_buffer_offset(buffer_offset);
     }
 }
 
@@ -354,6 +356,14 @@ void objects_container::hide()
 bool objects_container::has_independent_subobjects()
 {
     return independent_subobjects;
+}
+
+void objects_container::set_buffer_offset(int offset)
+{
+    buffer_offset = offset;
+
+    for(auto& i : objs)
+        i.set_buffer_offset(offset);
 }
 
 int objects_container::get_object_by_id(int in)

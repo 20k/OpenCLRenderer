@@ -526,3 +526,8 @@ void object::g_flush(object_context_data& dat, bool force)
     last_pos = pos;
     last_rot = rot;
 }
+
+void object::set_buffer_offset(int offset)
+{
+    buffer_offset = offset;
+}

@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
     cube->objs[0].tri_list = subdivide_tris(cube->objs[0].tri_list);
     cube->objs[0].tri_num = cube->objs[0].tri_list.size();
 
-    lg::log("Cnum \n\n\n\n\n\n", cube->objs[0].tri_num);
+    //lg::log("Cnum \n\n\n\n\n\n", cube->objs[0].tri_num);
 
     context.build(true);
 

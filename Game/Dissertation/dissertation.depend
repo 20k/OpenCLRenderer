@@ -1501,7 +1501,7 @@
 	<sstream>
 	<vector>
 
-1454811519 c:\users\james\desktop\render_projects\openclrenderer\object.hpp
+1459061978 c:\users\james\desktop\render_projects\openclrenderer\object.hpp
 	<vector>
 	"triangle.hpp"
 	<string>
@@ -1517,10 +1517,10 @@
 1455948571 c:\users\james\desktop\render_projects\openclrenderer\vertex.hpp
 	<cl/cl.h>
 
-1455948571 c:\users\james\desktop\render_projects\openclrenderer\obj_g_descriptor.hpp
+1459061805 c:\users\james\desktop\render_projects\openclrenderer\obj_g_descriptor.hpp
 	<CL/CL.h>
 
-1455948571 c:\users\james\desktop\render_projects\openclrenderer\objects_container.hpp
+1459061894 c:\users\james\desktop\render_projects\openclrenderer\objects_container.hpp
 	<gl/glew.h>
 	"object.hpp"
 	<functional>
@@ -2008,7 +2008,7 @@
 	"clstate.h"
 	"logging.hpp"
 
-1459052478 source:c:\users\james\desktop\render_projects\openclrenderer\engine.cpp
+1459052577 source:c:\users\james\desktop\render_projects\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -2143,7 +2143,7 @@
 	"engine.hpp"
 	<map>
 
-1457021339 source:c:\users\james\desktop\render_projects\openclrenderer\object.cpp
+1459062038 source:c:\users\james\desktop\render_projects\openclrenderer\object.cpp
 	"object.hpp"
 	"clstate.h"
 	"texture.hpp"
@@ -2154,7 +2154,7 @@
 	"vec.hpp"
 	"logging.hpp"
 
-1457021305 source:c:\users\james\desktop\render_projects\openclrenderer\objects_container.cpp
+1459062140 source:c:\users\james\desktop\render_projects\openclrenderer\objects_container.cpp
 	"objects_container.hpp"
 	<iostream>
 	"obj_load.hpp"
@@ -2223,7 +2223,7 @@
 
 1420032596 c:\users\james\desktop\render_projects\openclrenderer\game\asteroid\asteroid_gen.hpp
 
-1459051685 source:c:\users\james\desktop\render_projects\openclrenderer\game\dissertation\main.cpp
+1459059221 source:c:\users\james\desktop\render_projects\openclrenderer\game\dissertation\main.cpp
 	"../../proj.hpp"
 	"../../vec.hpp"
 	"../../goo.hpp"
@@ -2260,7 +2260,7 @@
 1457086371 source:c:\users\james\desktop\render_projects\openclrenderer\logging.cpp
 	"logging.hpp"
 
-1459052461 source:c:\users\james\desktop\render_projects\openclrenderer\object_context.cpp
+1459061779 source:c:\users\james\desktop\render_projects\openclrenderer\object_context.cpp
 	"object_context.hpp"
 	"objects_container.hpp"
 	"engine.hpp"

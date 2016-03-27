@@ -94,6 +94,10 @@ struct object
 
     void g_flush(object_context_data& dat, bool force = false); ///flush position (currently just) etc to gpu memory
 
+    void set_buffer_offset(int offset);
+
+    int buffer_offset = 0;
+
     ///for writing to gpu, need the memory to stick around
     private:
     cl_float8 posrot;

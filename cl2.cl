@@ -83,6 +83,7 @@ struct obj_g_descriptor
     float specular;
     float diffuse;
     uint two_sided;
+    int buffer_offset; ///0 == first buffer, 1 == second etc
 };
 
 
