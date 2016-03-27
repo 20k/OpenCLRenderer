@@ -28,8 +28,8 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 
         memset(arr, UINT_MAX, sizeof(cl_uint)*_w*_h);
 
-        depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
-        depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+        depth_buffer[0] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h*depth_buffer_width, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
+        depth_buffer[1] =    compute::buffer(cl::context, sizeof(cl_uint)*_w*_h*depth_buffer_width, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, arr);
 
         delete [] arr;
 

@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
-    int upscale = 1;
+    int upscale = 2;
     int res = 100;
 
     smoke gloop;
