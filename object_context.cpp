@@ -20,6 +20,10 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
     {
         lg::log("Pre ensure screen buffers ", _w, " ", _h, " ", depth_buffer_width, " ", last_depth_buffer_width);
 
+        compute::image_format format_ids(CL_R, CL_UNSIGNED_INT32);
+
+        g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, _w * depth_buffer_width, _h, 0, NULL);
+
         g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
 
         lg::log("Created g_screen in ensure_screen_buffers");
@@ -429,6 +433,7 @@ void flip_buffers(object_context* ctx)
         ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
     }
 
+    ctx->new_gpu_dat.g_id_screen_tex = ctx->fetch()->g_id_screen_tex;
     ctx->new_gpu_dat.g_screen = ctx->fetch()->g_screen;
     ctx->new_gpu_dat.gl_framebuffer_id = ctx->fetch()->gl_framebuffer_id;
     ctx->new_gpu_dat.nbuf = (ctx->fetch()->nbuf) % 2;

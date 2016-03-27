@@ -1471,7 +1471,7 @@
 	<boost/compute/interop/opengl.hpp>
 	<initializer_list>
 
-1458977251 c:\users\james\desktop\render_projects\openclrenderer\engine.hpp
+1459052397 c:\users\james\desktop\render_projects\openclrenderer\engine.hpp
 	<gl/glew.h>
 	<SFML/graphics.hpp>
 	<vector>
@@ -2008,7 +2008,7 @@
 	"clstate.h"
 	"logging.hpp"
 
-1458978636 source:c:\users\james\desktop\render_projects\openclrenderer\engine.cpp
+1459052478 source:c:\users\james\desktop\render_projects\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -2234,7 +2234,7 @@
 	"engine.hpp"
 	"vec.hpp"
 
-1459051076 c:\users\james\desktop\render_projects\openclrenderer\object_context.hpp
+1459051923 c:\users\james\desktop\render_projects\openclrenderer\object_context.hpp
 	<cl/cl.h>
 	<gl/glew.h>
 	<boost/compute/system.hpp>
@@ -2260,7 +2260,7 @@
 1457086371 source:c:\users\james\desktop\render_projects\openclrenderer\logging.cpp
 	"logging.hpp"
 
-1459051214 source:c:\users\james\desktop\render_projects\openclrenderer\object_context.cpp
+1459052461 source:c:\users\james\desktop\render_projects\openclrenderer\object_context.cpp
 	"object_context.hpp"
 	"objects_container.hpp"
 	"engine.hpp"

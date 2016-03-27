@@ -112,7 +112,7 @@ struct engine
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
     compute::buffer reprojected_depth_buffer[2];
-    compute::image2d g_id_screen_tex; ///2d screen id texture
+    //compute::image2d g_id_screen_tex; ///2d screen id texture
     compute::image2d g_reprojected_id_screen_tex; ///2d screen id texture
     compute::image2d g_object_id_tex; ///object level ids
     compute::image2d g_diffuse_intermediate_tex; ///diffuse information, intermediate for separableness

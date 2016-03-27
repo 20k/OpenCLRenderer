@@ -45,6 +45,7 @@ struct object_context_data
 
     compute::opengl_renderbuffer g_screen;
     compute::buffer depth_buffer[2];
+    compute::image2d g_id_screen_tex;
 
     cl_float4 g_clear_col = (cl_float4){0};
 

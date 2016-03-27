@@ -470,7 +470,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     compute::image_format format_occ(CL_R, CL_FLOAT);
     compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
     ///screen ids as a uint32 texture
-    g_id_screen_tex             = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
+    //g_id_screen_tex             = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
     //g_reprojected_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
     //g_object_id_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, width, height, 0, NULL);
 
@@ -482,7 +482,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     //g_distortion_buffer = compute::buffer(cl::context, sizeof(cl_float2)*width*height, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, distortion_clear);
 
-    lg::log("post g_id_screen_tex");
+    //lg::log("post g_id_screen_tex");
 
     ///fixme
     delete [] blank;
@@ -896,6 +896,8 @@ float engine::get_time_since_frame_start()
 
 void engine::construct_shadowmaps()
 {
+    obj_data->ensure_screen_buffers(width, height);
+
     cl_uint p1global_ws = obj_data->tri_num;
     cl_uint local=128;
 
@@ -984,7 +986,7 @@ void engine::construct_shadowmaps()
                 p1arg_list.push_back(&obj_data->g_cut_tri_mem);
                 p1arg_list.push_back(&juan);
                 //p1arg_list.push_back(&g_distortion_buffer);
-                p1arg_list.push_back(&g_id_screen_tex);
+                p1arg_list.push_back(&obj_data->g_id_screen_tex);
                 p1arg_list.push_back(&g_tile_information);
                 p1arg_list.push_back(&g_tile_count);
 
@@ -1116,7 +1118,7 @@ compute::event engine::generate_depth_buffer(object_context_data& dat)
     p1arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
     p1arg_list.push_back(&dat.g_tid_buf_atomic_count);
     p1arg_list.push_back(&dat.g_cut_tri_mem);
-    p1arg_list.push_back(&this->g_id_screen_tex);
+    p1arg_list.push_back(&dat.g_id_screen_tex);
 
     return run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
 }
@@ -1224,7 +1226,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //p1arg_list.push_back(&dat.g_cut_tri_num);
     p1arg_list.push_back(&dat.g_cut_tri_mem);
     //p1arg_list.push_back(&eng.g_distortion_buffer);
-    p1arg_list.push_back(&eng.g_id_screen_tex);
+    p1arg_list.push_back(&dat.g_id_screen_tex);
 
     run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
 
@@ -1243,7 +1245,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p2arg_list.push_back(&eng.g_tid_buf);
     //p2arg_list.push_back(&dat.g_tri_num);
     p2arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
-    p2arg_list.push_back(&eng.g_id_screen_tex);
+    p2arg_list.push_back(&dat.g_id_screen_tex);
     p2arg_list.push_back(&dat.g_tid_buf_atomic_count);
     //p2arg_list.push_back(&dat.g_cut_tri_num);
     p2arg_list.push_back(&dat.g_cut_tri_mem);
@@ -1262,7 +1264,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
     p3arg_list.push_back(&dat.depth_buffer[dat.nbuf]);
-    p3arg_list.push_back(&eng.g_id_screen_tex);
+    p3arg_list.push_back(&dat.g_id_screen_tex);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_array);
     p3arg_list.push_back(&g_screen_out);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_nums);
