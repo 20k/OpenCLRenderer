@@ -2692,6 +2692,9 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 ///fixed, now it should probably scale with screen resolution
 #define op_size 300
 
+#define FRAGMENT_ID_MUL 6
+
+
 ///split triangles into fixed-length fragments
 
 ///something is causing massive slowdown when we're within the triangles, just rendering them causes very little slowdown. Out of bounds massive-ness?
@@ -2808,7 +2811,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
-        uint f = base*5;
+        uint f = base*FRAGMENT_ID_MUL;
 
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
@@ -2823,6 +2826,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
                 fragment_id_buffer[f++] = as_int(true_area);
                 fragment_id_buffer[f++] = as_int(rconst);
+                fragment_id_buffer[f++] = o_id;
 
             }
         }
@@ -2844,6 +2848,7 @@ __kernel void tile_clear(__global uint* tile_count)
 
     tile_count[y*tilew + x] = 0;
 }
+
 
 __kernel
 void prearrange_light(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
@@ -2953,7 +2958,7 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
 
         uint base = atomic_add(id_buffer_atomc, thread_num);
 
-        uint f = base*5;
+        uint f = base*FRAGMENT_ID_MUL;
 
         //if(b*3 + thread_num*3 < *id_buffer_maxlength)
         {
@@ -2962,12 +2967,14 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
                 ///work out if is valid, if not do c++ then continue;
 
                 ///make texture?
+                ///object id?
                 fragment_id_buffer[f++] = id;
                 fragment_id_buffer[f++] = a;
                 fragment_id_buffer[f++] = c_id;
 
                 fragment_id_buffer[f++] = as_int(true_area);
                 fragment_id_buffer[f++] = as_int(rconst);
+                fragment_id_buffer[f++] = o_id;
 
             }
         }
@@ -2996,12 +3003,12 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     //uint tri_id = fragment_id_buffer[id*5 + 0];
 
-    uint distance = fragment_id_buffer[id*5 + 1];
+    uint distance = fragment_id_buffer[id*FRAGMENT_ID_MUL + 1];
 
-    uint ctri = fragment_id_buffer[id*5 + 2];
+    uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
 
-    float area = as_float(fragment_id_buffer[id*5 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
+    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
+    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
 
     ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];
@@ -3124,12 +3131,12 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
 
     //uint tri_id = fragment_id_buffer[id*5 + 0];
 
-    uint distance = fragment_id_buffer[id*5 + 1];
+    uint distance = fragment_id_buffer[id*FRAGMENT_ID_MUL + 1];
 
-    uint ctri = fragment_id_buffer[id*5 + 2];
+    uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
 
-    float area = as_float(fragment_id_buffer[id*5 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
+    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
+    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
 
     ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];
@@ -3269,12 +3276,12 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     ///cannot collide
     //uint tri_id = fragment_id_buffer[id*5 + 0];
 
-    uint distance = fragment_id_buffer[id*5 + 1];
+    uint distance = fragment_id_buffer[id*FRAGMENT_ID_MUL + 1];
 
-    uint ctri = fragment_id_buffer[id*5 + 2];
+    uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
 
-    float area = as_float(fragment_id_buffer[id*5 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*5 + 4]);
+    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
+    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
 
     ///triangle retrieved from depth buffer
     ///could well collide in memory. This is extremely slow?
@@ -3443,8 +3450,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
-    uint tri_global = fragment_id_buffer[id_val4.x * 5 + 0];
-    uint ctri = fragment_id_buffer[id_val4.x * 5 + 2];
+    uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
+    uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
 
     float3 camera_pos;
     float3 camera_rot;
@@ -3479,7 +3487,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     n3 = T->vertices[2].normal.xyz;
 
 
-    int o_id = T->vertices[0].object_id;
+    //int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
     ///getting anything from G involves waiting hideously for so many properties to come through
