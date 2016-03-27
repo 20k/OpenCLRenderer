@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     ///write a opencl kernel to generate mipmaps because it is ungodly slow?
     ///Or is this important because textures only get generated once, (potentially) in parallel on cpu?
 
-    int upscale = 2;
+    int upscale = 1;
     int res = 100;
 
     smoke gloop;
@@ -141,6 +141,10 @@ int main(int argc, char *argv[])
 
     tex->set_create_colour(sf::Color(255, 255, 255), 512, 512);
 
+    ///allow a conjoined depth buffer, ie more than one depth buffer in a linear piece of memory
+    ///then allow per-object depth buffer offset. That way
+    ///we can draw multiple contexts at once for less performance
+    ///need to tesselate cube
     objects_container* cube = context.make_new();
 
     cube->set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, (cl_float4){gloop.uwidth, gloop.uheight, gloop.udepth}));
@@ -150,6 +154,14 @@ int main(int argc, char *argv[])
     cube->set_pos({0, gloop.uheight/2.f, -gloop.udepth/2.f});
 
     context.load_active();
+
+    cube->objs[0].tri_list = subdivide_tris(cube->objs[0].tri_list);
+    cube->objs[0].tri_list = subdivide_tris(cube->objs[0].tri_list);
+    cube->objs[0].tri_list = subdivide_tris(cube->objs[0].tri_list);
+    cube->objs[0].tri_num = cube->objs[0].tri_list.size();
+
+    lg::log("Cnum \n\n\n\n\n\n", cube->objs[0].tri_num);
+
     context.build(true);
 
     auto object_dat = context.fetch();
@@ -300,10 +312,13 @@ int main(int argc, char *argv[])
 
         window.clear_screen(*context.fetch());
 
+        ///so, really we could prearrange as part of normal
+        ///and then just do a separated part1?
         ///need to clear depth buffer
         window.generate_depth_buffer(*context.fetch());
 
         auto event = window.draw_smoke_dbuf(*context.fetch(), gloop);
+        //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
         //smoke_particles.tick(*context.fetch(), gloop, window);
 

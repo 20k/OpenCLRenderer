@@ -71,6 +71,8 @@ struct object_context_data
 
     unsigned int gl_framebuffer_id = -1;
 
+    int depth_buffer_width = 1;
+
     bool has_valid_texture_data = false;
 
     void ensure_screen_buffers(int _w, int _h, bool force = false);
@@ -145,6 +147,12 @@ struct object_context
     int context_id = 0;
 
     bool request_dirty = false;
+
+    ///sets the number of depth buffers in one depth buffer plane
+    ///ie if n == 2, we have two front buffers and two back buffers
+    void set_depth_buffer_width(int n);
+
+    int depth_buffer_width = 1;
 
 private:
 

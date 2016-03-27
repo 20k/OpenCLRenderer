@@ -19,11 +19,6 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
     if(s_w != _w || s_h != _h || force)
     {
         lg::log("Pre ensure screen buffers ", _w, " ", _h);
-        /*if(dat.s_w != 0 || dat.s_h != 0)
-        {
-            ///might have been created on a different context? what do?
-            //compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
-        }*/
 
         g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
 
@@ -451,6 +446,9 @@ void flip_buffers(object_context* ctx)
         ctx->new_gpu_dat.tex_gpu_ctx = ctx->gpu_dat.tex_gpu_ctx;
     }
 
+    ///from cpu context to gpu context
+    ctx->new_gpu_dat.depth_buffer_width = ctx->depth_buffer_width;
+
     ctx->gpu_dat = ctx->new_gpu_dat;
     ctx->gpu_dat.gpu_data_finished = true;
 
@@ -630,4 +628,9 @@ void object_context::increment_context_id()
 int object_context::get_context_id()
 {
     return context_id;
+}
+
+void object_context::set_depth_buffer_width(int n)
+{
+    depth_buffer_width = n;
 }

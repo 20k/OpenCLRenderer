@@ -613,3 +613,60 @@ void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
 
     pobj->set_two_sided(true);
 }
+
+#include <vec/vec.hpp>
+
+std::vector<triangle> subdivide_tris(const std::vector<triangle>& in)
+{
+    std::vector<triangle> tris = in;
+
+    std::vector<triangle> outv;
+    outv.reserve(tris.size() * 4);
+
+    for(auto& i : tris)
+    {
+        triangle tri = i;
+
+        cl_float4 p[3];
+
+        for(int j=0; j<3; j++)
+        {
+            p[j] = i.vertices[j].get_pos();
+        }
+
+        cl_float4 im[3];
+
+        for(int j=0; j<3; j++)
+        {
+            im[j] = div(add(p[j], p[(j+1) % 3]), 2.f);
+        }
+
+        triangle out[4];
+
+        for(auto& j : out)
+            j = tri;
+
+        out[0].vertices[0].set_pos(p[0]);
+        out[0].vertices[1].set_pos(im[0]);
+        out[0].vertices[2].set_pos(im[2]);
+
+        out[1].vertices[0].set_pos(p[1]);
+        out[1].vertices[1].set_pos(im[0]);
+        out[1].vertices[2].set_pos(im[1]);
+
+        out[2].vertices[0].set_pos(p[2]);
+        out[2].vertices[1].set_pos(im[2]);
+        out[2].vertices[2].set_pos(im[1]);
+
+        out[3].vertices[0].set_pos(im[0]);
+        out[3].vertices[1].set_pos(im[1]);
+        out[3].vertices[2].set_pos(im[2]);
+
+        for(auto& j : out)
+        {
+            outv.push_back(j);
+        }
+    }
+
+    return outv;
+}

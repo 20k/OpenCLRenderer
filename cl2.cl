@@ -9453,13 +9453,15 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
 
     ndir = ndir / melement;
 
-    pos += ndir;
+    pos += ndir * 10;
 
     bool backup = false;
 
     float skip_multiplier = 5;
 
-    float threshold = 1.f;
+    float threshold = 40.f;
+
+    int skip_count = 0;
 
     ///vecme
     ///8.5ms vanilla
@@ -9467,11 +9469,9 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
     {
         float val = read_imagef(voxel, sam_lin, pos.xyzz).x;
 
-        accum += val;
-
         pos += ndir;
 
-        if(accum <= 0.001f)
+        if(val <= 0.0001f && skip_count <= 0)
         {
             pos += ndir * skip_multiplier;
             backup = true;
@@ -9480,14 +9480,28 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
         {
             if(backup)
             {
-                pos -= ndir * (skip_multiplier + 1);
+                pos -= ndir * (skip_multiplier*2);
                 backup = false;
+
+                accum -= val;
+
+                skip_count = skip_multiplier * 2;
+
+                pos = clamp(pos, 1.f, fdim-1.f);
             }
+
+            accum += val;
         }
 
-        if(accum >= 1.f)
+        skip_count--;
+
+        if(accum >= threshold)
             break;
     }
+
+    accum /= threshold;
+
+    accum = native_sqrt(accum);
 
     ///dkfjkdsfj
     write_imagef(screen, (int2){x, y}, accum);

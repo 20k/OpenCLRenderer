@@ -1851,7 +1851,7 @@
 	<limits.h>
 	<boost/compute/system.hpp>
 
-1458968614 c:\users\james\desktop\render_projects\openclrenderer\obj_load.hpp
+1459039114 c:\users\james\desktop\render_projects\openclrenderer\obj_load.hpp
 	<string>
 	"object.hpp"
 	"objects_container.hpp"
@@ -2107,7 +2107,7 @@
 	<SFML/System/Clock.hpp>
 	<set>
 
-1458971842 source:c:\users\james\desktop\render_projects\openclrenderer\obj_load.cpp
+1459039284 source:c:\users\james\desktop\render_projects\openclrenderer\obj_load.cpp
 	"obj_load.hpp"
 	<cstdio>
 	<cstdlib>
@@ -2122,6 +2122,7 @@
 	<list>
 	"vec.hpp"
 	"logging.hpp"
+	<vec/vec.hpp>
 
 1456280286 source:c:\users\james\desktop\render_projects\openclrenderer\obj_mem_manager.cpp
 	"obj_mem_manager.hpp"
@@ -2222,7 +2223,7 @@
 
 1420032596 c:\users\james\desktop\render_projects\openclrenderer\game\asteroid\asteroid_gen.hpp
 
-1459013828 source:c:\users\james\desktop\render_projects\openclrenderer\game\dissertation\main.cpp
+1459039543 source:c:\users\james\desktop\render_projects\openclrenderer\game\dissertation\main.cpp
 	"../../proj.hpp"
 	"../../vec.hpp"
 	"../../goo.hpp"
