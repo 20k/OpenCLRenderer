@@ -16,9 +16,9 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
     if(_w == 0 || _h == 0)
         return;
 
-    if(s_w != _w || s_h != _h || force)
+    if(s_w != _w || s_h != _h || depth_buffer_width != last_depth_buffer_width || force)
     {
-        lg::log("Pre ensure screen buffers ", _w, " ", _h);
+        lg::log("Pre ensure screen buffers ", _w, " ", _h, " ", depth_buffer_width, " ", last_depth_buffer_width);
 
         g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
 
@@ -36,6 +36,8 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
         compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
 
         lg::log("created screen dim ", _w, " ", _h);
+
+        last_depth_buffer_width = depth_buffer_width;
     }
 
     s_w = _w;
@@ -446,8 +448,12 @@ void flip_buffers(object_context* ctx)
         ctx->new_gpu_dat.tex_gpu_ctx = ctx->gpu_dat.tex_gpu_ctx;
     }
 
-    ///from cpu context to gpu context
+
     ctx->new_gpu_dat.depth_buffer_width = ctx->depth_buffer_width;
+
+    ctx->new_gpu_dat.ensure_screen_buffers(ctx->new_gpu_dat.s_w, ctx->new_gpu_dat.s_h);
+
+    ///from cpu context to gpu context
 
     ctx->gpu_dat = ctx->new_gpu_dat;
     ctx->gpu_dat.gpu_data_finished = true;
@@ -633,4 +639,8 @@ int object_context::get_context_id()
 void object_context::set_depth_buffer_width(int n)
 {
     depth_buffer_width = n;
+
+    gpu_dat.depth_buffer_width = depth_buffer_width;
+
+    gpu_dat.ensure_screen_buffers(gpu_dat.s_w, gpu_dat.s_h);
 }

@@ -72,6 +72,7 @@ struct object_context_data
     unsigned int gl_framebuffer_id = -1;
 
     int depth_buffer_width = 1;
+    int last_depth_buffer_width = 1;
 
     bool has_valid_texture_data = false;
 
