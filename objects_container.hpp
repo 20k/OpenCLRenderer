@@ -84,6 +84,10 @@ struct objects_container
 
     void    set_buffer_offset(int offset);
 
+    ///patching the texture uv coordinates for non square textures requires the texture dimensions
+    ///which requries a loaded texture. So, this function may load textures
+    void    patch_non_square_texture_maps();
+
     ///currently uncached
     ///local centre, not world
     cl_float4 get_centre();

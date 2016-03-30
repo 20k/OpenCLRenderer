@@ -305,6 +305,47 @@ void object::scale(float f)
     }
 }
 
+void object::patch_non_square_texture_maps(texture_context& ctx)
+{
+    texture* tex = ctx.id_to_tex(tid);
+
+    if(!tex->is_loaded)
+        tex->load();
+
+    int largest = tex->get_largest_dimension();
+
+    int dim_to_scale = 0;
+
+    float scale = 1.f;
+
+    if(tex->c_image.getSize().x != largest)
+    {
+        dim_to_scale = 0;
+
+        scale = (float)tex->c_image.getSize().x / largest;
+    }
+    else if(tex->c_image.getSize().y != largest)
+    {
+        dim_to_scale = 1;
+
+        scale = (float)tex->c_image.getSize().y / largest;
+    }
+    else
+        return;
+
+    for(triangle& tri : tri_list)
+    {
+        for(vertex& v : tri.vertices)
+        {
+            cl_float2 vt = v.get_vt();
+
+            vt.s[dim_to_scale] *= scale;
+
+            v.set_vt(vt);
+        }
+    }
+}
+
 texture* object::get_texture()
 {
     lg::log("err, get_texture is deprecated");

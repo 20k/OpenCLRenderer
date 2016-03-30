@@ -6,12 +6,12 @@
 ///so like, pos, normal, and vt can all be half floats
 struct vertex
 {
-    cl_float4 get_pos();
-    cl_float4 get_normal();
-    cl_float2 get_vt();
+    cl_float4 get_pos() const;
+    cl_float4 get_normal() const;
+    cl_float2 get_vt() const;
 
-    cl_uint get_pad();
-    cl_uint get_pad2();
+    cl_uint get_pad() const;
+    cl_uint get_pad2() const;
 
     void set_pos(cl_float4);
     void set_normal(cl_float4);

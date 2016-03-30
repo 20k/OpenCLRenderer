@@ -398,7 +398,7 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
 
         if(g_ws[i] <= 0)
         {
-            lg::log("Invalid gws <= 0 ", i);
+            lg::log("Invalid gws <= 0 ", i, " ", kernel.name);
 
             return compute::event();
         }

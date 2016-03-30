@@ -75,6 +75,8 @@ struct object
     void stretch(int dim, float amount);
     void scale(float);
 
+    void patch_non_square_texture_maps(texture_context& ctx);
+
     texture* get_texture();
 
     ///this is uncached for the moment

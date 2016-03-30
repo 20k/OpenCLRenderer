@@ -1,26 +1,26 @@
 #include "vertex.hpp"
 
-cl_float4 vertex::get_pos()
+cl_float4 vertex::get_pos() const
 {
     return pos;
 }
 
-cl_float4 vertex::get_normal()
+cl_float4 vertex::get_normal() const
 {
     return normal;
 }
 
-cl_float2 vertex::get_vt()
+cl_float2 vertex::get_vt() const
 {
     return vt;
 }
 
-cl_uint vertex::get_pad()
+cl_uint vertex::get_pad() const
 {
     return pad;
 }
 
-cl_uint vertex::get_pad2()
+cl_uint vertex::get_pad2() const
 {
     return pad2;
 }

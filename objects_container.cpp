@@ -366,6 +366,20 @@ void objects_container::set_buffer_offset(int offset)
         i.set_buffer_offset(offset);
 }
 
+void objects_container::patch_non_square_texture_maps()
+{
+    if(!parent)
+    {
+        lg::log("Warning, no parent in patch non square texture maps ", id);
+        return;
+    }
+
+    for(auto& i : objs)
+    {
+        i.patch_non_square_texture_maps(parent->tex_ctx);
+    }
+}
+
 int objects_container::get_object_by_id(int in)
 {
     lg::log("Err get_object_by_id");
