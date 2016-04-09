@@ -299,6 +299,9 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
         for(auto& o : i->objs)
         {
             textures_in_use.insert(o.tid);
+
+            if(o.rid != -1)
+                textures_in_use.insert(o.rid);
         }
     }
 

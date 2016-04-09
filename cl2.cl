@@ -1702,7 +1702,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
-#define FLUID
+//#define FLUID
 #ifdef FLUID
 
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
@@ -3579,21 +3579,44 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     {
         float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array).xyz;
 
-        t_normal.xyz -= 0.5f;
+        t_normal = 2.f * t_normal - 1.f;
 
-        float cangle = dot((float3){0, 1, 0}, normal);
+        t_normal.yz = t_normal.zy;
+
+        ///we're gunna have to calculate the derivatives and do tangent stuff :[
+
+        ///cannot possibly be right
+        /*t_normal = rot(t_normal, 0.f, G->world_rot.xyz);
+
+        normal = normal + t_normal;
+
+        normal = fast_normalize(normal);*/
+
+        ///x space pert, y space pert, z offset
+        ///need to transform into world space
+
+        /*t_normal = fast_normalize(t_normal);
+
+        float away = t_normal.z;
+
+        t_normal.z = t_normal.y;
+        t_normal.y = away;
+
+        t_normal.y = fabs(t_normal.y);
+
+        float cangle = dot((float3){0, 1, 0}, t_normal);
 
         float angle2 = acos(cangle);
 
-        float y = atan2(normal.z, normal.x);
+        float y = atan2(t_normal.z, t_normal.x);
 
         float3 rotation = {0, y, angle2};
 
-        t_normal = rot(t_normal, 0, rotation);
+        normal = rot(normal, 0, rotation);
 
-        normal = t_normal;
+        //normal = t_normal;
 
-        normal = fast_normalize(normal);
+        normal = fast_normalize(normal);*/
     }
 
     float3 ambient_sum = 0;
@@ -3639,7 +3662,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         ///for the moment, im abusing diffuse to mean both ambient and diffuse
         ///yes it is bad
-        ambient_sum += ambient * l.col.xyz * distance_modifier * l.brightness * l.diffuse * G->diffuse;
+        ambient_sum += l.col.xyz * (ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse);
 
         ///this is madness. no, this is SPARTA. This expression is slightly slower than the one above
         ///I guess this is not the use case for mad
@@ -3735,7 +3758,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
-        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
+        specular_sum += l.col.xyz * (spec * kS * l.brightness * distance_modifier);
         #endif
     }
 

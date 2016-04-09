@@ -374,7 +374,7 @@ void objects_container::patch_non_square_texture_maps()
         return;
     }
 
-    for(auto& i : objs)
+    for(object& i : objs)
     {
         i.patch_non_square_texture_maps(parent->tex_ctx);
     }
