@@ -2983,6 +2983,8 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
 
 #define ERR_COMP -4.f
 
+#define MOD_ERROR 5000.f
+
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
 __kernel
@@ -3042,9 +3044,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     int pcount = -1;
 
-    float mod = 2;
-
-    mod = area / 5000.f;
+    float mod = area / MOD_ERROR;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
@@ -3319,7 +3319,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     //float mod = 1;
 
-    float mod = area / 5000.f;
+    float mod = area / MOD_ERROR;
 
     //mod = max(1.f, mod);
 
