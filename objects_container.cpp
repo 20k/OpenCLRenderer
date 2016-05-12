@@ -126,7 +126,11 @@ void objects_container::set_active_subobjs(bool param)
         else
             objs[i].offset_pos(pos);
 
-        objs[i].set_rot(rot);
+        ///uuh. Lets not fiddle with combining euler rotations just yet
+        if(!has_independent_subobjects())
+            objs[i].set_rot(rot);
+
+
         objs[i].set_active(param);
 
         objs[i].set_buffer_offset(buffer_offset);
