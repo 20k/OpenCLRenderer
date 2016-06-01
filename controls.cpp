@@ -49,7 +49,7 @@ input_delta get_input_delta_default(float delta_time, const input_delta& input, 
     int distance_multiplier=1;
 
     cl_float4 in_pos = input.c_pos;
-    cl_float4 in_rot = input.c_rot;
+    cl_float4 in_rot = input.c_rot_keyboard_only;
 
     cl_float4 delta_pos = {0,0,0};
     cl_float4 delta_rot = {0,0,0};
@@ -122,7 +122,7 @@ input_delta get_input_delta_default(float delta_time, const input_delta& input, 
         delta_rot.x+=0.001*30 * camera_mult;
     }
 
-    return {delta_pos, delta_rot};
+    return {delta_pos, delta_rot, 0.f};
 }
 
 void process_controls_default(float delta_time, engine& eng)

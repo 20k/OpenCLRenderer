@@ -85,6 +85,7 @@ cl_uint engine::depth;
 
 cl_float4 engine::c_pos;
 cl_float4 engine::c_rot;
+cl_float4 engine::c_rot_keyboard_only;
 
 cl_float4 engine::old_pos;
 cl_float4 engine::old_rot;
@@ -343,6 +344,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     c_rot.x=0;
     c_rot.y=0;
     c_rot.z=0;
+
+    c_rot_keyboard_only = {0,0,0};
 
     ///frame lookahead
     max_render_events = 2;
@@ -821,12 +824,14 @@ void engine::process_input()
 {
     sf::Keyboard keyboard;
 
-    input_delta delta = input_handler.get_input_delta(get_frametime(), {c_pos, c_rot}, *this);
+    input_delta delta = input_handler.get_input_delta(get_frametime(), {c_pos, c_rot, c_rot_keyboard_only}, *this);
 
     input_handler.process_controls(get_frametime(), *this);
 
     c_pos = add(delta.c_pos, c_pos);
     c_rot = add(delta.c_rot, c_rot);
+
+    c_rot_keyboard_only = add(delta.c_rot, c_rot_keyboard_only);
 
 
     ///am I going to have to add camera to quaternion here to avoid problems? Yes

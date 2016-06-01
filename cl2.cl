@@ -1086,6 +1086,7 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
+///if we changed this to bicubic itd fix the normal problem I think
 float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
 {
     int slice=nums[tid2] >> 16;

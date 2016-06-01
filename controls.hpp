@@ -13,6 +13,7 @@ struct input_delta
 {
     cl_float4 c_pos;
     cl_float4 c_rot;
+    cl_float4 c_rot_keyboard_only;
 };
 
 ///must not modify external state so that it can be used for prediction

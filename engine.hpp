@@ -98,6 +98,7 @@ struct engine
     static cl_uint l_size; ///light cubemap size
     static cl_float4 c_pos; ///camera position, rotation
     static cl_float4 c_rot;
+    static cl_float4 c_rot_keyboard_only;
     static cl_float4 old_pos;
     static cl_float4 old_rot;
 

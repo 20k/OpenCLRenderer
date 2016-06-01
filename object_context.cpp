@@ -549,6 +549,8 @@ void object_context::build(bool force)
 
     auto gpu_alloc_events = alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
 
+    ///start debugging from here
+
     new_gpu_dat.tex_gpu_ctx = ctdat;
 
     new_gpu_dat.has_valid_texture_data = textures_realloc;
