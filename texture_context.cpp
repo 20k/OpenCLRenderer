@@ -389,12 +389,14 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
         tex->update_me_to_gpu(tex_data, cl::cqueue2);
         //tex->update_gpu_texture_col({255, 255, 255, 255}, tex_data);
 
+        //cl::cqueue2.finish();
+
         c++;
     }
 
-    lg::log("Texture end");
-
     last_build_textures = textures_in_use;
+
+    lg::log("Texture gpu end");
 
     return tex_data;
 }

@@ -276,30 +276,43 @@ void texture::generate_mipmaps()
     }
 }
 
-void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_queue cqueue)
+void async_cleanup(cl_event event, cl_int event_command_exec_status, void* user_data)
 {
-    sf::Texture tex;
-    tex.loadFromImage(c_image);
+    if(event_command_exec_status == CL_COMPLETE)
+    {
+        delete ((sf::Texture*)user_data);
 
-    ///?
-    update_gpu_texture(tex, gpu_dat, true, cqueue);
-    update_gpu_mipmaps(gpu_dat, cqueue);
+        lg::log("Async cleanup texture texture.cpp");
+    }
 }
 
-void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue)
+void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_queue cqueue)
+{
+    sf::Texture* tex = new sf::Texture();
+    tex->loadFromImage(c_image);
+
+    ///?
+    auto event = update_gpu_texture(*tex, gpu_dat, true, cqueue);
+    update_gpu_mipmaps(gpu_dat, cqueue);
+
+    ///this is to avoid what is potentially a bug in the amd driver relating to opengl shared object lifetimes
+    clSetEventCallback(event.get(), CL_COMPLETE, async_cleanup, tex);
+}
+
+compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue)
 {
     if(id == -1)
-        return;
+        return compute::event();
 
     GLint opengl_id;
 
-    sf::Texture::bind( &tex );
+    /**sf::Texture::bind( &tex );
     glGetIntegerv( GL_TEXTURE_BINDING_2D, &opengl_id );
-    ///a glfinish here makes it crash?
+    sf::Texture::bind(nullptr);*/
 
-    sf::Texture::bind(nullptr);
-
-    //glFinish();
+    ///WHY DIDN'T I KNOW ABOUT THIS BEFORE
+    ///equivalent to the above
+    opengl_id = tex.getNativeHandle();
 
     cl_int err;
 
@@ -311,7 +324,12 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
         lg::log("Error in clcreatefromgltexture2d in update_gpu_texture ", err);
     }
 
-    clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+    err = clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+
+    if(err != CL_SUCCESS)
+    {
+        lg::log("Error acquiring gl objects in update_gpu_texture", err);
+    }
 
     //printf("gpu %i %i\n", gpu_id & 0x0000FFFF, (gpu_id >> 16) & 0x0000FFFF);
 
@@ -326,13 +344,13 @@ void texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& g
 
     run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue);
 
-    clEnqueueReleaseGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+    cl_event clevent;
 
-    //cqueue.finish();
-
-    //cl::cqueue.finish();
+    clEnqueueReleaseGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, &clevent);
 
     clReleaseMemObject(gl_mem);
+
+    return compute::event(clevent);
 }
 
 void texture::update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat)

@@ -85,8 +85,6 @@ void object_context::destroy(objects_container* obj)
     }
 }
 
-#include "obj_mem_manager.hpp"
-
 ///why the hell is this in this file
 ///allow object loading to do a shallow copy
 void object_context::load_active()
@@ -574,8 +572,7 @@ void object_context::build(bool force)
     if(!gpu_dat.gpu_data_finished || force || !async)
     {
         ///1.2?
-        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), flattened.size(), &flattened[0], nullptr);
-        cl::cqueue2.finish();
+        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), flattened.size(), flattened.data(), nullptr);
 
         update_object_status(0, 0, this);
         flip_buffers(this);
@@ -589,6 +586,11 @@ void object_context::build(bool force)
         auto event = cl::cqueue2.enqueue_marker();
 
         clSetEventCallback(event.get(), CL_COMPLETE, update_object_status, this);
+    }
+
+    for(auto& i : flattened)
+    {
+        clReleaseEvent(i);
     }
 
     ///errhghg
