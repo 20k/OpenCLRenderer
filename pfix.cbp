@@ -103,9 +103,6 @@
 		<Unit filename="obj_load.hpp">
 			<Option weight="0" />
 		</Unit>
-		<Unit filename="obj_mem_manager.hpp">
-			<Option weight="0" />
-		</Unit>
 		<Unit filename="object.cpp" />
 		<Unit filename="object.hpp">
 			<Option weight="0" />
@@ -136,9 +133,6 @@
 		</Unit>
 		<Unit filename="texture_context.cpp" />
 		<Unit filename="texture_context.hpp" />
-		<Unit filename="texture_manager.hpp">
-			<Option weight="0" />
-		</Unit>
 		<Unit filename="triangle.cpp" />
 		<Unit filename="triangle.hpp">
 			<Option weight="0" />

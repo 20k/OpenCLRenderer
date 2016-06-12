@@ -2695,11 +2695,23 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 
 #define FRAGMENT_ID_MUL 6
 
+/*enum clip_type
+{
+
+};
+
+bool get_clip(cl_float3 p1, cl_float3 p2, cl_float3 p3, cl_float3* o1, cl_float3* o2, cl_float3* o3, int num)
+{
+
+}*/
 
 ///split triangles into fixed-length fragments
 
 ///something is causing massive slowdown when we're within the triangles, just rendering them causes very little slowdown. Out of bounds massive-ness?
 ///can skip fragmentation stage if every thread does the same amount of work in tile deferred step
+///change from
+///(all tris), (all clip), (all store)
+///to for each tri (-> clip -> store)
 __kernel
 void prearrange(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj)
@@ -2774,17 +2786,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         if(!valid || cond)
             continue;
 
-        /*for(int j=0; j<3; j++)
-        {
-            int xc = round(tris_proj[i][j].x);
-            int yc = round(tris_proj[i][j].y);
-
-            if(xc < 0 || xc >= SCREENWIDTH || yc < 0 || yc >= SCREENHEIGHT)
-                continue;
-
-            tris_proj[i][j].xy += distort_buffer[yc*SCREENWIDTH + xc];
-        }*/
-
         float3 xpv, ypv;
 
         xpv = round((float3){tris_proj[i][0].x, tris_proj[i][1].x, tris_proj[i][2].x});
@@ -2814,7 +2815,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         uint f = base*FRAGMENT_ID_MUL;
 
-        //if(b*3 + thread_num*3 < *id_buffer_maxlength)
+        //if(b*FRAGMENT_ID_MUL + thread_num*FRAGMENT_ID_MUL < *id_buffer_maxlength)
         {
             for(uint a = 0; a < thread_num; a++)
             {
@@ -2828,7 +2829,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 fragment_id_buffer[f++] = as_int(true_area);
                 fragment_id_buffer[f++] = as_int(rconst);
                 fragment_id_buffer[f++] = o_id;
-
             }
         }
     }
@@ -2982,7 +2982,7 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
     }
 }
 
-#define ERR_COMP -4.f
+//#define ERR_COMP -4.f
 
 #define MOD_ERROR 5000.f
 
@@ -4965,6 +4965,9 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
 
 int get_id(int x, int y, int z, int width, int height)
 {
+    if(x < 0 || x >= width || y < 0 || y >= height)
+        return -1;
+
     return z*width*height + y*width + x;
 }
 
@@ -5194,6 +5197,160 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
     ///separate this out into a new kernel, accumulate normals for smooth lighting
+    if(y == height-1 || x == width-1)
+        return;
+
+    float3 n0, n1, n2, n3;
+
+    n0 = vertex_to_normal(x, y, in, width, height);
+    n1 = vertex_to_normal(x+1, y, in, width, height);
+    n2 = vertex_to_normal(x+1, y+1, in, width, height);
+    n3 = vertex_to_normal(x, y+1, in, width, height);
+
+
+    ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
+    ///the count of missed values so far is y, so we subtract y
+    int tid = id * 2 - y + tri_start;
+
+    float3 p0, p1, p2, p3;
+    p0 = c2v(in[y*width + x]);
+    p1 = c2v(in[y*width + x + 1]);
+    p2 = c2v(in[(y+1)*width + x + 1]);
+    p3 = c2v(in[(y+1)*width + x]);
+
+    float3 flat_normal = pos_to_normal(x, y, in, width, height);
+
+    tris[tid].vertices[0].pos.xyz = p0;
+    tris[tid].vertices[1].pos.xyz = p1;
+    tris[tid].vertices[2].pos.xyz = p3;
+
+    tris[tid].vertices[0].normal.xyz = n0;
+    tris[tid].vertices[1].normal.xyz = n1;
+    tris[tid].vertices[2].normal.xyz = n3;
+
+
+    tris[tid + 1].vertices[0].pos.xyz = p1;
+    tris[tid + 1].vertices[1].pos.xyz = p2;
+    tris[tid + 1].vertices[2].pos.xyz = p3;
+
+    tris[tid + 1].vertices[0].normal.xyz = n1;
+    tris[tid + 1].vertices[1].normal.xyz = n2;
+    tris[tid + 1].vertices[2].normal.xyz = n3;
+}
+
+__kernel
+void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_end, int width, int height,
+                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
+                    , __write_only image2d_t screen,
+                    float floor_const,
+                    float frametime)
+{
+    ///per-vertex
+    int id = get_global_id(0);
+
+    if(id >= width*height)
+        return;
+
+    //int z = id / (width * height);
+    int z = 0;
+    int y = (id - z*width*height) / width;
+    int x = (id - z*width*height - y*width);
+
+    float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
+    float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
+
+    #define ITER_BOUND 2
+    #define LINEAR_BOUND ((ITER_BOUND)*2 + 1)
+    #define SQUARE_BOUND (LINEAR_BOUND * LINEAR_BOUND - 1)
+
+    float3 positions[SQUARE_BOUND];
+    float relaxation_dists[SQUARE_BOUND];
+
+    int pc = 0;
+
+    for(int j=-ITER_BOUND; j<=ITER_BOUND; j++)
+    {
+        for(int i=-ITER_BOUND; i<=ITER_BOUND; i++)
+        {
+            if(i == 0 && j == 0)
+                continue;
+
+            int pid = get_id(x+i, y+j, 0, width, height);
+
+            if(pid < 0)
+                continue;
+
+            positions[pc] = (float3){in[pid].x, in[pid].y, in[pid].z};
+
+            relaxation_dists[pc] = sqrt((float)i*i + j*j);
+
+            pc++;
+        }
+    }
+
+    //const float damp = 0.985f;
+    const float damp = 0.985f;
+
+    float3 acc = 0;
+
+    float gravity_mod = 0.3f;
+
+    acc.y -= gravity_mod;
+
+    ///25
+    const float rest_dist = 9.f;
+
+    for(int i=0; i<pc; i++)
+    {
+        float3 to_them = positions[i] - (mypos + (mypos - super_old) * damp);
+
+        float dist = fast_length(to_them);
+
+        float relax_dist = relaxation_dists[i] * rest_dist;
+
+        float relax_frac = relax_dist / dist;
+
+        float3 correction = to_them * (1.f - relax_frac);
+
+        float relax_mod = 1.f;
+
+        mypos = mypos + correction * relax_mod * 0.25f / (pow(relaxation_dists[i], 2) * 4);
+    }
+
+
+    if(y == height-1)
+    {
+        acc = 0;
+
+        mypos = c2v(fixed[x]);
+        super_old = c2v(fixed[x]);
+    }
+
+
+    float3 diff = (mypos - super_old);
+
+    diff = clamp(diff, -10.f, 10.f);
+
+    float expected_dt = 7.f;
+
+    float scaled_dt = frametime / expected_dt;
+
+    scaled_dt = min(scaled_dt, 1.5f);
+
+    float3 new_pos = mypos + diff * damp + acc * scaled_dt * scaled_dt;
+
+    if(new_pos.y < floor_const)
+        new_pos.y = mypos.y;
+
+    if(y == height-1)
+    {
+        acc = 0;
+
+        new_pos = c2v(fixed[x]);
+    }
+
+    out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
+
     if(y == height-1 || x == width-1)
         return;
 
