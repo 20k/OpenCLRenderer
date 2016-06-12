@@ -394,6 +394,8 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
         c++;
     }
 
+    cl::cqueue2.flush();
+
     last_build_textures = textures_in_use;
 
     lg::log("Texture gpu end");

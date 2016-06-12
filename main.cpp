@@ -179,7 +179,6 @@ int main(int argc, char *argv[])
 
     sf::Keyboard key;
 
-
     float avg_ftime = 6000;
 
 
@@ -235,5 +234,6 @@ int main(int argc, char *argv[])
     ///if we're doing async rendering on the main thread, then this is necessary
     window.render_block();
     cl::cqueue.finish();
+    cl::cqueue2.finish();
     glFinish();
 }
