@@ -5267,6 +5267,7 @@ float get_separation_modifier(int y, int height, float min_sep, float max_sep)
     return frac;
 }
 
+///still pretty jittery
 __kernel
 void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_end, int width, int height,
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed,
@@ -5330,7 +5331,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         }
     }
 
-    const float damp = 0.99985f;
+    const float damp = 0.985f;
 
     float3 acc = 0;
 
@@ -5363,9 +5364,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
             if(idist <= ITER_BOUND*2 && jdist <= ITER_BOUND*2)
                 continue;
 
-            float mbound = min(get_separation_modifier(j, height, rest_dist*shrinkage_to_fixed, rest_dist),
-                               get_separation_modifier(y, height, rest_dist*shrinkage_to_fixed, rest_dist));
-
+            float mbound = get_separation_modifier(max(j, y), height, rest_dist*shrinkage_to_fixed, rest_dist);
             float bound = mbound*2;
 
             if(dist < bound)
@@ -5374,7 +5373,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
                 extra_to_away /= bound/2.f;
 
-                float mod = 0.01f;
+                float mod = 0.02f;
 
                 mypos = mypos + extra_to_away * to_them * mod;
             }
