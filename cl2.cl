@@ -5280,13 +5280,6 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
 
     #define ITER_BOUND 2
-    #define LINEAR_BOUND ((ITER_BOUND)*2 + 1)
-    #define SQUARE_BOUND (LINEAR_BOUND * LINEAR_BOUND - 1)
-
-    //float3 positions[SQUARE_BOUND];
-    //float relaxation_dists[SQUARE_BOUND];
-
-    //int pc = 0;
 
     ///why are these two separated, could merge for big performance
     for(int j=-ITER_BOUND; j<=ITER_BOUND; j++)
@@ -5322,8 +5315,6 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
             float relax_mod = 0.115f;
 
             mypos = mypos + correction * relax_mod * 0.25f;
-
-            //pc++;
         }
     }
 
@@ -5335,29 +5326,6 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     acc.y -= gravity_mod;
 
-    /*for(int idx=0; idx < pc; idx++)
-    {
-        float3 nmpos = mypos + (mypos - super_old);
-
-        int i = idx;
-
-        //if(idx >= pc)
-        //    i = pc - (idx - pc) - 1;
-
-        float3 to_them = positions[i] - nmpos;
-
-        float dist = fast_length(to_them);
-
-        float relax_dist = rest_dist * relaxation_dists[i];
-
-        float relax_frac = relax_dist / dist;
-
-        float3 correction = to_them * (1.f - relax_frac);
-
-        float relax_mod = 0.115f;
-
-        mypos = mypos + correction * relax_mod * 0.25f;// / (pow(relaxation_dists[i], 2) * 4);
-    }*/
 
     ///ok, this works, but its terrible due to n^4 runtime
     ///force is possibly too strong here
