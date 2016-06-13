@@ -5322,7 +5322,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     float3 acc = 0;
 
-    float gravity_mod = 0.15f;
+    float gravity_mod = 0.05f;
 
     acc.y -= gravity_mod;
 
