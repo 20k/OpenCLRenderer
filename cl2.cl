@@ -2764,6 +2764,18 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     if(fast_length(g_world_pos - c_pos.xyz) > depth_far)
         return;
 
+    for(int i=0; i<3; i++)
+    {
+        if(any(isnan(T->vertices[i].pos.xyz)))
+            return;
+
+        if(any(fabs(T->vertices[i].pos.xyz) >= FLT_MAX/8192.f))
+            return;
+
+        if(any(isinf(T->vertices[i].pos.xyz)))
+            return;
+    }
+
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
     full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
@@ -5238,6 +5250,14 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid + 1].vertices[2].normal.xyz = n3;
 }
 
+int get_id_new(int x, int y, int width, int height)
+{
+    if(x < 0 || x >= width || y < 0 || y >= height)
+        return -1;
+
+    return y*width + x;
+}
+
 __kernel
 void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_end, int width, int height,
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
@@ -5252,9 +5272,8 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         return;
 
     //int z = id / (width * height);
-    int z = 0;
-    int y = (id - z*width*height) / width;
-    int x = (id - z*width*height - y*width);
+    int y = id / width;
+    int x = id - y*width;
 
     float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
     float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
@@ -5275,7 +5294,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
             if(i == 0 && j == 0)
                 continue;
 
-            int pid = get_id(x+i, y+j, 0, width, height);
+            int pid = get_id_new(x+i, y+j, width, height);
 
             if(pid < 0)
                 continue;
@@ -5288,44 +5307,40 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         }
     }
 
-    //const float damp = 0.985f;
-    const float damp = 0.985f;
+    const float damp = 0.99985f;
 
     float3 acc = 0;
 
-    float gravity_mod = 0.3f;
+    float gravity_mod = 0.05f;
 
     acc.y -= gravity_mod;
 
-    ///25
     const float rest_dist = 9.f;
 
-    for(int i=0; i<pc; i++)
+
+    for(int idx=0; idx < pc; idx++)
     {
-        float3 to_them = positions[i] - (mypos + (mypos - super_old) * damp);
+        float3 nmpos = mypos + (mypos - super_old);
+
+        int i = idx;
+
+        //if(idx >= pc)
+        //    i = pc - (idx - pc) - 1;
+
+        float3 to_them = positions[i] - nmpos;
 
         float dist = fast_length(to_them);
 
-        float relax_dist = relaxation_dists[i] * rest_dist;
+        float relax_dist = rest_dist * relaxation_dists[i];
 
         float relax_frac = relax_dist / dist;
 
         float3 correction = to_them * (1.f - relax_frac);
 
-        float relax_mod = 1.f;
+        float relax_mod = 0.115f;
 
-        mypos = mypos + correction * relax_mod * 0.25f / (pow(relaxation_dists[i], 2) * 4);
+        mypos = mypos + correction * relax_mod * 0.25f;// / (pow(relaxation_dists[i], 2) * 4);
     }
-
-
-    if(y == height-1)
-    {
-        acc = 0;
-
-        mypos = c2v(fixed[x]);
-        super_old = c2v(fixed[x]);
-    }
-
 
     float3 diff = (mypos - super_old);
 
@@ -5339,13 +5354,12 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     float3 new_pos = mypos + diff * damp + acc * scaled_dt * scaled_dt;
 
+    ///huhh?
     if(new_pos.y < floor_const)
         new_pos.y = mypos.y;
 
     if(y == height-1)
     {
-        acc = 0;
-
         new_pos = c2v(fixed[x]);
     }
 
