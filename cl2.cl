@@ -5258,13 +5258,21 @@ int get_id_new(int x, int y, int width, int height)
     return y*width + x;
 }
 
+float get_separation_modifier(int y, int height, float min_sep, float max_sep)
+{
+    float frac = 1.f - (float)y/(height-1);
+
+    frac = frac * (max_sep - min_sep) + min_sep;
+
+    return frac;
+}
 
 __kernel
 void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_end, int width, int height,
-                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed
-                    , __write_only image2d_t screen,
+                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed,
+                    __write_only image2d_t screen,
                     float floor_const,
-                    float frametime, float rest_dist)
+                    float frametime, float rest_dist, float shrinkage_to_fixed)
 {
     ///per-vertex
     int id = get_global_id(0);
@@ -5298,6 +5306,9 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
             float orelax = sqrt((float)i*i + j*j);
 
+            int their_height = y+j;
+
+            float their_test_separation = get_separation_modifier(their_height, height, rest_dist*shrinkage_to_fixed, rest_dist);
 
 
             float3 nmpos = mypos + (mypos - super_old);
@@ -5306,7 +5317,8 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
             float dist = fast_length(to_them);
 
-            float relax_dist = rest_dist * orelax;
+            float relax_dist = their_test_separation * orelax;
+            //float relax_dist = rest_dist * orelax;
 
             float relax_frac = relax_dist / dist;
 
@@ -5327,11 +5339,14 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     acc.y -= gravity_mod;
 
 
+    #define SELF_REPULSE
+    #ifdef SELF_REPULSE
+
     ///ok, this works, but its terrible due to n^4 runtime
     ///force is possibly too strong here
-    for(int j=0; j<height; j+=4)
+    for(int j=0; j<height; j+=2)
     {
-        for(int i=0; i<width; i+=4)
+        for(int i=0; i<width; i+=2)
         {
             int pid = j*width + i;
 
@@ -5345,10 +5360,13 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
             float idist = fabs((float)i - x);
             float jdist = fabs((float)j - y);
 
-            if(idist <= ITER_BOUND*4 && jdist <= ITER_BOUND*4)
+            if(idist <= ITER_BOUND*2 && jdist <= ITER_BOUND*2)
                 continue;
 
-            float bound = rest_dist*2*2;
+            float mbound = min(get_separation_modifier(j, height, rest_dist*shrinkage_to_fixed, rest_dist),
+                               get_separation_modifier(y, height, rest_dist*shrinkage_to_fixed, rest_dist));
+
+            float bound = mbound*2;
 
             if(dist < bound)
             {
@@ -5356,13 +5374,13 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
                 extra_to_away /= bound/2.f;
 
-
                 float mod = 0.01f;
 
                 mypos = mypos + extra_to_away * to_them * mod;
             }
         }
     }
+    #endif
 
     float3 diff = (mypos - super_old);
 
