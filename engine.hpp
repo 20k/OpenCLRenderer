@@ -318,7 +318,8 @@ struct arg_list
 
     void push_back(std::nullptr_t ptr)
     {
-        lg::log("warning, nullptr in arg list");
+        ///turns out we might want a nullptr in the argument list for option arguments
+        //lg::log("warning, nullptr in arg list");
 
         args.push_back(ptr);
         sizes.push_back(sizeof(std::nullptr_t));

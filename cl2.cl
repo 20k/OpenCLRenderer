@@ -5275,7 +5275,7 @@ float get_separation_modifier(int y, int height, float min_sep, float max_sep)
 ///still pretty jittery
 __kernel
 void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_end, int width, int height,
-                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed,
+                    __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed, __global struct cloth_pos* fixed_other_end,
                     __write_only image2d_t screen,
                     float floor_const,
                     float frametime, float rest_dist, float shrinkage_to_fixed)
