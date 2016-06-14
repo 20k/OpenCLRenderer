@@ -247,6 +247,7 @@ struct engine
 
     float get_scrollwheel_delta();
     float get_frametime();
+    float get_frametime_ms();
     float get_time_since_frame_start();
 
     int get_width();
@@ -446,7 +447,16 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
             lg::log("Pre arg ", i);
         }
 
-        cl_int rarg = clSetKernelArg(kernel.kernel.get(), i, argv.sizes[i], (argv.args[i]));
+        int arg_size = argv.sizes[i];
+        void* arg = argv.args[i];
+
+        if(arg_size == 0)
+        {
+            arg = nullptr;
+            arg_size = sizeof(std::nullptr_t);
+        }
+
+        cl_int rarg = clSetKernelArg(kernel.kernel.get(), i, arg_size, arg);
 
         if(rarg != CL_SUCCESS)
         {

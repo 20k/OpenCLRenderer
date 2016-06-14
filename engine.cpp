@@ -894,6 +894,11 @@ float engine::get_frametime()
     return current_time - old_time;
 }
 
+float engine::get_frametime_ms()
+{
+    return get_frametime() / 1000.f;
+}
+
 float engine::get_time_since_frame_start()
 {
     return ftime.getElapsedTime().asMicroseconds() - current_time;

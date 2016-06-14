@@ -5287,7 +5287,8 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
                     __write_only image2d_t screen,
                     float floor_const,
                     float frametime, float rest_dist, float shrinkage_to_fixed,
-                    int looping)
+                    int looping,
+                    __global float4* body_positions, int body_num)
 {
     ///per-vertex
     int id = get_global_id(0);
@@ -5410,6 +5411,30 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         }
     }
 
+    #endif
+
+    ///I repel myself
+    #define BODY_REPULSION
+    #ifdef BODY_REPULSION
+    for(int i=0; i<body_num; i++)
+    {
+        float3 pos = body_positions[i].xyz;
+
+        const float rad = 80.f;
+
+        float3 diff = mypos + (mypos - super_old) - pos;
+
+        float len = fast_length(diff);
+
+        float dist_left = rad - len;
+
+        if(len > rad)
+            continue;
+
+        mypos = mypos + 0.02f * (dist_left / rad) * diff;
+
+        //acc += (1.f - (len/rad)) * dist_left * fast_normalize(diff);
+    }
     #endif
 
     float3 diff = (mypos - super_old);
