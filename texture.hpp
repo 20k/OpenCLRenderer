@@ -19,6 +19,7 @@ struct texture;
 
 void texture_load(texture*);
 void texture_make_blank(texture* tex, int w, int h, sf::Color col);
+void texture_load_from_image(texture* tex, sf::Image&);
 
 struct texture_gpu;
 struct texture_context_data;

@@ -41,6 +41,7 @@ object::object() : tri_list(0)
     gpu_tri_end = 0;
 
     specular = 0.9f;
+    spec_mult = 1.f;
     diffuse = 1.f;
 
     two_sided = 0;

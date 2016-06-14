@@ -74,6 +74,7 @@ struct objects_container
     void    unload();
 
     void    set_specular(float); ///1.f - roughness
+    void    set_spec_mult(float);
     void    set_diffuse(float); ///kD
     void    set_normal(const std::string&);
     void    set_two_sided(bool);

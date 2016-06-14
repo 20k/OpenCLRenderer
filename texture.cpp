@@ -446,6 +446,18 @@ void texture_make_blank(texture* tex, int w, int h, sf::Color col)
     }
 }
 
+void texture_load_from_image(texture* tex, sf::Image& img)
+{
+    tex->c_image = img;
+    tex->is_loaded = true;
+
+    if(tex->get_largest_dimension() > max_tex_size)
+    {
+        lg::log("Error, texture larger than max texture size @", __LINE__, " @", __FILE__);
+        ///error? set isloaded to false? return bad id or throw?
+    }
+}
+
 void texture::set_load_func(std::function<void (texture*)> func)
 {
     fp = func;

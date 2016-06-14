@@ -81,6 +81,7 @@ struct obj_g_descriptor
     uint mip_start;
     uint has_bump;
     float specular;
+    float spec_mult;
     float diffuse;
     uint two_sided;
     int buffer_offset; ///0 == first buffer, 1 == second etc
@@ -3592,9 +3593,13 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     {
         float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array).xyz;
 
-        t_normal = 2.f * t_normal - 1.f;
+        normal = fast_normalize(t_normal);
 
-        t_normal.yz = t_normal.zy;
+
+
+        /*t_normal = 2.f * t_normal - 1.f;
+
+        t_normal.yz = t_normal.zy;*/
 
         ///we're gunna have to calculate the derivatives and do tangent stuff :[
 
@@ -3741,8 +3746,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         const float kS = 1.f;
 
         float spec = mdot(H, N);
-        spec = pow(spec, 30.f);
-        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier;
+        spec = pow(spec, G->specular);
+        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier * G->spec_mult;
 
         #else
         const float kS = 0.4f;
@@ -3771,7 +3776,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
-        specular_sum += l.col.xyz * (spec * kS * l.brightness * distance_modifier);
+        specular_sum += l.col.xyz * (spec * kS * l.brightness * distance_modifier) * G->spec_mult;
         #endif
     }
 
@@ -3780,7 +3785,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     diffuse_sum += ambient_sum;
 
-    //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
     specular_sum = clamp(specular_sum, 0.0f, 1.0f);
     int2 scoord = {x, y};
 

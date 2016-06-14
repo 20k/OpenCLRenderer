@@ -239,6 +239,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             desc.world_rot = it.rot;
             desc.has_bump = it.has_bump;
             desc.specular = it.specular;
+            desc.spec_mult = it.spec_mult;
             desc.diffuse = it.diffuse;
             desc.two_sided = it.two_sided;
             desc.buffer_offset = it.buffer_offset;

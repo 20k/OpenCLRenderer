@@ -15,6 +15,7 @@ struct obj_g_descriptor
     cl_uint mip_start;
     cl_uint has_bump;
     cl_float specular;
+    cl_float spec_mult;
     cl_float diffuse;
     cl_uint two_sided;
     cl_int buffer_offset;

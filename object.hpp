@@ -55,6 +55,7 @@ struct object
     ///despite being named similarly, these two are very different
     ///specular = 1.f - rough, diffuse = kD
     float specular;
+    float spec_mult;
     float diffuse;
     cl_uint two_sided;
 

@@ -330,6 +330,14 @@ void objects_container::set_specular(float spec)
     }
 }
 
+void objects_container::set_spec_mult(float s)
+{
+    for(auto& i : objs)
+    {
+        i.spec_mult = s;
+    }
+}
+
 void objects_container::set_diffuse(float diffuse)
 {
     for(auto& i : objs)
