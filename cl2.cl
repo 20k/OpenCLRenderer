@@ -5446,9 +5446,6 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     if(!looping && x == width-1)
         return;
 
-    //if(y == height-1 || x == width-1)
-    //    return;
-
     int lx = x == width-1 ? 0 : x+1;
 
     float3 n0, n1, n2, n3;
@@ -5461,6 +5458,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
     ///the count of missed values so far is y, so we subtract y
+    ///above comment incorrect for y looparound. Not really necessary anyway, not present in code below
     int tid = id * 2 + tri_start;
 
     float3 p0, p1, p2, p3;

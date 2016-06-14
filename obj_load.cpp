@@ -614,6 +614,26 @@ void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim)
     pobj->set_two_sided(true);
 }
 
+void obj_polygon(objects_container* pobj, texture& tex, struct triangle (*f)(int), int num)
+{
+    object obj;
+
+    obj.isloaded = true;
+
+    for(int i=0; i<num; i++)
+    {
+        obj.tri_list.push_back(f(i));
+    }
+
+    obj.tri_num = obj.tri_list.size();
+
+    obj.tid = tex.id;
+
+    pobj->objs.push_back(obj);
+
+    pobj->isloaded = true;
+}
+
 #include <vec/vec.hpp>
 
 std::vector<triangle> subdivide_tris(const std::vector<triangle>& in)
