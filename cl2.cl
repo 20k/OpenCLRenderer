@@ -5363,7 +5363,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     float3 acc = 0;
 
-    float gravity_mod = 0.15f;
+    float gravity_mod = 0.25f;
 
     acc.y -= gravity_mod;
 
@@ -5421,7 +5421,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     {
         float3 pos = body_positions[i].xyz;
 
-        const float rad = 5.f;
+        const float rad = 5.5f;
 
         float3 diff = mypos + (mypos - super_old) - pos;
 
@@ -5451,7 +5451,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
         float mult = 1;
 
-        mypos = mypos + mult * 0.9f * (dist_left / rad) * diff;
+        mypos = mypos + mult * 0.59f * sqrt(dist_left / rad) * diff;
 
         diff = mypos + (mypos - super_old) - pos;
 
@@ -5463,7 +5463,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
         float3 tangent = move_dir - proj;
 
-        mypos = mypos - tangent * 0.4f;
+        mypos = mypos - tangent * 0.1f;
     }
     #endif
 
