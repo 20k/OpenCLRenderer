@@ -5255,8 +5255,16 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid + 1].vertices[2].normal.xyz = n3;
 }
 
-int get_id_new(int x, int y, int width, int height)
+int get_id_new(int x, int y, int width, int height, int is_xaxis_looping)
 {
+    if(is_xaxis_looping)
+    {
+        if(x < 0)
+            x += width;
+        if(x >= width)
+            x -= width;
+    }
+
     if(x < 0 || x >= width || y < 0 || y >= height)
         return -1;
 
@@ -5278,7 +5286,8 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
                     __global struct cloth_pos* in, __global struct cloth_pos* out, __global struct cloth_pos* fixed, __global struct cloth_pos* fixed_other_end,
                     __write_only image2d_t screen,
                     float floor_const,
-                    float frametime, float rest_dist, float shrinkage_to_fixed)
+                    float frametime, float rest_dist, float shrinkage_to_fixed,
+                    int looping)
 {
     ///per-vertex
     int id = get_global_id(0);
@@ -5303,7 +5312,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
             if(i == 0 && j == 0)
                 continue;
 
-            int pid = get_id_new(x+i, y+j, width, height);
+            int pid = get_id_new(x+i, y+j, width, height, looping);
 
             if(pid < 0)
                 continue;
@@ -5336,6 +5345,19 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         }
     }
 
+    /*if(looping && (x == 0 || x == width-1))
+    {
+        int target_x = x == 0 ? width-1 : 0;
+
+        int pid = get_id_new(target_x, y, width, height, looping);
+
+        float3 tx = (float3){in[pid].x, in[pid].y, in[pid].z};
+
+        float3 to_target = tx - mypos;
+
+        mypos = (mypos + tx)/2.f;
+    }*/
+
     const float damp = 0.985f;
 
     float3 acc = 0;
@@ -5350,40 +5372,44 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     ///ok, this works, but its terrible due to n^4 runtime
     ///force is possibly too strong here
-    for(int j=0; j<height; j+=2)
+    if(!looping)
     {
-        for(int i=0; i<width; i+=2)
+        for(int j=0; j<height; j+=2)
         {
-            int pid = j*width + i;
-
-            float3 their_pos = (float3){in[pid].x, in[pid].y, in[pid].z};
-
-            ///??? vertlet?
-            float3 to_them = their_pos - (mypos + (mypos - super_old));
-
-            float dist = fast_length(to_them);
-
-            float idist = fabs((float)i - x);
-            float jdist = fabs((float)j - y);
-
-            if(idist <= ITER_BOUND*2 && jdist <= ITER_BOUND*2)
-                continue;
-
-            float mbound = get_separation_modifier(max(j, y), height, rest_dist*shrinkage_to_fixed, rest_dist);
-            float bound = mbound*2;
-
-            if(dist < bound)
+            for(int i=0; i<width; i+=2)
             {
-                float extra_to_away = bound/2.f - dist;
+                int pid = j*width + i;
 
-                extra_to_away /= bound/2.f;
+                float3 their_pos = (float3){in[pid].x, in[pid].y, in[pid].z};
 
-                float mod = 0.02f;
+                ///??? vertlet?
+                float3 to_them = their_pos - (mypos + (mypos - super_old));
 
-                mypos = mypos + extra_to_away * to_them * mod;
+                float dist = fast_length(to_them);
+
+                float idist = fabs((float)i - x);
+                float jdist = fabs((float)j - y);
+
+                if(idist <= ITER_BOUND*2 && jdist <= ITER_BOUND*2)
+                    continue;
+
+                float mbound = get_separation_modifier(max(j, y), height, rest_dist*shrinkage_to_fixed, rest_dist);
+                float bound = mbound*2;
+
+                if(dist < bound)
+                {
+                    float extra_to_away = bound/2.f - dist;
+
+                    extra_to_away /= bound/2.f;
+
+                    float mod = 0.02f;
+
+                    mypos = mypos + extra_to_away * to_them * mod;
+                }
             }
         }
     }
+
     #endif
 
     float3 diff = (mypos - super_old);
@@ -5407,30 +5433,43 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         new_pos = c2v(fixed[x]);
     }
 
+    if(fixed_other_end && y == 0)
+    {
+        new_pos = c2v(fixed_other_end[x]);
+    }
+
     out[id] = (struct cloth_pos){new_pos.x, new_pos.y, new_pos.z};
 
-    if(y == height-1 || x == width-1)
+    if(y == height-1)
         return;
+
+    if(!looping && x == width-1)
+        return;
+
+    //if(y == height-1 || x == width-1)
+    //    return;
+
+    int lx = x == width-1 ? 0 : x+1;
 
     float3 n0, n1, n2, n3;
 
     n0 = vertex_to_normal(x, y, in, width, height);
-    n1 = vertex_to_normal(x+1, y, in, width, height);
-    n2 = vertex_to_normal(x+1, y+1, in, width, height);
+    n1 = vertex_to_normal(lx, y, in, width, height);
+    n2 = vertex_to_normal(lx, y+1, in, width, height);
     n3 = vertex_to_normal(x, y+1, in, width, height);
 
 
     ///need to remove 1 id for every row because tris are 0 -> width-1 not 0 -> width
     ///the count of missed values so far is y, so we subtract y
-    int tid = id * 2 - y + tri_start;
+    int tid = id * 2 + tri_start;
 
     float3 p0, p1, p2, p3;
     p0 = c2v(in[y*width + x]);
-    p1 = c2v(in[y*width + x + 1]);
-    p2 = c2v(in[(y+1)*width + x + 1]);
+    p1 = c2v(in[y*width + lx]);
+    p2 = c2v(in[(y+1)*width + lx]);
     p3 = c2v(in[(y+1)*width + x]);
 
-    float3 flat_normal = pos_to_normal(x, y, in, width, height);
+    //float3 flat_normal = pos_to_normal(x, y, in, width, height);
 
     tris[tid].vertices[0].pos.xyz = p0;
     tris[tid].vertices[1].pos.xyz = p1;
