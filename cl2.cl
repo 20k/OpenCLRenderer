@@ -5303,7 +5303,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     float3 mypos = (float3){in[id].x, in[id].y, in[id].z};
     float3 super_old = (float3){out[id].x, out[id].y, out[id].z};
 
-    #define ITER_BOUND 2
+    #define ITER_BOUND 3
 
     ///why are these two separated, could merge for big performance
     for(int j=-ITER_BOUND; j<=ITER_BOUND; j++)
@@ -5359,11 +5359,11 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
         mypos = (mypos + tx)/2.f;
     }*/
 
-    const float damp = 0.985f;
+    float damp = 0.995985f;
 
     float3 acc = 0;
 
-    float gravity_mod = 0.05f;
+    float gravity_mod = 0.15f;
 
     acc.y -= gravity_mod;
 
@@ -5391,7 +5391,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
                 float idist = fabs((float)i - x);
                 float jdist = fabs((float)j - y);
 
-                if(idist <= ITER_BOUND*2 && jdist <= ITER_BOUND*2)
+                if(idist <= ITER_BOUND*3 && jdist <= ITER_BOUND*3)
                     continue;
 
                 float mbound = get_separation_modifier(max(j, y), height, rest_dist*shrinkage_to_fixed, rest_dist);
@@ -5413,6 +5413,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
     #endif
 
+    ///maybe make these body planes?
     ///I repel myself
     #define BODY_REPULSION
     #ifdef BODY_REPULSION
@@ -5420,7 +5421,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     {
         float3 pos = body_positions[i].xyz;
 
-        const float rad = 80.f;
+        const float rad = 5.f;
 
         float3 diff = mypos + (mypos - super_old) - pos;
 
@@ -5428,12 +5429,41 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
         float dist_left = rad - len;
 
+        /*float bound = rad * 4;
+
+        if(len < bound && len > rad)
+        {
+            float3 to_pos = (pos - (mypos + (mypos - super_old)));
+
+            float tdist = bound - len;
+
+            tdist = 1.f - (tdist / (bound - rad));
+
+            //tdist = min(tdist, 0.2f);
+
+            mypos = mypos + to_pos * tdist * 0.002f;
+        }*/
+
         if(len > rad)
             continue;
 
-        mypos = mypos + 0.02f * (dist_left / rad) * diff;
+        float3 move_dir = mypos - super_old;
 
-        //acc += (1.f - (len/rad)) * dist_left * fast_normalize(diff);
+        float mult = 1;
+
+        mypos = mypos + mult * 0.9f * (dist_left / rad) * diff;
+
+        diff = mypos + (mypos - super_old) - pos;
+
+        ///get vector projection of direction along normal
+
+        float scalar_proj = dot(move_dir, fast_normalize(diff));
+
+        float3 proj = scalar_proj * fast_normalize(diff);
+
+        float3 tangent = move_dir - proj;
+
+        mypos = mypos - tangent * 0.4f;
     }
     #endif
 
@@ -5446,6 +5476,9 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     float scaled_dt = frametime / expected_dt;
 
     scaled_dt = min(scaled_dt, 1.5f);
+
+    if(looping != 1 && (x == 0 || x == width-1))
+        damp = damp / 1.5f;
 
     float3 new_pos = mypos + diff * damp + acc * scaled_dt * scaled_dt;
 
