@@ -387,6 +387,7 @@ float idcalc(float);
 
 extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
+
 ///runs a kernel with a particular set of arguments
 inline
 compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true, compute::command_queue& cqueue = cl::cqueue, bool debug = false)
@@ -499,8 +500,6 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
         lg::log("Post kernel invocation");
 
     //clEnqueueNDRangeKernel(cqueue.get(), kernel.kernel.get(), dimensions, nullptr, g_ws, l_ws, 0, nullptr, nullptr);
-
-    //compute::event event;
 
     #ifdef PROFILING
     cl::cqueue.finish();

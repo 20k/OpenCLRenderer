@@ -3837,6 +3837,32 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     //write_imagef(screen, scoord, (float4)(col*lightaccum*0.0001 + ldepth/100000.0f, 0));
 }
 
+///tells the runtime to look for the identifier with thate name
+#define AUTOMATIC(t, x) t x
+
+__kernel
+void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer))
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+
+    uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
+
+    uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
+    uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+
+
+}
+
 ///use atomics to be able to reproject forwards, not backwards
 ///do we want to reproject 4 and then fill in the area?
 
