@@ -3785,7 +3785,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     diffuse_sum += ambient_sum;
 
-    diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
+    //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
     specular_sum = clamp(specular_sum, 0.0f, 1.0f);
     int2 scoord = {x, y};
 
@@ -5451,7 +5451,7 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
 
         float mult = 1;
 
-        mypos = mypos + mult * 0.59f * sqrt(dist_left / rad) * diff;
+        mypos = mypos + mult * 0.59f * (dist_left / rad) * diff;
 
         diff = mypos + (mypos - super_old) - pos;
 
