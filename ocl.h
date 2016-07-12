@@ -192,115 +192,13 @@ struct automatic_argment_identifiers
     std::vector<automatic_argument> args;
 };
 
-inline
-bool expect(char* text, const std::string& str, int& pos)
-{
-    for(int i=0; i<str.size(); i++)
-    {
-        if(text[pos + i] == '\0')
-            return false;
-
-        if(text[pos + i] != str[i])
-            return false;
-    }
-
-    //lg::log(pos, " ", str.size());
-
-    pos += str.size();
-
-    return true;
-}
-
-inline
-std::string until(char* text, const std::vector<char>& terminator_list, int& pos)
-{
-    std::string ret;
-
-    while(text[pos] != '\0')
-    {
-        //if(text[pos] == terminator)
-        //    return ret;
-
-        for(auto& c : terminator_list)
-        {
-            if(c == text[pos])
-                return ret;
-        }
-
-        ret.push_back(text[pos]);
-
-        pos++;
-    }
-}
-
-inline void discard_spaces(char* text, int& pos)
-{
-    while(text[pos] != '\0' && text[pos] != ' ')
-    {
-        pos++;
-    }
-}
 
 ///I hate parsing things, but sometimes you've gotta do what you've gotta do
 ///because I aint parsing this for real
 ///although actualy, we could just look for kernel and do proper parsing, with attributes
 ///but lets take the easy and well thought out route for the moment
-inline
-automatic_argment_identifiers parse_automatic_arguments(char* text)
-{
-    lg::log("PARSE\n\n\n\n\n\n\n\n");
 
-    if(text == nullptr)
-        return {};
-
-    lg::log("text not null");
-
-    std::string identifier = "AUTOMATIC";
-
-    int desired_len = identifier.length();
-
-    int current_character_looking_for = 0;
-
-    int pos = 0;
-
-    while(text[pos] != '\0')
-    {
-        if(expect(text, "#define ", pos))
-        {
-            discard_spaces(text, pos);
-
-            ///definition of the thing
-            if(expect(text, identifier, pos))
-            {
-                continue;
-            }
-        }
-
-        if(expect(text, identifier, pos))
-        {
-            //lg::log("found identifier");
-
-            if(expect(text, "(", pos))
-            {
-                //lg::log("found (");
-
-                std::string type = until(text, {','}, pos);
-
-                discard_spaces(text, pos);
-
-                std::string argument_name = until(text, {')'}, pos);
-
-                lg::log("Automatic argument name ", type, argument_name);
-            }
-
-        }
-
-        pos++;
-    }
-
-    return {};
-}
-
+std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text);
 
 bool use_3d_texture_array();
 
