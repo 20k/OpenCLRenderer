@@ -18,12 +18,29 @@
 
 namespace compute = boost::compute;
 
+
+struct automatic_argument
+{
+    int pos = -1;
+    std::string type;
+    std::string identifier;
+};
+
+struct automatic_argument_identifiers
+{
+    std::string kernel_name;
+
+    std::vector<automatic_argument> args;
+};
+
 struct kernel
 {
     compute::kernel kernel;
     std::string name;
     bool loaded = false;
     cl_uint work_size;
+
+    automatic_argument_identifiers automatic_arguments;
 };
 
 namespace cl

@@ -131,12 +131,57 @@ static char* file_contents(const char *filename, int *length)
     return (char*)buffer;
 }
 
+extern std::map<std::string, void*> registered_automatic_argument_map;
+
+
+extern std::vector<automatic_argument_identifiers> parsed_automatic_arguments;
+
+inline
+void register_automatic(void* buf, const std::string& name)
+{
+    registered_automatic_argument_map[name] = buf;
+}
+
+inline
+void* get_automatic(const std::string& name, bool& success)
+{
+    auto it = registered_automatic_argument_map.find(name);
+
+    success = false;
+
+    if(it == registered_automatic_argument_map.end())
+    {
+        return nullptr;
+    }
+
+    void* ptr = it->second;
+
+    if(ptr == nullptr)
+        return nullptr;
+
+    success = true;
+
+    return ptr;
+}
+
 static kernel load_kernel(const compute::program &p, const std::string& name)
 {
     kernel k;
     k.kernel = compute::kernel(p, name);
     k.name = name;
     k.loaded = true;
+
+    for(int i=0; i<parsed_automatic_arguments.size(); i++)
+    {
+        if(parsed_automatic_arguments[i].kernel_name == name)
+        {
+            k.automatic_arguments = parsed_automatic_arguments[i];
+
+            lg::log("Found an autoargument pack of size ", k.automatic_arguments.args.size(), " in kernel ", k.name);
+
+            break;
+        }
+    }
 
     size_t ret = 128;
 
@@ -148,49 +193,6 @@ static kernel load_kernel(const compute::program &p, const std::string& name)
 }
 
 extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
-
-
-extern std::map<std::string, compute::buffer*> automatic_argument_map;
-
-inline void register_automatic(compute::buffer* buf, const std::string& name)
-{
-    automatic_argument_map[name] = buf;
-}
-
-inline
-compute::buffer get_automatic(const std::string& name, bool& success)
-{
-    auto it = automatic_argument_map.find(name);
-
-    success = false;
-
-    if(it == automatic_argument_map.end())
-    {
-        return compute::buffer();
-    }
-
-    compute::buffer* ptr = it->second;
-
-    if(ptr == nullptr)
-        return compute::buffer();
-
-    success = true;
-
-    return *ptr;
-}
-
-struct automatic_argument
-{
-    int pos = -1;
-    std::string identifier;
-};
-
-struct automatic_argument_identifiers
-{
-    std::string kernel_name;
-
-    std::vector<automatic_argument> args;
-};
 
 
 ///I hate parsing things, but sometimes you've gotta do what you've gotta do
@@ -242,7 +244,7 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d,
 
     source = file_contents(file.c_str(), &src_size);
 
-    parse_automatic_arguments(source);
+    parsed_automatic_arguments = parse_automatic_arguments(source);
 
     lg::log("Loaded file");
 

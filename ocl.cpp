@@ -1,6 +1,7 @@
 #include "ocl.h"
 
-std::map<std::string, compute::buffer*> automatic_argument_map;
+std::map<std::string, void*> registered_automatic_argument_map;
+std::vector<automatic_argument_identifiers> parsed_automatic_arguments;
 
 inline
 bool expect(char* text, const std::string& str, int& pos)
@@ -119,7 +120,7 @@ std::vector<automatic_argument_identifiers> parse_automatic_arguments(char* text
                 automatic_argument_identifiers& aargs = kernel_arg_map[current_kernel_name];
 
                 aargs.kernel_name = current_kernel_name;
-                //aargs.args.push_back({})
+                aargs.args.push_back({argc, type, argument_name});
 
                 expect(text, ")", pos);
             }
@@ -176,6 +177,11 @@ std::vector<automatic_argument_identifiers> parse_automatic_arguments(char* text
     }
 
     std::vector<automatic_argument_identifiers> ret;
+
+    for(auto& i : kernel_arg_map)
+    {
+        ret.push_back(i.second);
+    }
 
     return ret;
 }

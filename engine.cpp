@@ -1190,6 +1190,10 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     run_kernel_with_string("tile_clear", {tilew, tileh}, {16, 16}, 2, clear_args);*/
 
+    register_automatic(&dat.g_id_screen_tex, "id_buffer");
+    register_automatic(&eng.g_tid_buf, "fragment_id_buffer");
+    register_automatic(&g_screen_out, "screen");
+
     arg_list prearg_list;
 
     prearg_list.push_back(&dat.g_tri_mem);
@@ -1317,6 +1321,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     ///this is the deferred screenspace pass
     auto event = run_kernel_with_string("kernel3", p3global_ws, p3local_ws, 2, p3arg_list);
+
+    //event = run_kernel_full_auto("do_pseudo_aa", {eng.width, eng.height}, {8, 8});
 
     #ifndef REPROJECT_TEST
     //clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);

@@ -361,11 +361,14 @@ struct Timer
 struct kernel_helper
 {
     cl_uint args[4] = {0};
+    int anum = 0;
 
     kernel_helper(std::initializer_list<cl_uint> init)
     {
         for(auto& i : args)
             i = 0;
+
+        anum = init.size();
 
         int c = 0;
 
@@ -430,7 +433,35 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
         }
     }
 
-    for(unsigned int i=0; i<argv.args.size() && args; i++)
+    arg_list local_argv = argv;
+
+
+    for(int jj=0; jj<kernel.automatic_arguments.args.size(); jj++)
+    {
+        automatic_argument& aarg = kernel.automatic_arguments.args[jj];
+
+        bool success;
+
+        void* arg = get_automatic(aarg.identifier, success);
+
+        if(!success || arg == nullptr)
+        {
+            lg::log("Error, automatic variable not found, this is an unrecoverable error");
+
+            return compute::event();
+        }
+
+        local_argv.args.insert(local_argv.args.begin() + aarg.pos, arg);
+        local_argv.sizes.insert(local_argv.sizes.begin() + aarg.pos, sizeof(cl_mem));
+        local_argv.can_skip.insert(local_argv.can_skip.begin() + aarg.pos, false);
+    }
+
+    if(debug)
+    {
+        lg::log("local_argv size ", local_argv.args.size());
+    }
+
+    for(unsigned int i=0; i<local_argv.args.size() && args; i++)
     {
         ///I suspect this is already done in the driver
         /*const void* previous_buffer = kernel_map[kernel.name][i];
@@ -448,8 +479,8 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
             lg::log("Pre arg ", i);
         }
 
-        int arg_size = argv.sizes[i];
-        void* arg = argv.args[i];
+        int arg_size = local_argv.sizes[i];
+        void* arg = local_argv.args[i];
 
         if(arg_size == 0)
         {
@@ -522,7 +553,7 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
 }
 
 inline
-compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
+compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
 {
     kernel k = cl::kernels[name];
 
@@ -551,9 +582,15 @@ compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws
 }
 
 inline
-compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
+compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, const arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
 {
     return run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv, cqueue);
+}
+
+inline
+compute::event run_kernel_full_auto(const std::string& name, kernel_helper global_ws, kernel_helper local_ws = {128})
+{
+    return run_kernel_with_string(name, global_ws, local_ws, global_ws.anum, {});
 }
 
 #include <string>
