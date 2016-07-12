@@ -2995,8 +2995,6 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
     }
 }
 
-//#define ERR_COMP -4.f
-
 #define MOD_ERROR 5000.f
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
@@ -3844,7 +3842,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 #define AUTOMATIC(t, x) t x
 
 __kernel
-void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer), __write_only AUTOMATIC(image2d_t, screen))
+void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
+                  __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),
+                  __global AUTOMATIC(float4*, cutdown_tris))
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE            |
@@ -3856,6 +3856,11 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
+    if(x >= SCREENWIDTH-1 || y >= SCREENHEIGHT-1)
+        return;
+
+    if(x < 1 || y < 1)
+        return;
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
@@ -3863,6 +3868,69 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
     int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
 
+
+    uint up_id = read_imageui(id_buffer, sam, (int2){x, y-1}).x;
+    uint right_id = read_imageui(id_buffer, sam, (int2){x+1, y}).x;
+
+    int up_oid = fragment_id_buffer[up_id * FRAGMENT_ID_MUL + 5];
+    int right_oid = fragment_id_buffer[right_id * FRAGMENT_ID_MUL + 5];
+
+    //if(up_oid == o_id && right_oid == o_id)
+    //    return;
+
+    //if(up_oid == o_id || right_oid == o_id)
+    //    return;
+
+    if(up_oid != o_id || right_oid != o_id)
+        return;
+
+    float4 c1 = read_imagef(in_screen, sam, (int2){x, y});
+    float4 c2 = read_imagef(in_screen, sam, (int2){x+1, y});
+    float4 c3 = read_imagef(in_screen, sam, (int2){x, y-1});
+
+    c1 = 0;
+    c2 = 0;
+    c3 = 0;
+
+    write_imagef(screen, (int2){x, y}, (c1 + c2 + c3)/3.f);
+
+    /*float2 sample_location = {x, y};
+
+    float min_dist = FLT_MAX;
+    int which;
+
+    for(int i=0; i<3; i++)
+    {
+        int next = i == 2 ? 0 : i+1;
+
+        float2 c1 = cutdown_tris[ctri*3 + i].xy;
+        float2 c2 = cutdown_tris[ctri*3 + next].xy;
+
+        //c1 = round(c1);
+        //c2 = round(c2);
+
+        float2 n = fast_normalize(c2 - c1);
+
+        float2 vec = (c1 - sample_location) - dot(c1 - sample_location, n) * n;
+
+        float dist = fast_length(vec);
+
+        if(dist < min_dist)
+        {
+            min_dist = dist;
+            which = i;
+        }
+    }
+
+    min_dist = min_dist / sqrt(2.f);
+
+    min_dist = 1.f - min_dist;
+
+    float4 col = read_imagef(in_screen, sam, (int2){x, y});
+
+    col = col * min_dist;
+
+    write_imagef(screen, (int2){x, y}, col);*/
 
     //write_imagef(screen, (int2){x, y}, 1.f);
 }

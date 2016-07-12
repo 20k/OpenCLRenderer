@@ -201,6 +201,8 @@ struct engine
     compute::event generate_depth_buffer(object_context_data& dat);
     compute::event draw_bulk_objs_n(object_context_data& dat); ///draw objects to scene
     compute::event draw_godrays(object_context_data& dat);
+    ///performs pseudo AA on the buffer last rendered to
+    compute::event do_pseudo_aa();
 
     void draw_fancy_projectiles(compute::image2d&, compute::buffer&, int); ///fancy looking projectiles
     void draw_ui();

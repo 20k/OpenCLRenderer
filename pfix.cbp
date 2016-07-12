@@ -113,6 +113,7 @@
 		<Unit filename="objects_container.hpp">
 			<Option weight="0" />
 		</Unit>
+		<Unit filename="ocl.cpp" />
 		<Unit filename="ocl.h">
 			<Option weight="0" />
 		</Unit>
