@@ -60,15 +60,15 @@ void discard_whitespace(char* text, int& pos)
     }
 }
 
-std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
+std::vector<automatic_argument_identifiers> parse_automatic_arguments(char* text)
 {
     if(text == nullptr)
         return {};
 
     lg::log("auto argument pass phase");
 
-    ///need to identify kernel name too ;[
-    std::vector<automatic_argment_identifiers> ident;
+    std::map<std::string, automatic_argument_identifiers> kernel_arg_map;
+
 
     std::string identifier = "AUTOMATIC";
 
@@ -80,9 +80,13 @@ std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
 
     std::string current_kernel_name = "";
 
+    int argc = 0;
+
+    bool in_kernel_arg_list = false;
+
     while(text[pos] != '\0')
     {
-        if(expect(text, "#define ", pos))
+        /*if(expect(text, "#define ", pos))
         {
             discard_spaces(text, pos);
 
@@ -93,9 +97,9 @@ std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
             }
 
             continue;
-        }
+        }*/
 
-        if(expect(text, identifier, pos))
+        if(in_kernel_arg_list && expect(text, identifier, pos))
         {
             if(expect(text, "(", pos))
             {
@@ -110,7 +114,14 @@ std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
 
                 std::string argument_name = until(text, {')'}, pos);
 
-                lg::log("Automatic argument name ", type, " ", argument_name);
+                lg::log("Automatic argument name ", type, " ", argument_name, " for kernel ", current_kernel_name, " at argument number ", argc);
+
+                automatic_argument_identifiers& aargs = kernel_arg_map[current_kernel_name];
+
+                aargs.kernel_name = current_kernel_name;
+                //aargs.args.push_back({})
+
+                expect(text, ")", pos);
             }
 
             continue;
@@ -118,14 +129,11 @@ std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
 
         if(expect(text, "__kernel", pos) || expect(text, "kernel", pos))
         {
-            lg::log("Found kernel identifier");
-
             discard_whitespace(text, pos);
 
+            ///hmm. kernel with a name voidsomething would break
             if(expect(text, "void", pos))
             {
-                lg::log("found kernel void");
-
                 discard_whitespace(text, pos);
 
                 std::string kernel_name = until(text, {'('}, pos);
@@ -137,8 +145,29 @@ std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
 
                 current_kernel_name = kernel_name;
 
-                lg::log("found kernel ", current_kernel_name);
+                argc = 0;
+
+                discard_whitespace(text, pos);
+
+                if(!expect(text, "(", pos))
+                    lg::log("parse error, ( expected after kernel declaration");
+                else
+                    in_kernel_arg_list = true;
             }
+
+            continue;
+        }
+
+        if(in_kernel_arg_list && expect(text, ")", pos))
+        {
+            in_kernel_arg_list = false;
+
+            continue;
+        }
+
+        if(in_kernel_arg_list && expect(text, ",", pos))
+        {
+            argc++;
 
             continue;
         }
@@ -146,5 +175,7 @@ std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text)
         pos++;
     }
 
-    return {};
+    std::vector<automatic_argument_identifiers> ret;
+
+    return ret;
 }

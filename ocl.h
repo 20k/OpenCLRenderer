@@ -185,7 +185,7 @@ struct automatic_argument
     std::string identifier;
 };
 
-struct automatic_argment_identifiers
+struct automatic_argument_identifiers
 {
     std::string kernel_name;
 
@@ -198,7 +198,7 @@ struct automatic_argment_identifiers
 ///although actualy, we could just look for kernel and do proper parsing, with attributes
 ///but lets take the easy and well thought out route for the moment
 
-std::vector<automatic_argment_identifiers> parse_automatic_arguments(char* text);
+std::vector<automatic_argument_identifiers> parse_automatic_arguments(char* text);
 
 bool use_3d_texture_array();
 
