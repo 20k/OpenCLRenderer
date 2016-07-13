@@ -3886,9 +3886,6 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     write_imagef(screen, (int2){x, y}, (c1 + c2 + c3)/3.f);*/
 
 
-    int num_diff = 0;
-    int num_found = 0;
-
     int num_x = 0;
     int num_y = 0;
 
