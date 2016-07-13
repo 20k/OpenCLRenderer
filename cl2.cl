@@ -3689,6 +3689,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         int which_cubeface;
 
         ///ambient wont work correctly in shadows atm
+        ///something is wrong with lips of vertices over shadowed areas
         if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
         {
             ///gets pixel occlusion. Is not smooth
