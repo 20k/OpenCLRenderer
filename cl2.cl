@@ -3869,6 +3869,134 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
 
 
+    /*uint up_id = read_imageui(id_buffer, sam, (int2){x, y-1}).x;
+    uint right_id = read_imageui(id_buffer, sam, (int2){x+1, y}).x;
+
+    int up_oid = fragment_id_buffer[up_id * FRAGMENT_ID_MUL + 5];
+    int right_oid = fragment_id_buffer[right_id * FRAGMENT_ID_MUL + 5];
+
+    if(up_oid == o_id && right_oid == o_id)
+        return;
+
+    float4 c1 = read_imagef(in_screen, sam, (int2){x, y});
+    float4 c2 = read_imagef(in_screen, sam, (int2){x+1, y});
+    float4 c3 = read_imagef(in_screen, sam, (int2){x, y-1});
+
+    write_imagef(screen, (int2){x, y}, (c1 + c2 + c3)/3.f);*/
+
+
+    int num_diff = 0;
+    int num_found = 0;
+
+    int num_x = 0;
+    int num_y = 0;
+
+    int num_corner = 0;
+
+    float3 my_accum = 0;
+    float3 their_accum = 0;
+
+    float my_samples = 0;
+    float their_samples = 0;
+
+    //int avg_id = o_id;
+
+    for(int j=-1; j<2; j++)
+    {
+        for(int i=-1; i<2; i++)
+        {
+            if(i == 0 && j == 0)
+                continue;
+
+            uint fid = read_imageui(id_buffer, sam, (int2){x+i, y+j}).x;
+
+            int fo_id = fragment_id_buffer[fid * FRAGMENT_ID_MUL + 5];
+
+            //if(fo_id < o_id)
+            //    continue;
+
+            if(fo_id != o_id)
+            {
+                if(abs(i) == abs(j))
+                {
+                    num_corner++;
+                }
+                else if(abs(i) == 1)
+                {
+                    num_x++;
+                }
+                else if(abs(j) == 1)
+                {
+                    num_y++;
+                }
+            }
+
+            float3 val = read_imagef(in_screen, sam, (int2){x + i, y + j}).xyz;
+
+            if(fo_id == o_id)
+            {
+                my_accum += val;
+                my_samples += 1.f;
+            }
+            else
+            {
+                their_accum += val;
+                their_samples += 1.f;
+            }
+
+            //avg_id = (fo_id + avg_id)/2;
+        }
+    }
+
+    if(my_samples == 0 || their_samples == 0)
+        return;
+
+    if(num_x == 1 && num_y == 1 && num_corner >= 1)
+    {
+        float wm = 0.5f;
+        float wt = 0.5f;
+
+        wm = 0.6f;
+        wt = 0.4f;
+
+        my_accum /= my_samples;
+        their_accum /= their_samples;
+
+        float3 accum = my_accum * wm + their_accum * wt;
+
+        write_imagef(screen, (int2){x, y}, (float4)(accum.xyz, 1.f));
+    }
+}
+
+
+__kernel
+void do_pseudo_aa_outline(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
+                  __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),
+                  __global AUTOMATIC(float4*, cutdown_tris))
+{
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    if(x >= SCREENWIDTH-1 || y >= SCREENHEIGHT-1)
+        return;
+
+    if(x < 1 || y < 1)
+        return;
+
+    uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
+
+    uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
+    uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+
+
     uint up_id = read_imageui(id_buffer, sam, (int2){x, y-1}).x;
     uint right_id = read_imageui(id_buffer, sam, (int2){x+1, y}).x;
 
@@ -3893,46 +4021,6 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     c3 = 0;
 
     write_imagef(screen, (int2){x, y}, (c1 + c2 + c3)/3.f);
-
-    /*float2 sample_location = {x, y};
-
-    float min_dist = FLT_MAX;
-    int which;
-
-    for(int i=0; i<3; i++)
-    {
-        int next = i == 2 ? 0 : i+1;
-
-        float2 c1 = cutdown_tris[ctri*3 + i].xy;
-        float2 c2 = cutdown_tris[ctri*3 + next].xy;
-
-        //c1 = round(c1);
-        //c2 = round(c2);
-
-        float2 n = fast_normalize(c2 - c1);
-
-        float2 vec = (c1 - sample_location) - dot(c1 - sample_location, n) * n;
-
-        float dist = fast_length(vec);
-
-        if(dist < min_dist)
-        {
-            min_dist = dist;
-            which = i;
-        }
-    }
-
-    min_dist = min_dist / sqrt(2.f);
-
-    min_dist = 1.f - min_dist;
-
-    float4 col = read_imagef(in_screen, sam, (int2){x, y});
-
-    col = col * min_dist;
-
-    write_imagef(screen, (int2){x, y}, col);*/
-
-    //write_imagef(screen, (int2){x, y}, 1.f);
 }
 
 ///use atomics to be able to reproject forwards, not backwards
