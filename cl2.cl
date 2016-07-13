@@ -1236,9 +1236,75 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
 int ret_cubeface(float3 point, float3 light)
 {
-    ///derived almost entirely by guesswork
+    /*const float3 r_struct[6] =
+    {
+        {
+            0,              0,               0
+        },
+        {
+            M_PI/2.0f,      0,               0
+        },
+        {
+            0,              M_PI,            0
+        },
+        {
+            3.0f*M_PI/2.0f, 0,               0
+        },
+        {
+            0,              3.0f*M_PI/2.0f,  0
+        },
+        {
+            0,              M_PI/2.0f,       0
+        }
+    };*/
 
     float3 r_pl = point - light;
+
+    /*r_pl = fast_normalize(r_pl);
+
+    float3 forward_v = {0, 0, 1};
+    float3 up_v = {0, 1, 0};
+    float3 right_v = {1, 0, 0};
+
+    float cos_forward = dot(r_pl, forward_v);
+
+    float cos_bound = cos(M_PI/4.f);
+
+    if(cos_forward < cos_bound && cos_forward >= -cos_bound)
+    {
+        return 0;
+    }
+
+    float cos_up = dot(r_pl, up_v);
+
+    if(cos_up < cos_bound && cos_up >= -cos_bound)
+    {
+        return 1;
+    }
+
+    float cos_right = dot(r_pl, right_v);
+
+    if(cos_right < cos_bound && cos_right >= -cos_bound)
+    {
+        return 5;
+    }
+
+    if(-cos_forward < cos_bound && -cos_forward >= -cos_bound)
+    {
+        return 2;
+    }
+
+    if(-cos_up < cos_bound && -cos_up >= -cos_bound)
+    {
+        return 3;
+    }
+
+    if(-cos_right < cos_bound && -cos_right >= -cos_bound)
+    {
+
+    }
+
+    return 4;*/
 
     float angle = atan2(r_pl.y, r_pl.x);
 
@@ -1246,7 +1312,7 @@ int ret_cubeface(float3 point, float3 light)
 
     if(angle < 0)
     {
-        angle = M_PI - fabs(angle) + M_PI;
+        angle = 2.f*M_PI - fabs(angle);
     }
 
     float angle2 = atan2(r_pl.y, r_pl.z);
@@ -1255,7 +1321,7 @@ int ret_cubeface(float3 point, float3 light)
 
     if(angle2 < 0)
     {
-        angle2 = M_PI - fabs(angle2) + M_PI;
+        angle2 = 2.f*M_PI - fabs(angle2);
     }
 
     if(angle >= M_PI/2.0f && angle < M_PI && angle2 >= M_PI/2.0f && angle2 < M_PI)
@@ -1274,7 +1340,7 @@ int ret_cubeface(float3 point, float3 light)
 
     if(zangle < 0)
     {
-        zangle = M_PI - fabs(zangle) + M_PI;
+        zangle = 2.f*M_PI - fabs(zangle);
     }
 
     if(zangle < M_PI/2.0f)
