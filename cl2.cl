@@ -3899,7 +3899,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     float my_samples = 0;
     float their_samples = 0;
 
-    //int avg_id = o_id;
+    uint avg_id = o_id;
 
     for(int j=-1; j<2; j++)
     {
@@ -3917,15 +3917,15 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             if(fo_id != o_id)
             {
-                if(abs(i) == abs(j))
+                if(i == j || i == -j)
                 {
                     num_corner++;
                 }
-                else if(abs(i) == 1)
+                else if(i == 1 || i == -1)
                 {
                     num_x++;
                 }
-                else if(abs(j) == 1)
+                else if(j == 1 || j == -1)
                 {
                     num_y++;
                 }
@@ -3944,7 +3944,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
                 their_samples += 1.f;
             }
 
-            //avg_id = (fo_id + avg_id)/2;
+            avg_id = (fo_id + avg_id)/2;
         }
     }
 
@@ -3956,11 +3956,20 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
         float wm = 0.5f;
         float wt = 0.5f;
 
-        wm = 0.6f;
-        wt = 0.4f;
+        wm = 0.65f;
+        wt = 0.35f;
 
         my_accum /= my_samples;
         their_accum /= their_samples;
+
+        if(num_corner == 1)
+        {
+            wm = 0.5f;
+            wt = 0.5f;
+
+            if(avg_id < o_id)
+                return;
+        }
 
         float3 accum = my_accum * wm + their_accum * wt;
 
