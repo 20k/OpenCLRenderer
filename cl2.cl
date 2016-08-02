@@ -12,7 +12,7 @@
     #define M_PI 3.1415927f
 //#endif // M_PI
 
-#define depth_far 350000.0f
+#define depth_far 3500.0f
 
 #define mulint UINT_MAX
 
@@ -1770,7 +1770,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     return dpth > ldp + len;
 }
 
-//#define FLUID
+#define FLUID
 #ifdef FLUID
 
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
@@ -2755,6 +2755,348 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 }
 #endif
 
+#define MOD_ERROR 5000.f
+
+__kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint tri_num, float4 c_pos, float4 c_rot,
+                                      __global int* tiled_counters, __global uint* tiled_display_list,
+                                      __global uint* tiled_tile_tracker, __global uint* tiled_currently_free_memory_slot, __global uint* tiled_global_memory_slot_counter,
+                                      __global uint* tiled_global_count,
+                                      int tile_num_w, int tile_num_h, int tile_size, int tile_chunk_size,
+                                      __global struct obj_g_descriptor* gobj, __global uint* split_id_buffer)
+{
+    uint id = get_global_id(0);
+
+    if(id >= tri_num)
+        return;
+
+    if(id == 0)
+    {
+        *tiled_global_memory_slot_counter = tile_num_w * tile_num_h;
+        // *tiled_global_count = 0;
+    }
+
+    barrier(CLK_GLOBAL_MEM_FENCE);
+
+    int tile_num = tile_num_w * tile_num_h;
+
+    __global struct triangle *T = &triangles[id];
+
+    int o_id = T->vertices[0].object_id;
+
+    const float efov = FOV_CONST;
+    const float ewidth = SCREENWIDTH;
+    const float eheight = SCREENHEIGHT;
+
+    float3 tris_proj[2][3]; ///projected triangles
+
+    int num = 0;
+
+    const __global struct obj_g_descriptor* G = &gobj[o_id];
+
+    float3 g_world_pos = G->world_pos.xyz;
+
+    if(fast_length(g_world_pos - c_pos.xyz) > depth_far)
+        return;
+
+    /*for(int i=0; i<3; i++)
+    {
+        if(any(isnan(T->vertices[i].pos.xyz)))
+            return;
+
+        if(any(fabs(T->vertices[i].pos.xyz) >= FLT_MAX/8192.f))
+            return;
+
+        if(any(isinf(T->vertices[i].pos.xyz)))
+            return;
+    }*/
+
+    full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
+
+    int num_overall = 0;
+
+    for(int i=0; i<num; i++)
+    {
+        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+
+        int cond = (tris_proj[i][0].x < 0 && tris_proj[i][1].x < 0 && tris_proj[i][2].x < 0)  ||
+            (tris_proj[i][0].x >= ewidth && tris_proj[i][1].x >= ewidth && tris_proj[i][2].x >= ewidth) ||
+            (tris_proj[i][0].y < 0 && tris_proj[i][1].y < 0 && tris_proj[i][2].y < 0) ||
+            (tris_proj[i][0].y >= eheight && tris_proj[i][1].y >= eheight && tris_proj[i][2].y >= eheight);
+
+        if(!valid || cond)
+            continue;
+
+        float3 xpv, ypv;
+
+        xpv = round((float3){tris_proj[i][0].x, tris_proj[i][1].x, tris_proj[i][2].x});
+        ypv = round((float3){tris_proj[i][0].y, tris_proj[i][1].y, tris_proj[i][2].y});
+
+        float true_area = calc_area(xpv, ypv);
+        float rconst = calc_rconstant_v(xpv, ypv);
+
+        float mod = true_area / MOD_ERROR;
+
+        float min_max[4];
+        calc_min_max(tris_proj[i], ewidth, eheight, min_max);
+
+        float tiled_min_max[4];
+
+        for(int j=0; j<4; j++)
+        {
+            tiled_min_max[j] = min_max[j] / (float)tile_size;
+        }
+
+        tiled_min_max[0] = floor(tiled_min_max[0]);
+        tiled_min_max[2] = floor(tiled_min_max[2]);
+
+        tiled_min_max[1] = ceil(tiled_min_max[1]);
+        tiled_min_max[3] = ceil(tiled_min_max[3]);
+
+        ///you know, we could combine this with heirarchical rendering
+
+        ///loads of memory write duplication going on, thats the problem
+        for(int ty = tiled_min_max[2]; ty <= tiled_min_max[3]; ty++)
+        {
+            for(int tx = tiled_min_max[0]; tx <= tiled_min_max[1]; tx++)
+            {
+                ///which point we're looking at, ie 00 is top left, nn is bottom right CORNER/vertex of tile
+
+                float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, tx*tile_size, ty*tile_size);
+
+                bool cond = s1 < true_area + mod;
+
+                bool contained = false;
+
+
+
+                if(!cond)
+                {
+                    continue;
+                }
+
+                ///ok, who is affected?
+                ///any tile shared with this
+                ///this is always the top left of a tile unless it is == tile_num in any axis, we'll handle that l8r
+
+                ///so, the tiles are me, left, up left, up right
+                ///we need to avoid duplicates in tiles somehow, although its not critically terrible it 4x our work
+                ///perhaps should move from vertex -> tile model, and check subvertices?
+
+                int2 offsets[4] = {{0, 0}, {-1, 0}, {0, -1}, {-1, -1}};
+
+                for(int oo = 0; oo < 4; oo++)
+                {
+                    int2 offset = (int2)(tx, ty) + offsets[oo];
+
+                    int tile_id = offset.y * tile_num_w + offset.x;
+
+                    if(tile_id < tile_num && tile_id >= 0)
+                    {
+                        ///if one is valid, the other isn't necessarily
+                        int slot_offset = atomic_inc(&tiled_counters[tile_id]);
+                        int free_memory_slot_number = tiled_currently_free_memory_slot[tile_id];
+
+                        ///we have exceeded the tiled chunk size
+                        ///this means we must write chunk to memory, and then reset the current state/write tri again
+                        if(slot_offset == tile_chunk_size)
+                        {
+                            int next_free_memory_slot = atomic_inc(tiled_global_memory_slot_counter);
+
+                            tiled_counters[tile_id] = 1;
+                            tiled_currently_free_memory_slot[tile_id] = next_free_memory_slot;
+                            tiled_tile_tracker[next_free_memory_slot] = tile_id;
+
+                            slot_offset = 0;
+                            free_memory_slot_number = next_free_memory_slot;
+                        }
+
+                        ///race condition
+                        if(slot_offset > tile_chunk_size)
+                        {
+                            tx--;
+                            break;
+                        }
+
+                        tiled_display_list[free_memory_slot_number * tile_chunk_size + slot_offset] = id*2 + i;
+
+                        num_overall++;
+                    }
+                }
+            }
+        }
+    }
+
+    /*__local int shared;
+
+    int myid = get_local_id(0);
+
+    if(myid == 0)
+    {
+        shared = 0;
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    atomic_add(&shared, num_overall);
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if(myid == 0)
+        atomic_add(tiled_global_count, shared);*/
+}
+
+///can abuse the tile counters to do what I want, for the moment fix the depth buffer
+__kernel
+void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos, float4 c_rot,
+                                      __global int* tiled_counters, __global uint* tiled_display_list,
+                                      __global uint* tiled_tile_tracker, __global uint* tiled_currently_free_memory_slot, __global uint* tiled_global_memory_slot_counter,
+                                      __global uint* tiled_global_count,
+                                      int tile_num_w, int tile_num_h, int tile_size, int tile_chunk_size,
+                                      __global struct obj_g_descriptor* gobj, __global uint* split_id_buffer,
+                                      __global uint* depth_buffer, __write_only image2d_t screen)
+{
+    ///triangle within tile, each group of tile_chunk_size is associated with a specific tile
+    uint id = get_global_id(0);
+
+    ///this is invalid because there are empty spaces, ie no compaction ;_;
+    //if(id >= *tiled_global_count)
+    //    return;
+
+    uint memory_slot = id / tile_chunk_size;
+
+    if(memory_slot >= *tiled_global_memory_slot_counter)
+        return;
+
+    uint tile_id = tiled_tile_tracker[memory_slot];
+
+    uint current_tracked_tile_memory_slot = tiled_currently_free_memory_slot[tile_id];
+
+    uint current_slot_count = tiled_counters[tile_id];
+
+    bool invalid = false;
+
+    if(current_tracked_tile_memory_slot == memory_slot)
+    {
+        uint slot_num = id % tile_chunk_size;
+
+        if(slot_num >= current_slot_count)
+            invalid = true;
+    }
+
+    //invalid = false;
+
+    int tx = tile_id % tile_num_w;
+    int ty = tile_id / tile_num_w;
+
+    __local uint ldepth_buffer[TILE_DIM * TILE_DIM];
+
+    int lsize = get_local_size(0);
+
+    int per_work_item = TILE_DIM*TILE_DIM / lsize;
+
+    int lid = get_local_id(0);
+
+    for(int i=0; i<per_work_item; i++)
+    {
+        ldepth_buffer[lid * per_work_item + i] = mulint;
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    //if(invalid)
+    //    id = 0;
+
+    int which = tiled_display_list[id] % 2;
+    uint tri_id = tiled_display_list[id] / 2;
+
+    if(invalid)
+    {
+        which = 0;
+        tri_id = 0;
+    }
+
+    __global struct triangle* T = &triangles[tri_id];
+
+    int o_id = T->vertices[0].object_id;
+
+    const float efov = FOV_CONST;
+    const float ewidth = SCREENWIDTH;
+    const float eheight = SCREENHEIGHT;
+
+    float3 tris_proj[2][3]; ///projected triangles
+
+    int num = 0;
+
+    const __global struct obj_g_descriptor* G = &gobj[o_id];
+
+    float3 g_world_pos = G->world_pos.xyz;
+
+    full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
+
+    float3 xpv, ypv;
+
+    xpv = round((float3){tris_proj[which][0].x, tris_proj[which][1].x, tris_proj[which][2].x});
+    ypv = round((float3){tris_proj[which][0].y, tris_proj[which][1].y, tris_proj[which][2].y});
+
+    float3 depths = {dcalc(tris_proj[which][0].z), dcalc(tris_proj[which][1].z), dcalc(tris_proj[which][2].z)};
+
+    depths = native_recip(depths);
+
+    float area = calc_area(xpv, ypv);
+    float rconst = calc_rconstant_v(xpv, ypv);
+
+    float mod = area / MOD_ERROR;
+
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+    float xoffset = tx * TILE_DIM;
+    float yoffset = ty * TILE_DIM;
+
+    ///totes mcgotes nothing suspicious going on here (!!!)
+    if(!invalid)
+    for(float ypos = 0; ypos < TILE_DIM; ypos += 1.f)
+    for(float xpos = 0; xpos < TILE_DIM; xpos += 1.f)
+    {
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, xpos + xoffset, ypos + yoffset);
+
+        bool cond = s1 < area + mod;
+
+        if(cond)
+        {
+            float fmydepth = mad(A, xpos + xoffset, mad(B, ypos + yoffset, C));
+
+            uint mydepth = native_divide((float)mulint, fmydepth);
+
+            uint sdepth = atomic_min(&ldepth_buffer[(int)(ypos*TILE_DIM + xpos)], mydepth);
+        }
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    for(int i=0; i<per_work_item; i++)
+    {
+        int pid = lid * per_work_item + i;
+
+        int xid = pid % TILE_DIM;
+        int yid = pid / TILE_DIM;
+
+        uint depth = ldepth_buffer[yid*TILE_DIM + xid];
+
+        float rd = idcalc((float)depth / mulint);
+
+        float dbg = (float)current_slot_count / tile_chunk_size;
+
+        ///tri_id for count of triangles
+        dbg = tri_id / 1000000.f;
+
+        //write_imagef(screen, (int2)(xoffset + xid, yoffset + yid), dbg);
+        write_imagef(screen, (int2)(xoffset + xid, yoffset + yid),  rd / 10000.f);
+    }
+}
+
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
@@ -3061,7 +3403,6 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
     }
 }
 
-#define MOD_ERROR 5000.f
 
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
@@ -10590,6 +10931,310 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
     write_imagef(screen, (int2){x, y}, voxel_accumulate*light + (1.0f - voxel_accumulate)*original_value.xyzz);
 
     //write_imagef(screen, (int2){x, y}, 0);
+}
+
+float4 interpolate_between(float4 original, float4 c1, float4 c2, float min_bound, float max_bound, float a)
+{
+    a = (a - min_bound) / (max_bound - min_bound);
+
+    if(a > 1.f || a <= 0)
+        return original;
+
+    return mix(c1, c2, a);
+}
+
+///colour = 253, 202, 69
+__kernel void render_voxel_fire(__read_only image3d_t voxel, int width, int height, int depth, float4 c_pos, float4 c_rot, float4 v_pos, float4 v_rot,
+                            __write_only image2d_t screen, __read_only image2d_t original_screen, __global uint* depth_buffer, float2 offset, struct cube rotcube,
+                            int render_size, __global uint* lnum, __global struct light* lights, float voxel_bound, int is_solid
+                            )
+{
+    float x = get_global_id(0);
+    float y = get_global_id(1);
+
+    x += offset.x;
+    y += offset.y;
+
+    ///need to change this to be more intelligent
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT || x < 0 || y < 0)// || z >= depth - 1 || x == 0 || y == 0 || z == 0)// || x < 0 || y < 0)// || z >= depth-1 || x < 0 || y < 0 || z < 0)
+    {
+        return;
+    }
+
+
+    float3 spos = (float3)(x - SCREENWIDTH/2.0f, y - SCREENHEIGHT/2.0f, FOV_CONST); // * FOV_CONST / FOV_CONST
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(spos, 0, c_rot.xyz);
+
+    float3 ray_dir = global_position;
+
+    float3 ray_origin = c_pos.xyz;
+
+    #if 1
+    ///pass in as nearest-4, furthest-4 and then do ray -> plane intersection
+    float4 tris[12][3] =
+    {
+        {rotcube.corners[0], rotcube.corners[1], rotcube.corners[2]},
+        {rotcube.corners[3], rotcube.corners[1], rotcube.corners[2]},
+        {rotcube.corners[4], rotcube.corners[5], rotcube.corners[6]},
+        {rotcube.corners[7], rotcube.corners[5], rotcube.corners[6]},
+
+        ///sides
+        {rotcube.corners[0], rotcube.corners[2], rotcube.corners[4]},
+        {rotcube.corners[6], rotcube.corners[2], rotcube.corners[4]},
+        {rotcube.corners[1], rotcube.corners[3], rotcube.corners[5]},
+        {rotcube.corners[7], rotcube.corners[3], rotcube.corners[5]},
+
+        ///good old tops
+        {rotcube.corners[0], rotcube.corners[1], rotcube.corners[4]},
+        {rotcube.corners[5], rotcube.corners[1], rotcube.corners[4]},
+        {rotcube.corners[2], rotcube.corners[3], rotcube.corners[6]},
+        {rotcube.corners[7], rotcube.corners[3], rotcube.corners[6]},
+    };
+
+    float3 sizes = (float3){width, height, depth};
+
+    float min_t = FLT_MAX;
+    float max_t = -1;
+
+    ///0.5ms
+    for(int i=0; i<12; i++)
+    {
+        float t = 0, u, v;
+
+        ///do early left/right front/back top/bottom check to eliminate oob rays faster
+        ///pre rotate and shift the corners by the global rotation?
+        triangle_intersection(tris[i][0].xyz, tris[i][1].xyz, tris[i][2].xyz, ray_origin, ray_dir, &t, &u, &v);
+
+        if(t != 0)
+        {
+            if(t < min_t)
+            {
+                min_t = t;
+            }
+            if(t > max_t)
+            {
+                max_t = t;
+            }
+        }
+    }
+
+    if(min_t == FLT_MAX && max_t == -1)
+        return;
+
+    if(min_t == max_t)
+    {
+        min_t = 0;
+    }
+
+    #endif // 0
+
+    const float3 rel = (float3){1.f, 1.f, 1.f};
+
+    const float3 half_size = (float3){width,height,depth}/2;
+
+    ray_origin -= v_pos.xyz;
+
+    ray_dir *= rel;
+
+    ray_origin *= rel;
+
+    ray_origin += half_size;
+
+
+    float voxel_accumulate = 0;
+
+
+    const float voxel_mod = 1.0f;
+
+    float3 start = ray_origin + min_t * ray_dir;
+    float3 finish = ray_origin + max_t * ray_dir;
+
+
+    float3 current_pos = start + 0.5f;
+
+    float3 found_pos = current_pos;
+
+    float3 diff = finish - start;
+
+    float3 absdiff = fabs(diff);
+
+    float num = max3(absdiff.x, absdiff.y, absdiff.z);
+
+    float3 step = diff / num;
+
+    float3 final_pos = 0;
+
+    float3 normal = 0;
+
+    int found_normal = 0;
+
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP |
+                    CLK_FILTER_NEAREST;
+
+
+    sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP |
+                    CLK_FILTER_LINEAR;
+
+    ///maybe im like, stepping through the cube from the wrong direction or something?
+
+    ///investigate broken full ray accumulate
+
+    bool found = false;
+    bool skipped = false;
+
+    float final_val = 0;
+
+    int skip_amount = 8;
+
+    const float threshold = 0.1f;
+
+    int found_num = 0;
+
+
+    for(int i=0; i<num; i++)
+    {
+        float val = read_imagef(voxel, sam_lin, (float4)(current_pos.xyz, 0)).x;
+
+        if(!is_solid)
+        {
+            voxel_accumulate += val;
+
+            if(val > threshold)
+            {
+                found = true;
+            }
+
+            if(val > threshold/10.f)
+            {
+                found_num ++;
+            }
+
+            if(voxel_accumulate >= voxel_bound)
+            {
+                voxel_accumulate = voxel_bound;
+
+                break;
+            }
+        }
+        else
+        {
+            if(val > threshold)
+            {
+                found = true;
+
+                voxel_accumulate = 1.f;
+
+                break;
+            }
+        }
+
+        current_pos += step;
+
+        if(!found)
+            found_pos = current_pos;
+
+    }
+
+    if(!is_solid)
+        voxel_accumulate /= voxel_bound;
+
+    ///do for all? check for quitting outside of bounds and do for that as well?
+    ///this is the explicit surface solver step
+    if(is_solid && found)
+    {
+        if(!skipped)
+            found_pos -= step;
+        else
+            found_pos -= step*(skip_amount + 1);
+
+        int step_const = 8;
+
+        step /= step_const;
+
+        int snum;
+
+        if(!skipped)
+            snum = step_const;
+        else
+            snum = step_const*(skip_amount + 1);
+
+        for(int i=0; i<snum+1; i++)
+        {
+             float val = read_imagef(voxel, sam_lin, (float4)(found_pos.xyz, 0)).x;
+
+             if(fabs(val) >= threshold)
+             {
+                 break;
+             }
+
+             found_pos += step;
+        }
+    }
+
+    voxel_accumulate = clamp(voxel_accumulate, 0.f, 1.f);
+
+    final_pos = found_pos;
+
+    ///turns out that the problem IS just hideously unsmoothed normals
+
+    if(is_solid)
+    {
+        normal = get_normal(voxel, final_pos);
+
+        normal = normalize(normal);
+    }
+
+    ///undo transforms to global space
+
+    float light = 1;
+
+    if(is_solid)
+    {
+        final_pos -= half_size;
+
+        final_pos /= rel;
+
+        final_pos += v_pos.xyz;
+
+        light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
+
+        light = clamp(light, 0.0f, 1.0f);
+    }
+
+    sampler_t screen_sam = CLK_NORMALIZED_COORDS_FALSE |
+                           CLK_ADDRESS_NONE |
+                           CLK_FILTER_NEAREST;
+
+
+    voxel_accumulate *= 2.f;
+
+    //voxel_accumulate = sqrt(voxel_accumulate);
+
+    //float3 original_value = read_imagef(original_screen, screen_sam, (int2){x, y}).xyz;
+
+    float3 original_value = 0.f;
+
+    float4 fire_col = (float4)(253, 202, 69, 255) / 255.f;
+
+    float4 fire_red = (float4)(134, 2, 0, 255) / 255.f;
+    float4 fire_orange = (float4)(226, 72, 0, 255) / 255.f;
+    float4 fire_yellow = (float4)(255, 156, 0, 255) / 255.f;
+
+    float4 current_fire;
+
+    float fire_red_bound = 0.4f;
+
+    voxel_accumulate = min(voxel_accumulate, 1.f);
+
+    current_fire = interpolate_between(voxel_accumulate * light, fire_red, fire_yellow, fire_red_bound, 1.f, voxel_accumulate);
+    current_fire = interpolate_between(current_fire, 0.1f, fire_red, 0.f, fire_red_bound, voxel_accumulate);
+
+    write_imagef(screen, (int2){x, y}, voxel_accumulate*light*current_fire + (1.0f - voxel_accumulate)*original_value.xyzz);
 }
 #endif
 

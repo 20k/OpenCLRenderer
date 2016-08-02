@@ -487,6 +487,37 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     //lg::log("post g_id_screen_tex");
 
+    tile_size = 64;
+    tile_tri_chunk_size = 256;
+
+    tile_num_w = ceil((float)width / tile_size);
+    tile_num_h = ceil((float)height / tile_size);
+
+    ///max possible number of fragments is tri_num * tilew*tileh, but that number is huge so we have to do what we normally do
+    int display_list_num = tile_num_w*tile_num_h*tile_tri_chunk_size * 5;
+
+    cl_uint* default_slots = new cl_uint[tile_num_w*tile_num_h]();
+
+    for(int i=0; i<tile_num_w*tile_num_h; i++)
+    {
+        default_slots[i] = i;
+    }
+
+    cl_uint next_free_slot = tile_num_w*tile_num_h;
+
+    ///triangle id
+    int display_list_element_size = sizeof(cl_uint);
+
+    g_tiled_counters = compute::buffer(cl::context, sizeof(cl_uint)*tile_num_w*tile_num_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blank);
+    g_tiled_display_list = compute::buffer(cl::context, display_list_num * display_list_element_size, CL_MEM_READ_WRITE, nullptr);
+    g_tiled_tile_tracker = compute::buffer(cl::context, ceil((float)display_list_num / tile_tri_chunk_size) * sizeof(cl_uint));
+    g_tiled_currently_free_memory_slot = compute::buffer(cl::context, sizeof(cl_uint)*tile_num_w*tile_num_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, default_slots);
+    g_tiled_global_memory_slot_counter = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &next_free_slot);
+    g_tiled_global_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+
+
+    delete [] default_slots;
+
     ///fixme
     delete [] blank;
 
@@ -1746,6 +1777,86 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
     return ret;
 }
 
+compute::event engine::draw_tiled_deferred(object_context_data& dat)
+{
+    dat.ensure_screen_buffers(width, height);
+    last_frametype = frametype::RENDER;
+
+    compute::event ret;
+
+    int tile_num = tile_num_h * tile_num_w;
+
+    cl_int* zero_tiles = new cl_int[tile_num]();
+    cl_int* default_memory_slots = new cl_int[tile_num]();
+
+    for(int i=0; i<tile_num; i++)
+    {
+        default_memory_slots[i] = i;
+    }
+
+    clEnqueueWriteBuffer(cl::cqueue.get(), g_tiled_counters.get(), CL_TRUE, 0, sizeof(cl_int)*tile_num, zero_tiles, 0, nullptr, nullptr);
+    ///which tiles correspond to which memory slot
+    clEnqueueWriteBuffer(cl::cqueue.get(), g_tiled_currently_free_memory_slot.get(), CL_TRUE, 0, sizeof(cl_int)*tile_num, default_memory_slots, 0, nullptr, nullptr);
+    ///which memory slots correspond to which tile
+    clEnqueueWriteBuffer(cl::cqueue.get(), g_tiled_tile_tracker.get(), CL_TRUE, 0, sizeof(cl_int)*tile_num, default_memory_slots, 0, nullptr, nullptr);
+
+
+    arg_list clear_depth;
+    clear_depth.push_back(&dat.depth_buffer[dat.nbuf]);
+
+    ret = run_kernel_with_string("clear_depth_buffer", {dat.s_w, dat.s_h}, {8, 8}, 2, clear_depth);
+
+    arg_list clear_screen;
+    clear_screen.push_back(&dat.g_screen);
+
+    ret = run_kernel_with_string("clear_screen_tex", {dat.s_w, dat.s_h}, {8, 8}, 2, clear_depth);
+
+
+    arg_list split_args;
+    split_args.push_back(&dat.g_tri_mem);
+    split_args.push_back(&dat.tri_num);
+    split_args.push_back(&c_pos);
+    split_args.push_back(&c_rot);
+
+    split_args.push_back(&g_tiled_counters);
+    split_args.push_back(&g_tiled_display_list);
+    split_args.push_back(&g_tiled_tile_tracker);
+    split_args.push_back(&g_tiled_currently_free_memory_slot);
+    split_args.push_back(&g_tiled_global_memory_slot_counter);
+    split_args.push_back(&g_tiled_global_count);
+    split_args.push_back(&tile_num_w);
+    split_args.push_back(&tile_num_h);
+    split_args.push_back(&tile_size);
+    split_args.push_back(&tile_tri_chunk_size);
+    split_args.push_back(&dat.g_obj_desc);
+    split_args.push_back(&g_tid_buf);
+
+    ///I think lws is ignored
+    run_kernel_with_string("split_into_tiled_chunks", {dat.tri_num}, {tile_tri_chunk_size}, 1, split_args);
+
+
+
+    arg_list render_args = split_args;
+    render_args.push_back(&dat.depth_buffer[dat.nbuf]);
+    render_args.push_back(&dat.g_screen);
+
+    ///gws is temp
+    ret = run_kernel_with_string("tile_render", {256 * tile_num_w * tile_num_h}, {256}, 1, render_args);
+
+    cl_uint slot_num = 0;
+
+    //clEnqueueReadBuffer(cl::cqueue.get(), g_tiled_global_count.get(), CL_TRUE, 0, sizeof(cl_uint), &slot_num, 0, nullptr, nullptr);
+
+    //std::cout << slot_num << std::endl;
+
+
+
+    delete [] zero_tiles;
+    delete [] default_memory_slots;
+
+    return ret;
+}
+
 compute::event engine::blend(object_context_data& src, object_context_data& dst)
 {
     cl_int2 dim = {dst.s_w, dst.s_h};
@@ -2293,6 +2404,189 @@ compute::event engine::draw_smoke(object_context_data& dat, smoke& s, cl_int sol
     #endif
 
     ///temp while debuggingf
+
+    return event;
+}
+
+compute::event engine::draw_smoke_as_fire(object_context_data& dat, smoke& s, cl_int solid)
+{
+    int nx, ny, nz;
+
+    int n_dens = s.n_dens;
+    int n_vel = s.n_vel;
+
+    arg_list post_args;
+    post_args.push_back(&s.width);
+    post_args.push_back(&s.height);
+    post_args.push_back(&s.depth);
+    post_args.push_back(&s.uwidth);
+    post_args.push_back(&s.uheight);
+    post_args.push_back(&s.udepth);
+    post_args.push_back(&s.g_velocity_x[n_vel]);
+    post_args.push_back(&s.g_velocity_y[n_vel]);
+    post_args.push_back(&s.g_velocity_z[n_vel]);
+    post_args.push_back(&s.g_w1);
+    post_args.push_back(&s.g_w2);
+    post_args.push_back(&s.g_w3);
+    post_args.push_back(&s.g_voxel[n_dens]);
+    post_args.push_back(&s.g_voxel_upscale);
+    post_args.push_back(&s.scale);
+    post_args.push_back(&s.roughness);
+
+
+    ///make linear
+    cl_uint global_ws[3] = {s.uwidth, s.uheight, s.udepth};
+    cl_uint local_ws[3] = {16, 16, 1};
+
+    ///this also upscales the diffusion buffer
+    run_kernel_with_string("post_upscale", global_ws, local_ws, 3, post_args);
+
+    ///need to advect the diffuse buffer. Upscale it first, then advect
+
+    ///need to find corners of cube in screenspace
+    ///just rotate around camera
+
+
+    ///this takes into account shift
+    ///could have just done relative coordinates and then added later
+    ///oh well
+    cl_float4 corners[8] = {{0,0,0},
+                            {s.uwidth, 0, 0},
+                            {0, s.uheight, 0},
+                            {s.uwidth, s.uheight, 0},
+                            {0, 0, s.udepth},
+                            {s.uwidth, 0, s.udepth},
+                            {0, s.uheight, s.udepth},
+                            {s.uwidth, s.uheight, s.udepth}}
+                            ;
+
+
+
+    cl_float4 wcorners[8];
+
+    for(int i=0; i<8; i++)
+    {
+        ///do rotation too
+
+        ///centre, -d/2, d/2
+        cl_float4 modded = sub(corners[i], div((cl_float4){s.uwidth, s.uheight, s.udepth, 0}, 2));
+
+        ///normalize between -0.5, 0.5
+        cl_float4 normd = div(modded, (cl_float4){s.uwidth, s.uheight, s.udepth, 0});
+
+        ///up to render_size/2
+        cl_float4 render = mult(normd, s.render_size);
+
+
+        ///up to render_size
+        wcorners[i] = add(render, s.pos);
+    }
+
+    ///value in screenspace
+    cl_float4 sspace[8];
+
+    ///screenspace corners, ie bounding square
+    cl_float2 scorners[4] = {{FLT_MAX,FLT_MAX}, {0, FLT_MAX}, {FLT_MAX, 0}, {0, 0}};
+
+    for(int i=0; i<8; i++)
+    {
+        sspace[i] = engine::project(wcorners[i]);
+    }
+
+    ///do this check at beginning of loop
+    bool all_behind = true;
+
+    for(int i=0; i<8; i++)
+    {
+        if(sspace[i].z > 0)
+            all_behind = false;
+    }
+
+    if(all_behind)
+        return compute::event();
+
+    bool any_behind = false;
+
+    for(int i=0; i<8; i++)
+    {
+        if(sspace[i].z <= 0)
+            any_behind = true;
+    }
+
+    for(int i=0; i<8; i++)
+    {
+        scorners[0].x = std::min(sspace[i].x, scorners[0].x);
+        scorners[0].y = std::min(sspace[i].y, scorners[0].y);
+
+        scorners[1].x = std::max(sspace[i].x, scorners[1].x);
+        scorners[1].y = std::min(sspace[i].y, scorners[1].y);
+
+        scorners[2].x = std::min(sspace[i].x, scorners[2].x);
+        scorners[2].y = std::max(sspace[i].y, scorners[2].y);
+
+        scorners[3].x = std::max(sspace[i].x, scorners[3].x);
+        scorners[3].y = std::max(sspace[i].y, scorners[3].y);
+    }
+
+    std::vector<cl_float4> vec_corners;
+
+    for(int i=0; i<8; i++)
+    {
+        vec_corners.push_back({sspace[i].x, sspace[i].y, sspace[i].z, i});
+    }
+
+    ///sorting in screenspace
+    std::sort(vec_corners.begin(), vec_corners.end(), [](const cl_float4& p1, const cl_float4& p2){return p1.z < p2.z;});
+
+    std::vector<cl_float4> sorted_closest;
+
+    ///apply sorting in screenspace to global space variables
+    for(int i=0; i<8; i++)
+    {
+        sorted_closest.push_back(wcorners[(int)vec_corners[i].w]);
+    }
+
+
+    cl_float2 offset = scorners[0];
+
+    arg_list smoke_args;
+    smoke_args.push_back(&s.g_voxel_upscale);
+    smoke_args.push_back(&s.uwidth);
+    smoke_args.push_back(&s.uheight);
+    smoke_args.push_back(&s.udepth);
+    smoke_args.push_back(&c_pos);
+    smoke_args.push_back(&c_rot);
+    smoke_args.push_back(&s.pos);
+    smoke_args.push_back(&s.rot);
+    smoke_args.push_back(&dat.g_screen); ///trolol undefined behaviour
+    smoke_args.push_back(&dat.g_screen);
+    smoke_args.push_back(&dat.depth_buffer[dat.nbuf]);
+    smoke_args.push_back(&offset);
+    smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
+    smoke_args.push_back(&s.render_size);
+    smoke_args.push_back(&light_data->g_light_num);
+    smoke_args.push_back(&light_data->g_light_mem);
+    smoke_args.push_back(&s.voxel_bound);
+    smoke_args.push_back(&solid);
+
+    int c_width = fabs(scorners[1].x - scorners[0].x), c_height = fabs(scorners[3].y - scorners[1].y);
+
+    offset.x = std::max(offset.x, 0.0f);
+    offset.y = std::max(offset.y, 0.0f);
+
+    c_width = std::min(c_width, (int)dat.s_w);
+    c_height = std::min(c_height, (int)dat.s_h);
+
+    if(any_behind)
+    {
+        offset = {0,0};
+        c_width = dat.s_w;
+        c_height = dat.s_h;
+    }
+    cl_uint render_ws[2] = {c_width, c_height};
+    cl_uint render_lws[2] = {16, 16};
+
+    auto event = run_kernel_with_string("render_voxel_fire", render_ws, render_lws, 2, smoke_args);
 
     return event;
 }

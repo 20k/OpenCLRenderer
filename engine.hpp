@@ -110,6 +110,19 @@ struct engine
     compute::opengl_renderbuffer g_screen_reprojected;
     compute::opengl_renderbuffer g_screen_edge_smoothed;
 
+    compute::buffer g_tiled_counters;
+    //compute::buffer g_tiled_lock_acquirer;
+    compute::buffer g_tiled_display_list; ///'big' enough, same as fragment ids
+    compute::buffer g_tiled_tile_tracker;
+    compute::buffer g_tiled_currently_free_memory_slot;
+    compute::buffer g_tiled_global_memory_slot_counter;
+    compute::buffer g_tiled_global_count;
+
+
+    cl_int tile_size;
+    cl_int tile_num_w, tile_num_h;
+    cl_int tile_tri_chunk_size;
+
     ///switches between the two every frame
     compute::buffer depth_buffer[2];
     compute::buffer reprojected_depth_buffer[2];
@@ -132,8 +145,8 @@ struct engine
     compute::buffer g_tid_buf_atomic_count; ///atomic counter for kernel
     int c_tid_buf_len;
 
-    compute::buffer g_valid_fragment_mem; ///memory storage for valid fragments
-    compute::buffer g_valid_fragment_num; ///number of valid fragments
+    //compute::buffer g_valid_fragment_mem; ///memory storage for valid fragments
+    //compute::buffer g_valid_fragment_num; ///number of valid fragments
 
     compute::buffer g_distortion_buffer; ///for doing vertex warping in screenspace
 
@@ -200,6 +213,7 @@ struct engine
     ///except for persistent data like the screen
     compute::event generate_depth_buffer(object_context_data& dat);
     compute::event draw_bulk_objs_n(object_context_data& dat); ///draw objects to scene
+    compute::event draw_tiled_deferred(object_context_data& dat);
     compute::event draw_godrays(object_context_data& dat);
     ///performs pseudo AA on the buffer last rendered to
     compute::event do_pseudo_aa();
@@ -210,6 +224,7 @@ struct engine
     void draw_voxel_octree(g_voxel_info& info);
     void draw_raytrace();
     compute::event draw_smoke(object_context_data& dat, smoke& s, cl_int solid);
+    compute::event draw_smoke_as_fire(object_context_data& dat, smoke& s, cl_int solid);
     compute::event draw_smoke_dbuf(object_context_data& dat, smoke& s);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
     ///i hate this function

@@ -48,6 +48,8 @@ int main(int argc, char *argv[])
 
     engine window;
 
+    window.set_opencl_extra_command_line("-D TILE_DIM=64");
+
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
 
     window.set_camera_pos((cl_float4){-800,150,-570});
@@ -201,9 +203,10 @@ int main(int argc, char *argv[])
         {
             ///do manual async on thread
             ///make a enforce_screensize method, rather than make these hackily do it
-            event = window.draw_bulk_objs_n(*context.fetch());
+            //event = window.draw_bulk_objs_n(*context.fetch());
+            event = window.draw_tiled_deferred(*context.fetch());
 
-            event = window.do_pseudo_aa();
+            //event = window.do_pseudo_aa();
 
             //event = window.draw_godrays(*context.fetch());
 
