@@ -58,6 +58,8 @@ struct objects_container
     void    set_load_func  (std::function<void (objects_container*)>);
     void    call_load_func (objects_container*);
 
+    void    set_load_cube_blank(cl_float4 dim);
+
     //void    set_override_tex(texture* tex);
     void    set_unique_textures(bool are_unique);
 

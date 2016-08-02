@@ -2949,6 +2949,8 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
         atomic_add(tiled_global_count, shared);*/
 }
 
+#ifdef TILE_DIM
+
 ///can abuse the tile counters to do what I want, for the moment fix the depth buffer
 __kernel
 void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos, float4 c_rot,
@@ -3132,6 +3134,8 @@ void render_depth_buffer(__global uint* depth_buffer, __write_only image2d_t scr
 
     write_imagef(screen, (int2)(x, y), depth / 10000.f);
 }
+
+#endif
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels

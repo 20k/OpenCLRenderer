@@ -139,37 +139,7 @@ void objects_container::set_active_subobjs(bool param)
 
 void objects_container::set_active(bool param)
 {
-    if(!isactive && param)
-    {
-        isactive = param;
-        //push();
-        return;
-    }
-
-    ///deactivating an object will cause it to be unallocated next g_arrange_mem
-    ///this is how useless
-    /*if(isactive && !param)
-    {
-        std::vector<objects_container*>::iterator it = objects_container::obj_container_list.begin();
-
-        int tid = get_object_by_id(id);
-
-        if(tid != -1)
-        {
-            std::advance(it, tid);
-            objects_container::obj_container_list.erase(it);
-            id = -1;
-
-            //std::cout << "Removed object from object_container_list: " << tid << std::endl;
-        }
-        else
-        {
-            std::cout << "Warning: could not remove object, not found" << std::endl;
-        }
-    }*/
-
     isactive = param;
-    //return id;
 }
 
 void objects_container::unload_tris()
@@ -197,6 +167,14 @@ void objects_container::set_load_func(std::function<void (objects_container*)> f
 void objects_container::call_load_func(objects_container* c)
 {
     fp(c);
+}
+
+void objects_container::set_load_cube_blank(cl_float4 dim)
+{
+    texture* tex = parent->tex_ctx.make_new_cached("LOAD_CUBE_CACHE");
+    tex->set_create_colour(sf::Color(255, 128, 128), 256, 256);
+
+    set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, dim));
 }
 
 /*void objects_container::set_override_tex(texture* tex)
