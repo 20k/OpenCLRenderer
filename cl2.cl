@@ -2867,6 +2867,7 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
 
                 bool contained = false;
 
+                ///this is insufficient
                 if(tiled_min_max[0] >= tx && tiled_min_max[1] <= tx + 1 && tiled_min_max[2] >= ty && tiled_min_max[3] <= ty + 1)
                     contained = true;
 
@@ -2899,7 +2900,7 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
                         int free_memory_slot_number = combined_slot_info >> 16;
 
                         ///we have exceeded the tiled chunk size
-                        ///this means we must write chunk to memory, and then reset the current state/write tri again
+                        ///means we have to adjust the memory to the next chunk along
                         if(slot_offset == tile_chunk_size)
                         {
                             int next_free_memory_slot = atomic_inc(tiled_global_memory_slot_counter);
@@ -2914,8 +2915,10 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
                         ///race condition
                         if(slot_offset > tile_chunk_size)
                         {
-                            tx--;
-                            break;
+                            //tx--;
+                            //break;
+                            oo--;
+                            continue;
                         }
 
                         tiled_display_list[free_memory_slot_number * tile_chunk_size + slot_offset] = id*2 + i;
@@ -3107,7 +3110,7 @@ void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos
         float dbg = (float)current_slot_count / tile_chunk_size;
 
         ///tri_id for count of triangles
-        //dbg = tri_id / 1000000.f;
+        dbg = tri_id / 1000000.f;
 
         //write_imagef(screen, (int2)(xoffset + xid, yoffset + yid), dbg);
         //write_imagef(screen, (int2)(xoffset + xid, yoffset + yid),  rd / 10000.f);*/
