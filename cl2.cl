@@ -2893,9 +2893,10 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
 
                     if(tile_id < tile_num && tile_id >= 0)
                     {
-                        ///if one is valid, the other isn't necessarily
-                        int slot_offset = atomic_inc(&tiled_counters[tile_id]);
-                        int free_memory_slot_number = tiled_currently_free_memory_slot[tile_id];
+                        int combined_slot_info = atomic_inc(&tiled_counters[tile_id]);
+
+                        int slot_offset = combined_slot_info & 0xFFFF;
+                        int free_memory_slot_number = combined_slot_info >> 16;
 
                         ///we have exceeded the tiled chunk size
                         ///this means we must write chunk to memory, and then reset the current state/write tri again
@@ -2903,8 +2904,7 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
                         {
                             int next_free_memory_slot = atomic_inc(tiled_global_memory_slot_counter);
 
-                            tiled_counters[tile_id] = 1;
-                            tiled_currently_free_memory_slot[tile_id] = next_free_memory_slot;
+                            tiled_counters[tile_id] = 1 | (next_free_memory_slot << 16);
                             tiled_tile_tracker[next_free_memory_slot] = tile_id;
 
                             slot_offset = 0;
@@ -2970,9 +2970,15 @@ void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos
 
     uint tile_id = tiled_tile_tracker[memory_slot];
 
-    uint current_tracked_tile_memory_slot = tiled_currently_free_memory_slot[tile_id];
+    //uint current_tracked_tile_memory_slot = tiled_currently_free_memory_slot[tile_id];
 
-    uint current_slot_count = tiled_counters[tile_id];
+    //uint current_slot_count = tiled_counters[tile_id];
+
+    int combined_slot_info = tiled_counters[tile_id];
+
+    int current_slot_count = combined_slot_info & 0xFFFF;
+
+    int current_tracked_tile_memory_slot = combined_slot_info >> 16;
 
     bool last_group_on_this_tile = current_tracked_tile_memory_slot == memory_slot;
 

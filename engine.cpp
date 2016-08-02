@@ -1792,6 +1792,8 @@ compute::event engine::draw_tiled_deferred(object_context_data& dat)
     for(int i=0; i<tile_num; i++)
     {
         default_memory_slots[i] = i;
+
+        zero_tiles[i] = 0 | (i << 16);
     }
 
     clEnqueueWriteBuffer(cl::cqueue.get(), g_tiled_counters.get(), CL_TRUE, 0, sizeof(cl_int)*tile_num, zero_tiles, 0, nullptr, nullptr);
