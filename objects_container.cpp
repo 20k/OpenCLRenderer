@@ -172,9 +172,17 @@ void objects_container::call_load_func(objects_container* c)
 void objects_container::set_load_cube_blank(cl_float4 dim)
 {
     texture* tex = parent->tex_ctx.make_new_cached("LOAD_CUBE_CACHE");
-    tex->set_create_colour(sf::Color(255, 128, 128), 256, 256);
+    tex->set_create_colour(sf::Color(255, 128, 128), 512, 512);
 
-    set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, dim));
+    vec3f start = {0,0,0};
+    vec3f fin = start;
+
+    start.x() = start.x() - dim.x;
+    fin.x() = fin.x() - dim.x;
+
+    set_load_func(std::bind(load_object_cube_tex, std::placeholders::_1, start, fin, dim.y, *tex));
+
+    //set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, dim));
 }
 
 /*void objects_container::set_override_tex(texture* tex)

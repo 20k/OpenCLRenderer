@@ -12,7 +12,7 @@
     #define M_PI 3.1415927f
 //#endif // M_PI
 
-#define depth_far 3500.0f
+#define depth_far 350000.0f
 
 #define mulint UINT_MAX
 
@@ -2757,6 +2757,8 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 
 #define MOD_ERROR 5000.f
 
+#ifdef TILE_DIM
+
 __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint tri_num, float4 c_pos, float4 c_rot,
                                       __global int* tiled_counters, __global uint* tiled_display_list,
                                       __global uint* tiled_tile_tracker, __global uint* tiled_currently_free_memory_slot, __global uint* tiled_global_memory_slot_counter,
@@ -2949,7 +2951,6 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
         atomic_add(tiled_global_count, shared);*/
 }
 
-#ifdef TILE_DIM
 
 ///can abuse the tile counters to do what I want, for the moment fix the depth buffer
 __kernel

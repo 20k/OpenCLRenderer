@@ -1215,6 +1215,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     ///this is very undefined behaviour
     clEnqueueReadBuffer(cl::cqueue, dat.g_tid_buf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), dat.cpu_id_num, 0, NULL, NULL);
 
+
     /*int tile_size = 32;
     int tile_depth = 1000;
 
@@ -1260,6 +1261,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     //run_kernel_with_list(cl::prearrange, &p1global_ws, &local, 1, prearg_list, true);
     run_kernel_with_string("prearrange", &p1global_ws, &local, 1, prearg_list);
+
 
     local = 256;
 

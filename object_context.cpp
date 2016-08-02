@@ -576,6 +576,7 @@ void object_context::build(bool force)
         clEnqueueBarrierWithWaitList(cl::cqueue2.get(), flattened.size(), flattened.data(), nullptr);
 
         cl::cqueue2.flush();
+        cl::cqueue2.finish();
 
         update_object_status(0, 0, this);
         flip_buffers(this);
