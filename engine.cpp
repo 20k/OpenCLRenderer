@@ -1843,6 +1843,14 @@ compute::event engine::draw_tiled_deferred(object_context_data& dat)
     ///gws is temp
     ret = run_kernel_with_string("tile_render", {256 * tile_num_w * tile_num_h}, {256}, 1, render_args);
 
+    arg_list depth_render_args;
+
+    depth_render_args.push_back(&dat.depth_buffer[dat.nbuf]);
+    depth_render_args.push_back(&dat.g_screen);
+
+    ret = run_kernel_with_string("render_depth_buffer", {width * height}, {256}, 1, depth_render_args);
+
+
     cl_uint slot_num = 0;
 
     //clEnqueueReadBuffer(cl::cqueue.get(), g_tiled_global_count.get(), CL_TRUE, 0, sizeof(cl_uint), &slot_num, 0, nullptr, nullptr);

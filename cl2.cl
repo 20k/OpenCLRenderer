@@ -2867,9 +2867,10 @@ __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint 
 
                 bool contained = false;
 
+                if(tiled_min_max[0] >= tx && tiled_min_max[1] <= tx + 1 && tiled_min_max[2] >= ty && tiled_min_max[3] <= ty + 1)
+                    contained = true;
 
-
-                if(!cond)
+                if(!cond && !contained)
                 {
                     continue;
                 }
@@ -2972,6 +2973,8 @@ void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos
     uint current_tracked_tile_memory_slot = tiled_currently_free_memory_slot[tile_id];
 
     uint current_slot_count = tiled_counters[tile_id];
+
+    bool last_group_on_this_tile = current_tracked_tile_memory_slot == memory_slot;
 
     bool invalid = false;
 
@@ -3076,6 +3079,7 @@ void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
+    //if(last_group_on_this_tile)
     for(int i=0; i<per_work_item; i++)
     {
         int pid = lid * per_work_item + i;
@@ -3083,18 +3087,41 @@ void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos
         int xid = pid % TILE_DIM;
         int yid = pid / TILE_DIM;
 
-        uint depth = ldepth_buffer[yid*TILE_DIM + xid];
+        int real_x = xid + xoffset;
+        int real_y = yid + yoffset;
 
-        float rd = idcalc((float)depth / mulint);
+        atomic_min(&depth_buffer[real_y * SCREENWIDTH + real_x], ldepth_buffer[yid * TILE_DIM + xid]);
+
+        //write_imagef(screen, (int2)(xoffset + xid, yoffset + yid), last_group_on_this_tile);
+
+        /*uint depth = ldepth_buffer[yid*TILE_DIM + xid];
+
+        float rd = idcalc((float)depth / mulint);*/
 
         float dbg = (float)current_slot_count / tile_chunk_size;
 
         ///tri_id for count of triangles
-        dbg = tri_id / 1000000.f;
+        //dbg = tri_id / 1000000.f;
 
         //write_imagef(screen, (int2)(xoffset + xid, yoffset + yid), dbg);
-        write_imagef(screen, (int2)(xoffset + xid, yoffset + yid),  rd / 10000.f);
+        //write_imagef(screen, (int2)(xoffset + xid, yoffset + yid),  rd / 10000.f);*/
     }
+}
+
+__kernel
+void render_depth_buffer(__global uint* depth_buffer, __write_only image2d_t screen)
+{
+    int id = get_global_id(0);
+
+    if(id >= SCREENWIDTH * SCREENHEIGHT)
+        return;
+
+    int x = id % SCREENWIDTH;
+    int y = id / SCREENWIDTH;
+
+    float depth = idcalc((float)depth_buffer[y*SCREENWIDTH + x] / mulint);
+
+    write_imagef(screen, (int2)(x, y), depth / 10000.f);
 }
 
 ///lower = better for sparse scenes, higher = better for large tri scenes
