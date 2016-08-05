@@ -203,8 +203,8 @@ int main(int argc, char *argv[])
         {
             ///do manual async on thread
             ///make a enforce_screensize method, rather than make these hackily do it
-            //event = window.draw_bulk_objs_n(*context.fetch());
-            event = window.draw_tiled_deferred(*context.fetch());
+            event = window.draw_bulk_objs_n(*context.fetch());
+            //event = window.draw_tiled_deferred(*context.fetch());
 
             //event = window.do_pseudo_aa();
 

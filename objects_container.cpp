@@ -68,6 +68,8 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 {
     rot = _rot;
 
+    rot_mat.load_rotation_matrix(xyz_to_vec(rot));
+
     for(unsigned int i=0; i<objs.size(); i++)
     {
         objs[i].set_rot(rot);
@@ -180,9 +182,9 @@ void objects_container::set_load_cube_blank(cl_float4 dim)
     start.x() = start.x() - dim.x;
     fin.x() = fin.x() - dim.x;
 
-    set_load_func(std::bind(load_object_cube_tex, std::placeholders::_1, start, fin, dim.y, *tex));
+    //set_load_func(std::bind(load_object_cube_tex, std::placeholders::_1, start, fin, dim.y, *tex));
 
-    //set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, dim));
+    set_load_func(std::bind(obj_cube_by_extents, std::placeholders::_1, *tex, dim));
 }
 
 /*void objects_container::set_override_tex(texture* tex)
@@ -264,6 +266,26 @@ void objects_container::scale(float f)
     {
         objs[i].scale(f);
     }
+}
+
+void objects_container::request_scale(float f)
+{
+    requested_scale = f;
+}
+
+void objects_container::fulfill_requested_scale()
+{
+    if(fabs(requested_scale - 1.f) < 0.00001f)
+    {
+        requested_scale = 1.f;
+        return;
+    }
+
+    printf("hello %f\n", requested_scale);
+
+    scale(requested_scale);
+
+    requested_scale = 1.f;
 }
 
 void objects_container::stretch(int dim, float amount)

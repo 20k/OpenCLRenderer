@@ -578,14 +578,18 @@ compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws
 
     if(!k.loaded)
     {
+        #ifndef NO_KERNEL_DEBUG
         lg::log("trying to load ", name.c_str());
+        #endif
 
         k = load_kernel(cl::program, name);
         cl::kernels[name] = k;
 
+        #ifndef NO_KERNEL_DEBUG
         lg::log("loaded");
 
         did_load = true;
+        #endif
     }
 
     auto ev = run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue, did_load);

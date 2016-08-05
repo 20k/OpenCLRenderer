@@ -10,6 +10,7 @@
 
 #include "obj_g_descriptor.hpp"
 #include "object_context.hpp"
+#include <vec/vec.hpp>
 
 struct texture;
 
@@ -30,6 +31,7 @@ struct object
 
     cl_float4 pos;
     cl_float4 rot;
+    mat3f rot_mat;
 
     cl_float4 centre; ///unused
 

@@ -148,6 +148,10 @@ void object_context::load_active()
                 obj->call_load_func(containers[i]);
                 obj->set_active_subobjs(true);
 
+                ///turn this into a full generic delayed action thing
+                ///however, for the moment, delayed scale is fine
+                obj->fulfill_requested_scale();
+
                 if(obj->cache)
                 {
                     object_cache[obj->file] = *obj;

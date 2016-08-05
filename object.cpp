@@ -73,77 +73,6 @@ object::~object()
 void object::set_active(bool param)
 {
     isactive = param;
-
-    /*if(param)
-    {
-        if(!isactive)
-        {
-            ///if object !initialised, should probably error out, or throw
-            isactive = param;
-
-            texture* tex = texture_manager::texture_by_id(tid);
-
-            if(tex)
-            {
-                tex->type = 0;
-                tex->activate();
-            }
-
-            if(rid != -1)
-            {
-                texture* rtex = texture_manager::texture_by_id(rid);
-
-                if(!rtex)
-                {
-                    printf("weird normal texture error, should be impossible\n");
-                }
-                else
-                {
-                    rtex->type = 0;
-                    rtex->activate();
-                }
-            }
-
-            if(has_bump)
-            {
-                texture* btex = texture_manager::texture_by_id(bid);
-
-                if(!btex)
-                {
-                    printf("bumpmap error, should be impossible\n");
-                }
-                else
-                {
-                    btex->type = 1;
-                    btex->activate();
-                }
-            }
-        }
-        else
-        {
-            return;
-        }
-    }
-    else
-    {
-        if(isactive)
-        {
-            isactive = param;
-
-
-            ///other files might be using same texture, incorrect to inactivate it. Reference counting? Oh god
-            //texture_manager::all_textures[tid].inactivate();
-
-            if(has_bump)
-            {
-                //texture_manager::all_textures[bid].inactivate();
-            }
-        }
-        else
-        {
-            return;
-        }
-    }*/
 }
 
 void object::set_pos(cl_float4 _pos)
@@ -154,6 +83,8 @@ void object::set_pos(cl_float4 _pos)
 void object::set_rot(cl_float4 _rot)
 {
     rot = _rot;
+
+    rot_mat.load_rotation_matrix(xyz_to_vec(rot));
 }
 
 void object::offset_pos(cl_float4 _offset)

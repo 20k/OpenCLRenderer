@@ -7,6 +7,7 @@
 #include <functional>
 #include <boost/compute/system.hpp>
 #include "texture_manager.hpp"
+#include <vec/vec.hpp>
 
 
 namespace compute = boost::compute;
@@ -36,8 +37,12 @@ struct objects_container
 
     cl_float4 pos;
     cl_float4 rot;
+    mat3f rot_mat;
+
 
     std::vector<object> objs;
+
+    float requested_scale = 1.f;
 
     ///global list of object containers
     static std::vector<objects_container*> obj_container_list;
@@ -72,6 +77,8 @@ struct objects_container
     void    swap_90_perp();
     void    stretch(int dim, float amount);
     void    scale(float);
+    void    request_scale(float);
+    void    fulfill_requested_scale();
 
     void    unload();
 
