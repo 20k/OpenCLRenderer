@@ -1266,7 +1266,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     local = 256;
 
     ///infernal satanic magic
-    cl_uint p1global_ws_new = *dat.cpu_id_num * id_fudge;
+    cl_uint p1global_ws_new = *dat.cpu_id_num * id_fudge + 1000;
 
     ///write depth of triangles to buffer, ie z buffering
 
@@ -1287,7 +1287,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //sf::Clock p2;
 
     ///makes literally no sense, just roll with it
-    cl_uint p2global_ws = *dat.cpu_id_num * id_fudge;
+    cl_uint p2global_ws = *dat.cpu_id_num * id_fudge + 1000;
 
     cl_uint local2 = 256;
 

@@ -3285,6 +3285,8 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
             return;
     }
 
+    //printf("c %f %f %f %f ", G->world_rot_quat.x, G->world_rot_quat.y, G->world_rot_quat.z, G->world_rot_quat.w);
+
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
     full_rotate_quat(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing

@@ -229,6 +229,11 @@ int main(int argc, char *argv[])
 
         avg_ftime /= 2;
 
+        //quaternion q;
+        //q.load_from_euler({0, 0, -M_PI/2});
+
+        //sponza->set_rot_quat(q);
+
         if(key.isKeyPressed(sf::Keyboard::M))
             std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
 
