@@ -53,6 +53,7 @@ struct objects_container
 
     void    set_pos(cl_float4);
     void    set_rot(cl_float4);
+    void    set_rot_quat(quaternion);
     void    offset_pos(cl_float4);
     void    set_file(const std::string&);
     void    set_active(bool param);

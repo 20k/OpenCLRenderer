@@ -238,9 +238,16 @@ int main(int argc, char *argv[])
         if(key.isKeyPressed(sf::Keyboard::Comma))
             std::cout << avg_ftime << std::endl;
 
-        sponza->set_rot({r.v[0], r.v[1], r.v[2]});
+        mat3f mat;
+        mat.load_rotation_matrix(r);
+
+        quaternion q;
+        q.load_from_matrix(mat);
+
+        sponza->set_rot_quat(q);
 
         r.v[2] += 1.f * avg_ftime / 1000.f / 1000.f;
+        r.v[1] += 0.5f * avg_ftime / 1000.f / 1000.f;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary

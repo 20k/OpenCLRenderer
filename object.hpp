@@ -72,6 +72,7 @@ struct object
     void set_active(bool param);
     void set_pos(cl_float4);
     void set_rot(cl_float4);
+    void set_rot_quat(quaternion);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();

@@ -50,18 +50,6 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
     {
         objs[i].set_pos(pos);
     }
-
-    /*if(isactive)
-    {
-        int tid = get_object_by_id(id);
-
-        obj_container_list[tid]->pos = _pos;
-
-        for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
-        {
-            obj_container_list[tid]->objs[i].set_pos(_pos);
-        }
-    }*/
 }
 
 void objects_container::set_rot(cl_float4 _rot) ///both remote and local
@@ -78,17 +66,16 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
     {
         objs[i].set_rot(rot);
     }
+}
 
-    /*if(isactive)
+void objects_container::set_rot_quat(quaternion q)
+{
+    rot_quat = q;
+
+    for(unsigned int i=0; i<objs.size(); i++)
     {
-        int tid = get_object_by_id(id);
-
-        obj_container_list[tid]->rot = _rot;
-        for(unsigned int i=0; i<obj_container_list[tid]->objs.size(); i++)
-        {
-            obj_container_list[tid]->objs[i].set_rot(_rot);
-        }
-    }*/
+        objs[i].set_rot_quat(rot_quat);
+    }
 }
 
 void objects_container::offset_pos(cl_float4 _offset)

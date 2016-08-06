@@ -92,6 +92,11 @@ void object::set_rot(cl_float4 _rot)
     rot_quat.load_from_matrix(rot_mat);
 }
 
+void object::set_rot_quat(quaternion q)
+{
+    rot_quat = q;
+}
+
 void object::offset_pos(cl_float4 _offset)
 {
     pos = add(pos, _offset);
