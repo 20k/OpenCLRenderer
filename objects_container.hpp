@@ -37,7 +37,8 @@ struct objects_container
 
     cl_float4 pos;
     cl_float4 rot;
-    mat3f rot_mat;
+    //mat3f rot_mat;
+    quaternion rot_quat;
 
 
     std::vector<object> objs;

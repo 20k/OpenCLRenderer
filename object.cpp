@@ -24,6 +24,7 @@ object::object() : tri_list(0)
 {
     last_pos = {0,0,0};
     last_rot = {0,0,0};
+    last_rot_quat = {0,0,0,1};
 
     pos.x=0, pos.y=0, pos.z=0;
     rot.x=0, rot.y=0, rot.z=0;
@@ -84,7 +85,11 @@ void object::set_rot(cl_float4 _rot)
 {
     rot = _rot;
 
+    mat3f rot_mat;
+
     rot_mat.load_rotation_matrix(xyz_to_vec(rot));
+
+    rot_quat.load_from_matrix(rot_mat);
 }
 
 void object::offset_pos(cl_float4 _offset)
@@ -367,6 +372,8 @@ void object::try_load(cl_float4 pos)
 ///yay!
 void object::g_flush(object_context_data& dat, bool force)
 {
+    cl_rot_quat = conv_implicit<cl_float4>(rot_quat);
+
     if(object_g_id == -1)
         return;
 
@@ -387,6 +394,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
     bool dirty_pos = false;
     bool dirty_rot = false;
+    bool dirty_rot_quat = false;
 
     for(int i=0; i<4; i++)
     {
@@ -395,6 +403,9 @@ void object::g_flush(object_context_data& dat, bool force)
 
         if(last_rot.s[i] != rot.s[i])
             dirty_rot = true;
+
+        if(last_rot_quat.s[i] != cl_rot_quat.s[i])
+            dirty_rot_quat = true;
     }
 
     posrot.lo = pos;
@@ -406,7 +417,7 @@ void object::g_flush(object_context_data& dat, bool force)
     ///possibly use the event callback system to fix this
 
     ///eventually extend this to only update the correct components
-    if(!dirty_pos && !dirty_rot && !force_flush)
+    if(!dirty_pos && !dirty_rot && !dirty_rot_quat && !force_flush)
         return;
 
     /*if(write_events.size() > 0)
@@ -432,16 +443,41 @@ void object::g_flush(object_context_data& dat, bool force)
 
     cl_event* event_ptr = num_events > 0 ? write_events.data() : nullptr;
 
-    cl_int ret = -1;
+    cl_int ret = CL_SUCCESS;
 
     cl_event event;
 
+    std::vector<cl_event> next_events;
+
     if(dirty_pos && dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
+    {
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
+
+        if(ret == CL_SUCCESS)
+            next_events.push_back(event);
+    }
     else if(dirty_pos)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, event_ptr, &event); ///only position
+    {
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, event_ptr, &event); ///only position
+
+        if(ret == CL_SUCCESS)
+            next_events.push_back(event);
+    }
     else if(dirty_rot)
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, event_ptr, &event); ///only rotation
+    {
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, event_ptr, &event); ///only rotation
+
+        if(ret == CL_SUCCESS)
+            next_events.push_back(event);
+    }
+
+    if(dirty_rot_quat)
+    {
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4)*2, sizeof(cl_float4), &cl_rot_quat, num_events, event_ptr, &event); ///only rotation
+
+        if(ret == CL_SUCCESS)
+            next_events.push_back(event);
+    }
 
     ///on a flush atm we'll get some slighty data duplication
     ///very minorly bad for performance, but eh
@@ -451,13 +487,20 @@ void object::g_flush(object_context_data& dat, bool force)
     if(force_flush)
     {
         ///hmm. write_events > 0 causing a crash her
-        if(dirty_pos || dirty_rot)
+        /*if(dirty_pos || dirty_rot || dirty_rot_quat)
             write_events.push_back(event);
 
         if((dirty_pos || dirty_rot) && ret != CL_SUCCESS)
         {
             lg::log("Crashtime in flush err ", ret);
             write_events.pop_back();
+        }*/
+
+        for(auto& i : next_events)
+        {
+            clRetainEvent(i);
+
+            write_events.push_back(i);
         }
 
         num_events = write_events.size() > 0 ? 1 : 0;
@@ -468,12 +511,6 @@ void object::g_flush(object_context_data& dat, bool force)
 
         ///the cl_true here is a big reason for the slowdown on object context change
         ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_TRUE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
-
-        ///so if we releaseevent we get a crash
-        ///otherwise a hang
-        ///so this is likely the problem here
-        //if(dirty_pos || dirty_rot)
-        //    clReleaseEvent(old);
     }
 
     for(auto& i : write_events)
@@ -485,7 +522,11 @@ void object::g_flush(object_context_data& dat, bool force)
 
     if(ret == CL_SUCCESS)
     {
-        write_events.push_back(event);
+        //write_events.push_back(event);
+        for(auto& i : next_events)
+        {
+            write_events.push_back(i);
+        }
     }
 
     else
@@ -498,6 +539,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
     last_pos = pos;
     last_rot = rot;
+    last_rot_quat = conv_implicit<cl_float4>(rot_quat);
 }
 
 void object::set_buffer_offset(int offset)

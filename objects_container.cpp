@@ -68,7 +68,11 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 {
     rot = _rot;
 
+    mat3f rot_mat;
+
     rot_mat.load_rotation_matrix(xyz_to_vec(rot));
+
+    rot_quat.load_from_matrix(rot_mat);
 
     for(unsigned int i=0; i<objs.size(); i++)
     {

@@ -31,7 +31,7 @@ struct object
 
     cl_float4 pos;
     cl_float4 rot;
-    mat3f rot_mat;
+    quaternion rot_quat;
 
     cl_float4 centre; ///unused
 
@@ -109,6 +109,9 @@ struct object
 
     cl_float4 last_pos;
     cl_float4 last_rot;
+    cl_float4 last_rot_quat;
+
+    cl_float4 cl_rot_quat;
 
     uint32_t last_object_context_data_id;
 };

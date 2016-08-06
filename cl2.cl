@@ -76,6 +76,7 @@ struct obj_g_descriptor
 {
     float4 world_pos;   ///w is 0
     float4 world_rot;   ///w is 0
+    float4 world_rot_quat;
     uint tid;           ///texture id
     uint rid;           ///normal map id
     uint mip_start;
@@ -287,6 +288,26 @@ float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
     return ret;
 }
 
+float3 rot_quat(const float3 point, float4 quat)
+{
+    quat = fast_normalize(quat);
+
+    float3 t = 2 * cross(quat.xyz, point);
+
+    return point + quat.w * t + cross(quat.xyz, t);
+}
+
+float3 back_rot_quat(const float3 point, const float4 quat)
+{
+    float4 conj = quat;
+
+    conj.xyz = -conj.xyz;
+
+    float len = fast_length(conj);
+
+    return rot_quat(point, conj / (len * len));
+}
+
 ///a rot then a back rot 'cancel' out
 /*float3 back_rot(const float3 point, const float3 c_pos, const float3 c_rot)
 {
@@ -462,6 +483,13 @@ float3 rot_with_offset(const float3 pos, const float3 c_pos, const float3 c_rot,
     return rot(intermediate + offset, c_pos, c_rot);
 }
 
+float3 rot_quat_with_offset(float3 pos, float3 c_pos, float3 c_rot, float3 offset, float4 rotation_offset)
+{
+    float3 intermediate = rot_quat(pos, rotation_offset);
+
+    return rot(intermediate + offset, c_pos, c_rot);
+}
+
 void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, float3 ret[3])
 {
     ret[0] = rot(triangle->vertices[0].pos.xyz, 0, rotation_offset);
@@ -615,7 +643,7 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
     }
 }
 
-void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3], int *num, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, const float fovc, const float width, const float height)
+void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3], int* num, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, const float fovc, const float width, const float height)
 {
     ///void rot_3(__global struct triangle *triangle, float3 c_pos, float4 c_rot, float4 ret[3])
     ///void generate_new_triangles(float4 points[3], int ids[3], float lconst[2], int *num, float4 ret[2][3])
@@ -630,6 +658,37 @@ void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3],
     pr[0] = rot_with_offset(v1, c_pos, c_rot, offset, rotation_offset);
     pr[1] = rot_with_offset(v2, c_pos, c_rot, offset, rotation_offset);
     pr[2] = rot_with_offset(v3, c_pos, c_rot, offset, rotation_offset);
+
+    int n = 0;
+
+    generate_new_triangles(pr, &n, tris);
+
+    *num = n;
+
+    if(n == 0)
+    {
+        return;
+    }
+
+    depth_project(tris[0], width, height, fovc, passback[0]);
+
+    if(n == 2)
+    {
+        depth_project(tris[1], width, height, fovc, passback[1]);
+    }
+}
+
+void full_rotate_quat(float3 v1, float3 v2, float3 v3, float3 passback[2][3], int* num, float3 c_pos, float3 c_rot, float3 offset, float4 rotation_offset, float fovc, float width, float height)
+{
+    ///void depth_project(float4 rotated[3], int width, int height, float fovc, float4 ret[3])
+
+    float3 tris[2][3];
+
+    float3 pr[3];
+
+    pr[0] = rot_quat_with_offset(v1, c_pos, c_rot, offset, rotation_offset);
+    pr[1] = rot_quat_with_offset(v2, c_pos, c_rot, offset, rotation_offset);
+    pr[2] = rot_quat_with_offset(v3, c_pos, c_rot, offset, rotation_offset);
 
     int n = 0;
 
@@ -3227,7 +3286,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, (G->world_rot).xyz, efov, ewidth, eheight);
+    full_rotate_quat(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz, tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     uint b_id = atomic_add(id_cutdown_tris, num);
@@ -3969,7 +4028,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     global_position += camera_pos;
 
     float3 object_local = global_position - G->world_pos.xyz;
-    object_local = back_rot(object_local, 0, G->world_rot.xyz);
+    object_local = back_rot_quat(object_local, G->world_rot_quat);
 
     float l1,l2,l3;
 

@@ -183,6 +183,8 @@ int main(int argc, char *argv[])
 
     float avg_ftime = 6000;
 
+    vec3f r = {0,0,0};
+
 
     ///use event callbacks for rendering to make blitting to the screen and refresh
     ///asynchronous to actual bits n bobs
@@ -224,6 +226,7 @@ int main(int argc, char *argv[])
         window.render_block();
 
         context.build_tick();
+        //context.flush_locations();
 
         avg_ftime += c.getElapsedTime().asMicroseconds();
 
@@ -234,6 +237,10 @@ int main(int argc, char *argv[])
 
         if(key.isKeyPressed(sf::Keyboard::Comma))
             std::cout << avg_ftime << std::endl;
+
+        sponza->set_rot({r.v[0], r.v[1], r.v[2]});
+
+        r.v[2] += 1.f * avg_ftime / 1000.f / 1000.f;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary

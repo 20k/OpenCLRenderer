@@ -241,6 +241,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             ///fill other information in
             desc.world_pos = it.pos;
             desc.world_rot = it.rot;
+            desc.world_rot_quat = conv_implicit<cl_float4, quat>(it.rot_quat);
             desc.has_bump = it.has_bump;
             desc.specular = it.specular;
             desc.spec_mult = it.spec_mult;
