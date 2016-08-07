@@ -4043,7 +4043,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 normal;
     normal = mad(n1, l1, mad(n2, l2, n3 * l3));
 
-    normal = rot(normal, (float3){0.f,0.f,0.f}, G->world_rot.xyz);
+    normal = rot_quat(normal, G->world_rot_quat);
 
     normal = fast_normalize(normal);
 

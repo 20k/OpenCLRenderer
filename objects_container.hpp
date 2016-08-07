@@ -40,6 +40,7 @@ struct objects_container
     //mat3f rot_mat;
     quaternion rot_quat;
 
+    float current_scale = 1.f;
 
     std::vector<object> objs;
 
@@ -78,9 +79,12 @@ struct objects_container
     void    swap_90();
     void    swap_90_perp();
     void    stretch(int dim, float amount);
+    void    scale(cl_float3);
     void    scale(float);
     void    request_scale(float);
     void    fulfill_requested_scale();
+    ///ie including requested
+    float   get_final_scale();
 
     void    unload();
 

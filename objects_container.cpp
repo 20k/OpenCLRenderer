@@ -251,8 +251,17 @@ void objects_container::swap_90_perp()
     }
 }
 
+void objects_container::scale(cl_float3 s)
+{
+    stretch(0, s.x);
+    stretch(1, s.y);
+    stretch(2, s.z);
+}
+
 void objects_container::scale(float f)
 {
+    current_scale *= f;
+
     for(int i=0; i<objs.size(); i++)
     {
         objs[i].scale(f);
@@ -277,6 +286,11 @@ void objects_container::fulfill_requested_scale()
     scale(requested_scale);
 
     requested_scale = 1.f;
+}
+
+float objects_container::get_final_scale()
+{
+    return current_scale * requested_scale;
 }
 
 void objects_container::stretch(int dim, float amount)
