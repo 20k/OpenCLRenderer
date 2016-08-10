@@ -66,6 +66,8 @@ struct object
     cl_uint unique_id;
     static cl_uint gid;
 
+    bool gpu_writable;
+
     object();
     ~object();
 

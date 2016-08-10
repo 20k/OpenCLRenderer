@@ -54,6 +54,8 @@ object::object() : tri_list(0)
     last_object_context_data_id = -1;
 
     unique_id = gid++;
+
+    gpu_writable = false;
 }
 
 object::~object()
@@ -378,6 +380,9 @@ void object::try_load(cl_float4 pos)
 void object::g_flush(object_context_data& dat, bool force)
 {
     cl_rot_quat = conv_implicit<cl_float4>(rot_quat);
+
+    if(!gpu_writable)
+        return;
 
     if(object_g_id == -1)
         return;

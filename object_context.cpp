@@ -417,6 +417,8 @@ void flip_buffers(object_context* ctx)
             obj->objs[k].object_g_id   = i.new_object_data[k].object_g_id;
             obj->objs[k].gpu_tri_start = i.new_object_data[k].gpu_tri_start;
             obj->objs[k].gpu_tri_end   = i.new_object_data[k].gpu_tri_end;
+
+            obj->objs[k].gpu_writable = true;
         }
     }
 
@@ -489,16 +491,19 @@ void update_object_status(cl_event event, cl_int event_command_exec_status, void
     ctx->request_dirty = false;
 }
 
+///in the future, this can say whether or not the next reload can be async
+///then in the far future, we'll have magic and unicorns and multiple queues depending on whether or not
+///a queue is sync or async or immediate
 void object_context::build_request()
 {
     request_dirty = true;
 }
 
-void object_context::build_tick()
+void object_context::build_tick(bool async)
 {
     if(request_dirty)
     {
-        build();
+        build(false, async);
 
         ///this is set in update_object_status, but for ease of looking
         ///its here so I can conceptually make sure this is what happens
@@ -511,13 +516,11 @@ void object_context::build_tick()
 /// and B
 ///make this function not naively rebuild every time its asked if its not necessary
 ///Ok so. All of the writes here need to be ordered with events, using a queue is not good enough
-void object_context::build(bool force)
+void object_context::build(bool force, bool async)
 {
     ///if we call build rapidly
     ///this will get cleared and be invalid
     ///how do we deal with this?
-
-    const bool async = false;
 
     bool textures_realloc = false;
 
@@ -593,6 +596,8 @@ void object_context::build(bool force)
         clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 0, nullptr, nullptr);
 
         auto event = cl::cqueue2.enqueue_marker();
+
+        cl::cqueue2.flush();
 
         clSetEventCallback(event.get(), CL_COMPLETE, update_object_status, this);
     }

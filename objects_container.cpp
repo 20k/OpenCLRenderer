@@ -281,7 +281,7 @@ void objects_container::fulfill_requested_scale()
         return;
     }
 
-    printf("hello %f\n", requested_scale);
+    //printf("hello %f\n", requested_scale);
 
     scale(requested_scale);
 

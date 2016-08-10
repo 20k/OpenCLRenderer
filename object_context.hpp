@@ -116,10 +116,10 @@ struct object_context
     void load_active();
 
     ///this causes a gpu reallocation
-    void build(bool force = false);
+    void build(bool force = false, bool async = false);
 
     void build_request();
-    void build_tick();
+    void build_tick(bool async = false);
 
     ///this fetches the internal context data
     object_context_data* fetch();
