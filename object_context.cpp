@@ -589,6 +589,8 @@ void object_context::build(bool force, bool async)
         update_object_status(0, 0, this);
         flip_buffers(this);
     }
+    ///so uh. this works? We just need to enforce event order for multiple allocations, and then we're jammy
+    ///sometimes we end up getting errors for invalid memory objects
     else
     {
         ///is this going to mess up it being async with respect to cqueue1?
@@ -600,18 +602,24 @@ void object_context::build(bool force, bool async)
         cl::cqueue2.flush();
 
         clSetEventCallback(event.get(), CL_COMPLETE, update_object_status, this);
+
+        //cl::cqueue2.finish();
     }
 
+    ///Is this a double release?
+    ///compute buffers will expire at the end of scope, and flattened does not
+    ///increase the reference count
+    ///???????!!??!?!?!
     for(auto& i : flattened)
     {
-        clReleaseEvent(i);
+        //clReleaseEvent(i);
     }
 
     ///errhghg
     ///this fixes the flashing
     ///im not sure markers are working how i want
     ///so, I need to order all of these writes
-    if(!force)
+    if(!force && !async)
         cl::cqueue2.finish();
 }
 
