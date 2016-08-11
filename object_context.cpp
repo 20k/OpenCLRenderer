@@ -489,6 +489,15 @@ void update_object_status(cl_event event, cl_int event_command_exec_status, void
     ctx->ready_to_flip = true;
 
     ctx->request_dirty = false;
+
+    ctx->rebuild_mutex.lock();
+
+    if(ctx->rebuild_organise.size() > 0)
+        ctx->rebuild_organise.pop_front();
+
+    ctx->rebuild_mutex.unlock();
+
+    ctx->rebuilding_async = 0;
 }
 
 ///in the future, this can say whether or not the next reload can be async
@@ -521,6 +530,11 @@ void object_context::build(bool force, bool async)
     ///if we call build rapidly
     ///this will get cleared and be invalid
     ///how do we deal with this?
+
+    if(rebuilding_async == 1)
+    {
+        cl::cqueue2.finish();
+    }
 
     bool textures_realloc = false;
 
@@ -593,17 +607,40 @@ void object_context::build(bool force, bool async)
     ///sometimes we end up getting errors for invalid memory objects
     else
     {
+        std::vector<cl_event> event_vector;
+
+        rebuild_mutex.lock();
+
+        for(auto& i : rebuild_organise)
+            event_vector.push_back(i.get());
+
+        rebuild_mutex.unlock();
+
+        for(auto& i : flattened)
+        {
+            event_vector.push_back(i);
+        }
+
+        cl_event* ep = event_vector.size() > 0 ? event_vector.data() : nullptr;
+
+        cl_event bar;
+
         ///is this going to mess up it being async with respect to cqueue1?
         ///hopefully not
-        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 0, nullptr, nullptr);
+        //clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 0, nullptr, &bar);
+        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), event_vector.size(), ep, &bar);
 
-        auto event = cl::cqueue2.enqueue_marker();
+        compute::event event = compute::event(bar, false);
 
         cl::cqueue2.flush();
 
-        clSetEventCallback(event.get(), CL_COMPLETE, update_object_status, this);
+        rebuild_mutex.lock();
+        rebuild_organise.push_back(event);
+        rebuild_mutex.unlock();
 
-        //cl::cqueue2.finish();
+        rebuilding_async = 1;
+
+        clSetEventCallback(event.get(), CL_COMPLETE, update_object_status, this);
     }
 
     ///Is this a double release?

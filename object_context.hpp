@@ -11,6 +11,8 @@
 #include "texture_manager.hpp"
 
 #include <set>
+#include <mutex>
+#include <atomic>
 
 #include "texture_context.hpp"
 
@@ -104,6 +106,10 @@ struct container_temporaries
 struct object_context
 {
     texture_context tex_ctx;
+
+    std::atomic_int rebuilding_async{0};
+    std::mutex rebuild_mutex;
+    std::deque<compute::event> rebuild_organise;
 
     std::set<cl_uint> last_builds_tids;
     std::vector<objects_container*> containers;
