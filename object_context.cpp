@@ -627,8 +627,8 @@ void object_context::build(bool force, bool async)
 
         ///is this going to mess up it being async with respect to cqueue1?
         ///hopefully not
-        //clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 0, nullptr, &bar);
-        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), event_vector.size(), ep, &bar);
+        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 0, nullptr, &bar);
+        //clEnqueueBarrierWithWaitList(cl::cqueue2.get(), event_vector.size(), ep, &bar);
 
         compute::event event = compute::event(bar, false);
 

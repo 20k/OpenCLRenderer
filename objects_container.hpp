@@ -16,9 +16,14 @@ struct object;
 struct object_context;
 struct object_context_data;
 
+///do heirarchy finally
 struct objects_container
 {
     object_context* parent = nullptr;
+
+    ///currently this does not at all work with destroying objects, soontm
+    objects_container* transform_parent = nullptr;
+    std::vector<objects_container*> transform_children;
 
     cl_uint id;
     static cl_uint gid;
@@ -34,6 +39,9 @@ struct objects_container
     bool isactive;
     bool isloaded;
     bool independent_subobjects;
+
+    vec3f local_pos;
+    quaternion local_rot_quat;
 
     cl_float4 pos;
     cl_float4 rot;
@@ -55,11 +63,15 @@ struct objects_container
     void    set_pos(cl_float4);
     void    set_rot(cl_float4);
     void    set_rot_quat(quaternion);
+    void    update_subobjs();
     void    offset_pos(cl_float4);
     void    set_file(const std::string&);
     void    set_active(bool param);
     void    set_active_subobjs(bool);
     void    unload_tris();
+    void    set_parent(objects_container* ctr);
+    void    calculate_world_transform();
+    void    notify_child_transform_update();
 
     void    translate_centre(cl_float4);
 

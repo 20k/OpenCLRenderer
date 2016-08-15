@@ -44,7 +44,9 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 {
     ///duplicate setting if it is an active object? starting to seem all bit tragic
 
-    pos = _pos;
+    local_pos = xyz_to_vec(_pos);
+
+    calculate_world_transform();
 
     for(unsigned int i=0; i<objs.size(); i++)
     {
@@ -70,7 +72,22 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 
 void objects_container::set_rot_quat(quaternion q)
 {
-    rot_quat = q;
+    local_rot_quat = q;
+
+    calculate_world_transform();
+
+    for(unsigned int i=0; i<objs.size(); i++)
+    {
+        objs[i].set_rot_quat(rot_quat);
+    }
+}
+
+void objects_container::update_subobjs()
+{
+    for(unsigned int i=0; i<objs.size(); i++)
+    {
+        objs[i].set_pos(pos);
+    }
 
     for(unsigned int i=0; i<objs.size(); i++)
     {
@@ -140,6 +157,71 @@ void objects_container::unload_tris()
     for(unsigned int i=0; i<objs.size(); i++)
     {
         std::vector<triangle>().swap(objs[i].tri_list);
+    }
+}
+
+void objects_container::set_parent(objects_container* ctr)
+{
+    if(ctr == nullptr)
+        return;
+
+    transform_parent = ctr;
+    ctr->transform_children.push_back(this);
+
+    ///perform relative coordinate transform calculation?
+}
+
+void objects_container::calculate_world_transform()
+{
+    if(!transform_parent)
+    {
+        pos = {local_pos.v[0], local_pos.v[1], local_pos.v[2]};
+        rot_quat = local_rot_quat;
+
+        update_subobjs();
+
+        for(auto& i : transform_children)
+        {
+            i->calculate_world_transform();
+        }
+
+        return;
+    }
+
+    vec3f parent_world_pos = xyz_to_vec(transform_parent->pos);
+    quaternion parent_world_rot_quat = transform_parent->rot_quat;
+
+    ///ignore euler rotations, can't combine them atm
+
+    vec3f my_position_offset = local_pos;
+    quaternion my_rotation_offset = local_rot_quat;
+
+    mat3f parent_world_rot_mat = parent_world_rot_quat.get_rotation_matrix();
+    mat3f my_rotation_offset_mat = my_rotation_offset.get_rotation_matrix();
+
+    vec3f my_world_pos = parent_world_rot_mat * my_position_offset + parent_world_pos;
+    mat3f my_world_rot = parent_world_rot_mat * my_rotation_offset_mat;
+
+    quaternion my_world_rot_quat;
+    my_world_rot_quat.load_from_matrix(my_world_rot);
+
+    pos = {my_world_pos.v[0], my_world_pos.v[1], my_world_pos.v[2], 0};
+    rot_quat = my_world_rot_quat;
+
+    update_subobjs();
+
+    for(auto& i : transform_children)
+    {
+        i->calculate_world_transform();
+    }
+}
+
+void objects_container::notify_child_transform_update()
+{
+    for(auto& i : transform_children)
+    {
+        i->calculate_world_transform();
+        //i->notify_child_transform_update();
     }
 }
 
