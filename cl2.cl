@@ -3197,6 +3197,19 @@ void render_depth_buffer(__global uint* depth_buffer, __write_only image2d_t scr
 
 #endif
 
+__kernel
+void fill_ids(__global struct triangle* triangles, uint pad_id, int offset, int num)
+{
+    int id = get_global_id(0);
+
+    if(id >= num)
+        return;
+
+    __global struct triangle* tri = &triangles[id + offset];
+
+    tri->vertices[0].object_id = pad_id;
+}
+
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution

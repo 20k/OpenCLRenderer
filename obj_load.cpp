@@ -311,7 +311,8 @@ void obj_load(objects_container* pobj)
             vt = vtl[index.vt[j]];
             vn = vnl[index.vn[j]];
 
-            vert[j].set_pos(v);
+            ///implement scale here for performance reasons
+            vert[j].set_pos(mult(v, pobj->requested_scale));
             vert[j].set_vt(vt);
             vert[j].set_normal(vn);
         }
@@ -422,6 +423,9 @@ void obj_load(objects_container* pobj)
         ///fixme
         c->objs.push_back(obj); ///does this copy get eliminated? ///timing this says yes
     }
+
+    pobj->current_scale = pobj->requested_scale;
+    pobj->requested_scale = 1.f;
 
     c->isloaded = true;
 

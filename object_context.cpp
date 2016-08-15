@@ -325,19 +325,48 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
 
         for(std::vector<object>::iterator it=obj->objs.begin(); it!=obj->objs.end(); ++it)
         {
-            for(int i=0; i<(*it).tri_num; i++)
-            {
-                (*it).tri_list[i].vertices[0].set_pad(obj_id);
-            }
+            cl_uint tri_size = (*it).tri_list.size();
+
+            int arbitrary_small_bound = 256;
+
+            //cl_event mevent;
+
+            //clEnqueueFillBuffer(cl::cqueue2.get(), dat.g_tri_mem.get(), &obj_id, sizeof(cl_uint), sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), 0, nullptr, nullptr);
 
             ///boost::compute fails an assertion if tri_num == 0
             ///we dont care if the data arrives late
             ///this might be causing the freezes
             if(it->tri_num > 0)
             {
+                ///this is the bottleneck
+                if(tri_size < arbitrary_small_bound)
+                for(int i=0; i<(*it).tri_num; i++)
+                {
+                    (*it).tri_list[i].vertices[0].set_pad(obj_id);
+                }
+
                 event = cl::cqueue2.enqueue_write_buffer_async(dat.g_tri_mem, sizeof(triangle)*running, sizeof(triangle)*(*it).tri_list.size(), (*it).tri_list.data());
 
                 events.push_back(event);
+
+                if(tri_size >= arbitrary_small_bound)
+                {
+                    cl_event ev = events.back().get();
+
+                    clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 1, &ev, nullptr);
+
+                    arg_list fargs;
+                    fargs.push_back(&dat.g_tri_mem);
+                    fargs.push_back(&obj_id);
+                    fargs.push_back(&running);
+                    fargs.push_back(&tri_size);
+
+                    run_kernel_with_string("fill_ids", {tri_size}, {256}, 1, fargs, cl::cqueue2);
+
+                    compute::event ev2 = compute::event(ev, false);
+
+                    events.push_back(ev2);
+                }
             }
 
             running += (*it).tri_list.size();
@@ -512,7 +541,13 @@ void object_context::build_tick(bool async)
 {
     if(request_dirty)
     {
+        sf::Clock clk;
+
         build(false, async);
+
+        #ifdef PROFILING
+        printf("Build time ms %f\n", clk.getElapsedTime().asMicroseconds() / 1000.f);
+        #endif
 
         ///this is set in update_object_status, but for ease of looking
         ///its here so I can conceptually make sure this is what happens
@@ -534,6 +569,10 @@ void object_context::build(bool force, bool async)
     if(rebuilding_async == 1)
     {
         cl::cqueue2.finish();
+
+        flip_buffers(this);
+
+        lg::log("cap");
     }
 
     bool textures_realloc = false;
@@ -568,7 +607,10 @@ void object_context::build(bool force, bool async)
         gpu_dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE);
     }
 
+    sf::Clock agpu;
     auto gpu_alloc_events = alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
+
+    printf("agpu time %f\n", agpu.getElapsedTime().asMicroseconds()/1000.f);
 
     ///start debugging from here
 

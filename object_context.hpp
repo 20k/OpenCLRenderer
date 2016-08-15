@@ -16,6 +16,8 @@
 
 #include "texture_context.hpp"
 
+#include <thread>
+
 namespace compute = boost::compute;
 
 struct objects_container;
@@ -116,6 +118,10 @@ struct object_context
 
     std::vector<container_temporaries> new_container_data;
 
+    std::thread build_async;
+    float future_time_ms = 20;
+    sf::Clock future_clock;
+
     objects_container* make_new();
     void destroy(objects_container* obj);
 
@@ -139,7 +145,7 @@ struct object_context
     object_context_data gpu_dat;
     object_context_data new_gpu_dat;
 
-    volatile bool ready_to_flip = false;
+    std::atomic<bool> ready_to_flip{false};
 
     void flip();
 
