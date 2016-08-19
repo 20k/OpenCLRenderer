@@ -3984,19 +3984,28 @@ float3 decode_normal(float2 val)
 
 float2 encode_normal(float3 val)
 {
-    return fast_normalize(val.xy) * sqrt(val.z * 0.5f + 0.5f);
+    float len = fast_length(val.xy);
+
+    float2 dir;
+
+    if(len < 0.0001f)
+        dir.x = 0.01f;
+
+    dir = fast_normalize(val.xy);
+
+    return dir * sqrt(max(val.z * 0.5f + 0.5f, 0.f));
 }
 
+///we fix up the normals so that xy cannot have a length of 0
 float3 decode_normal(float2 val)
 {
     float3 ret;
 
     ret.z = dot(val, val) * 2 - 1;
-    ret.xy = fast_normalize(val) * sqrt(1 - ret.z * ret.z);
+    ret.xy = fast_normalize(val) * sqrt(max(1 - ret.z * ret.z, 0.f));
 
-    return ret;
+    return normalize(ret);
 }
-
 
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?

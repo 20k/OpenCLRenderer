@@ -1,6 +1,7 @@
 #include "vertex.hpp"
 #include <math.h>
 #include "vec.hpp"
+#include <vec/vec.hpp>
 
 
 ///http://aras-p.info/texts/CompactNormalStorage.html
@@ -30,15 +31,22 @@ cl_float2 encode_normal(cl_float4 val)
 {
     val = normalise(val);
 
+    if(approx_equal(val.x, 0) && approx_equal(val.y, 0))
+    {
+        val.x = 0.01f;
+    }
+
     /*float p = sqrt(val.z * 8 + 8);
 
     return {val.x/p + 0.5f, val.y/p + 0.5f};*/
 
     cl_float2 r = normalise((cl_float2){val.x, val.y});
 
+    float sqr = sqrt(std::max(val.z * 0.5f + 0.5f, 0.f));
+
     cl_float2 ret;
-    ret.x = r.x * sqrt(val.z * 0.5f + 0.5f);
-    ret.y = r.y * sqrt(val.z * 0.5f + 0.5f);
+    ret.x = r.x * sqr;
+    ret.y = r.y * sqr;
 
     return ret;
 }
