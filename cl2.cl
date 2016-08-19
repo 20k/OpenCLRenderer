@@ -3989,14 +3989,14 @@ float2 encode_normal(float3 val)
     float2 dir;
 
     if(len < 0.0001f)
-        dir.x = 0.01f;
+        val.x = 0.01f;
 
     dir = fast_normalize(val.xy);
 
     return dir * sqrt(max(val.z * 0.5f + 0.5f, 0.f));
 }
 
-///we fix up the normals so that xy cannot have a length of 0
+///we fix up the normals in encode so that xy cannot have a length of 0
 float3 decode_normal(float2 val)
 {
     float3 ret;
