@@ -3984,9 +3984,9 @@ float3 decode_normal(float2 val)
 
 float2 encode_normal(float3 val)
 {
-    float len = fast_length(val.xy);
+    float len_sq = dot(val.xy, val.xy);
 
-    if(len < 0.0001f)
+    if(len_sq < 0.0001f)
         val.x = 0.01f;
 
     return fast_normalize(val.xy) * sqrt(max(val.z * 0.5f + 0.5f, 0.f));
