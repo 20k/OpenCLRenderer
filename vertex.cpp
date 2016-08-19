@@ -72,7 +72,7 @@ cl_float4 decode_normal(cl_float2 val)
 
 cl_float4 vertex::get_pos() const
 {
-    return pos;
+    return {x, y, z, 0};
 }
 
 cl_float4 vertex::get_normal() const
@@ -90,14 +90,16 @@ cl_uint vertex::get_pad() const
     return pad;
 }
 
-cl_uint vertex::get_pad2() const
+/*cl_uint vertex::get_pad2() const
 {
     return pad2;
-}
+}*/
 
 void vertex::set_pos(cl_float4 val)
 {
-    pos = val;
+    x = val.x;
+    y = val.y;
+    z = val.z;
 }
 
 
@@ -128,7 +130,7 @@ void vertex::set_pad(cl_uint val)
     pad = val;
 }
 
-void vertex::set_pad2(cl_uint val)
+/*void vertex::set_pad2(cl_uint val)
 {
     pad2 = val;
-}
+}*/

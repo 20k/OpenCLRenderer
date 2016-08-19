@@ -11,7 +11,7 @@ struct vertex
     cl_float2 get_vt() const;
 
     cl_uint get_pad() const;
-    cl_uint get_pad2() const;
+    //cl_uint get_pad2() const;
 
     void set_pos(cl_float4);
     void set_normal(cl_float4);
@@ -19,14 +19,13 @@ struct vertex
     void set_vt(cl_float2);
 
     void set_pad(cl_uint);
-    void set_pad2(cl_uint);
+    //void set_pad2(cl_uint);
 
     private:
-    cl_float4 pos;
+    cl_float x, y, z;
+    cl_uint pad;
     cl_float2 normal; ///xyz
     cl_float2 vt;
-    cl_uint pad;
-    cl_uint pad2;
 };
 
 

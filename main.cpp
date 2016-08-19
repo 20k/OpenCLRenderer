@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
     context.build(true);
 
 
+
     ///so allocating one thing, then a second, makes memory usage explod
     /*auto sp2 = context.make_new();
     sp2->set_file("sp2/sp2.obj");
