@@ -1,4 +1,74 @@
 #include "vertex.hpp"
+#include <math.h>
+#include "vec.hpp"
+
+
+///http://aras-p.info/texts/CompactNormalStorage.html
+/*half4 encode (half3 n, float3 view)
+{
+    half p = sqrt(n.z*8+8);
+    return half4(n.xy/p + 0.5,0,0);
+}*/
+
+/*half3 decode (half2 enc, float3 view)
+{
+    half2 fenc = enc*4-2;
+    half f = dot(fenc,fenc);
+    half g = sqrt(1-f/4);
+    half3 n;
+    n.xy = fenc*g;
+    n.z = 1-f/2;
+    return n;
+}*/
+
+//normalize(N.xy)*sqrt(N.z*0.5 + 0.5)
+
+/*N.z=length2(G.xy)*2 - 1
+N.xy=normalize(G.xy)*sqrt(1-N.z*N.z)*/
+
+cl_float2 encode_normal(cl_float4 val)
+{
+    val = normalise(val);
+
+    /*float p = sqrt(val.z * 8 + 8);
+
+    return {val.x/p + 0.5f, val.y/p + 0.5f};*/
+
+    cl_float2 r = normalise((cl_float2){val.x, val.y});
+
+    cl_float2 ret;
+    ret.x = r.x * sqrt(val.z * 0.5f + 0.5f);
+    ret.y = r.y * sqrt(val.z * 0.5f + 0.5f);
+
+    return ret;
+}
+
+cl_float4 decode_normal(cl_float2 val)
+{
+    /*cl_float2 fenc = {val.x * 4 - 2, val.y * 4 - 2};
+    float f = fenc.x * fenc.x + fenc.y * fenc.y;
+
+    float g = sqrt(1 - f/4);
+
+    cl_float4 n;
+    n.x = fenc.x * g;
+    n.y = fenc.y * g;
+    n.z = 1 - f/2;
+    n.w = 0;
+
+    return normalise(n);*/
+
+    cl_float2 r = normalise((cl_float2){val.x, val.y});
+
+    cl_float4 n;
+
+    n.w = 0;
+    n.z = (val.x * val.x + val.y * val.y) * 2 - 1;
+    n.x = r.x * sqrt(1 - n.z * n.z);
+    n.y = r.y * sqrt(1 - n.y * n.y);
+
+    return n;
+}
 
 cl_float4 vertex::get_pos() const
 {
@@ -7,7 +77,7 @@ cl_float4 vertex::get_pos() const
 
 cl_float4 vertex::get_normal() const
 {
-    return normal;
+    return decode_normal(normal);
 }
 
 cl_float2 vertex::get_vt() const
@@ -30,14 +100,27 @@ void vertex::set_pos(cl_float4 val)
     pos = val;
 }
 
+
 void vertex::set_normal(cl_float4 val)
 {
-    normal = val;
+    normal = encode_normal(val);
 }
 
-void vertex::set_vt(cl_float2 val)
+///ok new plan
+///we can clamp to the range -1 -> 2
+///gives us both directions of wraparound
+///and then we can 2 -> 1
+void vertex::set_vt(cl_float2 vtm)
 {
-    vt = val;
+    /*vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
+
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
+
+    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;*/
+
+    vt = vtm;
 }
 
 void vertex::set_pad(cl_uint val)

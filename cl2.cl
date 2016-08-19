@@ -92,7 +92,7 @@ struct obj_g_descriptor
 struct vertex
 {
     float4 pos;
-    float4 normal;
+    float2 normal;
     float2 vt;
     uint object_id;
     uint pad2;
@@ -3948,6 +3948,45 @@ float mdot(float3 v1, float3 v2)
 
 #define DIM_KERNEL3 8
 
+/*float2 encode_normal(float3 val)
+{
+    val = fast_normalize(val);
+
+    float p = sqrt(val.z * 8 + 8);
+
+    return val.xy/p + 0.5f;
+}
+
+float3 decode_normal(float2 val)
+{
+    float2 fenc = val.xy * 4 - 2;
+    float f = dot(fenc, fenc);
+
+    float g = sqrt(1 - f/4);
+
+    float3 n;
+    n.xy = fenc * g;
+    n.z = 1 - f/2;
+
+    return fast_normalize(n);
+}*/
+
+float2 encode_normal(float3 val)
+{
+    return fast_normalize(val.xy) * sqrt(val.z * 0.5f + 0.5f);
+}
+
+float3 decode_normal(float2 val)
+{
+    float3 ret;
+
+    ret.z = dot(val, val) * 2 - 1;
+    ret.xy = fast_normalize(val) * sqrt(1 - ret.z * ret.z);
+
+    return ret;
+}
+
+
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
@@ -4016,9 +4055,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     vt2 = T->vertices[1].vt;
     vt3 = T->vertices[2].vt;
 
-    n1 = T->vertices[0].normal.xyz;
-    n2 = T->vertices[1].normal.xyz;
-    n3 = T->vertices[2].normal.xyz;
+    n1 = decode_normal(T->vertices[0].normal.xy);
+    n2 = decode_normal(T->vertices[1].normal.xy);
+    n3 = decode_normal(T->vertices[2].normal.xy);
 
 
     //int o_id = T->vertices[0].object_id;
@@ -4174,6 +4213,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 l2p = camera_pos - global_position;
     l2p = fast_normalize(l2p);
 
+    float3 point_to_camera = camera_pos - global_position;
+    float3 point_to_cameran = fast_normalize(point_to_camera);
+
 
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
     int flip_normals = !is_front && G->two_sided == 1;
@@ -4189,6 +4231,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
 
         float3 l2c = lpos - global_position; ///light to pixel positio
+
+        float3 point_to_light = lpos - global_position;
 
         float distance = fast_length(l2c);
 
@@ -5956,18 +6000,18 @@ void cloth_simulate(__global struct triangle* tris, int tri_start, int tri_end, 
     tris[tid].vertices[1].pos.xyz = p1;
     tris[tid].vertices[2].pos.xyz = p3;
 
-    tris[tid].vertices[0].normal.xyz = n0;
-    tris[tid].vertices[1].normal.xyz = n1;
-    tris[tid].vertices[2].normal.xyz = n3;
+    tris[tid].vertices[0].normal.xy = encode_normal(n0);
+    tris[tid].vertices[1].normal.xy = encode_normal(n1);
+    tris[tid].vertices[2].normal.xy = encode_normal(n3);
 
 
     tris[tid + 1].vertices[0].pos.xyz = p1;
     tris[tid + 1].vertices[1].pos.xyz = p2;
     tris[tid + 1].vertices[2].pos.xyz = p3;
 
-    tris[tid + 1].vertices[0].normal.xyz = n1;
-    tris[tid + 1].vertices[1].normal.xyz = n2;
-    tris[tid + 1].vertices[2].normal.xyz = n3;
+    tris[tid + 1].vertices[0].normal.xy = encode_normal(n1);
+    tris[tid + 1].vertices[1].normal.xy = encode_normal(n2);
+    tris[tid + 1].vertices[2].normal.xy = encode_normal(n3);
 }
 
 int get_id_new(int x, int y, int width, int height, int is_xaxis_looping)
@@ -6246,18 +6290,18 @@ void cloth_simulate_new(__global struct triangle* tris, int tri_start, int tri_e
     tris[tid].vertices[1].pos.xyz = p1;
     tris[tid].vertices[2].pos.xyz = p3;
 
-    tris[tid].vertices[0].normal.xyz = n0;
-    tris[tid].vertices[1].normal.xyz = n1;
-    tris[tid].vertices[2].normal.xyz = n3;
+    tris[tid].vertices[0].normal.xy = encode_normal(n0);
+    tris[tid].vertices[1].normal.xy = encode_normal(n1);
+    tris[tid].vertices[2].normal.xy = encode_normal(n3);
 
 
     tris[tid + 1].vertices[0].pos.xyz = p1;
     tris[tid + 1].vertices[1].pos.xyz = p2;
     tris[tid + 1].vertices[2].pos.xyz = p3;
 
-    tris[tid + 1].vertices[0].normal.xyz = n1;
-    tris[tid + 1].vertices[1].normal.xyz = n2;
-    tris[tid + 1].vertices[2].normal.xyz = n3;
+    tris[tid + 1].vertices[0].normal.xy = encode_normal(n1);
+    tris[tid + 1].vertices[1].normal.xy = encode_normal(n2);
+    tris[tid + 1].vertices[2].normal.xy = encode_normal(n3);
 }
 
 __kernel
@@ -6567,9 +6611,9 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
 
     float3 normal = tri_to_normal(T->vertices[0].pos.xyz, T->vertices[1].pos.xyz, T->vertices[2].pos.xyz);
 
-    T->vertices[0].normal.xyz = normal;
-    T->vertices[1].normal.xyz = normal;
-    T->vertices[2].normal.xyz = normal;
+    T->vertices[0].normal.xy = encode_normal(normal);
+    T->vertices[1].normal.xy = encode_normal(normal);
+    T->vertices[2].normal.xy = encode_normal(normal);
 }
 
 #if 0

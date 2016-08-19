@@ -141,6 +141,13 @@ inline cl_float4 normalise(cl_float4 v1)
     return div(v1, length);
 }
 
+inline cl_float2 normalise(cl_float2 v1)
+{
+    float length = sqrtf(v1.x * v1.x + v1.y * v1.y);
+
+    return {v1.x / length, v1.y / length};
+}
+
 inline float length(cl_float4 v1)
 {
     return sqrtf(v1.x*v1.x + v1.y*v1.y + v1.z*v1.z);

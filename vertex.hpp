@@ -15,6 +15,7 @@ struct vertex
 
     void set_pos(cl_float4);
     void set_normal(cl_float4);
+    ///do coordinate wraparound here!
     void set_vt(cl_float2);
 
     void set_pad(cl_uint);
@@ -22,7 +23,7 @@ struct vertex
 
     private:
     cl_float4 pos;
-    cl_float4 normal; ///xyz
+    cl_float2 normal; ///xyz
     cl_float2 vt;
     cl_uint pad;
     cl_uint pad2;
