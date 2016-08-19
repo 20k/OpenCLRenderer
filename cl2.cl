@@ -93,8 +93,8 @@ struct vertex
 {
     float x, y, z;
     uint object_id;
-    float2 normal;
-    float2 vt;
+    ushort2 normal;
+    uint h_vt;
 };
 
 struct triangle
@@ -3966,7 +3966,7 @@ float mdot(float3 v1, float3 v2)
     float p = sqrt(val.z * 8 + 8);
 
     return val.xy/p + 0.5f;
-}
+}i
 
 float3 decode_normal(float2 val)
 {
@@ -3982,25 +3982,83 @@ float3 decode_normal(float2 val)
     return fast_normalize(n);
 }*/
 
-float2 encode_normal(float3 val)
+#define POW2e16 65536
+
+ushort2 float_to_short(float2 val)
+{
+    ushort2 r;
+
+    r = convert_ushort2(((val + 1) / 2) * POW2e16-1);
+
+    return r;
+}
+
+float2 short_to_float(ushort2 val)
+{
+    float2 r = convert_float2(val);
+
+    r /= POW2e16-1;
+
+    r *= 2;
+    r -= 1;
+
+    return r;
+}
+
+///so, what we really need to do now
+///is work out the maximum and minimum magnitude of the vector
+///based on the arbitrary pertubation factor (ie what is the max possible)
+///then use that to quantise it into a short
+///so, the maximum single component value of val.xy is obviously 1
+///so the maximum value of val.xy is when sqrt(val.z * 0.5f + 0.5f is maximised
+///the maximum value of that expression is 1 (we normals)
+///this means that the resulting decoded normals have a range of -1 -> 1
+///which means SUPER DUPER EASY COMPRESSION HUZZAH
+ushort2 encode_normal(float3 val)
 {
     float len_sq = dot(val.xy, val.xy);
 
     if(len_sq < 0.0001f)
         val.x = 0.01f;
 
-    return fast_normalize(val.xy) * sqrt(max(val.z * 0.5f + 0.5f, 0.f));
+    float2 r = fast_normalize(val.xy) * sqrt(max(val.z * 0.5f + 0.5f, 0.f));
+
+    return float_to_short(r);
 }
 
 ///we fix up the normals in encode so that xy cannot have a length of 0
-float3 decode_normal(float2 val)
+float3 decode_normal(ushort2 sval)
 {
+    float2 val = short_to_float(sval);
+
     float3 ret;
 
     ret.z = dot(val, val) * 2 - 1;
     ret.xy = fast_normalize(val) * sqrt(max(1 - ret.z * ret.z, 0.f));
 
-    return normalize(ret);
+    return ret;
+}
+
+uint encode_vt(float2 h)
+{
+    ushort x;
+    ushort y;
+
+    vstore_half(h.x, 0, (__private half*)&x);
+    vstore_half(h.y, 0, (__private half*)&y);
+
+    return ((uint)x << 16) | (uint)y;
+}
+
+float2 decode_vt(uint vt)
+{
+    ushort x = vt >> 16;
+    ushort y = vt;
+
+    float xh = vload_half(0, (const __private half*)&x);
+    float yh = vload_half(0, (const __private half*)&y);
+
+    return (float2){xh, yh};
 }
 
 ///screenspace step, this is slow and needs improving
@@ -4067,9 +4125,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     p2 = vertex_pos(T->vertices[1]);
     p3 = vertex_pos(T->vertices[2]);
 
-    vt1 = T->vertices[0].vt;
-    vt2 = T->vertices[1].vt;
-    vt3 = T->vertices[2].vt;
+    vt1 = decode_vt(T->vertices[0].h_vt);
+    vt2 = decode_vt(T->vertices[1].h_vt);
+    vt3 = decode_vt(T->vertices[2].h_vt);
 
     n1 = decode_normal(T->vertices[0].normal.xy);
     n2 = decode_normal(T->vertices[1].normal.xy);

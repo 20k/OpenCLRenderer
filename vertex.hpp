@@ -24,8 +24,8 @@ struct vertex
     private:
     cl_float x, y, z;
     cl_uint pad;
-    cl_float2 normal; ///xyz
-    cl_float2 vt;
+    cl_ushort2 normal; ///compressed
+    cl_uint vt;
 };
 
 

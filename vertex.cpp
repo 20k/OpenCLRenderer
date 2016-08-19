@@ -2,7 +2,7 @@
 #include <math.h>
 #include "vec.hpp"
 #include <vec/vec.hpp>
-
+#include <half/half.hpp>
 
 ///http://aras-p.info/texts/CompactNormalStorage.html
 /*half4 encode (half3 n, float3 view)
@@ -78,6 +78,59 @@ cl_float4 decode_normal(cl_float2 val)
     return n;
 }
 
+cl_ushort2 float_to_short(cl_float2 val)
+{
+    cl_ushort2 us;
+
+    for(int i=0; i<2; i++)
+        us.s[i] = ((val.s[i] + 1) / 2) * pow(2, 16)-1;
+
+    return us;
+}
+
+cl_float2 short_to_float(cl_ushort2 val)
+{
+    cl_float2 ret;
+
+    for(int i=0; i<2; i++)
+    {
+        ret.s[i] = val.s[i];
+
+        ret.s[i] /= pow(2, 16)-1;
+
+        ret.s[i] *= 2;
+        ret.s[i] -= 1;
+    }
+
+    return ret;
+}
+
+cl_ushort float_to_half(cl_float val)
+{
+    return half_float::detail::float2half<(std::float_round_style)(HALF_ROUND_STYLE)>(val);
+}
+
+cl_float half_to_float(cl_ushort val)
+{
+    return half_float::detail::half2float(val);
+}
+
+cl_uint float2_to_packed_half(cl_float2 val)
+{
+    cl_ushort x = float_to_half(val.x);
+    cl_ushort y = float_to_half(val.y);
+
+    return ((cl_uint)x << 16) | (cl_uint)y;
+}
+
+cl_float2 packed_half_to_float2(cl_uint h)
+{
+    cl_ushort x = h >> 16;
+    cl_ushort y = h;
+
+    return {half_to_float(x), half_to_float(y)};
+}
+
 cl_float4 vertex::get_pos() const
 {
     return {x, y, z, 0};
@@ -85,12 +138,12 @@ cl_float4 vertex::get_pos() const
 
 cl_float4 vertex::get_normal() const
 {
-    return decode_normal(normal);
+    return decode_normal(short_to_float(normal));
 }
 
 cl_float2 vertex::get_vt() const
 {
-    return vt;
+    return packed_half_to_float2(vt);
 }
 
 cl_uint vertex::get_pad() const
@@ -113,7 +166,7 @@ void vertex::set_pos(cl_float4 val)
 
 void vertex::set_normal(cl_float4 val)
 {
-    normal = encode_normal(val);
+    normal = float_to_short(encode_normal(val));
 }
 
 ///ok new plan
@@ -130,7 +183,7 @@ void vertex::set_vt(cl_float2 vtm)
 
     vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;*/
 
-    vt = vtm;
+    vt = float2_to_packed_half(vtm);
 }
 
 void vertex::set_pad(cl_uint val)
