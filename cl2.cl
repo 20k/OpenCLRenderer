@@ -4484,6 +4484,20 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 ///and the whole of it would be figured out automatically
 #define AUTOMATIC(t, x) t x
 
+bool depth_approx_equal(float d1, float d2)
+{
+    float bound = 10.f;
+
+    return d1 >= d2 - bound && d1 < d2 + bound;
+}
+
+bool depth_disjointed(float d1, float d2)
+{
+    float bound = 50.f;
+
+    return d1 < d2 - bound && d1 >= d2 + bound;
+}
+
 ///add depth buffer support
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
@@ -4529,18 +4543,22 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     write_imagef(screen, (int2){x, y}, (c1 + c2 + c3)/3.f);*/
 
 
-    int num_x = 0;
-    int num_y = 0;
+    ///make array?
+    int num_x[2] = {0};
+    int num_y[2] = {0};
 
-    int num_corner = 0;
+    int num_corner[2] = {0};
 
-    float3 my_accum = 0;
-    float3 their_accum = 0;
+    float3 my_accum[2] = {0};
+    float3 their_accum[2] = {0};
 
-    float my_samples = 0;
-    float their_samples = 0;
+    float my_samples[2] = {0};
+    float their_samples[2] = {0};
 
     uint avg_id = o_id;
+
+    float my_depth = idcalc((float)depth_buffer[y*SCREENWIDTH + x] / mulint);
+    float avg_depth = my_depth;
 
     for(int j=-1; j<2; j++)
     {
@@ -4553,68 +4571,102 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             int fo_id = fragment_id_buffer[fid * FRAGMENT_ID_MUL + 5];
 
+            float depth = idcalc((float)depth_buffer[(y + j)*SCREENWIDTH + x + i] / mulint);
+
             //if(fo_id < o_id)
             //    continue;
 
-            if(fo_id != o_id)
-            {
-                if(i == j || i == -j)
-                {
-                    num_corner++;
-                }
-                else if(i == 1 || i == -1)
-                {
-                    num_x++;
-                }
-                else if(j == 1 || j == -1)
-                {
-                    num_y++;
-                }
-            }
-
             float3 val = read_imagef(in_screen, sam, (int2){x + i, y + j}).xyz;
 
-            if(fo_id == o_id)
+            int tests[2] = {fo_id != o_id, !depth_approx_equal(my_depth, depth)};
+
+            for(int kk = 0; kk < 2; kk++)
             {
-                my_accum += val;
-                my_samples += 1.f;
-            }
-            else
-            {
-                their_accum += val;
-                their_samples += 1.f;
+                //if(fo_id != o_id || !depth_approx_equal(my_depth, depth))
+                if(tests[kk])
+                {
+                    if(i == j || i == -j)
+                    {
+                        num_corner[kk]++;
+                    }
+                    else if(i == 1 || i == -1)
+                    {
+                        num_x[kk]++;
+                    }
+                    else if(j == 1 || j == -1)
+                    {
+                        num_y[kk]++;
+                    }
+                }
+
+                //if(fo_id == o_id || depth_approx_equal(my_depth, depth))
+                if(!tests[kk])
+                {
+                    my_accum[kk] += val;
+                    my_samples[kk] += 1.f;
+                }
+                else
+                {
+                    their_accum[kk] += val;
+                    their_samples[kk] += 1.f;
+                }
             }
 
+
             avg_id = (fo_id + avg_id)/2;
+            avg_depth = (depth + avg_depth) / 2.f;
         }
     }
 
-    if(my_samples == 0 || their_samples == 0)
+    bool any = false;
+
+    for(int kk=0; kk<2; kk++)
+    {
+        if(my_samples == 0 || their_samples == 0)
+            return;
+
+        any = true;
+    }
+
+    if(!any)
         return;
 
-    if(num_x == 1 && num_y == 1 && num_corner >= 1)
+    int exit_conditions[2] = {avg_id < o_id, my_depth < avg_depth};
+
+    for(int kk=0; kk < 2; kk++)
     {
-        float wm = 0.5f;
-        float wt = 0.5f;
-
-        wm = 0.65f;
-        wt = 0.35f;
-
-        my_accum /= my_samples;
-        their_accum /= their_samples;
-
-        if(num_corner == 1)
+        if(num_x[kk] == 1 && num_y[kk] == 1 && num_corner[kk] >= 1)
         {
-            wm = 0.5f;
-            wt = 0.5f;
+            float wm = 0.5f;
+            float wt = 0.5f;
 
-            if(avg_id < o_id)
-                return;
+            wm = 0.65f;
+            wt = 0.35f;
+
+            my_accum[kk] /= my_samples[kk];
+            their_accum[kk] /= their_samples[kk];
+
+            if(num_corner[kk] == 1)
+            {
+                wm = 0.5f;
+                wt = 0.5f;
+
+                /*if(avg_id < o_id)
+                    return;
+
+                if(avg_id == o_id && my_depth < avg_depth)
+                    return;*/
+
+                if(exit_conditions[kk])
+                    return;
+            }
+
+            float3 accum = my_accum[kk] * wm + their_accum[kk] * wt;
+
+            write_imagef(screen, (int2){x, y}, (float4)(accum.xyz, 1.f));
+
+            return;
         }
-
-        float3 accum = my_accum * wm + their_accum * wt;
-
-        write_imagef(screen, (int2){x, y}, (float4)(accum.xyz, 1.f));
     }
 }
 
