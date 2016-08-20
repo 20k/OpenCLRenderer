@@ -28,6 +28,4 @@ struct vertex
     cl_uint vt;
 };
 
-
-
 #endif

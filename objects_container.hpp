@@ -42,6 +42,7 @@ struct objects_container
 
     vec3f local_pos;
     quaternion local_rot_quat;
+    bool is_using_quaternions = false;
 
     cl_float4 pos;
     cl_float4 rot;

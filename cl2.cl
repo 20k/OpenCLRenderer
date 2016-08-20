@@ -2827,6 +2827,7 @@ void shim_old_triangle_format_to_new(__global struct triangle* triangles,
 
 #define MOD_ERROR 5000.f
 
+//#define TILE_DIM 64
 #ifdef TILE_DIM
 
 __kernel void split_into_tiled_chunks(__global struct triangle* triangles, uint tri_num, float4 c_pos, float4 c_rot,
@@ -3066,6 +3067,7 @@ void tile_render(__global struct triangle* triangles, uint tri_num, float4 c_pos
 
         if(slot_num >= current_slot_count)
             invalid = true;
+
     }
 
     //invalid = false;
@@ -3203,7 +3205,7 @@ void render_depth_buffer(__global uint* depth_buffer, __write_only image2d_t scr
 
     float depth = idcalc((float)depth_buffer[y*SCREENWIDTH + x] / mulint);
 
-    write_imagef(screen, (int2)(x, y), depth / 10000.f);
+    write_imagef(screen, (int2)(x, y), depth / 3000.f);
 }
 
 #endif

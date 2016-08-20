@@ -163,7 +163,6 @@ void vertex::set_pos(cl_float4 val)
     z = val.z;
 }
 
-
 void vertex::set_normal(cl_float4 val)
 {
     normal = float_to_short(encode_normal(val));
