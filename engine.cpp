@@ -1232,6 +1232,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     register_automatic(&g_screen_out, "screen");
     register_automatic(&g_screen_out, "in_screen");
     register_automatic(&dat.g_cut_tri_mem, "cutdown_tris");
+    register_automatic(&dat.depth_buffer[dat.nbuf], "depth_buffer");
 
     arg_list prearg_list;
 

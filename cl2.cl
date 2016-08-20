@@ -4484,10 +4484,11 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 ///and the whole of it would be figured out automatically
 #define AUTOMATIC(t, x) t x
 
+///add depth buffer support
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),
-                  __global AUTOMATIC(float4*, cutdown_tris))
+                  __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer))
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE            |
