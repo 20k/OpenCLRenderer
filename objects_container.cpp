@@ -56,7 +56,7 @@ void objects_container::set_pos(cl_float4 _pos) ///both remote and local
 
 void objects_container::set_rot(cl_float4 _rot) ///both remote and local
 {
-    is_using_quaternions = false;
+    //is_using_quaternions = false;
 
     rot = _rot;
 
@@ -65,6 +65,7 @@ void objects_container::set_rot(cl_float4 _rot) ///both remote and local
     rot_mat.load_rotation_matrix(xyz_to_vec(rot));
 
     rot_quat.load_from_matrix(rot_mat);
+    local_rot_quat = rot_quat;
 
     for(unsigned int i=0; i<objs.size(); i++)
     {
@@ -76,7 +77,7 @@ void objects_container::set_rot_quat(quaternion q)
 {
     local_rot_quat = q;
 
-    is_using_quaternions = true;
+    //is_using_quaternions = true;
 
     calculate_world_transform();
 
@@ -181,8 +182,8 @@ void objects_container::calculate_world_transform()
     {
         pos = {local_pos.v[0], local_pos.v[1], local_pos.v[2]};
 
-        if(is_using_quaternions)
-            rot_quat = local_rot_quat;
+        //if(is_using_quaternions)
+        rot_quat = local_rot_quat;
 
         update_subobjs();
 
