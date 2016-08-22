@@ -286,6 +286,8 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d,
         buildoptions = buildoptions + " -D supports_3d_writes";
     }
 
+    buildoptions = buildoptions + " -D SHADOWBIAS=50";
+
     buildoptions = buildoptions + " " + extra_build_commands;
 
     #ifdef BECKY_HACK

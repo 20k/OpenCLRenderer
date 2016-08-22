@@ -1833,7 +1833,7 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, __global uint* light_dept
     float ldp = idcalc(native_divide((float)ldepth_map[((int)postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)], mulint));
 
     ///offset to prevent depth issues causing artifacting
-    float len = 20;
+    float len = SHADOWBIAS;
 
     //occamount = ;
 
@@ -3387,6 +3387,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 ///we can map the depth buffer of the camera into the lights cubemap tile space
 ///and then massively MASSIVELY accelerate shadow rendering
 ///because we can skip any tiles which have 0 tris in them
+///Ok. We have to optimise this step. THIS IS THE SLOW ONE
 __kernel
 void prearrange_realtime_shadowing(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj)

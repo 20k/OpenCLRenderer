@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     ///WE HAVE NO CLEAR CONCEPT OF OWNERSHIP OVER ANY OF THE LIGHTING DATA
     ///AAH AAH, PANIC AND its probably fine, but its *not* ideal
     window.set_light_data(light_data);
-    //window.construct_shadowmaps();
+    window.construct_shadowmaps();
 
     //context.flip();
 
@@ -225,11 +225,11 @@ int main(int argc, char *argv[])
         context.build_tick();
         //context.flush_locations();
 
-        scene_light->pos = window.c_pos;
+        /*scene_light->pos = window.c_pos;
         scene_light->pos.s[1] += 1000.f;
 
         light_data = light::build(&light_data);
-        window.set_light_data(light_data);
+        window.set_light_data(light_data);*/
 
         avg_ftime += c.getElapsedTime().asMicroseconds();
 

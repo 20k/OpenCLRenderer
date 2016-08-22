@@ -302,7 +302,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     }
 
     ///passed in as compilation parameter to opencl
-    l_size = 1024;
+    l_size = 256;
 
     sf::Clock ocltime;
 
@@ -3252,6 +3252,11 @@ void engine::set_camera_rot(cl_float4 r)
 void engine::set_opencl_extra_command_line(const std::string& str)
 {
     opencl_extra_command_line = str;
+}
+
+void engine::append_opencl_extra_command_line(const std::string& str)
+{
+    opencl_extra_command_line = opencl_extra_command_line + " " + str;
 }
 
 bool can_write_3d_textures()

@@ -309,6 +309,7 @@ struct engine
     float mouse_sens = 1.f;
 
     void set_opencl_extra_command_line(const std::string& str);
+    void append_opencl_extra_command_line(const std::string& str);
 
     std::string opencl_extra_command_line;
 };
