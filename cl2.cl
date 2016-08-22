@@ -1835,7 +1835,9 @@ bool generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 pos
     position_to_light = fast_normalize(position_to_light);
 
     ///offset to prevent depth issues causing artifacting
-    float len = max(SHADOWBIAS * tan(acos(clamp(dot(normal, position_to_light), 0.f, 0.95f))), 0.f);
+    float len = SHADOWBIAS * tan(acos(clamp(dot(normal, position_to_light), 0.05f, 0.95f)));
+
+    len = clamp(len, 0.1f * SHADOWBIAS, (float)SHADOWBIAS * SHADOWBIAS);
 
     //occamount = ;
 
