@@ -114,7 +114,8 @@ int main(int argc, char *argv[])
     auto light_data = light::build();
     ///
 
-
+    ///WE HAVE NO CLEAR CONCEPT OF OWNERSHIP OVER ANY OF THE LIGHTING DATA
+    ///AAH AAH, PANIC AND its probably fine, but its *not* ideal
     window.set_light_data(light_data);
     //window.construct_shadowmaps();
 
