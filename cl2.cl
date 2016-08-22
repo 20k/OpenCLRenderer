@@ -3479,8 +3479,24 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         0.0,            M_PI/2.0,       0.0
     };
 
+    int skip_structure[6] = {0};
+
+    for(int kk = 0; kk < 3; kk++)
+    {
+        int cface = ret_cubeface(vertex_pos(T->vertices[kk]), c_pos.xyz);
+
+        //if(cface == -1)
+        //    continue;
+
+        skip_structure[cface] = 1;
+    }
+
+    ///we could use which_cubeface to determine which face a triangle vertex lies in
     for(int kk = 0; kk < 6; kk++)
     {
+        if(skip_structure[kk] != 1)
+            continue;
+
         int num = 0;
 
         ///this rotates the triangles and does clipping, but nothing else (ie no_extras)

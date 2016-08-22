@@ -302,7 +302,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     }
 
     ///passed in as compilation parameter to opencl
-    l_size = 256;
+    l_size = 512;
 
     sf::Clock ocltime;
 
