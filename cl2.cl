@@ -3227,7 +3227,7 @@ void fill_ids(__global struct triangle* triangles, uint pad_id, int offset, int 
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
 #define op_size 500
-#define op_size_light 500
+#define op_size_light 300
 
 
 #define FRAGMENT_ID_MUL 6
@@ -3391,6 +3391,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 ///and then massively MASSIVELY accelerate shadow rendering
 ///because we can skip any tiles which have 0 tris in them
 ///Ok. We have to optimise this step. THIS IS THE SLOW ONE
+///we need a method to disable shadows on specific objects
 __kernel
 void prearrange_realtime_shadowing(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj)
@@ -3430,12 +3431,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
     const __global struct obj_g_descriptor* G = &gobj[o_id];
 
-
     float3 tris_proj[2][3]; ///projected triangles
-
-
-    ///needs to be changed for lights
-
 
     ///apparently opencl is a bit retarded
     float3 g_world_pos = G->world_pos.xyz;
@@ -3482,12 +3478,22 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         0.0,            M_PI/2.0,       0.0
     };
 
-    int skip_structure[6] = {0};
+    int skip_structure[6] = {0,0,0,0,0,0};
     int num_faces = 0;
+
+    /*pr[2] = rot_quat_with_offset(v3, c_pos, c_rot, offset, rotation_offset);
+
+    depth_project(tris[0], width, height, fovc, passback[0]);*/
 
     for(int kk = 0; kk < 3; kk++)
     {
-        int cface = ret_cubeface(vertex_pos(T->vertices[kk]), c_pos.xyz);
+        //float3 project = rot_quat_with_offset(vertex_pos(T->vertices[kk]), c_pos, )
+
+        float3 rotated = rot_quat(vertex_pos(T->vertices[kk]), G->world_rot_quat);
+        rotated += g_world_pos;
+
+        ///need to add object positions???!
+        int cface = ret_cubeface(rotated, c_pos.xyz);
 
         //if(cface == -1)
         //    continue;
@@ -3500,7 +3506,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         skip_structure[cface] = 1;
     }
 
-    uint base_id = atomic_add(id_cutdown_tris, num_faces);
+    //uint base_id = atomic_add(id_cutdown_tris, num_faces);
 
     ///we could use which_cubeface to determine which face a triangle vertex lies in
     for(int kk = 0; kk < 6; kk++)
@@ -3514,7 +3520,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
         ///can replace rotation with a swizzle for shadowing
 
-        //uint b_id = atomic_add(id_cutdown_tris, num);
+        uint b_id = atomic_add(id_cutdown_tris, num);
 
         ///up to here takes 14 ms
 
@@ -3550,14 +3556,14 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
             ///threads to renderone triangle based on its bounding-box area
 
             ///makes no apparently difference moving atomic out, presumably its a pretty rare case
-            //uint c_id = b_id + i;
+            uint c_id = b_id + i;
 
-            uint c_id;
+            /*uint c_id;
 
             if(i == 0)
                 c_id = base_id++;
             if(i == 1)
-                c_id = atomic_inc(id_cutdown_tris);
+                c_id = atomic_inc(id_cutdown_tris);*/
 
             //shouldnt do this here?
             cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
