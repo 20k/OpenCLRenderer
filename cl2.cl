@@ -4688,13 +4688,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         light = 1;
         #endif // BECKY_HACK
 
-        int skip = light <= 0.0f;
-
-        ///swap for 0? or likely that one warp will be same and can all skip?
-        if(skip)
-        {
-            continue;
-        }
+        light = max(light, 0.f);
 
         float diffuse = (1.0f-ambient)*light;
 
@@ -4741,6 +4735,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
         specular_sum += l.col.xyz * (spec * kS * l.brightness * distance_modifier) * G->spec_mult;
+
+        specular_sum = max(specular_sum, 0.f);
         #endif
     }
 
