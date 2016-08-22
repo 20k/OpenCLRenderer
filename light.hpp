@@ -6,7 +6,6 @@
 
 #include <boost/compute/system.hpp>
 
-
 namespace compute = boost::compute;
 
 struct light_gpu
@@ -15,6 +14,9 @@ struct light_gpu
     compute::buffer g_light_mem;
 
     cl_int any_godray = false;
+
+    ///well, in lieu of a proper solution, we've got 32 max shoadowcasting lights
+    cl_uint shadow_fragments_count[32];
 };
 
 ///lights need to be able to be activated and deactivated
