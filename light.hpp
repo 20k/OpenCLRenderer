@@ -42,6 +42,8 @@ struct light
     void set_active(bool);
     void set_godray_intensity(cl_float);
 
+    static void invalidate_buffers();
+
     static std::vector<light*> lightlist;
     static std::vector<cl_uint> active;
 

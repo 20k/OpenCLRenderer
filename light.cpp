@@ -52,6 +52,11 @@ void light::set_godray_intensity(cl_float g)
     godray_intensity = g;
 }
 
+void light::invalidate_buffers()
+{
+    dirty_shadow = true;
+}
+
 void light::set_active(bool s)
 {
     int id = get_light_id(this);
