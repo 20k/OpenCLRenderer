@@ -22,6 +22,7 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
 ///gamma correct mipmap filtering
 ///7ish pre tile deferred
 ///try first bounce in SS, then go to global if fail
+///Ok, we have to experiment with realtime shadows now
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");
@@ -64,12 +65,6 @@ int main(int argc, char *argv[])
     context.load_active();
 
     sponza->set_specular(0.f);
-
-    //texture_manager::allocate_textures();
-
-    //auto tex_gpu = texture_manager::build_descriptors();
-    //window.set_tex_data(tex_gpu);
-
     context.build(true);
 
 
@@ -121,7 +116,7 @@ int main(int argc, char *argv[])
 
 
     window.set_light_data(light_data);
-    window.construct_shadowmaps();
+    //window.construct_shadowmaps();
 
     //context.flip();
 
@@ -201,6 +196,7 @@ int main(int argc, char *argv[])
 
         //if(window.can_render())
         {
+            window.generate_realtime_shadowing(*context.fetch());
             ///do manual async on thread
             ///make a enforce_screensize method, rather than make these hackily do it
             event = window.draw_bulk_objs_n(*context.fetch());

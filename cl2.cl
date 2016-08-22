@@ -3383,6 +3383,175 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 }
 
+///if we can get tiled based rendering workign
+///we can map the depth buffer of the camera into the lights cubemap tile space
+///and then massively MASSIVELY accelerate shadow rendering
+///because we can skip any tiles which have 0 tris in them
+__kernel
+void prearrange_realtime_shadowing(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj)
+{
+    uint id = get_global_id(0);
+
+    if(id >= *tri_num)
+    {
+        return;
+    }
+
+    if(id == 0)
+    {
+        *id_cutdown_tris = 0;
+        *id_buffer_atomc = 0;
+    }
+
+    //if(get_group_id(0) == 0)
+    barrier(CLK_GLOBAL_MEM_FENCE);
+
+    ///ok looks like this is the problem
+    ///finally going to have to fix this memory access pattern
+    ///do it properly and use halfs
+    __global struct triangle *T = &triangles[id];
+
+    int o_id = T->vertices[0].object_id;
+
+    ///this is the 3d projection 'pipeline'
+
+    ///void rot_3(__global struct triangle *triangle, float3 c_pos, float3 c_rot, float3 ret[3])
+    ///void generate_new_triangles(float3 points[3], int ids[3], float lconst[2], int *num, float3 ret[2][3])
+    ///void depth_project(float3 rotated[3], int width, int height, float fovc, float3 ret[3])
+
+    float efov = LFOV_CONST;
+    float ewidth = LIGHTBUFFERDIM;
+    float eheight = LIGHTBUFFERDIM;
+
+    const __global struct obj_g_descriptor* G = &gobj[o_id];
+
+
+    float3 tris_proj[2][3]; ///projected triangles
+
+
+    ///needs to be changed for lights
+
+
+    ///apparently opencl is a bit retarded
+    float3 g_world_pos = G->world_pos.xyz;
+
+    ///optimisation for very far away objects, useful for hiding stuff
+    if(fast_length(g_world_pos - c_pos.xyz) > depth_far)
+        return;
+
+    for(int i=0; i<3; i++)
+    {
+        if(any(isnan(vertex_pos(T->vertices[i]))))
+            return;
+
+        if(any(fabs(vertex_pos(T->vertices[i])) >= FLT_MAX/8192.f))
+            return;
+
+        if(any(isinf(vertex_pos(T->vertices[i]))))
+            return;
+    }
+
+    float3 r_struct[6];
+    r_struct[0]=(float3)
+    {
+        0.0,            0.0,            0.0
+    };
+    r_struct[1]=(float3)
+    {
+        M_PI/2.0,       0.0,            0.0
+    };
+    r_struct[2]=(float3)
+    {
+        0.0,            M_PI,           0.0
+    };
+    r_struct[3]=(float3)
+    {
+        3.0*M_PI/2.0,   0.0,            0.0
+    };
+    r_struct[4]=(float3)
+    {
+        0.0,            3.0*M_PI/2.0,   0.0
+    };
+    r_struct[5]=(float3)
+    {
+        0.0,            M_PI/2.0,       0.0
+    };
+
+    for(int kk = 0; kk < 6; kk++)
+    {
+        int num = 0;
+
+        ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
+        full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
+        ///can replace rotation with a swizzle for shadowing
+
+        uint b_id = atomic_add(id_cutdown_tris, num);
+
+        ///up to here takes 14 ms
+
+        ///If the triangle intersects with the near clipping plane, there are two
+        ///otherwise 1
+        for(int i=0; i<num; i++)
+        {
+            int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+
+            int cond = (tris_proj[i][0].x < 0 && tris_proj[i][1].x < 0 && tris_proj[i][2].x < 0)  ||
+                (tris_proj[i][0].x >= ewidth && tris_proj[i][1].x >= ewidth && tris_proj[i][2].x >= ewidth) ||
+                (tris_proj[i][0].y < 0 && tris_proj[i][1].y < 0 && tris_proj[i][2].y < 0) ||
+                (tris_proj[i][0].y >= eheight && tris_proj[i][1].y >= eheight && tris_proj[i][2].y >= eheight);
+
+            if(!valid || cond)
+                continue;
+
+            float3 xpv, ypv;
+
+            xpv = round((float3){tris_proj[i][0].x, tris_proj[i][1].x, tris_proj[i][2].x});
+            ypv = round((float3){tris_proj[i][0].y, tris_proj[i][1].y, tris_proj[i][2].y});
+
+            float true_area = calc_area(xpv, ypv);
+            float rconst = calc_rconstant_v(xpv, ypv);
+
+
+            float min_max[4];
+            calc_min_max(tris_proj[i], ewidth, eheight, min_max);
+
+            float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
+
+            float thread_num = ceil(native_divide(area, op_size));
+            ///threads to renderone triangle based on its bounding-box area
+
+            ///makes no apparently difference moving atomic out, presumably its a pretty rare case
+            uint c_id = b_id + i;
+
+            //shouldnt do this here?
+            cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
+            cutdown_tris[c_id*3+1] = (float4)(tris_proj[i][1], 0);
+            cutdown_tris[c_id*3+2] = (float4)(tris_proj[i][2], 0);
+
+            uint base = atomic_add(id_buffer_atomc, thread_num);
+
+            uint f = base*FRAGMENT_ID_MUL;
+
+            for(uint a = 0; a < thread_num; a++)
+            {
+                ///work out if is valid, if not do c++ then continue;
+
+                ///make texture?
+                ///some of this is irrelevant for lights
+                ///0 and 5
+                fragment_id_buffer[f++] = kk;
+                fragment_id_buffer[f++] = a;
+                fragment_id_buffer[f++] = c_id;
+
+                fragment_id_buffer[f++] = as_int(true_area);
+                fragment_id_buffer[f++] = as_int(rconst);
+                fragment_id_buffer[f++] = o_id;
+            }
+        }
+    }
+}
+
 __kernel void tile_clear(__global uint* tile_count)
 {
     int x = get_global_id(0);
@@ -3653,6 +3822,117 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
             }
 
             __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x];
+
+            uint sdepth = atomic_min(ft, mydepth);
+        }
+    }
+}
+
+
+__kernel
+void kernel1_realtime_shadowing(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* depth_buffer, __global uint* f_len,
+           __global float4* cutdown_tris)
+{
+    uint id = get_global_id(0);
+
+    int len = *f_len;
+
+    if(id >= len)
+    {
+        return;
+    }
+
+    const float ewidth = LIGHTBUFFERDIM;
+    const float eheight = LIGHTBUFFERDIM;
+
+    ///DANGEROUS REPURPOSING OF FRAGMENT ID BUFFER BE AWARE
+    uint cube_face = fragment_id_buffer[id*FRAGMENT_ID_MUL + 0];
+
+    uint distance = fragment_id_buffer[id*FRAGMENT_ID_MUL + 1];
+
+    uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
+
+    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
+    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
+
+    ///triangle retrieved from depth buffer
+    float3 tris_proj_n[3];
+
+    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+    float min_max[4];
+    calc_min_max(tris_proj_n, ewidth, eheight, min_max);
+
+    int width = min_max[1] - min_max[0];
+
+    ///pixel to start at in triangle, ie distance is which fragment it is
+    int pixel_along = op_size*distance;
+
+    float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
+    float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    ///have to interpolate inverse to be perspective correct
+    float3 depths = {dcalc(tris_proj_n[0].z), dcalc(tris_proj_n[1].z), dcalc(tris_proj_n[2].z)};
+
+    depths = native_recip(depths);
+
+    ///calculate area by triangle 3rd area method
+
+    int pcount = -1;
+
+    float mod = area / MOD_ERROR;
+
+    float x = ((pixel_along + 0) % width) + min_max[0] - 1;
+    float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
+
+    float A, B, C;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &A, &B, &C);
+
+    float iwidth = 1.f / width;
+
+    ///while more pixels to write
+    while(pcount < op_size)
+    {
+        pcount++;
+
+        x+=1;
+
+        float ty = y;
+
+        y = floor(mad(pixel_along + pcount, iwidth, min_max[2]));
+
+        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+
+        if(y >= min_max[3])
+        {
+            break;
+        }
+
+        bool oob = x >= min_max[1];
+
+        if(oob)
+        {
+            continue;
+        }
+
+        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+
+        ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
+        if(cond)
+        {
+            float fmydepth = mad(A, x, mad(B, y, C));
+
+            uint mydepth = native_divide((float)mulint, fmydepth);
+
+            __global uint* ft = &depth_buffer[(int)(y*ewidth) + (int)x + cube_face * LIGHTBUFFERDIM*LIGHTBUFFERDIM];
 
             uint sdepth = atomic_min(ft, mydepth);
         }
@@ -7493,6 +7773,17 @@ void clear_depth_buffer(__global uint* dbuf)
         return;
 
     dbuf[y*SCREENWIDTH + x] = mulint;
+}
+
+__kernel
+void clear_depth_buffer_size(__global uint* dbuf, uint len)
+{
+    int id = get_global_id(0);
+
+    if(id >= len)
+        return;
+
+    dbuf[id] = mulint;
 }
 
 __kernel

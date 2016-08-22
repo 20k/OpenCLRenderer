@@ -46,6 +46,7 @@ struct object_context_data
     texture_context_data tex_gpu_ctx;
 
     compute::buffer g_tid_buf_atomic_count;
+    compute::buffer g_tid_lightbuf_atomic_count;
 
     compute::opengl_renderbuffer g_screen;
     compute::buffer depth_buffer[2];

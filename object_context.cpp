@@ -277,10 +277,13 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
     std::vector<compute::event> events;
 
     dat.g_tri_mem = compute::buffer(cl::context, sizeof(triangle)*tri_num, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY);
-    dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*tri_num*3*2 | CL_MEM_HOST_NO_ACCESS);
+
+    int realtime_light_mod = 6;
+
+    dat.g_cut_tri_mem = compute::buffer(cl::context, sizeof(cl_float4)*tri_num*3*2*realtime_light_mod | CL_MEM_HOST_NO_ACCESS);
 
     dat.g_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
-    dat.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY);
+    dat.g_cut_tri_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE);
 
     dat.tri_num = tri_num;
 
@@ -295,8 +298,9 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
 
         cl_uint zero = 0;
         context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+        context.fetch()->g_tid_lightbuf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
-        lg::log("alloced g_tid_buf_atomic_count");
+        lg::log("alloced g_tid_buf_atomic_count + g_tid_lightbuf_atomic_count");
     }
 
     ///I'm going to forget this every time
@@ -455,6 +459,7 @@ void flip_buffers(object_context* ctx)
     ///I need to put all of these into a "is_saved" buffer
     ///reuse the same buffer, will be recreated on context change
     ctx->new_gpu_dat.g_tid_buf_atomic_count = ctx->fetch()->g_tid_buf_atomic_count;
+    ctx->new_gpu_dat.g_tid_lightbuf_atomic_count = ctx->fetch()->g_tid_lightbuf_atomic_count;
 
     ///heuristic, help prevent flickering
     //ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;

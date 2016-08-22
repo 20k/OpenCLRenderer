@@ -1169,6 +1169,143 @@ compute::event engine::generate_depth_buffer(object_context_data& dat)
     return run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
 }
 
+compute::event engine::generate_realtime_shadowing(object_context_data& dat)
+{
+    dat.ensure_screen_buffers(width, height);
+
+    cl_uint zero = 0;
+
+    cl_uint p1global_ws = dat.tri_num;
+    cl_uint local = 256;
+
+    ///for every light, generate a cubemap for that light if its a light which casts a shadow
+    for(unsigned int i=0, n=0; i<light::lightlist.size(); i++)
+    {
+        if(light::lightlist[i]->shadow==1)
+        {
+            cl_mem temp_l_mem;
+
+            cl_buffer_region buf_reg;
+
+            buf_reg.origin = n*sizeof(cl_uint)*l_size*l_size*6;
+            buf_reg.size   = sizeof(cl_uint)*l_size*l_size*6;
+
+            ///uuh. We're gunne need to clear the shadow light buffer (!!!)
+            temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+
+            cl_uint len = l_size*l_size*6;
+
+            arg_list cargs;
+            cargs.push_back(&temp_l_mem);
+            cargs.push_back(&len);
+
+            run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size}, {256}, 1, cargs);
+
+            //cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+            //cl::cqueue.enqueue_write_buffer(obj_data->g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+
+            cl_float4 no_rot = {0};
+
+            arg_list prearg_list;
+
+            prearg_list.push_back(&dat.g_tri_mem);
+            prearg_list.push_back(&dat.g_tri_num);
+            prearg_list.push_back(&light::lightlist[i]->pos);
+            prearg_list.push_back(&no_rot); ///irrelevant
+            prearg_list.push_back(&this->g_tid_buf);
+            prearg_list.push_back(&this->g_tid_buf_max_len);
+            prearg_list.push_back(&dat.g_tid_lightbuf_atomic_count);
+            prearg_list.push_back(&dat.g_cut_tri_num);
+            prearg_list.push_back(&dat.g_cut_tri_mem);
+            prearg_list.push_back(&dat.g_obj_desc);
+
+            run_kernel_with_string("prearrange_realtime_shadowing", &p1global_ws, &local, 1, prearg_list);
+
+            /*cl_uint dbg_cut = 0;
+
+            clEnqueueReadBuffer(cl::cqueue.get(), &dat.g_cut_tri_num.get(), CL_TRUE, 0, sizeof(cl_uint), &dbg_cut, 0, nullptr, nullptr);
+
+            printf("dbg cut %i\n", dbg_cut);*/
+
+            cl_uint light_nb = 0;
+
+            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &light_nb, 0, NULL, NULL);
+
+            cl_uint fragments_number = light_nb;
+
+            arg_list p1arg_list;
+            p1arg_list.push_back(&dat.g_tri_mem);
+            p1arg_list.push_back(&this->g_tid_buf);
+            p1arg_list.push_back(&temp_l_mem);
+            p1arg_list.push_back(&dat.g_tid_lightbuf_atomic_count);
+            p1arg_list.push_back(&dat.g_cut_tri_mem);
+
+            run_kernel_with_string("kernel1_realtime_shadowing", &fragments_number, &local, 1, p1arg_list);
+
+            clReleaseMemObject(temp_l_mem);
+
+            /*for(int j=0; j<6; j++)
+            {
+                cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
+
+                cl_mem temp_l_mem;
+
+                cl_buffer_region buf_reg;
+
+                buf_reg.origin = n*sizeof(cl_uint)*l_size*l_size*6 + j*sizeof(cl_uint)*l_size*l_size;
+                buf_reg.size   = sizeof(cl_uint)*l_size*l_size;
+
+                temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+
+                cl::cqueue.enqueue_write_buffer(dat.g_cut_tri_num, 0, sizeof(cl_uint), &zero);
+
+                arg_list prearg_list;
+
+                prearg_list.push_back(&dat.g_tri_mem);
+                prearg_list.push_back(&dat.g_tri_num);
+                prearg_list.push_back(&light::lightlist[i]->pos);
+                prearg_list.push_back(&r_struct[j]);
+                prearg_list.push_back(&g_tid_buf);
+                prearg_list.push_back(&g_tid_buf_max_len);
+                prearg_list.push_back(&g_tid_buf_atomic_count);
+                prearg_list.push_back(&dat.g_cut_tri_num);
+                prearg_list.push_back(&dat.g_cut_tri_mem);
+                prearg_list.push_back(&juan);
+                prearg_list.push_back(&dat.g_obj_desc);
+
+                run_kernel_with_string("prearrange_light", &p1global_ws, &local, 1, prearg_list);
+
+                cl_uint id_c = 0;
+
+                cl::cqueue.enqueue_read_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &id_c);
+
+                cl_uint p1global_ws_new = id_c;
+
+                arg_list p1arg_list;
+                p1arg_list.push_back(&dat.g_tri_mem);
+                p1arg_list.push_back(&g_tid_buf);
+                p1arg_list.push_back(&dat.g_tri_num);
+                p1arg_list.push_back(&temp_l_mem);
+                p1arg_list.push_back(&g_tid_buf_atomic_count);
+                p1arg_list.push_back(&dat.g_cut_tri_num);
+                p1arg_list.push_back(&dat.g_cut_tri_mem);
+                p1arg_list.push_back(&juan);
+                //p1arg_list.push_back(&g_distortion_buffer);
+                p1arg_list.push_back(&dat.g_id_screen_tex);
+
+                //run_kernel_with_list(cl::kernel1, &p1global_ws_new, &local, 1, p1arg_list, true);
+                run_kernel_with_string("kernel1_light", &p1global_ws_new, &local, 1, p1arg_list);
+
+                clReleaseMemObject(temp_l_mem);
+            }*/
+
+            n++;
+        }
+    }
+
+    return compute::event();
+}
+
 ///the beginnings of making rendering more configurable
 ///reduce arguments to what we actually need now
 compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out, object_context_data& dat)
