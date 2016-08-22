@@ -101,12 +101,14 @@ int main(int argc, char *argv[])
     //l.set_godray_intensity(1.f);
     //window.add_light(&l);
 
-    light::add_light(&l);
+    light* scene_light;
+
+    scene_light = light::add_light(&l);
 
     l.set_col((cl_float4){0.0f, 0.0f, 1.0f, 0});
 
     l.set_pos((cl_float4){-0, 200, -500, 0});
-    l.set_shadow_casting(1);
+    l.set_shadow_casting(0);
     l.radius = 100000;
 
     //light::add_light(&l);
@@ -222,6 +224,12 @@ int main(int argc, char *argv[])
 
         context.build_tick();
         //context.flush_locations();
+
+        scene_light->pos = window.c_pos;
+        scene_light->pos.s[1] += 1000.f;
+
+        light_data = light::build(&light_data);
+        window.set_light_data(light_data);
 
         avg_ftime += c.getElapsedTime().asMicroseconds();
 

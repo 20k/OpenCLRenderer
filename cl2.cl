@@ -3531,7 +3531,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
             uint base = atomic_add(id_buffer_atomc, thread_num);
 
-            uint f = base*FRAGMENT_ID_MUL;
+            uint f = base*(FRAGMENT_ID_MUL-1);
 
             for(uint a = 0; a < thread_num; a++)
             {
@@ -3546,7 +3546,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
                 fragment_id_buffer[f++] = as_int(true_area);
                 fragment_id_buffer[f++] = as_int(rconst);
-                fragment_id_buffer[f++] = o_id;
+                //fragment_id_buffer[f++] = o_id;
             }
         }
     }
@@ -3845,15 +3845,17 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
     const float ewidth = LIGHTBUFFERDIM;
     const float eheight = LIGHTBUFFERDIM;
 
+    #define FIDM1 (FRAGMENT_ID_MUL - 1)
+
     ///DANGEROUS REPURPOSING OF FRAGMENT ID BUFFER BE AWARE
-    uint cube_face = fragment_id_buffer[id*FRAGMENT_ID_MUL + 0];
+    uint cube_face = fragment_id_buffer[id*FIDM1 + 0];
 
-    uint distance = fragment_id_buffer[id*FRAGMENT_ID_MUL + 1];
+    uint distance = fragment_id_buffer[id*FIDM1 + 1];
 
-    uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
+    uint ctri = fragment_id_buffer[id*FIDM1 + 2];
 
-    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
-    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
+    float area = as_float(fragment_id_buffer[id*FIDM1 + 3]);
+    float rconst = as_float(fragment_id_buffer[id*FIDM1 + 4]);
 
     ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];

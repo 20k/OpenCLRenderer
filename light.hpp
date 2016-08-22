@@ -16,7 +16,7 @@ struct light_gpu
     cl_int any_godray = false;
 
     ///well, in lieu of a proper solution, we've got 32 max shoadowcasting lights
-    cl_uint shadow_fragments_count[32];
+    cl_uint* shadow_fragments_count = nullptr;
 };
 
 ///lights need to be able to be activated and deactivated
@@ -51,7 +51,7 @@ struct light
 
     static bool dirty_shadow;
 
-    static light_gpu build();
+    static light_gpu build(light_gpu* old_dat = nullptr);
 };
 
 

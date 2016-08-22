@@ -115,7 +115,7 @@ void light::remove_light(light* l)
 }
 
 ///the writes here need ordering!
-light_gpu light::build() ///for the moment, just reallocate everything
+light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate everything
 {
     cl_uint lnum = light::lightlist.size();
 
@@ -190,6 +190,15 @@ light_gpu light::build() ///for the moment, just reallocate everything
         }
 
         clEnqueueUnmapMemObject(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), buf, 0, NULL, NULL);
+    }
+
+    if(old_dat)
+    {
+        dat.shadow_fragments_count = old_dat->shadow_fragments_count;
+    }
+    else
+    {
+        dat.shadow_fragments_count = new cl_uint[32];
     }
 
     dirty_shadow = false;

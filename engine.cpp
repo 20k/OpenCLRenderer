@@ -1201,9 +1201,6 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size}, {256}, 1, cargs);
 
-            //cl::cqueue.enqueue_write_buffer(g_tid_buf_atomic_count, 0, sizeof(cl_uint), &zero);
-            //cl::cqueue.enqueue_write_buffer(obj_data->g_cut_tri_num, 0, sizeof(cl_uint), &zero);
-
             cl_float4 no_rot = {0};
 
             arg_list prearg_list;
@@ -1230,6 +1227,8 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[n], 0, NULL, NULL);
 
             cl_uint fragments_number = light_data->shadow_fragments_count[n] * 1.1;
+
+            //printf("%i fragment number\n", fragments_number);
 
             arg_list p1arg_list;
             p1arg_list.push_back(&dat.g_tri_mem);
