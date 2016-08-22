@@ -1873,7 +1873,12 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
 
     ///offset to prevent depth issues causing artifacting
     float bias = SHADOWBIAS * tan(acos(clamp(dot(normal, position_to_light), 0.05f, 0.95f)));
-    bias = clamp(bias, 0.1f * SHADOWBIAS, (float)SHADOWBIAS * SHADOWBIAS);
+
+    #ifndef SHADOWEXP
+    #define SHADOWEXP 1
+    #endif // SHADOWEXP
+
+    bias = clamp(bias, 0.1f * SHADOWBIAS, pow((float)SHADOWBIAS, SHADOWEXP));
 
     //float ldp = idcalc(native_divide((float)ldepth_map[((int)postrotate_pos.y)*LIGHTBUFFERDIM + (int)(postrotate_pos.x)], mulint));
 
