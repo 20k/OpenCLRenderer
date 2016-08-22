@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
     engine window;
 
     window.set_opencl_extra_command_line("-D TILE_DIM=64");
+    window.append_opencl_extra_command_line("-D SHADOWBIAS=40");
 
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
 

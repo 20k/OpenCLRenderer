@@ -1191,7 +1191,10 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             buf_reg.size   = sizeof(cl_uint)*l_size*l_size*6;
 
             ///uuh. We're gunne need to clear the shadow light buffer (!!!)
-            temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+            if(n != 0)
+                temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+            else
+                temp_l_mem = g_shadow_light_buffer.get();
 
             cl_uint len = l_size*l_size*6;
 
@@ -1239,7 +1242,8 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             run_kernel_with_string("kernel1_realtime_shadowing", &fragments_number, &local, 1, p1arg_list);
 
-            clReleaseMemObject(temp_l_mem);
+            if(n != 0)
+                clReleaseMemObject(temp_l_mem);
 
             n++;
         }
