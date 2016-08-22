@@ -3226,7 +3226,9 @@ void fill_ids(__global struct triangle* triangles, uint pad_id, int offset, int 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
-#define op_size 300
+#define op_size 500
+#define op_size_light 500
+
 
 #define FRAGMENT_ID_MUL 6
 
@@ -3383,6 +3385,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 }
 
+
 ///if we can get tiled based rendering workign
 ///we can map the depth buffer of the camera into the lights cubemap tile space
 ///and then massively MASSIVELY accelerate shadow rendering
@@ -3480,6 +3483,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     };
 
     int skip_structure[6] = {0};
+    int num_faces = 0;
 
     for(int kk = 0; kk < 3; kk++)
     {
@@ -3488,13 +3492,20 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         //if(cface == -1)
         //    continue;
 
+        if(skip_structure[cface] == 0)
+        {
+            num_faces++;
+        }
+
         skip_structure[cface] = 1;
     }
+
+    //uint base_id = atomic_add(id_cutdown_tris, num_faces);
 
     ///we could use which_cubeface to determine which face a triangle vertex lies in
     for(int kk = 0; kk < 6; kk++)
     {
-        if(skip_structure[kk] != 1)
+        if(skip_structure[kk] == 0)
             continue;
 
         int num = 0;
@@ -3535,7 +3546,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
             float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
-            float thread_num = ceil(native_divide(area, op_size));
+            float thread_num = ceil(native_divide(area, op_size_light));
             ///threads to renderone triangle based on its bounding-box area
 
             ///makes no apparently difference moving atomic out, presumably its a pretty rare case
@@ -3887,7 +3898,7 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
     int width = min_max[1] - min_max[0];
 
     ///pixel to start at in triangle, ie distance is which fragment it is
-    int pixel_along = op_size*distance;
+    int pixel_along = op_size_light*distance;
 
     float3 xpv = {tris_proj_n[0].x, tris_proj_n[1].x, tris_proj_n[2].x};
     float3 ypv = {tris_proj_n[0].y, tris_proj_n[1].y, tris_proj_n[2].y};
@@ -3916,7 +3927,7 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
     float iwidth = 1.f / width;
 
     ///while more pixels to write
-    while(pcount < op_size)
+    while(pcount < op_size_light)
     {
         pcount++;
 
