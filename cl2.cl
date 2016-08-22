@@ -1877,28 +1877,6 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
     {
         for(int x=-1; x<=1; x++)
         {
-            /*float ldp = idcalc(native_divide((float)ldepth_map[(ipr.y + y)*LIGHTBUFFERDIM + ipr.x + x], mulint));
-
-            if(dpth > ldp + bias)
-                shadow += 1;*/
-
-            /*float ldp1 = idcalc(native_divide((float)ldepth_map[(ipr.y + y)*LIGHTBUFFERDIM + ipr.x + x], mulint));
-            float ldp2 = idcalc(native_divide((float)ldepth_map[(ipr.y + y)*LIGHTBUFFERDIM + ipr.x + x + 1], mulint));
-            float ldp3 = idcalc(native_divide((float)ldepth_map[(ipr.y + y + 1)*LIGHTBUFFERDIM + ipr.x + x], mulint));
-            float ldp4 = idcalc(native_divide((float)ldepth_map[(ipr.y + y + 1)*LIGHTBUFFERDIM + ipr.x + x + 1], mulint));
-
-            int c1 = dpth > ldp1 + bias ? 1 : 0;
-            int c2 = dpth > ldp2 + bias ? 1 : 0;
-            int c3 = dpth > ldp3 + bias ? 1 : 0;
-            int c4 = dpth > ldp4 + bias ? 1 : 0;
-
-            float vals[4];
-
-            vals[0] = c1;
-            vals[1] = c2;
-            vals[2] = c3;
-            vals[3] = c4;*/
-
             float vals[4];
 
             vals[0] = conditions[(y+1)*4 + x+1];
