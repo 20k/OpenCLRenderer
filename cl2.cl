@@ -3500,7 +3500,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         skip_structure[cface] = 1;
     }
 
-    //uint base_id = atomic_add(id_cutdown_tris, num_faces);
+    uint base_id = atomic_add(id_cutdown_tris, num_faces);
 
     ///we could use which_cubeface to determine which face a triangle vertex lies in
     for(int kk = 0; kk < 6; kk++)
@@ -3514,7 +3514,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
         ///can replace rotation with a swizzle for shadowing
 
-        uint b_id = atomic_add(id_cutdown_tris, num);
+        //uint b_id = atomic_add(id_cutdown_tris, num);
 
         ///up to here takes 14 ms
 
@@ -3550,7 +3550,14 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
             ///threads to renderone triangle based on its bounding-box area
 
             ///makes no apparently difference moving atomic out, presumably its a pretty rare case
-            uint c_id = b_id + i;
+            //uint c_id = b_id + i;
+
+            uint c_id;
+
+            if(i == 0)
+                c_id = base_id++;
+            if(i == 1)
+                c_id = atomic_inc(id_cutdown_tris);
 
             //shouldnt do this here?
             cutdown_tris[c_id*3]   = (float4)(tris_proj[i][0], 0);
