@@ -1865,6 +1865,9 @@ float bilinear_interpolate_shadow(float2 coord, __global uint* ldepth_map, float
 }
 #endif
 
+///the ssao is generating banding
+///https://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html
+///do range check
 float generate_ssao(int2 spos, __global uint* depth_buffer)
 {
     float depth = idcalc((float)depth_buffer[spos.y * SCREENWIDTH + spos.x] / mulint);
@@ -1877,28 +1880,23 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
     rad = SSAO_RAD;
     #endif
 
-    ///modulate at edges?
+    ///this projects into world space
     float world_rad = rad * FOV_CONST / depth;
 
     //world_rad = min(world_rad, 8.f);
 
     int samples = 2;
 
-    float bias = 20.f;
+    //float bias = 20.f;
 
     float acc = 0.f;
     float n = 0;
 
-    int minx = -samples;
-    int maxx = samples;
-    int miny = -samples;
-    int maxy = samples;
-
     for(int z=-samples; z<=samples; z++)
     {
-        for(int y=miny; y<=maxy; y++)
+        for(int y=-samples; y<=samples; y++)
         {
-            for(int x=minx; x<=maxx; x++)
+            for(int x=-samples; x<=samples; x++)
             {
                 float3 offset = (float3)(x, y, z) * (float3)(world_rad, world_rad, 1);
 
@@ -1912,6 +1910,7 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
                 //foffset = clamp(foffset, 1.f, (float2){SCREENWIDTH-2, SCREENHEIGHT-2});
                 //float d2 = bilinear_interpolate_shadow(foffset, depth_buffer, depth + offset.z, 0.f, SCREENWIDTH);
 
+                ///calculate depth at pixel
                 float d2 = idcalc((float)depth_buffer[(world.y) * SCREENWIDTH + world.x] / mulint);
 
                 if(d2 > depth + offset.z)
@@ -1922,11 +1921,7 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
 
     acc /= n;
 
-    //return 1.f;
-
-    return 1.f - (1.f - acc)/2.5;
-
-    return acc;
+    return 1.f - (1.f - acc)/2.5f;
 }
 
 ///still broken, but I accidentally made a nice outline effect!
@@ -5002,6 +4997,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
     int flip_normals = !is_front && G->two_sided == 1;
 
+    ///ssao only affects the ambient term in proper usage
+    ///but I'd like something a bit more impactful than that
+    ///generally there are a lot of lights, so i don't think its a massive issue
     #define USE_SSAO
     #ifdef USE_SSAO
     float ssao = generate_ssao((int2){x, y}, depth_buffer);
@@ -5236,6 +5234,8 @@ bool depth_disjointed(float d1, float d2)
 }
 
 ///add depth buffer support
+///we need to add smoothing by normals
+///or, we could pass in tris and simply go by tri boundaries > amount
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),
