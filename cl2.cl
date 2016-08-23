@@ -1614,6 +1614,7 @@ uint rand_xorshift(uint rng_state)
     return rng_state;
 }
 
+///this function is very broken, but a more substantial stepping stone
 float generate_hbao_new(int2 spos, __global uint* depth_buffer, float3 normal, float3 screenspace_normal, float3 c_rot, float3 c_pos)
 {
     float depth = idcalc((float)depth_buffer[spos.y * SCREENWIDTH + spos.x] / mulint);
@@ -1782,6 +1783,74 @@ float generate_hbao_new(int2 spos, __global uint* depth_buffer, float3 normal, f
 
     return ao;
     //return 1.f - ao;
+}
+
+
+float get_bounded(int2 spos, int bound)
+{
+    if((spos.x < bound || spos.y < bound) || (spos.x >= SCREENWIDTH - bound || spos.y >= SCREENHEIGHT - bound))
+    {
+        float2 bdistance = convert_float2(spos);
+        float2 mdistance = (float2)(SCREENWIDTH, SCREENHEIGHT) - convert_float2(spos);
+
+        float2 md = min(bdistance, mdistance);
+
+        return min(min(md.x, md.y) / bound, 1.f);
+    }
+
+    return 0.f;
+}
+
+float generate_ssao(int2 spos, __global uint* depth_buffer)
+{
+    float depth = idcalc((float)depth_buffer[spos.y * SCREENWIDTH + spos.x] / mulint);
+
+    float rad = 5.f;
+
+    ///modulate at edges?
+    float world_rad = rad * FOV_CONST / depth;
+
+    int samples = 2;
+
+    float bias = 20.f;
+
+    float acc = 0.f;
+    float n = 0;
+
+    int minx = -samples;
+    int maxx = samples;
+    int miny = -samples;
+    int maxy = samples;
+
+    for(int z=-samples; z<=samples; z++)
+    {
+        for(int y=miny; y<=maxy; y++)
+        {
+            for(int x=minx; x<=maxx; x++)
+            {
+                float3 offset = (float3)(x, y, z) * (float3)(world_rad, world_rad, 1);
+
+                int2 world = spos + (int2)(offset.x, offset.y);
+
+                world = clamp(world, 1.f, (int2){SCREENWIDTH-2, SCREENHEIGHT-2});
+
+                n += 1;
+
+                float d2 = idcalc((float)depth_buffer[(world.y) * SCREENWIDTH + world.x] / mulint);
+
+                if(d2 > depth + offset.z)
+                    acc+=1;
+            }
+        }
+    }
+
+    acc /= n;
+
+    //return 1.f;
+
+    return 1.f - (1.f - acc)/2.5;
+
+    return acc;
 }
 
 ///still broken, but I accidentally made a nice outline effect!
@@ -4890,10 +4959,16 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
     int flip_normals = !is_front && G->two_sided == 1;
 
+    #define USE_SSAO
+    #ifdef USE_SSAO
+    float ssao = generate_ssao((int2){x, y}, depth_buffer);
+    #else
+    float ssao = 1;
+    #endif
 
     for(int i=0; i<num_lights; i++)
     {
-        const float ambient = 0.2f;
+        const float ambient = 0.2f * ssao;
 
         const struct light l = lights[i];
 
@@ -4957,6 +5032,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         light *= occlusion;
 
+        light *= ssao;
+
         #ifdef BECKY_HACK
         light = 1;
         #endif // BECKY_HACK
@@ -5014,6 +5091,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         #endif
 
         specular_sum *= occlusion;
+        specular_sum *= ssao;
     }
 
     ///mip_start is a global parameter, edit it out
