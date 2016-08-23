@@ -1595,6 +1595,195 @@ float get_horizon_direction_depth(const int2 start, const float2 dir, const int 
     return h;
 }
 
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
+uint rand_xorshift(uint rng_state)
+{
+    // Xorshift algorithm from George Marsaglia's paper
+    rng_state ^= (rng_state << 13);
+    rng_state ^= (rng_state >> 17);
+    rng_state ^= (rng_state << 5);
+    return rng_state;
+}
+
+float generate_hbao_new(int2 spos, __global uint* depth_buffer, float3 normal, float3 screenspace_normal, float3 c_rot, float3 c_pos)
+{
+    float depth = idcalc((float)depth_buffer[spos.y * SCREENWIDTH + spos.x] / mulint);
+
+    float3 local_ref_position = {((spos.x - SCREENWIDTH/2.0f)*depth/FOV_CONST), ((spos.y - SCREENHEIGHT/2.0f)*depth/FOV_CONST), depth};
+
+    ///we might be able to avoid rotating everything, and simply unproject all the coordinates as above
+    ///hmm. Itd be tricky, but we might be able to construct a camera plane to do it
+    float3 global_ref_position = back_rot(local_ref_position, 0, c_rot);
+
+    global_ref_position += c_pos;
+
+
+    float closest = depth;
+
+    float eye_rad = 10.f;
+
+    ///eye radius projected into scene
+    float scene_rad = eye_rad * FOV_CONST / depth;
+
+    scene_rad = clamp(scene_rad, 1.f, 100.f);
+
+    int samples_per_dir = 3;
+
+    float2 one = (float2)(1, 1);
+
+    ///depth far is the maximum expected rendering distance
+    ///whereas mulint is the maximum integer representation of that depth
+    float direction_depths[4] = {depth, depth, depth, depth};
+    float2 scene_offset[4] = {one, one, one, one};
+
+    uint seed1 = wang_hash(spos.x + SCREENWIDTH * SCREENHEIGHT * spos.y);
+    uint s2 = rand_xorshift(seed1);
+
+    float rv1 = (float)s2 / pow(2.f, 32.f);
+    rv1 *= M_PI;
+
+    float random_rotation = rv1;
+
+    for(int y=-samples_per_dir; y <= samples_per_dir; y++)
+    {
+        for(int x=-samples_per_dir; x <= samples_per_dir; x++)
+        {
+            if(x == 0 && y == 0)
+                continue;
+
+            if(x != 0 && y != 0)
+                continue;
+
+            int world_offset_x = scene_rad * x / samples_per_dir;
+            int world_offset_y = scene_rad * y / samples_per_dir;
+
+            float angle = atan2((float)world_offset_y, (float)world_offset_x);
+            float len = sqrt((float)world_offset_x * world_offset_x + world_offset_y * world_offset_y);
+
+            angle += random_rotation;
+
+            world_offset_x = len * cos(angle);
+            world_offset_y = len * sin(angle);
+
+            float scene_depth = idcalc((float)depth_buffer[(spos.y + world_offset_y) * SCREENWIDTH + spos.x + world_offset_x] / mulint);
+
+            int n = 0;
+
+            if(y == 0 && x < 0)
+            {
+                n = 0;
+            }
+            if(y == 0 && x > 0)
+            {
+                n = 1;
+            }
+            if(y < 0 && x == 0)
+            {
+                n = 2;
+            }
+            if(y > 0 && x == 0)
+            {
+                n = 3;
+            }
+
+            if(scene_depth < direction_depths[n] && fabs(depth - scene_depth) < eye_rad)
+            {
+                direction_depths[n] = scene_depth;
+                scene_offset[n] = (float2){spos.x + world_offset_x, spos.y + world_offset_y};
+                //scene_offset[n] = eye_rad * (float2){x, y} / samples_per_dir;
+            }
+        }
+    }
+
+    ///these horizon angles are wrong
+    float horizon_angles[4];
+
+    #if 0
+    for(int i=0; i<4; i++)
+    {
+
+        ///adjacent wants to be the world coordinates of the difference between two points
+        ///atm we have screenspace
+
+        //printf("%f %f ha ", depth - direction_depths[i], adjacent);
+
+        /*if(depth - direction_depths[i] > eye_rad)
+            horizon_angles[i] = depth_far;
+
+        if(direction_depths[i] >= depth)
+            horizon_angles[i] = depth_far;*/
+    }
+    #endif
+
+    float ao = 0.f;
+
+    for(int i=0; i<4; i++)
+    {
+        ///we're using distances derived from the screen, but we need their real distances in space
+        //float adjacent = fast_length(scene_offset[i]);
+
+        float3 local_position = {((scene_offset[i].x - SCREENWIDTH/2.0f)*direction_depths[i]/FOV_CONST), ((scene_offset[i].y - SCREENHEIGHT/2.0f)*direction_depths[i]/FOV_CONST), direction_depths[i]};
+
+        ///backrotate pixel coordinate into globalspace
+        float3 global_position = back_rot(local_position, 0, c_rot);
+
+        global_position += c_pos;
+
+        ///ok, so we need the xy distance from the cameras viewpoint
+
+        float2 xy = local_position.xy - local_ref_position.xy;
+
+        //float h = fast_length(global_position - global_ref_position);
+
+        //horizon_angles[i] = (depth - direction_depths[i]) / h;
+
+        horizon_angles[i] = sin(atan2(depth - direction_depths[i], fast_length(xy)));
+
+        //printf("dbg %f %f\n", depth - direction_depths[i], adjacent);
+
+        //if(horizon_angles[i] >= depth - 1.f)
+        //    continue;
+
+        //float plane_tangent = sin(acos(dot(screenspace_normal, (float3){0, 0, -1})));
+        float plane_tangent = 1.f - sin(atan2(fabs(normal.z), fast_length(normal.xy)));
+
+        float ao_contribution = 1.f - horizon_angles[i] - plane_tangent - 0.3f;
+
+        ao_contribution = clamp(ao_contribution, 0.0f, 1.f);
+
+        //printf("%f %f pa ", horizon_angles[i], plane_tangent);
+
+        //printf("a %f ", adjacent);
+
+        //ao += plane_tangent;
+
+        ao += ao_contribution;
+
+        //ao += horizon_angles[i];
+
+        //ao += fast_length(scene_offset[i]) / 3.f;
+    }
+
+    ao /= 4.f;
+
+    ao = clamp(ao, 0.3f, 0.7f);
+
+    //ao *= 5;
+
+
+    return ao;
+    //return 1.f - ao;
+}
+
 ///still broken, but I accidentally made a nice outline effect!
 float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 {
@@ -1874,6 +2063,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
     ///offset to prevent depth issues causing artifacting
     float bias = SHADOWBIAS * tan(acos(clamp(dot(normal, position_to_light), 0.05f, 0.95f)));
 
+    ///it may be better to stick this in the compilation step
     #ifndef SHADOWEXP
     #define SHADOWEXP 1
     #endif // SHADOWEXP
@@ -4850,7 +5040,28 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     final_col += hbao;
     #endif // OUTLINE
 
+    //float3 flat_normal = fast_normalize(cross(tris_proj[1] - tris_proj[0], tris_proj[2] - tris_proj[0]));
+
+    //float3 flat_normal = fast_normalize(cross(p2 - p1, p3 - p1));
+
+    //float3 flat_normal = (n1 + n2 + n3) / 3.f;
+
+    /*float hbao_new = generate_hbao_new(scoord, depth_buffer, flat_normal, rot(flat_normal, 0, c_rot.xyz), c_rot.xyz, c_pos.xyz);
+
+    final_col *= hbao_new;
+
+
+    #define DEBUGGING_HBAO
+    #ifdef DEBUGGING_HBAO
+    final_col = hbao_new;
+    #endif*/
+
     final_col = clamp(final_col, 0.f, 1.f);
+
+    //final_col.xyz = flat_normal;
+    //final_col.xyz = normal;
+
+    //final_col.xyz = rot(normal, 0, c_rot.xyz);
 
     //final_col.xyz = length(vtdiff);
 
