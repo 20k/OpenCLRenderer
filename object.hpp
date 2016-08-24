@@ -82,6 +82,7 @@ struct object
     void scale(float);
 
     void patch_non_square_texture_maps(texture_context& ctx);
+    void patch_non_2pow_texture_maps(texture_context& ctx);
 
     texture* get_texture();
 

@@ -412,7 +412,7 @@ extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 
 ///runs a kernel with a particular set of arguments
 inline
-compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true, compute::command_queue& cqueue = cl::cqueue, bool debug = false)
+compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true, compute::command_queue& cqueue = cl::cqueue, bool debug = false, const std::vector<compute::event>& events = std::vector<compute::event>())
 {
     size_t g_ws[dimensions];
     size_t l_ws[dimensions];
@@ -536,9 +536,16 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
 
     compute::event event;
 
+    compute::wait_list wait;
+
+    for(auto& i : events)
+    {
+        wait.insert(i);
+    }
+
     try
     {
-        event = cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, l_ws);
+        event = cqueue.enqueue_nd_range_kernel(kernel.kernel, dimensions, NULL, g_ws, l_ws, wait);
     }
     catch(const std::exception& e)
     {
@@ -572,7 +579,7 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
 }
 
 inline
-compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
+compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, compute::command_queue& cqueue = cl::cqueue, const std::vector<compute::event>& events = std::vector<compute::event>())
 {
     kernel k = cl::kernels[name];
 
@@ -594,7 +601,7 @@ compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws
         #endif
     }
 
-    auto ev = run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue, did_load);
+    auto ev = run_kernel_with_list(k, global_ws, local_ws, dimensions, argv, true, cqueue, did_load, events);
 
     if(did_load)
     {
@@ -605,9 +612,9 @@ compute::event run_kernel_with_string(const std::string& name, cl_uint global_ws
 }
 
 inline
-compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, const arg_list& argv, compute::command_queue& cqueue = cl::cqueue)
+compute::event run_kernel_with_string(const std::string& name, kernel_helper global_ws, kernel_helper local_ws, const int dimensions, const arg_list& argv, compute::command_queue& cqueue = cl::cqueue, const std::vector<compute::event>& events = std::vector<compute::event>())
 {
-    return run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv, cqueue);
+    return run_kernel_with_string(name, global_ws.args, local_ws.args, dimensions, argv, cqueue, events);
 }
 
 inline

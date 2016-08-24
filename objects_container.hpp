@@ -115,6 +115,7 @@ struct objects_container
     ///patching the texture uv coordinates for non square textures requires the texture dimensions
     ///which requries a loaded texture. So, this function may load textures
     void    patch_non_square_texture_maps();
+    void    patch_non_2pow_texture_maps();
 
     ///currently uncached
     ///local centre, not world

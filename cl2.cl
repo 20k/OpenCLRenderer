@@ -941,6 +941,23 @@ float noise(int x)
 }
 
 __kernel
+void generate_from_raw(__global uchar* raw_data, int stride, uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    int slice = nums[tex_id] >> 16;
+    int width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    uint4 val = (uint)raw_data[y*stride + x];
+
+    write_tex_array(val, (float2){x, y}, tex_id, nums, sizes, array);
+}
+
+__kernel
 void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray)
 {
     int x = get_global_id(0);

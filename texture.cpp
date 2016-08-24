@@ -46,7 +46,13 @@ cl_uint texture::get_largest_dimension() const
         exit(32323);
     }
 
-    return c_image.getSize().x > c_image.getSize().y ? c_image.getSize().x : c_image.getSize().y;
+    int larg = c_image.getSize().x > c_image.getSize().y ? c_image.getSize().x : c_image.getSize().y;
+
+    int next_up = pow(2, ceilf(log2(larg)));
+
+    printf("%i l %i nu\n", larg, next_up);
+
+    return next_up;
 }
 
 cl_uint texture::get_largest_num(int num) const
@@ -420,6 +426,45 @@ void texture::update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_f
     args.push_back(&gpu_dat.g_texture_array);
 
     run_kernel_with_string("procedural_crack", {num}, {128}, 1, args);
+}
+
+void async_cleanup_mono(cl_event event, cl_int event_command_exec_status, void* user_data)
+{
+    if(event_command_exec_status == CL_COMPLETE)
+    {
+        free((uint8_t*)user_data);
+
+        //lg::log("Async cleanup texture texture.cpp");
+    }
+}
+
+void texture::update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* buffer_dat, uint32_t len, int width, int height)
+{
+    cl_event event;
+
+    compute::buffer temporary_gpu_dat = compute::buffer(cl::context, len, CL_MEM_READ_WRITE, nullptr);
+
+    clEnqueueWriteBuffer(cl::cqueue.get(), temporary_gpu_dat.get(), CL_FALSE, 0, len, buffer_dat, 0, nullptr, &event);
+
+    clSetEventCallback(event, CL_COMPLETE, async_cleanup_mono, buffer_dat);
+
+    cl_int stride = len / height;
+
+    arg_list args;
+    args.push_back(&temporary_gpu_dat);
+    args.push_back(&stride);
+    args.push_back(&gpu_id);
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
+
+    compute::event ev(event, false);
+
+    run_kernel_with_string("generate_from_raw", {width, height}, {16, 16}, 2, args, cl::cqueue, {ev});
+
+    update_gpu_mipmaps(gpu_dat, cl::cqueue);
+
+    //clReleaseEvent(event);
 }
 
 void texture_load(texture* tex)
