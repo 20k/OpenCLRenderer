@@ -941,7 +941,33 @@ float noise(int x)
 }
 
 __kernel
-void generate_from_raw(__global uchar* raw_data, int stride, uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array)
+void generate_from_raw(__global uchar* raw_data, int stride, int2 dim, uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, int flip)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= dim.x || y >= dim.y)
+        return;
+
+    int slice = nums[tex_id] >> 16;
+    int width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    if(flip)
+        y = dim.y - y - 1;
+
+    uint4 val = (uint)raw_data[y*stride + x];
+
+    if(flip)
+        y = dim.y - y - 1;
+
+    write_tex_array(val, (float2){x, y}, tex_id, nums, sizes, array);
+}
+
+__kernel
+void texture_threshold(uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray, float4 threshold_val, float4 replacement_val)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -952,9 +978,14 @@ void generate_from_raw(__global uchar* raw_data, int stride, uint tex_id, __glob
     if(x >= width || y >= width)
         return;
 
-    uint4 val = (uint)raw_data[y*stride + x];
+    float4 val = read_tex_array((float2){x, y}, tex_id, nums, sizes, rarray);
 
-    write_tex_array(val, (float2){x, y}, tex_id, nums, sizes, array);
+    int4 sel = val < threshold_val * 255.f;
+
+    ///c ? b : a
+    uint4 write = convert_uint4(select(val, replacement_val * 255.f, sel));
+
+    write_tex_array(write, (float2){x, y}, tex_id, nums, sizes, array);
 }
 
 __kernel

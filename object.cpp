@@ -372,6 +372,35 @@ void object::patch_non_2pow_texture_maps(texture_context& ctx)
     }*/
 }
 
+void object::patch_stretch_texture_to_full(texture_context& ctx)
+{
+    texture* tex = ctx.id_to_tex(tid);
+
+    if(!tex->is_loaded)
+        tex->load();
+
+    float sizes[2] = {tex->c_image.getSize().x, tex->c_image.getSize().y};
+
+    for(int i=0; i<2; i++)
+    {
+        int pow2 = tex->get_largest_dimension();//pow(2, ceilf(log2(sizes[i])));
+
+        float scale = sizes[i] / pow2;
+
+        for(triangle& tri : tri_list)
+        {
+            for(vertex& v : tri.vertices)
+            {
+                cl_float2 vt = v.get_vt();
+
+                vt.s[i] *= scale;
+
+                v.set_vt(vt);
+            }
+        }
+    }
+}
+
 texture* object::get_texture()
 {
     lg::log("err, get_texture is deprecated");

@@ -438,7 +438,7 @@ void async_cleanup_mono(cl_event event, cl_int event_command_exec_status, void* 
     }
 }
 
-void texture::update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* buffer_dat, uint32_t len, int width, int height)
+void texture::update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* buffer_dat, uint32_t len, int width, int height, bool flip)
 {
     cl_event event;
 
@@ -449,22 +449,40 @@ void texture::update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* bu
     clSetEventCallback(event, CL_COMPLETE, async_cleanup_mono, buffer_dat);
 
     cl_int stride = len / height;
+    cl_int cflip = flip;
+    cl_int2 dim = {width, height};
 
     arg_list args;
     args.push_back(&temporary_gpu_dat);
     args.push_back(&stride);
+    args.push_back(&dim);
     args.push_back(&gpu_id);
     args.push_back(&gpu_dat.g_texture_nums);
     args.push_back(&gpu_dat.g_texture_sizes);
     args.push_back(&gpu_dat.g_texture_array);
+    args.push_back(&cflip);
 
     compute::event ev(event, false);
 
     run_kernel_with_string("generate_from_raw", {width, height}, {16, 16}, 2, args, cl::cqueue, {ev});
 
-    update_gpu_mipmaps(gpu_dat, cl::cqueue);
+    //update_gpu_mipmaps(gpu_dat, cl::cqueue);
 
     //clReleaseEvent(event);
+}
+
+void texture::update_gpu_texture_threshold(texture_context_data& gpu_dat, cl_float4 threshold, cl_float4 replacement)
+{
+    arg_list args;
+    args.push_back(&gpu_id);
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
+    args.push_back(&gpu_dat.g_texture_array);
+    args.push_back(&threshold);
+    args.push_back(&replacement);
+
+    run_kernel_with_string("texture_threshold", {c_image.getSize().x, c_image.getSize().y}, {16, 16}, 2, args, cl::cqueue);
 }
 
 void texture_load(texture* tex)

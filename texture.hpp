@@ -80,7 +80,8 @@ struct texture
     void update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat);
     void update_random_lines(cl_int num, cl_float4 col, cl_float2 pos, cl_float2 dir, texture_context_data& gpu_dat);
     ///I OWN DAT
-    void update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* buffer_dat, uint32_t len, int width, int height);
+    void update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* buffer_dat, uint32_t len, int width, int height, bool flip = true);
+    void update_gpu_texture_threshold(texture_context_data& gpu_dat, cl_float4 threshold, cl_float4 replacement);
 
     cl_uint get_largest_dimension() const;
 

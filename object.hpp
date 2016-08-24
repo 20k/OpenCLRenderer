@@ -83,6 +83,7 @@ struct object
 
     void patch_non_square_texture_maps(texture_context& ctx);
     void patch_non_2pow_texture_maps(texture_context& ctx);
+    void patch_stretch_texture_to_full(texture_context& ctx);
 
     texture* get_texture();
 

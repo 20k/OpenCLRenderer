@@ -145,6 +145,7 @@ void object_context::load_active()
             }
             else
             {
+                ///object cache is really counter intuitive
                 obj->call_load_func(containers[i]);
                 obj->set_active_subobjs(true);
 

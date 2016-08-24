@@ -503,6 +503,20 @@ void objects_container::patch_non_2pow_texture_maps()
     }
 }
 
+void objects_container::patch_stretch_texture_to_full()
+{
+    if(!parent)
+    {
+        lg::log("Warning, no parent in patch non square texture maps ", id);
+        return;
+    }
+
+    for(object& i : objs)
+    {
+        i.patch_stretch_texture_to_full(parent->tex_ctx);
+    }
+}
+
 int objects_container::get_object_by_id(int in)
 {
     lg::log("Err get_object_by_id");
