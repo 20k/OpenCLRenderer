@@ -490,17 +490,8 @@ void object::try_load(cl_float4 pos)
     }
 }
 
-template<typename T>
-struct cache
-{
-    T old = T();
-    T cur = T();
-    cl_event old_ev;
-    int init = 0;
-};
-
 template<typename T, int offset>
-bool dynamic_cache(T& data, cache<T>& c, bool force, int object_g_id, bool context_switched, object_context_data& dat, cl_event* event)
+bool dynamic_cache(T& data, cache<T>& c, bool force, bool context_switched, int object_g_id, object_context_data& dat, cl_event* event)
 {
     bool dirty = false;
 
@@ -598,6 +589,15 @@ void object::g_flush(object_context_data& dat, bool force)
     posrot.lo = pos;
     posrot.hi = rot;
 
+    cl_event event;
+
+    bool write = dynamic_cache<float, offsetof(obj_g_descriptor, scale)>(dynamic_scale, scale_cache, force_flush, context_switched, object_g_id, dat, &event);
+
+    if(write)
+    {
+        //next_events.push_back(event);
+    }
+
     //cl::cqueue.enqueue_write_buffer(obj_mem_manager::g_obj_desc, sizeof(obj_g_descriptor)*(object_g_id), sizeof(cl_float4)*2, &posrot);
     ///there is a race condition if posrot gets updated which is undefined
     ///I believe it should be fine, because posrot will only be updated when g_flush will get called... however it may possibly lead to odd behaviour
@@ -632,7 +632,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
     cl_int ret = CL_SUCCESS;
 
-    cl_event event;
+    //cl_event event;
 
     std::vector<cl_event> next_events;
 
@@ -664,15 +664,6 @@ void object::g_flush(object_context_data& dat, bool force)
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
-    }
-
-    static cache<float> scale_cache;
-
-    bool write = dynamic_cache<float, offsetof(obj_g_descriptor, scale)>(dynamic_scale, scale_cache, force_flush, context_switched, object_g_id, dat, &event);
-
-    if(write)
-    {
-        //next_events.push_back(event);
     }
 
     ///on a flush atm we'll get some slighty data duplication

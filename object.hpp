@@ -16,6 +16,15 @@ struct texture;
 
 struct object_context_data;
 
+template<typename T>
+struct cache
+{
+    T old = T();
+    T cur = T();
+    cl_event old_ev;
+    int init = 0;
+};
+
 struct object
 {
     cl_uint gpu_tri_start;
@@ -61,6 +70,8 @@ struct object
     float spec_mult;
     float diffuse;
     cl_uint two_sided;
+
+    cache<float> scale_cache;
 
     std::vector<cl_event> write_events;
 
