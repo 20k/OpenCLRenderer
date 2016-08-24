@@ -7,6 +7,7 @@
 #include "texture_manager.hpp"
 #include "vec.hpp"
 #include "logging.hpp"
+#include <cstddef>
 
 cl_uint object::gid = 0;
 
@@ -97,6 +98,11 @@ void object::set_rot(cl_float4 _rot)
 void object::set_rot_quat(quaternion q)
 {
     rot_quat = q;
+}
+
+void object::set_dynamic_scale(float _scale)
+{
+    dynamic_scale = _scale;
 }
 
 void object::offset_pos(cl_float4 _offset)
@@ -484,6 +490,66 @@ void object::try_load(cl_float4 pos)
     }
 }
 
+template<typename T>
+struct cache
+{
+    T old = T();
+    T cur = T();
+    cl_event old_ev;
+    int init = 0;
+};
+
+template<typename T, int offset>
+bool dynamic_cache(T& data, cache<T>& c, bool force, int object_g_id, bool context_switched, object_context_data& dat, cl_event* event)
+{
+    bool dirty = false;
+
+    dirty |= force;
+
+    dirty |= c.old != data;
+
+    if(context_switched)
+    {
+        if(c.init)
+            clReleaseEvent(c.old_ev);
+
+        c.init = 0;
+    }
+
+    if(dirty)
+    {
+        cl_event ev;
+
+        cl_event* o_ev = c.init ? &c.old_ev : nullptr;
+
+        c.cur = data;
+
+        cl_int ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), force, sizeof(obj_g_descriptor)*object_g_id + offset, sizeof(T), &c.cur, c.init, o_ev, &ev);
+
+        if(ret == CL_SUCCESS)
+        {
+            if(o_ev)
+                clReleaseEvent(*o_ev);
+
+            c.init = 1;
+            *event = ev;
+            c.old_ev = ev;
+            c.old = c.cur;
+
+            return true;
+        }
+        else
+        {
+            lg::log("Error writing to gpu in dyncache, ", ret);
+
+            //clReleaseEvent(ev);
+            return false;
+        }
+    }
+
+    return false;
+}
+
 ///flush rotation and position information to relevant subobject descriptor
 ///if scene updated behind objects back will not work
 ///this is now called every frame
@@ -598,6 +664,15 @@ void object::g_flush(object_context_data& dat, bool force)
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
+    }
+
+    static cache<float> scale_cache;
+
+    bool write = dynamic_cache<float, offsetof(obj_g_descriptor, scale)>(dynamic_scale, scale_cache, force_flush, context_switched, object_g_id, dat, &event);
+
+    if(write)
+    {
+        //next_events.push_back(event);
     }
 
     ///on a flush atm we'll get some slighty data duplication

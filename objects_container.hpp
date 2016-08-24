@@ -47,6 +47,7 @@ struct objects_container
     cl_float4 rot;
     //mat3f rot_mat;
     quaternion rot_quat;
+    float dynamic_scale = 1.f;
 
     float current_scale = 1.f;
 
@@ -63,6 +64,7 @@ struct objects_container
     void    set_pos(cl_float4);
     void    set_rot(cl_float4);
     void    set_rot_quat(quaternion);
+    void    set_dynamic_scale(float _scale);
     void    update_subobjs();
     void    offset_pos(cl_float4);
     void    set_file(const std::string&);

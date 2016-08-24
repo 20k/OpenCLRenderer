@@ -77,6 +77,7 @@ struct obj_g_descriptor
     float4 world_pos;   ///w is 0
     float4 world_rot;   ///w is 0
     float4 world_rot_quat;
+    float scale;
     uint tid;           ///texture id
     uint rid;           ///normal map id
     uint mip_start;
@@ -689,7 +690,7 @@ void full_rotate_n_extra(float3 v1, float3 v2, float3 v3, float3 passback[2][3],
     }
 }
 
-void full_rotate_quat(float3 v1, float3 v2, float3 v3, float3 passback[2][3], int* num, float3 c_pos, float3 c_rot, float3 offset, float4 rotation_offset, float fovc, float width, float height)
+void full_rotate_quat(float3 v1, float3 v2, float3 v3, float3 passback[2][3], int* num, float3 c_pos, float3 c_rot, float3 offset, float4 rotation_offset, float scale, float fovc, float width, float height)
 {
     ///void depth_project(float4 rotated[3], int width, int height, float fovc, float4 ret[3])
 
@@ -697,9 +698,9 @@ void full_rotate_quat(float3 v1, float3 v2, float3 v3, float3 passback[2][3], in
 
     float3 pr[3];
 
-    pr[0] = rot_quat_with_offset(v1, c_pos, c_rot, offset, rotation_offset);
-    pr[1] = rot_quat_with_offset(v2, c_pos, c_rot, offset, rotation_offset);
-    pr[2] = rot_quat_with_offset(v3, c_pos, c_rot, offset, rotation_offset);
+    pr[0] = rot_quat_with_offset(v1 * scale, c_pos, c_rot, offset, rotation_offset);
+    pr[1] = rot_quat_with_offset(v2 * scale, c_pos, c_rot, offset, rotation_offset);
+    pr[2] = rot_quat_with_offset(v3 * scale, c_pos, c_rot, offset, rotation_offset);
 
     int n = 0;
 
@@ -3719,6 +3720,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     ///needs to be changed for lights
 
     const __global struct obj_g_descriptor* G = &gobj[o_id];
+    float scale = G->scale;
 
     ///apparently opencl is a bit retarded
     float3 g_world_pos = G->world_pos.xyz;
@@ -3742,7 +3744,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     //printf("c %f %f %f %f ", G->world_rot_quat.x, G->world_rot_quat.y, G->world_rot_quat.z, G->world_rot_quat.w);
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
+    full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     uint b_id = atomic_add(id_cutdown_tris, num);
@@ -3932,6 +3934,8 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         skip_structure[cface] = 1;
     }
 
+    float scale = G->scale;
+
     //uint base_id = atomic_add(id_cutdown_tris, num_faces);
 
     ///we could use which_cubeface to determine which face a triangle vertex lies in
@@ -3943,7 +3947,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         int num = 0;
 
         ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-        full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, efov, ewidth, eheight);
+        full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
         ///can replace rotation with a swizzle for shadowing
 
         uint b_id = atomic_add(id_cutdown_tris, num);
@@ -4893,6 +4897,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     ///linked list
     ///stick o_id into fragment_id_buffer?
     ///the opencl environment is also sufficiently sad that two gobj[o_id] calls may not be cached
+
+    p1 *= G->scale;
+    p2 *= G->scale;
+    p3 *= G->scale;
 
     float ldepth = idcalc((float)*ft/mulint);
 

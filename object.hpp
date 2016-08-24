@@ -32,6 +32,7 @@ struct object
     cl_float4 pos;
     cl_float4 rot;
     quaternion rot_quat;
+    float dynamic_scale = 1.f;
 
     cl_float4 centre; ///unused
 
@@ -75,6 +76,7 @@ struct object
     void set_pos(cl_float4);
     void set_rot(cl_float4);
     void set_rot_quat(quaternion);
+    void set_dynamic_scale(float _scale);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();

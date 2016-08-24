@@ -83,6 +83,16 @@ void objects_container::set_rot_quat(quaternion q)
     }
 }
 
+void objects_container::set_dynamic_scale(float _scale)
+{
+    dynamic_scale = _scale;
+
+    for(auto& i : objs)
+    {
+        i.set_dynamic_scale(dynamic_scale);
+    }
+}
+
 void objects_container::update_subobjs()
 {
     for(unsigned int i=0; i<objs.size(); i++)
