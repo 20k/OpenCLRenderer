@@ -5045,6 +5045,11 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
     int flip_normals = !is_front && G->two_sided == 1;
 
+    //flip_normals = 0;
+
+    if(flip_normals)
+        normal = -normal;
+
     ///ssao only affects the ambient term in proper usage
     ///but I'd like something a bit more impactful than that
     ///generally there are a lot of lights, so i don't think its a massive issue
@@ -5109,13 +5114,13 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float light = dot(l2c, normal); ///diffuse
 
-        if(flip_normals)
+        /*if(flip_normals)
         {
             ///really this should reflect, not sure how to do that fast
             normal = -normal;
 
             light = dot(l2c, normal);
-        }
+        }*/
 
         light *= distance_modifier;
 
