@@ -16,9 +16,9 @@
 
 #define mulint UINT_MAX
 
-#define depth_icutoff 20
-
-#define depth_fcutoff 20.f
+#ifndef depth_icutoff
+    #define depth_icutoff 20
+#endif // depth_icutoff
 
 //#define depth_fcutoff depth_icutoff ## .f
 
@@ -576,7 +576,7 @@ void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
     for(int i=0; i<3; i++)
     {
         ///will cause odd effects as tri crosses far clipping plane
-        if(points[i].z <= depth_fcutoff || points[i].z > depth_far)
+        if(points[i].z <= depth_icutoff || points[i].z > depth_far)
         {
             ids_behind[n_behind] = i;
             n_behind++;
@@ -956,19 +956,19 @@ void generate_from_raw(__global uchar* raw_data, int stride, int2 dim, uint tex_
     if(x >= width || y >= width)
         return;
 
-    if(flip)
-        y = dim.y - y - 1;
+    //if(flip)
+    //    y = dim.y - y - 1;
 
     uint4 val = (uint)raw_data[y*stride + x];
 
-    if(flip)
-        y = dim.y - y - 1;
+    //if(flip)
+    //    y = dim.y - y - 1;
 
     write_tex_array(val, (float2){x, y}, tex_id, nums, sizes, array);
 }
 
 __kernel
-void texture_threshold(uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray, float4 threshold_val, float4 replacement_val)
+void texture_threshold_split(uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray, float4 threshold_val, float4 replacement_val, int side, float2 pos, float angle)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -978,6 +978,19 @@ void texture_threshold(uint tex_id, __global uint* nums, __global uint* sizes, i
 
     if(x >= width || y >= width)
         return;
+
+    if(side == 0 && x > pos.x)
+    {
+        write_tex_array(0, (float2){x, y}, tex_id, nums, sizes, array);
+        return;
+    }
+
+    if(side == 1 && x <= pos.x)
+    {
+        write_tex_array(0, (float2){x, y}, tex_id, nums, sizes, array);
+        return;
+    }
+
 
     float4 val = read_tex_array((float2){x, y}, tex_id, nums, sizes, rarray);
 
@@ -4979,6 +4992,14 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} * mip_bias;
 
+    ///mip_start is a global parameter, edit it out
+    float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+
+    /*if(col.w == 0.f)
+    {
+        write_imagef(screen, (int2){x, y}, screen_clear_colour);
+        return;
+    }*/
 
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
@@ -5195,9 +5216,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         specular_sum *= occlusion;
         specular_sum *= ssao;
     }
-
-    ///mip_start is a global parameter, edit it out
-    float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     diffuse_sum += ambient_sum;
 

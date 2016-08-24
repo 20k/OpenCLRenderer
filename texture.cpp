@@ -3,7 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <boost/bind.hpp>
-#include "texture_manager.hpp"
+//#include "texture_manager.hpp"
 #include "engine.hpp"
 #include "texture_context.hpp"
 
@@ -471,8 +471,43 @@ void texture::update_gpu_texture_mono(texture_context_data& gpu_dat, uint8_t* bu
     //clReleaseEvent(event);
 }
 
-void texture::update_gpu_texture_threshold(texture_context_data& gpu_dat, cl_float4 threshold, cl_float4 replacement)
+void texture::update_gpu_texture_threshold_split(texture_context_data& gpu_dat, cl_float4 threshold, cl_float4 replacement, cl_int side, cl_float2 pos, float angle, float scale)
 {
+    cl_int2 dim = {c_image.getSize().x, c_image.getSize().y};
+
+    /*pos.s[0] += scale * dim.s[0]/2.f;
+    pos.s[1] += scale * dim.s[1]/2.f;
+
+    pos.s[0] /= scale;
+    pos.s[1] /= scale;
+
+    pos.s[0] = dim.s[0] - pos.s[0];
+    pos.s[1] = dim.s[1] - pos.s[1];
+
+    pos.s[0] /= 200.f;
+    pos.s[1] /= 200.f;
+
+    pos.s[0] *= dim.s[0];
+    pos.s[1] *= dim.s[1];*/
+
+    float fside = side == 0 ? 1 : -1;
+
+    pos.s[0] -= 40 * fside;
+
+    pos.s[0] /= scale;
+    pos.s[1] /= scale;
+
+    pos.s[0] += 100;
+    pos.s[1] += 100;
+
+    pos.s[0] /= 200;
+    pos.s[1] /= 200;
+
+    pos.s[0] *= dim.s[0];
+    pos.s[1] *= dim.s[1];
+
+    pos.s[0] = dim.s[0] - pos.s[0];
+
     arg_list args;
     args.push_back(&gpu_id);
     args.push_back(&gpu_dat.g_texture_nums);
@@ -481,8 +516,12 @@ void texture::update_gpu_texture_threshold(texture_context_data& gpu_dat, cl_flo
     args.push_back(&gpu_dat.g_texture_array);
     args.push_back(&threshold);
     args.push_back(&replacement);
+    args.push_back(&side);
+    //args.push_back(&dim);
+    args.push_back(&pos);
+    args.push_back(&angle);
 
-    run_kernel_with_string("texture_threshold", {c_image.getSize().x, c_image.getSize().y}, {16, 16}, 2, args, cl::cqueue);
+    run_kernel_with_string("texture_threshold_split", {c_image.getSize().x, c_image.getSize().y}, {16, 16}, 2, args, cl::cqueue);
 }
 
 void texture_load(texture* tex)
