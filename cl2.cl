@@ -115,15 +115,6 @@ void set_tri_vertex(__global struct triangle* T, int i, float3 pos)
     T->vertices[i].z = pos.z;
 }
 
-struct interp_container
-{
-    float4 x;
-    float4 y;
-    float xbounds[2];
-    float ybounds[2];
-    float rconstant;
-};
-
 /*float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
 {
     return (fabs(x2*y-x*y2+x3*y2-x2*y3+x*y3-x3*y) + fabs(x*y1-x1*y+x3*y-x*y3+x1*y3-x3*y1) + fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1)) * 0.5f;
@@ -156,10 +147,6 @@ float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float
     *C = fabs(x2*y1-x1*y2+x*y2-x2*y+x1*y-x*y1) * 0.5f;
 }*/
 
-/*float calc_third_areas(struct interp_container *C, float x, float y)
-{
-    return calc_third_areas_i(C->x.x, C->x.y, C->x.z, C->y.x, C->y.y, C->y.z, x, y);
-}*/
 
 ///wikipedia is wrong, this is the XYZ rotation
 ///http://wims.unice.fr/~wims/wims.cgi?session=JQDCD8CAA0.5&lang=en&cmd=reply&module=tool%2Flinear%2Fmatmult.en&matA=c2%2C0%2C-s2%0D%0As2*s1%2Cc1%2Cc2*s1%0D%0As2*c1%2C-s1%2Cc2*c1&matB=c3%2C+s3%2C+0%0D%0A-s3%2C+c3%2C+0%0D%0A0%2C+0%2C+1&show=A*B
@@ -361,60 +348,11 @@ float calc_rconstant_v(const float3 x, const float3 y)
     return native_recip(x.y*y.z+x.x*(y.y-y.z)-x.z*y.y+(x.z-x.y)*y.x);
 }
 
-///remember to do this in a less shit way with bayesian coordinates, this is definitely not the right way
-///would reduce to 3 multiplications per interpolation
-float interpolate_p(float3 f, float xn, float yn, float3 x, float3 y, float rconstant)
-{
-    float A=((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
-    float B=(-(f.y*x.z+f.x*(x.y-x.z)-f.z*x.y+(f.z-f.y)*x.x) * rconstant);
-    float C=f.x-A*x.x - B*y.x;
-
-    return (A*xn + B*yn + C);
-}
-
 void interpolate_get_const(float3 f, float3 x, float3 y, float rconstant, float* A, float* B, float* C)
 {
     *A = ((f.y*y.z+f.x*(y.y-y.z)-f.z*y.y+(f.z-f.y)*y.x) * rconstant);
     *B = (-(f.y*x.z+f.x*(x.y-x.z)-f.z*x.y+(f.z-f.y)*x.x) * rconstant);
     *C = f.x-(*A)*x.x - (*B)*y.x;
-}
-
-/*float interpolate_r(float f1, float f2, float f3, int x, int y, int x1, int x2, int x3, int y1, int y2, int y3)
-{
-    float rconstant=1.0f/(x2*y3+x1*(y2-y3)-x3*y2+(x3-x2)*y1);
-    return interpolate_i(f1, f2, f3, x, y, x1, x2, x3, y1, y2, y3, rconstant);
-}*/
-
-float interpolate(float3 f, struct interp_container *c, float x, float y)
-{
-    return interpolate_p(f, x, y, c->x.xyz, c->y.xyz, c->rconstant);
-}
-
-///triangle plane intersection borrowed off stack overflow
-
-float distance_from_plane(float3 p, float3 pl)
-{
-    return dot(pl, p) + dcalc(depth_icutoff);
-}
-
-bool get_intersection(float3 p1, float3 p2, float3 *r)
-{
-    float d1 = distance_from_plane(p1, (float3)
-    {
-        0,0,1
-    });
-    float d2 = distance_from_plane(p2, (float3)
-    {
-        0,0,1
-    });
-
-    if(d1*d2 > 0)
-        return false;
-
-    float t = d1 / (d1 - d2);
-    *r = p1 + t * (p2 - p1);
-
-    return true;
 }
 
 void calc_min_max(float3 points[3], float width, float height, float ret[4])
@@ -967,6 +905,7 @@ void generate_from_raw(__global uchar* raw_data, int stride, int2 dim, uint tex_
     write_tex_array(val, (float2){x, y}, tex_id, nums, sizes, array);
 }
 
+#ifdef LEAP
 __kernel
 void texture_threshold_split(uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray, float4 threshold_val, float4 replacement_val, int side, float2 pos, float angle)
 {
@@ -1001,6 +940,7 @@ void texture_threshold_split(uint tex_id, __global uint* nums, __global uint* si
 
     write_tex_array(write, (float2){x, y}, tex_id, nums, sizes, array);
 }
+#endif
 
 __kernel
 void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray)
@@ -1219,97 +1159,6 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
-///if we changed this to bicubic itd fix the normal problem I think
-float4 texture_filter(float3 c_tri[3], float2 vt1, float2 vt2, float2 vt3, float2 vt, float depth, float3 c_pos, float3 c_rot, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
-{
-    int slice=nums[tid2] >> 16;
-    int tsize=sizes[slice];
-
-    float3 rotpoints[3];
-    rotpoints[0] = c_tri[0];
-    rotpoints[1] = c_tri[1];
-    rotpoints[2] = c_tri[2];
-
-
-    float minvx=min3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x); ///these are screenspace coordinates, used relative to each other so +width/2.0 cancels
-    float maxvx=max3(rotpoints[0].x, rotpoints[1].x, rotpoints[2].x);
-
-    float minvy=min3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
-    float maxvy=max3(rotpoints[0].y, rotpoints[1].y, rotpoints[2].y);
-
-
-    float mintx=min3(vt1.x, vt2.x, vt3.x);
-    float maxtx=max3(vt1.x, vt2.x, vt3.x);
-
-    float minty=min3(vt1.y, vt2.y, vt3.y);
-    float maxty=max3(vt1.y, vt2.y, vt3.y);
-
-    float2 vtm = vt;
-
-
-    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
-
-    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
-
-    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
-
-    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
-
-
-    float2 tdiff = {(maxtx - mintx), (maxty - minty)};
-
-    tdiff *= tsize;
-
-    float2 vdiff = {(maxvx - minvx), (maxvy - minvy)};
-
-    float2 tex_per_pix = tdiff / vdiff;
-
-
-    float worst = fast_length(tex_per_pix);
-
-    int mip_lower=0;
-    int mip_higher=0;
-    float fractional_mipmap_distance = 0;
-
-
-    mip_lower = floor(native_log2(worst));
-
-    mip_higher = mip_lower + 1;
-
-    mip_lower = clamp(mip_lower, 0, MIP_LEVELS);
-    mip_higher = clamp(mip_higher, 0, MIP_LEVELS);
-
-
-    int lower_size  = native_exp2((float)mip_lower);
-    int higher_size = native_exp2((float)mip_higher);
-
-    fractional_mipmap_distance = native_divide(fabs(worst - lower_size), abs(higher_size - lower_size));
-
-    fractional_mipmap_distance = (mip_lower == mip_higher) ? 0 : fractional_mipmap_distance;
-
-    int tid_lower = mip_lower == 0 ? tid2 : mip_lower-1 + mip_start + tid2*MIP_LEVELS;
-    int tid_higher = mip_higher == 0 ? tid2 : mip_higher-1 + mip_start + tid2*MIP_LEVELS;
-
-    float fmd = fractional_mipmap_distance;
-
-    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
-
-    if(mip_lower == mip_higher || fmd == 0)
-        return native_divide(col1, 255.f);
-
-    //return return_bilinear_col(vtm, tid2, nums, sizes, array) / 255.f;
-
-    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
-
-    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
-
-    return native_divide(finalcol, 255.0f);
-}
-
-///two mip levels are interchanging inappropriately
-///fov const is key to mipmapping?
-///textures are suddenly popping between levels, this isnt right
-///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
 float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
 {
     int slice=nums[tid2] >> 16;
@@ -1391,52 +1240,6 @@ int ret_cubeface(float3 point, float3 light)
     };*/
 
     float3 r_pl = point - light;
-
-    /*r_pl = fast_normalize(r_pl);
-
-    float3 forward_v = {0, 0, 1};
-    float3 up_v = {0, 1, 0};
-    float3 right_v = {1, 0, 0};
-
-    float cos_forward = dot(r_pl, forward_v);
-
-    float cos_bound = cos(M_PI/4.f);
-
-    if(cos_forward < cos_bound && cos_forward >= -cos_bound)
-    {
-        return 0;
-    }
-
-    float cos_up = dot(r_pl, up_v);
-
-    if(cos_up < cos_bound && cos_up >= -cos_bound)
-    {
-        return 1;
-    }
-
-    float cos_right = dot(r_pl, right_v);
-
-    if(cos_right < cos_bound && cos_right >= -cos_bound)
-    {
-        return 5;
-    }
-
-    if(-cos_forward < cos_bound && -cos_forward >= -cos_bound)
-    {
-        return 2;
-    }
-
-    if(-cos_up < cos_bound && -cos_up >= -cos_bound)
-    {
-        return 3;
-    }
-
-    if(-cos_right < cos_bound && -cos_right >= -cos_bound)
-    {
-
-    }
-
-    return 4;*/
 
     float angle = atan2(r_pl.y, r_pl.x);
 
@@ -1621,42 +1424,6 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 }
 
 
-float get_horizon_direction_depth(const int2 start, const float2 dir, const int nsamples, __global uint * depth_buffer, float cdepth, float radius, float* dist)
-{
-    float h = cdepth;
-
-    int p = 0;
-
-    const float2 ndir = normalize(dir)*radius/nsamples;
-
-    float2 st = {start.x, start.y};
-
-    float y = start.y + ndir.y;
-    float x = start.x + ndir.x;
-
-    for(; p < nsamples; y+=ndir.y, x += ndir.x, p++)
-    {
-        const int rx = round(x);
-        const int ry = round(y);
-
-        if(rx < 0 || rx >= SCREENWIDTH || ry < 0 || ry >= SCREENHEIGHT)
-        {
-            return h;
-        }
-
-        float dval = (float)depth_buffer[ry*SCREENWIDTH + rx]/mulint;
-        dval = idcalc(dval);
-
-        if(dval < h)//  && fabs(dval - cdepth) < radius)
-        {
-            h = dval;
-            *dist = distance((float2){x, y}, st);
-        }
-    }
-
-    return h;
-}
-
 uint wang_hash(uint seed)
 {
     seed = (seed ^ 61) ^ (seed >> 16);
@@ -1676,6 +1443,7 @@ uint rand_xorshift(uint rng_state)
     return rng_state;
 }
 
+#if 0
 ///this function is very broken, but a more substantial stepping stone
 float generate_hbao_new(int2 spos, __global uint* depth_buffer, float3 normal, float3 screenspace_normal, float3 c_rot, float3 c_pos)
 {
@@ -1846,6 +1614,7 @@ float generate_hbao_new(int2 spos, __global uint* depth_buffer, float3 normal, f
     return ao;
     //return 1.f - ao;
 }
+#endif
 
 
 float get_bounded(int2 spos, int bound)
@@ -1983,9 +1752,16 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
 
     acc /= n;
 
-    return 1.f - (1.f - acc)/2.5f;
+    #ifndef SSAO_DIV
+    #define SSAO_DIV 2.5f
+    #endif // SSAO_DIV
+
+    float ssaodiv = SSAO_DIV;
+
+    return 1.f - (1.f - acc)/ssaodiv;
 }
 
+#if 0
 ///still broken, but I accidentally made a nice outline effect!
 float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 {
@@ -2036,6 +1812,7 @@ float generate_hbao(int2 spos, __global uint* depth_buffer, float3 normal)
 
     return min(diff / 100.f, 1.f);
 }
+#endif
 
 float generate_outline(int2 spos, __global uint* depth_buffer, float3 normal)
 {
@@ -2280,7 +2057,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
     return shadow;
 }
 
-#define FLUID
+//#define FLUID
 #ifdef FLUID
 
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
@@ -4036,23 +3813,6 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     }
 }
 
-__kernel void tile_clear(__global uint* tile_count)
-{
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-
-    int tile_size = 32;
-
-    int tilew = ceil((float)SCREENWIDTH/tile_size) + 1;
-    int tileh = ceil((float)SCREENHEIGHT/tile_size) + 1;
-
-    if(x >= tilew || y >= tileh)
-        return;
-
-    tile_count[y*tilew + x] = 0;
-}
-
-
 __kernel
 void prearrange_light(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj,
@@ -5082,7 +4842,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     ///ssao only affects the ambient term in proper usage
     ///but I'd like something a bit more impactful than that
     ///generally there are a lot of lights, so i don't think its a massive issue
+    ///I'm not really sure whats going on with this define usage
+    #ifndef NO_SSAO
     #define USE_SSAO
+    #endif
     #ifdef USE_SSAO
     float ssao = generate_ssao((int2){x, y}, depth_buffer);
     #else
@@ -5544,6 +5307,8 @@ void do_pseudo_aa_outline(__read_only AUTOMATIC(image2d_t, id_buffer), __global 
 ///use atomics to be able to reproject forwards, not backwards
 ///do we want to reproject 4 and then fill in the area?
 
+
+#ifdef REPROJECT
 __kernel
 void reproject_forward(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __global uint* depth_in, __global uint* depth_out, float4 c_pos, float4 c_rot, float4 new_pos, float4 new_rot, __write_only image2d_t screen)
 {
@@ -5747,6 +5512,7 @@ void fill_holes(__read_only image2d_t ids_in, __write_only image2d_t ids_out, __
         depth_out[y*SCREENWIDTH + x] = found_depth;
     }
 }
+#endif
 
 __kernel
 void blend_screens(__read_only image2d_t src, __read_only image2d_t _dst, __write_only image2d_t dst, int2 dim)
@@ -6684,6 +6450,8 @@ void warp_oculus(__read_only image2d_t input, __write_only image2d_t output, flo
 
 #endif
 
+#ifdef CLOTH
+
 int get_id(int x, int y, int z, int width, int height)
 {
     if(x < 0 || x >= width || y < 0 || y >= height)
@@ -7559,6 +7327,7 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
     T->vertices[1].normal.xy = encode_normal(normal);
     T->vertices[2].normal.xy = encode_normal(normal);
 }
+#endif
 
 #if 0
 ///width+1 x height+1
@@ -8322,6 +8091,7 @@ void clear_depth_buffer_size(__global uint* dbuf, uint len)
     dbuf[id] = mulint;
 }
 
+#ifdef EXPERIMENTAL
 __kernel
 void render_naive_points(int num, __global float4* positions, __global uint* colours, float4 c_pos, float4 c_rot, __global uint4* screen_buf)
 {
@@ -8650,6 +8420,7 @@ void particle_explode(int num, __global float4* in_p, __global float4* out_p, fl
 
     out_p[id] = my_pos.xyzz;
 }
+#endif
 
 
 __kernel
@@ -8672,6 +8443,8 @@ void blit_unconditional(__write_only image2d_t screen, __global uint4* colour_bu
 
     write_imagef(screen, (int2){x, y}, col);
 }
+
+#ifdef GRAVITY
 
 struct particle_info
 {
@@ -8804,8 +8577,9 @@ void gravity_attract(int num, __global float4* in_p, __global float4* out_p, __g
 
     col[id] = result;
 }
+#endif
 
-
+#ifdef CLOTH
 #define AOS(t, a, b, c) t a, t b, t c
 
 ///px and lx are actually the same, but lx gets updated with the new positions as they go through, whereas px does not
@@ -8981,11 +8755,13 @@ void cloth_simulate_old(AOS(__global float*, px, py, pz), AOS(__global float*, l
 
     write_imagef(screen, scr, 1.f);
 }
+#endif
 //#if 1//ndef ONLY_3D
 
 //detect step edges, then blur gaussian and mask with object ids?
 
 ///this isn't really edge smoothing, more like edge softening
+#if 0
 __kernel
 void edge_smoothing(__read_only image2d_t object_ids, __read_only image2d_t old_screen, __write_only image2d_t smoothed_screen)
 {
@@ -9290,6 +9066,7 @@ void shadowmap_smoothing_y(__read_only image2d_t shadow_map, __read_only image2d
 
     write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
 }
+#endif
 
 ///non separated kernel
 /*__kernel
@@ -9417,6 +9194,7 @@ void shadowmap_smoothing(__read_only image2d_t shadow_map, __read_only image2d_t
     write_imagef(smoothed_screen, (int2){x, y}, (float4){modded.x, modded.y, modded.z, 0.0f});
 }*/
 
+#ifdef REPROJECT
 __kernel void reproject_depth(__global uint* old_depth, __global uint* new_to_clear, __global uint* new_depth, float4 old_pos, float4 old_rot, float4 new_pos, float4 new_rot)
 {
     int x = get_global_id(0);
@@ -9513,6 +9291,7 @@ __kernel void reproject_screen(__global uint* depth, float4 old_pos, float4 old_
 
     write_imagef(new_screen, (int2){x, y}, col);
 }
+#endif
 
 #if 0
 //Renders a point cloud which renders correct wrt the depth buffer
@@ -9783,6 +9562,8 @@ __kernel void point_cloud_recovery_pass(__global uint* num, __global float4* pos
 }
 #endif
 
+
+#ifdef GALAXY
 __kernel void galaxy_rendering_modern(__global uint* num, __global float4* positions, __global uint* colours, float4 g_pos, float4 c_rot, __global uint4* screen_buf, __global uint* depth_buffer, __global uint* game_depth_buffer)
 {
     uint pid = get_global_id(0);
@@ -9940,6 +9721,8 @@ __kernel void galaxy_rendering_modern(__global uint* num, __global float4* posit
         }
     }
 }
+
+#endif
 
 #ifdef SPACE_OLD
 ///nearly identical to point cloud, but space dust instead
