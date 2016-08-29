@@ -14,8 +14,11 @@
 #include <unordered_map>
 
 #include "logging.hpp"
+#include <thread>
 
 namespace compute = boost::compute;
+
+extern std::thread build_thread;
 
 ///blatantly nicked from nvidia
 static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
@@ -164,8 +167,12 @@ void* get_automatic(const std::string& name, bool& success)
     return ptr;
 }
 
+extern void program_ensure_built();
+
 static kernel load_kernel(const compute::program &p, const std::string& name)
 {
+    program_ensure_built();
+
     kernel k;
     k.kernel = compute::kernel(p, name);
     k.name = name;
@@ -310,14 +317,15 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d,
     cl::program = program;
 
     ///make this more automatic
-    cl::kernel1 = load_kernel(program, "kernel1");
+    ///calling load kernel in this thread recurses rather a lot, tis a silly place
+    /*cl::kernel1 = load_kernel(program, "kernel1");
     cl::kernel2 = load_kernel(program, "kernel2");
     cl::kernel3 = load_kernel(program, "kernel3");
     cl::prearrange = load_kernel(program, "prearrange");
     cl::prearrange_light = load_kernel(program, "prearrange_light");
     cl::kernel1_light = load_kernel(program, "kernel1_light");
 
-    cl::clear_screen_buffer = load_kernel(program, "clear_screen_buffer");
+    cl::clear_screen_buffer = load_kernel(program, "clear_screen_buffer");*/
 
     #ifdef OCULUS
     cl::kernel1_oculus = load_kernel(program, "kernel1_oculus");
@@ -328,7 +336,7 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d,
 
     //cl::cloth_simulate = load_kernel(program, "cloth_simulate");
 
-    if(!only_3d)
+    /*if(!only_3d)
     {
         cl::tile_clear = load_kernel(program, "tile_clear");
         cl::point_cloud_depth = load_kernel(program, "point_cloud_depth_pass");
@@ -371,7 +379,7 @@ inline void build(const std::string& file, int w, int h, int lres, bool only_3d,
         cl::displace_fluid = load_kernel(program, "displace_fluid");
         cl::process_skins = load_kernel(program, "process_skins");
         cl::draw_hermite_skin = load_kernel(program, "draw_hermite_skin");
-    }
+    }*/
 
     kernel_map.clear();
     cl::kernels.clear();
@@ -559,7 +567,23 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     lg::log("Created command queue");
 
-    build(file, w, h, lres, only_3d, extra_build_commands);
+    build_thread = std::thread(build, file, w, h, lres, only_3d, extra_build_commands);
+
+    //build(file, w, h, lres, only_3d, extra_build_commands);
+}
+
+inline
+void program_ensure_built()
+{
+    if(cl::program_built)
+        return;
+
+    lg::log("Trying to join thread");
+
+    build_thread.join();
+    cl::program_built = true;
+
+    lg::log("Program thread joined");
 }
 
 template<typename T>

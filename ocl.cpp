@@ -3,6 +3,8 @@
 std::map<std::string, void*> registered_automatic_argument_map;
 std::vector<automatic_argument_identifiers> parsed_automatic_arguments;
 
+std::thread build_thread;
+
 inline
 bool expect(char* text, const std::string& str, int& pos)
 {

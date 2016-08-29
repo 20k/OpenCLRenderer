@@ -113,6 +113,8 @@ namespace cl
     extern kernel displace_fluid;
     extern kernel process_skins;
     extern kernel draw_hermite_skin;
+
+    extern bool program_built;
 }
 
 
