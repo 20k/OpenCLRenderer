@@ -50,7 +50,7 @@ cl_uint texture::get_largest_dimension() const
 
     int next_up = pow(2, ceilf(log2(larg)));
 
-    printf("%i l %i nu\n", larg, next_up);
+    //printf("%i l %i nu\n", larg, next_up);
 
     return next_up;
 }
