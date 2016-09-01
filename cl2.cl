@@ -1199,6 +1199,75 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     return native_divide(finalcol, 255.0f);
 }
 
+float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
+{
+    int slice=nums[tid2] >> 16;
+    int tsize=sizes[slice];
+
+    float2 vtm = vt;
+
+    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
+    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
+
+    float2 texture_diff = fabs(vtdiff) * tsize;
+
+    float2 worst_id_frac = native_log2(texture_diff);
+    float worst_id_frac_naive = native_log2(fast_length(texture_diff));
+
+    worst_id_frac = max(worst_id_frac, 0.f);
+    worst_id_frac_naive = max(worst_id_frac_naive, 0.f);
+
+    float2 mip_lower = floor(worst_id_frac);
+    float mip_lower_naive = floor(worst_id_frac_naive);
+
+    mip_lower = clamp(mip_lower, 0.f, (float)MIP_LEVELS);
+    mip_lower_naive = clamp(mip_lower_naive, 0.f, (float)MIP_LEVELS);
+
+
+    ///IE the base mip level we can use, it has the lowest texture coordinate diffs
+    float lower_vtd_miplevel = min(mip_lower.x, mip_lower.y);
+
+    int tid_lower_vtd_miplevel = lower_vtd_miplevel == 0 ? tid2 : lower_vtd_miplevel - 1 + mip_start + mul24(tid2, MIP_LEVELS);
+
+    ///so the distance to the miplevel base that we're using
+    float2 fmd = worst_id_frac - lower_vtd_miplevel;
+    float fmd_naive = worst_id_frac_naive - mip_lower_naive;
+
+    //return (float4)(fast_length(texture_diff)/4.f, 0, 0, 1.f);
+
+    //return (float4)(fast_length(mip_lower_naive)/4.f, 0.f, 0, 1.f);
+
+    if(fmd.x < 1 && fmd.y < 1)
+    {
+        int tid_lower = mip_lower_naive == 0 ? tid2 : mip_lower_naive - 1 + mip_start + mul24(tid2, MIP_LEVELS);
+        int tid_higher = clamp(mip_lower_naive, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
+
+        float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+        float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+
+        float4 finalcol = col1*(1.0f-fast_length(fmd_naive)) + col2*fast_length(fmd_naive);
+
+        return native_divide(finalcol, 255.0f);
+    }
+
+    return 0.f;
+
+
+
+    /*int tid_lower = lower_vtd_miplevel == 0 ? tid2 : lower_vtd_miplevel - 1 + mip_start + mul24(tid2, MIP_LEVELS);
+    int tid_higher = clamp(lower_vtd_miplevel, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
+
+    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+
+    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
+
+    return native_divide(finalcol, 255.0f);*/
+}
+
 
 ///end of unrewritten code
 
@@ -4745,6 +4814,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         vdy = vts[1*DIM_KERNEL3 + lix] - vts[0*DIM_KERNEL3 + lix];
     }
 
+    vdx = fabs(vdx);
+    vdy = fabs(vdy);
+
     //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
 
     ///1.1f is the seemingly minimum
@@ -4967,7 +5039,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         const float gauss_constant = 0.8346f;
 
         float alpha = acos(ndh);
-        float micro_2 = gauss_constant*exp(-(alpha*alpha)/(rough*rough));
+        float micro_2 = gauss_constant*native_exp(-(alpha*alpha)/(rough*rough));
 
         microfacet = micro_2;
 
