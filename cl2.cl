@@ -4964,12 +4964,21 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float microfacet = (native_recip(M_PI * rough * rough * native_powr(ndh, 4.f))) *
                             native_exp(native_divide((ndh*ndh - 1.f), (rough*rough * ndh*ndh)));
 
+        const float gauss_constant = 0.8346f;
+
+        float alpha = acos(ndh);
+        float micro_2 = gauss_constant*exp(-(alpha*alpha)/(rough*rough));
+
+        microfacet = micro_2;
+
         float c1 = native_divide(2 * ndh * ndv, vdh);
-        float c2 = native_divide(2 * ndh * ndl, ldh);
+        float c2 = native_divide(2 * ndh * ndl, vdh);
+        //float c2 = native_divide(2 * ndh * ndl, ldh);
 
         float geometric = min3(1.f, c1, c2);
 
-        float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
+        float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndv));
+        //float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
         specular_sum += l.col.xyz * (spec * kS * l.brightness * distance_modifier) * G->spec_mult;
 
