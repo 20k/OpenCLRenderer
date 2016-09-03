@@ -4859,31 +4859,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
-    /*float3 xpv = {tris_proj[0].x, tris_proj[1].x, tris_proj[2].x};
-    float3 ypv = {tris_proj[0].y, tris_proj[1].y, tris_proj[2].y};
-
-    float3 depths = {tris_proj[0].z, tris_proj[1].z, tris_proj[2].z};
-
-    xpv = round(xpv);
-    ypv = round(ypv);
-
-    float TAX, TBX, TCX;
-    float TAY, TBY, TCY;
-
-    interpolate_get_const((float3){vt1.x, vt2.x, vt3.x}, xpv, ypv, rconst, &TAX, &TBX, &TCX);
-    interpolate_get_const((float3){vt1.y, vt2.y, vt3.y}, xpv, ypv, rconst, &TAY, &TBY, &TCY);
-
-    //  float fmydepth = mad(TA, x, mad(TB, y, TC));
-
-    float vxmx1 = mad(TAX, x-1, mad(TBX, y, TCX));
-    float vymx1 = mad(TAY, x-1, mad(TBY, y, TCY));
-
-    float vxmy1 = mad(TAX, x, mad(TBX, y-1, TCX));
-    float vymy1 = mad(TAY, x, mad(TBY, y-1, TCY));
-
-    float2 vmx1 = {vxmx1, vymx1};
-    float2 vmy1 = {vxmy1, vymy1};*/
-
     __local float2 vts[DIM_KERNEL3*DIM_KERNEL3];
 
     int lix = get_local_id(0);
