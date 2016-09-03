@@ -44,9 +44,8 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-std=gnu++14" />
-			<Add option="-march=native" />
 			<Add option="-Wno-narrowing" />
+			<Add option="-std=gnu++14" />
 			<Add option="-DGLEW_STATIC" />
 			<Add option="-DNDEBUG" />
 		</Compiler>

@@ -36,8 +36,6 @@ int main(int argc, char *argv[])
 
     r2->rdbuf(b1);
 
-
-
     sf::Clock load_time;
 
     object_context context;
