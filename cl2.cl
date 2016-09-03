@@ -4859,7 +4859,59 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
-    __local float2 vts[DIM_KERNEL3*DIM_KERNEL3];
+    float3 xpv = {tris_proj[0].x, tris_proj[1].x, tris_proj[2].x};
+    float3 ypv = {tris_proj[0].y, tris_proj[1].y, tris_proj[2].y};
+
+    float3 depths = {tris_proj[0].z, tris_proj[1].z, tris_proj[2].z};
+
+    depths = native_recip(depths);
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    float DA, DB, DC;
+
+    interpolate_get_const(depths, xpv, ypv, rconst, &DA, &DB, &DC);
+
+    float dmx = mad(DA, x+1, mad(DB, y, DC));
+    float dmy = mad(DA, x, mad(DB, y+1, DC));
+
+    float3 lmx = (float3){(x + 1 - SCREENWIDTH/2.f)/FOV_CONST, (y - SCREENHEIGHT/2.f)/FOV_CONST, 1};
+    float3 lmy = (float3){(x - SCREENWIDTH/2.f)/FOV_CONST, (y + 1 - SCREENHEIGHT/2.f)/FOV_CONST, 1};
+
+    lmx /= dmx;
+    lmy /= dmy;
+
+    float3 gmx = back_rot_quat(back_rot(lmx, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
+    float3 gmy = back_rot_quat(back_rot(lmy, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
+
+    float lx1, lx2, lx3;
+    float ly1, ly2, ly3;
+
+    get_barycentric(gmx, p1, p2, p3, &lx1, &lx2, &lx3);
+    get_barycentric(gmy, p1, p2, p3, &ly1, &ly2, &ly3);
+
+    float2 vtx = mad(vt1, lx1, mad(vt2, lx2, vt3 * lx3));
+    float2 vty = mad(vt1, ly1, mad(vt2, ly2, vt3 * ly3));
+
+    /*float TAX, TBX, TCX;
+    float TAY, TBY, TCY;
+
+    interpolate_get_const((float3){vt1.x, vt2.x, vt3.x}, xpv, ypv, rconst, &TAX, &TBX, &TCX);
+    interpolate_get_const((float3){vt1.y, vt2.y, vt3.y}, xpv, ypv, rconst, &TAY, &TBY, &TCY);
+
+    //  float fmydepth = mad(TA, x, mad(TB, y, TC));
+
+    float vxmx1 = mad(TAX, x-1, mad(TBX, y, TCX));
+    float vymx1 = mad(TAY, x-1, mad(TBY, y, TCY));
+
+    float vxmy1 = mad(TAX, x, mad(TBX, y-1, TCX));
+    float vymy1 = mad(TAY, x, mad(TBY, y-1, TCY));
+
+    float2 vmx1 = {vxmx1, vymx1};
+    float2 vmy1 = {vxmy1, vymy1};*/
+
+    /*__local float2 vts[DIM_KERNEL3*DIM_KERNEL3];
 
     int lix = get_local_id(0);
     int liy = get_local_id(1);
@@ -4890,8 +4942,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     if(liy == 0)
     {
         vdy = vts[(liy + 1)*DIM_KERNEL3 + lix] - vts[liy*DIM_KERNEL3 + lix];
-    }
+    }*/
 
+    float2 vdx = vtx - vt;
+    float2 vdy = vty - vt;
 
     ///wow that was a weird fix
     ///never would have spotted that texture mipmaps were in slightly the wrong place unless i was debugging anisotropy!
@@ -4908,7 +4962,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     ///mip_start is a global parameter, edit it out
     float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
-    col = vtdiff.xyxy;
+    //col = vtdiff.xyxy;
 
     /*if(col.w == 0.f)
     {
