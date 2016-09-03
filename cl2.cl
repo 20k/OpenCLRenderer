@@ -5083,7 +5083,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         light = 1;
         #endif // BECKY_HACK
 
-        light = max(light, 0.f);
+        //light = max(light, 0.f);
+
+        if(light < 0)
+            light /= 10.f;
 
         float diffuse = (1.0f-ambient)*light;
 
