@@ -732,14 +732,14 @@ triangle points_to_tri(cl_float4 in[3], float size, float len, int which_side) /
         else if(which_side == 1)
         {
             mx = in[i].x / (size * 2);
-            mz = in[i].y / (len * 2);
+            mz = in[i].y / (len);
 
             mx += 0.5f;
         }
         else if(which_side == 2)
         {
             mx = in[i].z / (size * 2);
-            mz = in[i].y / (len * 2);
+            mz = in[i].y / (len);
 
             mx += 0.5f;
         }

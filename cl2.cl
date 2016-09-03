@@ -1191,6 +1191,9 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     int tid_lower = mip_lower == 0 ? tid2 : mip_lower - 1 + mip_start + mul24(tid2, MIP_LEVELS);
     int tid_higher = clamp(mip_lower, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
 
+    ///fixes swordfighting texture issues, could be a vt issue
+    vtm.x -= 0.5f / tsize;
+
     float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
     float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
 
