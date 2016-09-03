@@ -1242,17 +1242,16 @@ float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, u
         lower_vtd_miplevel = max(worst_vtd_miplevel, lower_vtd_miplevel);
 
         lower_vtd_miplevel = clamp(lower_vtd_miplevel, 0.f, (float)MIP_LEVELS);
+
+        lower_vtd_miplevel = floor(lower_vtd_miplevel);
     }
 
     int tid_lower_vtd_miplevel = lower_vtd_miplevel == 0 ? tid2 : lower_vtd_miplevel - 1 + mip_start + mul24(tid2, MIP_LEVELS);
+    //int tid_lower_vtd_miplevel = lower_vtd_miplevel == 0 ? tid2 : lower_vtd_miplevel - 1 + mip_start + mul24(tid2, MIP_LEVELS);
 
     ///so the distance to the miplevel base that we're using
     float2 fmd = worst_id_frac - lower_vtd_miplevel;
     float fmd_naive = worst_id_frac_naive - mip_lower_naive;
-
-    //return (float4)(fast_length(texture_diff)/4.f, 0, 0, 1.f);
-
-    //return (float4)(fast_length(mip_lower_naive)/4.f, 0.f, 0, 1.f);
 
     float aniso = fabs(fmd.x - fmd.y);
 
@@ -1261,9 +1260,17 @@ float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, u
     return aniso;
     #endif
 
+    fmd = clamp(fmd, 0.f, 1.f);
+
+    //return (float4)(fast_length(fmd), fmd_naive, 0, 1);
+
+    //return fast_length(fmd_naive);
+    //return fast_length(fmd);
+
     float bound = 0.2f;
 
     //if(aniso < 0.2f)
+    if(0)
     if(fmd.x < bound && fmd.y < bound)
     {
         int tid_lower = mip_lower_naive == 0 ? tid2 : mip_lower_naive - 1 + mip_start + mul24(tid2, MIP_LEVELS);
@@ -1278,28 +1285,21 @@ float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, u
     }
 
     ///need to sum on higher res mipmap anisotropically
-
-    int anisotropic_axis = fmd.x > fmd.y ? 0 : 1;
-
     ///realistically 4x anisotropic filtering is fine
 
     fmd = clamp(fmd, 0.f, 1.f);
+
+    ///so high fmd means we're far away from high res, and low fmd means we're close to high res
+    fmd = 1.f - fmd;
 
     ///how mipmaps are generated is with gauss
     const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
 
     const float mgauss[3][3] = {{fmd.x*fmd.y, 2 * fmd.y, fmd.x*fmd.y}, {2 * fmd.x, 4, 2 * fmd.x}, {fmd.x * fmd.y, 2 * fmd.y, fmd.x * fmd.y}};
 
-    if(fmd.x < 0)
-        fmd.x = 0;
-    if(fmd.y < 0)
-        fmd.y = 0;
-
-    float xaxis_weight = fmd.x;
-    float yaxis_weight = fmd.y;
+    //return fmd.y;
 
     //return (float4)(fmd.xy, 0.f, 1.f)/4.f;
-
 
     float div = 0.f;
 
@@ -1311,32 +1311,24 @@ float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, u
         {
             float gval = mgauss[j+1][i+1];
 
-            /*float aweight = 1.f;
+            float4 col = return_bilinear_col(vtm + (float2){i, j} / tsize, tid_lower_vtd_miplevel, nums, sizes, array);
 
-            if(abs(i) && abs(j))
-            {
-                aweight = (xaxis_weight + yaxis_weight)/2.f;
-            }
-            else if(abs(i))
-                aweight = xaxis_weight;
+            caccum += col * gval;
 
-            else if(abs(j))
-                aweight = yaxis_weight;
-
-            if(aweight <= 0.001f)
-                continue;*/
-
-            float4 col = return_bilinear_col(vtm, tid_lower_vtd_miplevel, nums, sizes, array);
-
-            caccum += col * gval;// * aweight * gval;
-
-            div += gval;//aweight * gval;
+            div += gval;
         }
     }
 
-    caccum /= div;
+    float4 high_res_col = return_bilinear_col(vtm, tid_lower_vtd_miplevel, nums, sizes, array);
 
-    return caccum / 255.f;
+    float4 c2 = high_res_col / 255.f;
+
+    caccum /= div;
+    caccum /= 255.f;
+
+    //return caccum * (1.f - fmd_naive) + c2 * fmd_naive;
+
+    return caccum + (float4)(fmd.xy, 0, 0)/4.f;
 
 
 
@@ -4910,7 +4902,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} * mip_bias;
 
     ///mip_start is a global parameter, edit it out
-    float4 col = texture_filter_diff_with_anisotropy(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
     /*if(col.w == 0.f)
     {
