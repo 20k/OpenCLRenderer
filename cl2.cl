@@ -4894,56 +4894,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float2 vtx = mad(vt1, lx1, mad(vt2, lx2, vt3 * lx3));
     float2 vty = mad(vt1, ly1, mad(vt2, ly2, vt3 * ly3));
 
-    /*float TAX, TBX, TCX;
-    float TAY, TBY, TCY;
-
-    interpolate_get_const((float3){vt1.x, vt2.x, vt3.x}, xpv, ypv, rconst, &TAX, &TBX, &TCX);
-    interpolate_get_const((float3){vt1.y, vt2.y, vt3.y}, xpv, ypv, rconst, &TAY, &TBY, &TCY);
-
-    //  float fmydepth = mad(TA, x, mad(TB, y, TC));
-
-    float vxmx1 = mad(TAX, x-1, mad(TBX, y, TCX));
-    float vymx1 = mad(TAY, x-1, mad(TBY, y, TCY));
-
-    float vxmy1 = mad(TAX, x, mad(TBX, y-1, TCX));
-    float vymy1 = mad(TAY, x, mad(TBY, y-1, TCY));
-
-    float2 vmx1 = {vxmx1, vymx1};
-    float2 vmy1 = {vxmy1, vymy1};*/
-
-    /*__local float2 vts[DIM_KERNEL3*DIM_KERNEL3];
-
-    int lix = get_local_id(0);
-    int liy = get_local_id(1);
-
-    vts[liy*DIM_KERNEL3 + lix] = vt;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    float2 vdx, vdy;
-
-    ///we could move out of screenspace for texture derivatives
-    ///although that leaves us with depth issues (that we had anyway)
-    if(lix != 0)
-    {
-        vdx = vts[liy*DIM_KERNEL3 + lix] - vts[liy*DIM_KERNEL3 + lix - 1];
-    }
-
-    if(lix == 0)
-    {
-        vdx = vts[liy*DIM_KERNEL3 + lix + 1] - vts[liy*DIM_KERNEL3 + lix];
-    }
-
-    if(liy != 0)
-    {
-        vdy = vts[liy*DIM_KERNEL3 + lix] - vts[(liy-1)*DIM_KERNEL3 + lix];
-    }
-
-    if(liy == 0)
-    {
-        vdy = vts[(liy + 1)*DIM_KERNEL3 + lix] - vts[liy*DIM_KERNEL3 + lix];
-    }*/
-
     float2 vdx = vtx - vt;
     float2 vdy = vty - vt;
 
