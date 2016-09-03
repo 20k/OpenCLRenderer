@@ -308,6 +308,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("pre opencl");
 
+    reset_program_built();
+
     ///including opencl compilation parameters
     if(!loaded)
         oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);

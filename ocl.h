@@ -573,6 +573,12 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 }
 
 inline
+void reset_program_built()
+{
+    cl::program_built = false;
+}
+
+inline
 void program_ensure_built()
 {
     if(cl::program_built)
