@@ -1849,7 +1849,6 @@ float bilinear_interpolate_shadow(float2 coord, __global uint* ldepth_map, float
 float generate_ssao(int2 spos, __global uint* depth_buffer)
 {
     uint seed1 = wang_hash(spos.x + SCREENWIDTH * SCREENHEIGHT * spos.y);
-
     uint seed2 = rand_xorshift(seed1);
 
     float foffset = (float)seed2 / pow(2.f, 32.f);
@@ -4931,6 +4930,20 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     ///mip_start is a global parameter, edit it out
     float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
+    uint seed1 = wang_hash(x + y*SCREENWIDTH*SCREENHEIGHT);
+    uint seed2 = rand_xorshift(seed1);
+    uint seed3 = rand_xorshift(seed2);
+    uint seed4 = rand_xorshift(seed3);
+
+    float f1 = (float)seed2 / pow(2.f,32.f);
+    float f2 = (float)seed3 / pow(2.f,32.f);
+    float f3 = (float)seed4 / pow(2.f,32.f);
+
+    float3 rseed = (float3){f1, f2, f3};
+    rseed = (rseed - 0.5f) * 2;
+
+    //float3 rseed = convert_float3((uint3)(seed1, seed2, seed3) / pow(2.f, 32.f));
+
     /*if(col.w == 0.f)
     {
         write_imagef(screen, (int2){x, y}, screen_clear_colour);
@@ -5030,6 +5043,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     //col = ssao;
 
+    ///slightly perturb normals to fix banding
+    float3 lighting_normal = normal + rseed / 100.f;
+    lighting_normal = fast_normalize(lighting_normal);
+
     for(int i=0; i<num_lights; i++)
     {
         const float ambient = 0.2f * ssao;
@@ -5082,7 +5099,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///begin lambert
         l2c = fast_normalize(l2c);
 
-        float light = dot(l2c, normal); ///diffuse
+        float light = dot(l2c, lighting_normal); ///diffuse
 
         /*if(flip_normals)
         {
@@ -5102,17 +5119,14 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         light = 1;
         #endif // BECKY_HACK
 
-        //light = max(light, 0.f);
-
-        if(light < 0)
-            light /= 10.f;
+        light = max(light, 0.f);
 
         float diffuse = (1.0f-ambient)*light;
 
         diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse * G->diffuse;
 
         float3 H = fast_normalize(l2p + l2c);
-        float3 N = normal;
+        float3 N = lighting_normal;
 
         ///sigh, the blinn-phong is broken
         ///the brokenness is now the mdot, something should be a dot instead
@@ -5132,7 +5146,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float ndv = mdot(N, l2p);
         float vdh = mdot(l2p, H);
-        float ndl = mdot(normal, l2c);
+        float ndl = mdot(N, l2c);
         float ldh = mdot(l2c, H);
 
         const float F0 = 0.4f;
