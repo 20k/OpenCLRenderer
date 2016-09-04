@@ -319,6 +319,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
         cl::cqueue.finish();
         cl::cqueue2.finish();
+        cl::cqueue_ooo.finish();
 
         oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
     }
