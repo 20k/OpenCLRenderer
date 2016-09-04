@@ -1848,6 +1848,12 @@ float bilinear_interpolate_shadow(float2 coord, __global uint* ldepth_map, float
 ///do range check
 float generate_ssao(int2 spos, __global uint* depth_buffer)
 {
+    uint seed1 = wang_hash(spos.x + SCREENWIDTH * SCREENHEIGHT * spos.y);
+
+    uint seed2 = rand_xorshift(seed1);
+
+    float foffset = (float)seed2 / pow(2.f, 32.f);
+
     float depth = idcalc((float)depth_buffer[spos.y * SCREENWIDTH + spos.x] / mulint);
 
     float rad;
@@ -1858,8 +1864,12 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
     rad = SSAO_RAD;
     #endif
 
+    rad += foffset / 2.f;
+
     ///this projects into world space
     float world_rad = rad * FOV_CONST / depth;
+
+    //world_rad += (float)seed2 / pow(2.f, 32.f);
 
     //world_rad = min(world_rad, 8.f);
 
@@ -4855,6 +4865,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     float3 tris_proj[3];
 
+    ///screenspace triangles
     tris_proj[0] = cutdown_tris[ctri*3 + 0].xyz;
     tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
@@ -4864,6 +4875,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     float3 depths = {tris_proj[0].z, tris_proj[1].z, tris_proj[2].z};
 
+    ///we want 1/depth for interpolation
     depths = native_recip(depths);
 
     xpv = round(xpv);
@@ -4871,17 +4883,22 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     float DA, DB, DC;
 
+    ///barycentric coordinates
     interpolate_get_const(depths, xpv, ypv, rconst, &DA, &DB, &DC);
 
+    ///get the screenspace depth at x+1, and y+1
     float dmx = mad(DA, x+1, mad(DB, y, DC));
     float dmy = mad(DA, x, mad(DB, y+1, DC));
 
+    ///unproject the current pixel
     float3 lmx = (float3){(x + 1 - SCREENWIDTH/2.f)/FOV_CONST, (y - SCREENHEIGHT/2.f)/FOV_CONST, 1};
     float3 lmy = (float3){(x - SCREENWIDTH/2.f)/FOV_CONST, (y + 1 - SCREENHEIGHT/2.f)/FOV_CONST, 1};
 
+    ///finish back projection by 'multiplying' by depth (p = xy * fov_const / depth)
     lmx /= dmx;
     lmy /= dmy;
 
+    ///to global space
     float3 gmx = back_rot_quat(back_rot(lmx, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
     float3 gmy = back_rot_quat(back_rot(lmy, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
 
@@ -4891,9 +4908,11 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     get_barycentric(gmx, p1, p2, p3, &lx1, &lx2, &lx3);
     get_barycentric(gmy, p1, p2, p3, &ly1, &ly2, &ly3);
 
+    ///interpolate vts at x+1 and y+1
     float2 vtx = mad(vt1, lx1, mad(vt2, lx2, vt3 * lx3));
     float2 vty = mad(vt1, ly1, mad(vt2, ly2, vt3 * ly3));
 
+    ///get texture derivatives
     float2 vdx = vtx - vt;
     float2 vdy = vty - vt;
 
@@ -4911,8 +4930,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     ///mip_start is a global parameter, edit it out
     float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
-
-    //col = vtdiff.xyxy;
 
     /*if(col.w == 0.f)
     {
@@ -5010,6 +5027,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     #else
     float ssao = 1;
     #endif
+
+    //col = ssao;
 
     for(int i=0; i<num_lights; i++)
     {
