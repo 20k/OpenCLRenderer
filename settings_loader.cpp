@@ -88,9 +88,6 @@ void settings::save(const std::string& loc)
     std::vector<std::string> comments;
     comments.resize(content.size());
 
-    int n = 0;
-
-    //for(auto& i : content)
     for(int n=0; n<content.size(); n++)
     {
         std::string i = content[n];
@@ -108,10 +105,6 @@ void settings::save(const std::string& loc)
             }
 
             comments[n].append(i.begin() + it, i.end());
-
-            //std::cout << comments[n] << " comment" << std::endl;
-
-            //i.erase(it, std::string::npos);
         }
     }
 
