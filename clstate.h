@@ -53,7 +53,8 @@ namespace cl
 {
     extern compute::device device;
     extern compute::command_queue cqueue; ///rendering
-    extern compute::command_queue cqueue2; ///async objects
+    extern compute::command_queue cqueue2; ///build queue
+    extern compute::command_queue cqueue_ooo; ///out of order write to gpu
     extern compute::context context;
     extern compute::program program;
 

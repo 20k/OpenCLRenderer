@@ -738,6 +738,11 @@ void object_context::flush_locations(bool force)
     {
         i->g_flush_objects(gpu_dat, force);
     }
+
+    if(force && containers.size() > 0)
+    {
+        clEnqueueBarrier(cl::cqueue);
+    }
 }
 
 void object_context::flip()

@@ -559,9 +559,11 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
     cl::cqueue2 = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);
+    cl::cqueue_ooo = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE | CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
     #else
     cl::cqueue = compute::command_queue(cl::context, cl::device);
     cl::cqueue2 = compute::command_queue(cl::context, cl::device); //CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
+    cl::cqueue_ooo = compute::command_queue(cl::context, cl::device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
     #endif
 
 

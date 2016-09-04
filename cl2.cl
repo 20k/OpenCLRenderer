@@ -5013,6 +5013,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 diffuse_sum = 0;
     float3 specular_sum = 0;
 
+    //global_position += normal * fast_length(rseed) * 1;
+
     float3 l2p = camera_pos - global_position;
     l2p = fast_normalize(l2p);
 
@@ -5126,7 +5128,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse * G->diffuse;
 
         float3 H = fast_normalize(l2p + l2c);
-        float3 N = lighting_normal;
+        float3 N = normal; ///dont use randomised normal because specular can vary intensly with small pertubations of normal
 
         ///sigh, the blinn-phong is broken
         ///the brokenness is now the mdot, something should be a dot instead
