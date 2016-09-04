@@ -849,6 +849,10 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
 
         window.setMouseCursorVisible(false);
     }
+    else
+    {
+        window.setMouseCursorVisible(true);
+    }
 
     cmx = mx;
     cmy = my;

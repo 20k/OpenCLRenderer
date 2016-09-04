@@ -14,6 +14,7 @@ struct settings
     float mouse_sens = 1.f;
 
     void load(const std::string& loc);
+    ///we need a save function as well, increasingly urgently
 };
 
 #endif // SETTINGS_LOADER_HPP_INCLUDED
