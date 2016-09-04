@@ -243,6 +243,10 @@ struct engine
     void flip();
     void clear_depth_buffer(object_context_data& dat);
 
+    /*void manual_screen_acquire(object_context_data& dat);
+    void manual_screen_blit(object_context_data& dat);
+    void manual_screen_release(object_context_data& dat);*/
+
     void swap_depth_buffers();
 
     void ui_interaction();

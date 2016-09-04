@@ -2986,6 +2986,32 @@ void engine::render_block()
     }
 }
 
+/*void engine::manual_screen_acquire(object_context_data& dat)
+{
+    compute::opengl_enqueue_release_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+}
+
+void engine::manual_screen_blit(object_context_data& dat)
+{
+    static PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)wglGetProcAddress("glBindFramebufferEXT");
+    static PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)wglGetProcAddress("glBlitFramebufferEXT");
+
+    ///I'm sticking this in the queue but.. how do opencl and opengl queues interact?
+    ///this is not THE screen, its A screen
+    ///therefore we don't need to worry about text rendering while its acquired etc
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER, dat.gl_framebuffer_id);
+
+    glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
+
+    ///blit buffer to screen
+    glBlitFramebufferEXT(0, 0, eng.width, eng.height, 0, 0, eng.width, eng.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+}
+
+void engine::manual_screen_release(object_context_data& dat)
+{
+    compute::opengl_enqueue_acquire_gl_objects(1, &dat.g_screen.get(), cl::cqueue);
+}*/
+
 void render_screen(engine& eng, object_context_data& dat)
 {
     dat.ensure_screen_buffers(eng.width, eng.height);
