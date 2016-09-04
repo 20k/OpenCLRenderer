@@ -369,7 +369,7 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
 
                     run_kernel_with_string("fill_ids", {tri_size}, {256}, 1, fargs, cl::cqueue2);
 
-                    compute::event ev2 = compute::event(ev, false);
+                    compute::event ev2 = compute::event(ev, true);
 
                     events.push_back(ev2);
                 }

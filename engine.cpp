@@ -173,6 +173,16 @@ compute::buffer engine::make_read_write(int size, void* data)
     return buf;
 }
 
+void engine::request_close()
+{
+    requested_close = true;
+}
+
+bool engine::is_requested_close()
+{
+    return requested_close;
+}
+
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d, bool fullscreen)
 {
     #ifdef RIFT

@@ -5284,6 +5284,7 @@ bool depth_disjointed(float d1, float d2)
 ///add depth buffer support
 ///we need to add smoothing by normals
 ///or, we could pass in tris and simply go by tri boundaries > amount
+///texture derivatives would be the best for AA ;_;
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),

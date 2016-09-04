@@ -328,6 +328,7 @@ compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_conte
     if(err != CL_SUCCESS)
     {
         lg::log("Error in clcreatefromgltexture2d in update_gpu_texture ", err);
+        throw std::runtime_error("why");
     }
 
     err = clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);

@@ -88,6 +88,8 @@ struct light_gpu;
 
 struct engine
 {
+    bool requested_close = false;
+
     control_input input_handler;
     sf::Mouse mouse;
 
@@ -188,6 +190,8 @@ struct engine
     void set_tex_data(texture_gpu&);
     void set_object_data(object_context_data&);
 
+    void request_close();
+    bool is_requested_close();
     void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false, bool fullscreen = false);
 
     static cl_float4 rot_about(cl_float4, cl_float4, cl_float4);

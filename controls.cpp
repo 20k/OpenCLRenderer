@@ -134,7 +134,8 @@ void process_controls_default(float delta_time, engine& eng)
 
     if(keyboard.isKeyPressed(sf::Keyboard::Escape))
     {
-        eng.window.close();
+        //eng.window.close();
+        eng.request_close();
     }
 
     if(keyboard.isKeyPressed(sf::Keyboard::B))
