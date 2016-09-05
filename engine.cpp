@@ -521,12 +521,12 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     ///triangle id
     int display_list_element_size = sizeof(cl_uint);
 
-    g_tiled_counters = compute::buffer(cl::context, sizeof(cl_uint)*tile_num_w*tile_num_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blank);
+    /*g_tiled_counters = compute::buffer(cl::context, sizeof(cl_uint)*tile_num_w*tile_num_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blank);
     g_tiled_display_list = compute::buffer(cl::context, display_list_num * display_list_element_size, CL_MEM_READ_WRITE, nullptr);
     g_tiled_tile_tracker = compute::buffer(cl::context, ceil((float)display_list_num / tile_tri_chunk_size) * sizeof(cl_uint));
     g_tiled_currently_free_memory_slot = compute::buffer(cl::context, sizeof(cl_uint)*tile_num_w*tile_num_h, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, default_slots);
     g_tiled_global_memory_slot_counter = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &next_free_slot);
-    g_tiled_global_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+    g_tiled_global_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);*/
 
 
     delete [] default_slots;
