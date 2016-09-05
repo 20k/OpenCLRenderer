@@ -43,7 +43,9 @@ cl_uint texture::get_largest_dimension() const
     if(!is_loaded)
     {
         lg::log("tried to find dimension of non loaded texture");
-        exit(32323);
+
+        return 1;
+        //exit(32323);
     }
 
     int larg = c_image.getSize().x > c_image.getSize().y ? c_image.getSize().x : c_image.getSize().y;
