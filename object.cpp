@@ -1,10 +1,8 @@
 #include "object.hpp"
 #include "clstate.h"
 #include "texture.hpp"
-#include "obj_mem_manager.hpp"
 #include "objects_container.hpp"
 #include <iostream>
-#include "texture_manager.hpp"
 #include "vec.hpp"
 #include "logging.hpp"
 #include <cstddef>

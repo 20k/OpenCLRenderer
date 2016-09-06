@@ -44,6 +44,8 @@ std::string until(char* text, const std::vector<char>& terminator_list, int& pos
 
         pos++;
     }
+
+    return ret;
 }
 
 inline void discard_spaces(char* text, int& pos)

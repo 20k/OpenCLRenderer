@@ -3,6 +3,7 @@
 #include "objects_container.hpp"
 
 #include "engine.hpp"
+#include "texture.hpp"
 
 std::map<std::string, objects_container> object_cache;
 

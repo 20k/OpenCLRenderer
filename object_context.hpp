@@ -8,8 +8,6 @@
 #include <boost/compute/system.hpp>
 #include <boost/compute/interop/opengl.hpp>
 
-#include "texture_manager.hpp"
-
 #include <set>
 #include <mutex>
 #include <atomic>
@@ -18,9 +16,12 @@
 
 #include <thread>
 
+#include <SFML/System.hpp>
+
 namespace compute = boost::compute;
 
 struct objects_container;
+struct obj_g_descriptor;
 
 extern std::map<std::string, objects_container> object_cache;
 

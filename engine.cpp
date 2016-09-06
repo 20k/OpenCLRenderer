@@ -556,11 +556,6 @@ void engine::set_light_data(light_gpu& ldat)
     light_data = &ldat;
 }
 
-void engine::set_tex_data(texture_gpu& tdat)
-{
-    tex_data = &tdat;
-}
-
 ///this is not a copy?
 void engine::set_object_data(object_context_data& odat)
 {

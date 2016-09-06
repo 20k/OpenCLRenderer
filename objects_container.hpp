@@ -6,7 +6,6 @@
 #include "object.hpp"
 #include <functional>
 #include <boost/compute/system.hpp>
-#include "texture_manager.hpp"
 #include <vec/vec.hpp>
 
 

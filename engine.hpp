@@ -33,6 +33,8 @@
 
 #include <atomic>
 
+#include "texture_context.hpp"
+
 #ifdef RIFT
 #include "Rift/Include/OVR.h"
 #include "Rift/Include/OVR_Kernel.h"
@@ -183,11 +185,9 @@ struct engine
     float running_frametime_smoothed;
 
     light_gpu* light_data;
-    texture_gpu* tex_data;
     object_context_data* obj_data;
 
     void set_light_data(light_gpu&);
-    void set_tex_data(texture_gpu&);
     void set_object_data(object_context_data&);
 
     void request_close();
