@@ -3,14 +3,7 @@
 ///todo eventually
 ///split into dynamic and static objects
 
-///todo
-///fix memory management to not be atrocious
-
-///we're completely hampered by memory latency
-
 ///rift head movement is wrong
-
-//compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, compute::opengl_renderbuffer& g_screen_out);
 
 void callback (cl_event event, cl_int event_command_exec_status, void *user_data)
 {
@@ -87,8 +80,6 @@ int main(int argc, char *argv[])
 
     auto object_dat = context.fetch();
     window.set_object_data(*object_dat);
-
-    //window.set_tex_data(context.fetch()->tex_gpu);
 
     sf::Event Event;
 

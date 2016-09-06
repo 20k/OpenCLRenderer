@@ -25,7 +25,6 @@ static cl_mem fake;
 #include "objects_container.hpp"
 #include "texture.hpp"
 #include "engine.hpp"
-#include "obj_mem_manager.hpp"
 #include "obj_g_descriptor.hpp"
 #include "texture_manager.hpp"
 #include <math.h>
