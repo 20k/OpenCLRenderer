@@ -25,7 +25,9 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 
         g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, _w * depth_buffer_width, _h, 0, NULL);
 
-        g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
+        //g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
+
+        gl_screen.init(_w, _h, use_gl_interop(), cl::cqueue);
 
         lg::log("Created g_screen in ensure_screen_buffers");
 
@@ -38,7 +40,7 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 
         delete [] arr;
 
-        compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
+        //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
 
         lg::log("created screen dim ", _w, " ", _h);
 
@@ -471,7 +473,6 @@ void flip_buffers(object_context* ctx)
     if(ctx->gpu_dat.cpu_id_num == nullptr)
     {
         ctx->new_gpu_dat.cpu_id_num = new cl_uint();
-
     }
     else
     {
@@ -479,7 +480,7 @@ void flip_buffers(object_context* ctx)
     }
 
     ctx->new_gpu_dat.g_id_screen_tex = ctx->fetch()->g_id_screen_tex;
-    ctx->new_gpu_dat.g_screen = ctx->fetch()->g_screen;
+    ctx->new_gpu_dat.gl_screen = ctx->fetch()->gl_screen;
     ctx->new_gpu_dat.gl_framebuffer_id = ctx->fetch()->gl_framebuffer_id;
     ctx->new_gpu_dat.nbuf = (ctx->fetch()->nbuf) % 2;
     ctx->new_gpu_dat.g_clear_col = ctx->gpu_dat.g_clear_col;

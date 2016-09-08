@@ -69,6 +69,8 @@
 			<Add option="-logg" />
 		</Linker>
 		<Unit filename="cl2.cl" />
+		<Unit filename="cl_gl_interop_texture.cpp" />
+		<Unit filename="cl_gl_interop_texture.hpp" />
 		<Unit filename="clstate.cpp" />
 		<Unit filename="clstate.h">
 			<Option weight="0" />

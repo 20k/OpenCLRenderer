@@ -5243,7 +5243,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     //final_col.xy = clamp(fabs(vt), 0.f, 1.f);
     //final_col.z = 0;
 
-    write_imagef(screen, scoord, final_col.xyzz);
+    write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
 
     //write_imagef(screen, scoord, final_col.xyzz);
     //write_imagef(screen, scoord, fabs(normal.xyzz));
