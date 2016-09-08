@@ -3301,6 +3301,19 @@ void engine::append_opencl_extra_command_line(const std::string& str)
     opencl_extra_command_line = opencl_extra_command_line + " " + str;
 }
 
+bool supports_gl_interop()
+{
+    return supports_extension("cl_khr_gl_sharing");
+}
+
+bool use_gl_interop()
+{
+    ///return supports_gl_interop();
+
+    ///so here begins an adventure
+    return false;
+}
+
 bool can_write_3d_textures()
 {
     return supports_extension("cl_khr_3d_image_writes");

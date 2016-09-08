@@ -633,8 +633,10 @@ compute::event run_kernel_full_auto(const std::string& name, kernel_helper globa
     return run_kernel_with_string(name, global_ws, local_ws, global_ws.anum, {});
 }
 
-bool can_write_3d_textures();
+bool supports_gl_interop();
+bool use_gl_interop(); ///only false for testing, debugging, and potentially old devices/linux
 
+bool can_write_3d_textures();
 bool use_3d_texture_array();
 
 #endif
