@@ -296,6 +296,11 @@ void async_cleanup(cl_event event, cl_int event_command_exec_status, void* user_
 
 void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_queue cqueue)
 {
+    ///swap this for a clenqueuewrite
+    ///itll be significantly more efficient
+    ///will also likely fix the issues that I'm seeing with the swordfight man
+    ///as well as removing gl interop overhead
+    ///win/win!
     sf::Texture* tex = new sf::Texture();
     tex->loadFromImage(c_image);
 
