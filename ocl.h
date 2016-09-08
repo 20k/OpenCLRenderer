@@ -20,125 +20,43 @@ namespace compute = boost::compute;
 
 extern std::thread build_thread;
 
-///blatantly nicked from nvidia
-static cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID)
-{
-    char chBuffer[1024];
-    cl_uint num_platforms;
-    cl_platform_id* clPlatformIDs;
-    cl_int ciErrNum;
-    *clSelectedPlatformID = NULL;
-    cl_uint i = 0;
-
-    // Get OpenCL platform count
-    ciErrNum = clGetPlatformIDs(0, NULL, &num_platforms);
-
-    if(ciErrNum != CL_SUCCESS)
-    {
-        //printf(" Error %i in clGetPlatformIDs Call !!!\n\n", ciErrNum);
-
-        lg::log("Error ", ciErrNum, " in clGetPlatformIDs");
-
-        return -1000;
-    }
-    else
-    {
-        if(num_platforms == 0)
-        {
-            //printf("No OpenCL platform found!\n\n");
-
-            lg::log("Could not find valid opencl platform, num_platforms == 0");
-
-            return -2000;
-        }
-        else
-        {
-            // if there's a platform or more, make space for ID's
-            if((clPlatformIDs = (cl_platform_id*)malloc(num_platforms * sizeof(cl_platform_id))) == NULL)
-            {
-                //printf("Failed to allocate memory for cl_platform ID's!\n\n");
-                lg::log("Malloc error for allocating platform ids");
-
-                return -3000;
-            }
-
-            // get platform info for each platform and trap the NVIDIA platform if found
-
-            ciErrNum = clGetPlatformIDs(num_platforms, clPlatformIDs, NULL);
-            //printf("Available platforms:\n");
-            lg::log("Available platforms:");
-
-            for(i = 0; i < num_platforms; ++i)
-            {
-                ciErrNum = clGetPlatformInfo(clPlatformIDs[i], CL_PLATFORM_NAME, 1024, &chBuffer, NULL);
-
-                if(ciErrNum == CL_SUCCESS)
-                {
-                    //printf("platform %d: %s\n", i, chBuffer);
-
-                    lg::log("platform ", i, " ", chBuffer);
-
-                    /*std::string name(chBuffer);
-
-                    if(name.find("CPU") != std::string::npos)
-                    {
-                        continue;
-                    }*/
-
-                    if(strstr(chBuffer, "NVIDIA") != NULL || strstr(chBuffer, "AMD") != NULL)// || strstr(chBuffer, "Intel") != NULL)
-                    {
-                        //printf("selected platform %d\n", i);
-                        lg::log("selected platform ", i);
-                        *clSelectedPlatformID = clPlatformIDs[i];
-                        break;
-                    }
-                }
-            }
-
-            // default to zeroeth platform if NVIDIA not found
-            if(*clSelectedPlatformID == NULL)
-            {
-                //printf("selected platform: %d\n", num_platforms-1);
-                lg::log("selected platform ", num_platforms-1);
-                *clSelectedPlatformID = clPlatformIDs[num_platforms-1];
-            }
-
-            free(clPlatformIDs);
-        }
-    }
-
-    return CL_SUCCESS;
-}
-
-///also blatantly nicked off nvidia
-static char* file_contents(const char *filename, int *length)
-{
-    FILE *f = fopen(filename, "r");
-    void *buffer;
-
-    if(!f)
-    {
-        lg::log("Unable to open ", filename, " for reading");
-        return NULL;
-    }
-
-    fseek(f, 0, SEEK_END);
-    *length = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    buffer = malloc(*length+1);
-    *length = fread(buffer, 1, *length, f);
-    fclose(f);
-    ((char*)buffer)[*length] = '\0';
-
-    return (char*)buffer;
-}
-
 extern std::map<std::string, void*> registered_automatic_argument_map;
-
-
 extern std::vector<automatic_argument_identifiers> parsed_automatic_arguments;
 
+#include <string>
+#include <sstream>
+#include <vector>
+
+///https://stackoverflow.com/questions/236129/split-a-string-in-c
+
+bool supports_extension(const std::string& ext_name);
+
+struct driver_blacklist_info
+{
+    std::string friendly_name;
+    std::string driver_name;
+    std::string vendor;
+
+    int is_blacklisted = 0;
+
+    std::string get_blacklist_string()
+    {
+        return vendor + " OpenCL Driver version: " + driver_name + " Friendly driver name: " + friendly_name;
+    }
+};
+
+///thanks AMD
+extern std::map<std::string, driver_blacklist_info> driver_blacklist;
+///can't be used if we're already crashing before doing driver stuff!
+bool is_driver_blacklisted(const std::string& version);
+
+void print_blacklist_error_info();
+
+///blatantly nicked from nvidia
+cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID);
+char* file_contents(const char *filename, int *length);
+
+///left in headers in case of future type safety
 inline
 void register_automatic(void* buf, const std::string& name)
 {
@@ -224,13 +142,6 @@ std::vector<char> get_device_info(cl_device_id id, cl_device_info inf)
     char* ret = new char[size_ret]();
 
     clGetDeviceInfo(id, inf, size_ret, ret, nullptr);
-
-    /*printf("hithere %s %i\n", ret, size_ret);
-
-    std::string rstr;
-
-    if(std::is_integral<T>::value || std::is_floating_point)
-        rstr = std::to_string(ret);*/
 
     std::vector<char> rstr;
 
@@ -401,7 +312,10 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     if(error != CL_SUCCESS)
     {
-        lg::log("Error getting platform id: ");
+        lg::log("Error getting platform id: ", error);
+
+        print_blacklist_error_info();
+
         exit(error);
     }
     else
@@ -431,6 +345,9 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     if(error != CL_SUCCESS)
     {
         lg::log("Error getting device ids: ", error);
+
+        print_blacklist_error_info();
+
         exit(error);
     }
     else
@@ -448,6 +365,9 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     if(error != CL_SUCCESS)
     {
         lg::log("Error creating context: ", error);
+
+        print_blacklist_error_info();
+
         exit(error);
     }
     else
@@ -553,6 +473,12 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         size_t n = *(size_t*)&max_item_sizes[c];
 
         lg::log("Item max dim i ", i, " ", n);
+    }
+
+    if(!supports_extension("cl_khr_gl_sharing"))
+    {
+        lg::log("This device and driver combination does not support OpenCL/OpenGL sharing and will almost certainly not work");
+        lg::log("Try updating your drivers, or if the latest drivers don't support it, complain to whoever provides them");
     }
 
 
