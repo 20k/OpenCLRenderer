@@ -48,9 +48,11 @@ struct cl_gl_interop_texture
     sf::RenderTexture sfml_nogl;
     sf::Texture sfml_nogl_tex;
     compute::image2d g_texture_nogl;
-    cl_uchar4* no_gl_buffer_1 = nullptr;
-    cl_uchar4* no_gl_buffer_2 = nullptr;
-    cl_uchar4* no_gl_buffer_current = nullptr;
+
+    int max_buffer_history = 3;
+    std::vector<cl_uchar4*> buffer_history;
+    int cbuffer = 0;
+
     //std::thread async_write;
     //std::atomic_int finished_async_write{1};
     std::atomic_int finished_async_read{1};
@@ -63,33 +65,21 @@ struct cl_gl_interop_texture
     compute::event ev;
     int need_event = 0;
 
+    cl_uchar4* get_no_gl_buffer()
+    {
+        return buffer_history[cbuffer];
+    }
+
     void flip_no_gl_buffer()
     {
-        /*if(no_gl_buffer_1 == no_gl_buffer_current)
-        {
-            no_gl_buffer_current = no_gl_buffer_2;
-            return;
-        }
-        else
-        {
-            no_gl_buffer_current = no_gl_buffer_1;
-            return;
-        }*/
-
-        no_gl_buffer_current = get_flip_gl_buffer();
+        cbuffer++;
+        cbuffer = cbuffer % max_buffer_history;
     }
 
-    cl_uchar4* get_flip_gl_buffer()
+    /*cl_uchar4* get_flip_gl_buffer()
     {
-        if(no_gl_buffer_1 == no_gl_buffer_current)
-        {
-            return no_gl_buffer_2;
-        }
-        else
-        {
-            return no_gl_buffer_1;
-        }
-    }
+        buffer_history[cbuffer];
+    }*/
 
     cl_gl_interop_texture& operator=(const cl_gl_interop_texture& tex)
     {
@@ -104,9 +94,12 @@ struct cl_gl_interop_texture
         g_texture_gl = tex.g_texture_gl;
         g_texture_nogl = tex.g_texture_nogl;
 
-        no_gl_buffer_1 = tex.no_gl_buffer_1;
-        no_gl_buffer_2 = tex.no_gl_buffer_2;
-        no_gl_buffer_current = tex.no_gl_buffer_current;
+        buffer_history = tex.buffer_history;
+        max_buffer_history = tex.max_buffer_history;
+        cbuffer = tex.cbuffer;
+
+        //sfml_nogl = tex.sfml_nogl;
+        sfml_nogl_tex = tex.sfml_nogl_tex;
 
         int val = tex.finished_async_read;
         finished_async_read = val;
@@ -256,9 +249,13 @@ struct cl_gl_interop_texture
         sfml_nogl.create(w, h);
         sfml_nogl_tex.create(w, h);
 
-        no_gl_buffer_1 = new cl_uchar4[w*h]();
-        no_gl_buffer_2 = new cl_uchar4[w*h]();
-        no_gl_buffer_current = no_gl_buffer_1;
+        /*no_gl_buffer_1 = new cl_uchar4[w*h]();
+        no_gl_buffer_2 = new cl_uchar4[w*h]();*/
+
+        for(int i=0; i<max_buffer_history; i++)
+        {
+            buffer_history.push_back(new cl_uchar4[w*h]);
+        }
 
         mem = g_texture_nogl.get();
     }
@@ -273,8 +270,10 @@ struct cl_gl_interop_texture
 
         if(has_init && which_item == 1)
         {
-            delete [] no_gl_buffer_1;
-            delete [] no_gl_buffer_2;
+            for(auto& i : buffer_history)
+            {
+                delete [] i;
+            }
         }
     }
 

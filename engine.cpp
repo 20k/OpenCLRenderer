@@ -3334,7 +3334,8 @@ bool use_gl_interop()
     ///return supports_gl_interop();
 
     ///so here begins an adventure
-    return supports_gl_interop();
+    //return supports_gl_interop();
+    return false;
 }
 
 bool can_write_3d_textures()
