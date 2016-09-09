@@ -312,6 +312,47 @@ void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_q
     clSetEventCallback(event.get(), CL_COMPLETE, async_cleanup, tex);
 }
 
+compute::event texture::update_internal(cl_mem mem, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue, bool acquire)
+{
+    cl_int err = CL_SUCCESS;
+
+    if(acquire)
+        err = clEnqueueAcquireGLObjects(cqueue.get(), 1, &mem, 0, nullptr, nullptr);
+
+    if(err != CL_SUCCESS)
+    {
+        lg::log("Error acquiring gl objects in update_internal (texture.cpp)", err);
+        throw std::runtime_error("Error acquire/release");
+    }
+
+    //printf("gpu %i %i\n", gpu_id & 0x0000FFFF, (gpu_id >> 16) & 0x0000FFFF);
+
+    arg_list args;
+    args.push_back(&mem);
+    args.push_back(&gpu_id); ///what's my gpu id?
+    args.push_back(&gpu_dat.mipmap_start); ///what's my gpu id?
+    args.push_back(&gpu_dat.g_texture_nums);
+    args.push_back(&gpu_dat.g_texture_sizes);
+    args.push_back(&gpu_dat.g_texture_array);
+    args.push_back(&flip);
+
+    compute::event ev1;
+
+    ev1 = run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue);
+
+    cl_event clevent;
+
+    if(acquire)
+        clEnqueueReleaseGLObjects(cqueue.get(), 1, &mem, 0, nullptr, &clevent);
+
+    clReleaseMemObject(mem);
+
+    if(acquire)
+        return compute::event(clevent);
+    else
+        return ev1;
+}
+
 compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue)
 {
     if(id == -1)
@@ -338,7 +379,7 @@ compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_conte
         throw std::runtime_error("why");
     }
 
-    err = clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
+    /*err = clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
 
     if(err != CL_SUCCESS)
     {
@@ -364,7 +405,15 @@ compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_conte
 
     clReleaseMemObject(gl_mem);
 
-    return compute::event(clevent);
+    return compute::event(clevent);*/
+
+    return update_internal(gl_mem, gpu_dat, flip, cqueue, true);
+}
+
+compute::event texture::update_gpu_texture_nogl(compute::image2d buf, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue)
+{
+
+    return compute::event();
 }
 
 void texture::update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat)
