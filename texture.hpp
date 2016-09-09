@@ -32,6 +32,9 @@ struct texture
     sf::Image mipmaps[MIP_LEVELS];
     ///location is unique string that is texture location, used to check if textures refer to the same thing
 
+    compute::event no_gl_write_event;
+    bool has_event = false;
+
     bool is_active;
     bool is_loaded;
     bool is_unique; ///ie don't cache me

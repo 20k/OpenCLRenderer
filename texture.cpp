@@ -324,7 +324,8 @@ void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_q
 
     clEnqueueWriteImage(cqueue.get(), buf.get(), CL_FALSE, origin, region, 0, 0, write_buf, 0, nullptr, &no_gl_write);
 
-    auto no_gl_write_event = compute::event(no_gl_write);
+    no_gl_write_event = compute::event(no_gl_write);
+    has_event = true;
 
     auto event = update_internal(buf.get(), gpu_dat, true, cqueue, false, {no_gl_write_event});
     update_gpu_mipmaps(gpu_dat, cqueue);
@@ -619,5 +620,8 @@ void texture::set_load_func(std::function<void (texture*)> func)
 
 texture::~texture()
 {
-
+    if(has_event)
+    {
+        clWaitForEvents(1, &no_gl_write_event.get());
+    }
 }
