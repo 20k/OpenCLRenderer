@@ -62,7 +62,7 @@ cl_float  rift::distortion_scale = {0};
 cl_float4 rift::abberation_constants = {1};
 
 
-compute::opengl_renderbuffer engine::g_screen;
+//compute::opengl_renderbuffer engine::g_screen;
 
 ///this needs changing
 
@@ -392,7 +392,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     lg::log("Post opengl ptrs");
 
     ///generate and bind renderbuffers
-    if(!rift::enabled)
+    /*if(!rift::enabled)
     {
         if(gl_framebuffer_id != -1)
         {
@@ -411,7 +411,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
             compute::opengl_enqueue_acquire_gl_objects(1, &g_rift_screen[i].get(), cl::cqueue);
         }
-    }
+    }*/
 
     lg::log("Acquired shared main opengl screen renderwindow");
 
@@ -2001,6 +2001,7 @@ compute::event engine::blend_with_depth(object_context_data& src, object_context
     return run_kernel_with_string("blend_screens_with_depth", {dim.x*dim.y}, {128}, 1, args);
 }
 
+#if 0
 void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buffer& projectiles, int projectile_num)
 {
     cl_uint screenspace_gws[]= {width, height};
@@ -2024,6 +2025,7 @@ void engine::draw_fancy_projectiles(compute::image2d& buffer_look, compute::buff
 
     run_kernel_with_list(cl::draw_fancy_projectile, screenspace_gws, screenspace_lws, 2, projectile_arg_list, true);
 }
+#endif
 
 ///never going to work, would have to reproject?
 /*void engine::draw_ui()
@@ -2751,6 +2753,7 @@ compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
     return run_kernel_with_string("dbuf_render_fluid", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
 }
 
+#if 0
 void engine::draw_voxel_grid(compute::buffer& buf, int w, int h, int d)
 {
     cl_float4 pos = {0};
@@ -2800,6 +2803,7 @@ void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer 
 
     run_kernel_with_string("cloth_simulate", global_ws, local_ws, 1, cloth_args);
 }
+#endif
 
 void engine::set_render_event(compute::event& event)
 {
@@ -2848,6 +2852,7 @@ void engine::render_texture(compute::opengl_renderbuffer& buf, GLuint id, int w,
     compute::opengl_enqueue_acquire_gl_objects(1, &buf.get(), cl::cqueue);
 }
 
+#if 0
 ///we can now try and do one frame ahead stuff!
 void engine::render_buffers()
 {
@@ -2965,6 +2970,7 @@ void engine::render_buffers()
     g_screen = g_screen_edge_smoothed;
     g_screen_edge_smoothed = temp;*/
 }
+#endif
 
 ///hmm. its faster to not do async
 void engine::render_block()
@@ -3333,8 +3339,45 @@ bool use_gl_interop()
 {
     ///return supports_gl_interop();
 
+    /*cl_int clGetContextInfo (	cl_context  context ,
+ 	cl_context_info  param_name ,
+ 	size_t  param_value_size ,
+ 	void  *param_value ,
+ 	size_t  *param_value_size_ret )*/
+
+ 	size_t s;
+
+ 	cl_int err = clGetContextInfo(cl::context.get(), CL_CONTEXT_PROPERTIES, 0, nullptr, &s);
+
+ 	if(s == 0)
+        return false;
+
+    int num = s / sizeof(cl_context_properties);
+
+ 	cl_context_properties* p = new cl_context_properties[num+1]();
+
+ 	err |= clGetContextInfo(cl::context.get(), CL_CONTEXT_PROPERTIES, s, p, nullptr);
+
+ 	if(err != CL_SUCCESS)
+    {
+        lg::log("Context query error ", err);
+        return false;
+    }
+
+    bool can_use = false;
+
+    for(int i = 0; i<num; i+=2)
+    {
+        if(p[i] == CL_GL_CONTEXT_KHR)
+            can_use = true;
+    }
+
+ 	delete [] p;
+
+ 	return can_use;
+
     ///so here begins an adventure
-    return supports_gl_interop();
+    //return supports_gl_interop();
     //return false;
 }
 

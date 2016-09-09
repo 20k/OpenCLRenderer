@@ -323,16 +323,6 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         lg::log("Got platform IDs");
     }
 
-    ///this is essentially black magic
-    cl_context_properties props[] =
-    {
-        CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-        CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-        CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
-        0
-    };
-
-
     cl_uint num;
 
     cl_device_id device[100];
@@ -355,6 +345,14 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         lg::log("Got device ids");
     }
 
+    ///this is essentially black magic
+    cl_context_properties props[] =
+    {
+        CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+        CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+        CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
+        0
+    };
 
     ///I think the context is invalid
     ///because all the resources were created under the other context
@@ -496,6 +494,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     lg::log("Created command queue");
 
     build_thread = std::thread(build, file, w, h, lres, only_3d, extra_build_commands);
+    //build_thread.join();
 
     //build(file, w, h, lres, only_3d, extra_build_commands);
 }

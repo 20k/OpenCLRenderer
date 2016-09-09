@@ -109,8 +109,8 @@ struct engine
     ///move towards making this not a god class
     ///allow other classes to access important parts
     ///so they can manage one off opencl commands
-    static compute::opengl_renderbuffer g_screen;
-    compute::opengl_renderbuffer g_rift_screen[2]; ///eye-ist to have two eyes?
+    //static compute::opengl_renderbuffer g_screen;
+    //compute::opengl_renderbuffer g_rift_screen[2]; ///eye-ist to have two eyes?
     compute::opengl_renderbuffer g_screen_reprojected;
     compute::opengl_renderbuffer g_screen_edge_smoothed;
 
