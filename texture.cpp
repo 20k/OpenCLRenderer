@@ -301,7 +301,7 @@ void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_q
     ///will also likely fix the issues that I'm seeing with the swordfight man
     ///as well as removing gl interop overhead
     ///win/win!
-    sf::Texture* tex = new sf::Texture();
+    /*sf::Texture* tex = new sf::Texture();
     tex->loadFromImage(c_image);
 
     ///?
@@ -309,10 +309,28 @@ void texture::update_me_to_gpu(texture_context_data& gpu_dat, compute::command_q
     update_gpu_mipmaps(gpu_dat, cqueue);
 
     ///this is to avoid what is potentially a bug in the amd driver relating to opengl shared object lifetimes
-    clSetEventCallback(event.get(), CL_COMPLETE, async_cleanup, tex);
+    clSetEventCallback(event.get(), CL_COMPLETE, async_cleanup, tex);*/
+
+    compute::image_format format_opengl(CL_RGBA, CL_UNORM_INT8);
+
+    compute::image2d buf = compute::image2d(cl::context, CL_MEM_READ_ONLY, format_opengl, c_image.getSize().x, c_image.getSize().y, 0, nullptr);
+
+    void* write_buf = (void*)c_image.getPixelsPtr();
+
+    size_t origin[3] = {0,0,0};
+    size_t region[3] = {c_image.getSize().x, c_image.getSize().y, 1};
+
+    cl_event no_gl_write;
+
+    clEnqueueWriteImage(cqueue.get(), buf.get(), CL_FALSE, origin, region, 0, 0, write_buf, 0, nullptr, &no_gl_write);
+
+    auto no_gl_write_event = compute::event(no_gl_write);
+
+    auto event = update_internal(buf.get(), gpu_dat, true, cqueue, false, {no_gl_write_event});
+    update_gpu_mipmaps(gpu_dat, cqueue);
 }
 
-compute::event texture::update_internal(cl_mem mem, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue, bool acquire)
+compute::event texture::update_internal(cl_mem mem, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue, bool acquire, std::vector<compute::event> events)
 {
     cl_int err = CL_SUCCESS;
 
@@ -338,7 +356,7 @@ compute::event texture::update_internal(cl_mem mem, texture_context_data& gpu_da
 
     compute::event ev1;
 
-    ev1 = run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue);
+    ev1 = run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue, events);
 
     cl_event clevent;
 
@@ -379,41 +397,18 @@ compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_conte
         throw std::runtime_error("why");
     }
 
-    /*err = clEnqueueAcquireGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, nullptr);
-
-    if(err != CL_SUCCESS)
-    {
-        lg::log("Error acquiring gl objects in update_gpu_texture", err);
-    }
-
-    //printf("gpu %i %i\n", gpu_id & 0x0000FFFF, (gpu_id >> 16) & 0x0000FFFF);
-
-    arg_list args;
-    args.push_back(&gl_mem);
-    args.push_back(&gpu_id); ///what's my gpu id?
-    args.push_back(&gpu_dat.mipmap_start); ///what's my gpu id?
-    args.push_back(&gpu_dat.g_texture_nums);
-    args.push_back(&gpu_dat.g_texture_sizes);
-    args.push_back(&gpu_dat.g_texture_array);
-    args.push_back(&flip);
-
-    run_kernel_with_string("update_gpu_tex", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, args, cqueue);
-
-    cl_event clevent;
-
-    clEnqueueReleaseGLObjects(cqueue.get(), 1, &gl_mem, 0, nullptr, &clevent);
-
-    clReleaseMemObject(gl_mem);
-
-    return compute::event(clevent);*/
-
     return update_internal(gl_mem, gpu_dat, flip, cqueue, true);
 }
 
-compute::event texture::update_gpu_texture_nogl(compute::image2d buf, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue)
+compute::event texture::update_gpu_texture_nogl(compute::image2d buf, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue, std::vector<compute::event> events)
 {
+    if(!is_loaded)
+    {
+        lg::log("Tried to write unloaded texture to gpu in update_gpu_texture_nogl");
+        return compute::event();
+    }
 
-    return compute::event();
+    return update_internal(buf.get(), gpu_dat, flip, cqueue, false, events);
 }
 
 void texture::update_gpu_texture_col(cl_float4 col, texture_context_data& gpu_dat)
@@ -620,4 +615,9 @@ void texture_load_from_image(texture* tex, sf::Image& img)
 void texture::set_load_func(std::function<void (texture*)> func)
 {
     fp = func;
+}
+
+texture::~texture()
+{
+
 }

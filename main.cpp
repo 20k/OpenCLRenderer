@@ -236,6 +236,10 @@ int main(int argc, char *argv[])
 
         if(key.isKeyPressed(sf::Keyboard::Comma))
             std::cout << avg_ftime << std::endl;
+
+        //std::cout << load_time.getElapsedTime().asMilliseconds() << std::endl;
+
+        //return 0;
     }
 
     ///if we're doing async rendering on the main thread, then this is necessary
