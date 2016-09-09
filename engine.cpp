@@ -1115,7 +1115,7 @@ compute::event engine::draw_godrays(object_context_data& dat)
 
     dat.ensure_screen_buffers(width, height);
 
-    cl_mem g_screen = dat.gl_screen.get();
+    cl_mem g_screen = dat.gl_screen[dat.nbuf].get();
 
     arg_list args;
     args.push_back(&dat.depth_buffer[dat.nbuf]);
@@ -1832,7 +1832,7 @@ compute::event engine::draw_bulk_objs_n(object_context_data& dat)
         {
         #endif // USE_REPROJECTION
 
-            ret = render_tris(*this, pos_offset, rot_offset, dat.gl_screen, dat);
+            ret = render_tris(*this, pos_offset, rot_offset, dat.gl_screen[dat.nbuf], dat);
             //swap_depth_buffers();
 
         #ifdef USE_REPROJECTION
@@ -1914,7 +1914,7 @@ compute::event engine::draw_tiled_deferred(object_context_data& dat)
     ret = run_kernel_with_string("clear_depth_buffer", {dat.s_w, dat.s_h}, {8, 8}, 2, clear_depth);
 
     arg_list clear_screen;
-    clear_screen.push_back(&dat.gl_screen.get());
+    clear_screen.push_back(&dat.gl_screen[dat.nbuf].get());
 
     ret = run_kernel_with_string("clear_screen_tex", {dat.s_w, dat.s_h}, {8, 8}, 2, clear_depth);
 
@@ -1945,7 +1945,7 @@ compute::event engine::draw_tiled_deferred(object_context_data& dat)
 
     arg_list render_args = split_args;
     render_args.push_back(&dat.depth_buffer[dat.nbuf]);
-    render_args.push_back(&dat.gl_screen.get());
+    render_args.push_back(&dat.gl_screen[dat.nbuf].get());
 
     ///gws is temp
     ret = run_kernel_with_string("tile_render", {256 * tile_num_w * tile_num_h}, {256}, 1, render_args);
@@ -1953,7 +1953,7 @@ compute::event engine::draw_tiled_deferred(object_context_data& dat)
     arg_list depth_render_args;
 
     depth_render_args.push_back(&dat.depth_buffer[dat.nbuf]);
-    depth_render_args.push_back(&dat.gl_screen.get());
+    depth_render_args.push_back(&dat.gl_screen[dat.nbuf].get());
 
     ret = run_kernel_with_string("render_depth_buffer", {width * height}, {256}, 1, depth_render_args);
 
@@ -1977,9 +1977,9 @@ compute::event engine::blend(object_context_data& src, object_context_data& dst)
     cl_int2 dim = {dst.s_w, dst.s_h};
 
     arg_list args;
-    args.push_back(&src.gl_screen.get());
-    args.push_back(&dst.gl_screen.get());
-    args.push_back(&dst.gl_screen.get());
+    args.push_back(&src.gl_screen[src.nbuf].get());
+    args.push_back(&dst.gl_screen[dst.nbuf].get());
+    args.push_back(&dst.gl_screen[dst.nbuf].get());
     args.push_back(&dim);
 
     return run_kernel_with_string("blend_screens", {dim.x*dim.y}, {128}, 1, args);
@@ -1992,9 +1992,9 @@ compute::event engine::blend_with_depth(object_context_data& src, object_context
     arg_list args;
     //args.push_back(&src.)
 
-    args.push_back(&src.gl_screen.get());
-    args.push_back(&dst.gl_screen.get());
-    args.push_back(&dst.gl_screen.get());
+    args.push_back(&src.gl_screen[src.nbuf].get());
+    args.push_back(&dst.gl_screen[dst.nbuf].get());
+    args.push_back(&dst.gl_screen[dst.nbuf].get());
 
     args.push_back(&src.depth_buffer[src.nbuf]);
     args.push_back(&dst.depth_buffer[dst.nbuf]);
@@ -2449,8 +2449,8 @@ compute::event engine::draw_smoke(object_context_data& dat, smoke& s, cl_int sol
     smoke_args.push_back(&c_rot);
     smoke_args.push_back(&s.pos);
     smoke_args.push_back(&s.rot);
-    smoke_args.push_back(&dat.gl_screen.get()); ///trolol undefined behaviour
-    smoke_args.push_back(&dat.gl_screen.get());
+    smoke_args.push_back(&dat.gl_screen[dat.nbuf].get()); ///trolol undefined behaviour
+    smoke_args.push_back(&dat.gl_screen[dat.nbuf].get());
     smoke_args.push_back(&dat.depth_buffer[dat.nbuf]);
     smoke_args.push_back(&offset);
     smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
@@ -2675,8 +2675,8 @@ compute::event engine::draw_smoke_as_fire(object_context_data& dat, smoke& s, cl
     smoke_args.push_back(&c_rot);
     smoke_args.push_back(&s.pos);
     smoke_args.push_back(&s.rot);
-    smoke_args.push_back(&dat.gl_screen.get()); ///trolol undefined behaviour
-    smoke_args.push_back(&dat.gl_screen.get());
+    smoke_args.push_back(&dat.gl_screen[dat.nbuf].get()); ///trolol undefined behaviour
+    smoke_args.push_back(&dat.gl_screen[dat.nbuf].get());
     smoke_args.push_back(&dat.depth_buffer[dat.nbuf]);
     smoke_args.push_back(&offset);
     smoke_args.push_back(wcorners, sizeof(wcorners)); ///?
@@ -2746,8 +2746,8 @@ compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
     arg_list args;
     args.push_back(&s.g_voxel_upscale);
     args.push_back(&udim);
-    args.push_back(&dat.gl_screen.get());
-    args.push_back(&dat.gl_screen.get());
+    args.push_back(&dat.gl_screen[dat.nbuf].get());
+    args.push_back(&dat.gl_screen[dat.nbuf].get());
     args.push_back(&dat.depth_buffer[dat.nbuf]);
     args.push_back(&this->c_pos);
     args.push_back(&this->c_rot);
@@ -3054,11 +3054,11 @@ void render_screen(engine& eng, object_context_data& dat)
 
     if(!use_gl_interop())
     {
-        dat.gl_screen.blit_to_opengl(0, cl::cqueue, true);
+        dat.gl_screen[dat.nbuf].blit_to_opengl(0, cl::cqueue, true);
 
         sf::Sprite spr;
-        spr.setTexture(dat.gl_screen.sfml_nogl_tex);
-        spr.setTextureRect(sf::IntRect(0, dat.gl_screen.h, dat.gl_screen.w, -dat.gl_screen.h));
+        spr.setTexture(dat.gl_screen[dat.nbuf].sfml_nogl_tex);
+        spr.setTextureRect(sf::IntRect(0, dat.gl_screen[dat.nbuf].h, dat.gl_screen[dat.nbuf].w, -dat.gl_screen[dat.nbuf].h));
 
         ///If this isn't here, it doesn't work. I literally dont understand why
         glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, 0);
@@ -3068,7 +3068,7 @@ void render_screen(engine& eng, object_context_data& dat)
     else
     {
         ///could we acquire and release on a diff queue?
-        dat.gl_screen.blit_to_opengl(0, cl::cqueue, true);
+        dat.gl_screen[dat.nbuf].blit_to_opengl(0, cl::cqueue, true);
     }
 }
 
@@ -3176,7 +3176,7 @@ void engine::clear_screen(object_context_data& dat)
     dat.ensure_screen_buffers(width, height);
 
     arg_list args;
-    args.push_back(&dat.gl_screen.get());
+    args.push_back(&dat.gl_screen[dat.nbuf].get());
 
     run_kernel_with_string("clear_screen_tex", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
 }

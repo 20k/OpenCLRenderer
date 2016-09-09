@@ -51,7 +51,7 @@ struct object_context_data
     compute::buffer g_tid_buf_atomic_count;
     compute::buffer g_tid_lightbuf_atomic_count;
 
-    cl_gl_interop_texture gl_screen;
+    cl_gl_interop_texture gl_screen[2];
     //compute::opengl_renderbuffer g_screen;
     compute::buffer depth_buffer[2];
     compute::image2d g_id_screen_tex;
@@ -87,7 +87,7 @@ struct object_context_data
     bool has_valid_texture_data = false;
 
     void ensure_screen_buffers(int _w, int _h, bool force = false);
-    void swap_depth_buffers();
+    void swap_buffers();
 };
 
 struct object_temporaries

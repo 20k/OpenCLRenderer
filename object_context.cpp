@@ -7,7 +7,7 @@
 
 std::map<std::string, objects_container> object_cache;
 
-void object_context_data::swap_depth_buffers()
+void object_context_data::swap_buffers()
 {
     nbuf = (nbuf + 1) % 2;
 }
@@ -27,7 +27,8 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
 
         //g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
 
-        gl_screen.init(_w, _h, use_gl_interop(), cl::cqueue);
+        gl_screen[0].init(_w, _h, use_gl_interop(), cl::cqueue);
+        gl_screen[1].init(_w, _h, use_gl_interop(), cl::cqueue);
 
         lg::log("Created g_screen in ensure_screen_buffers");
 
@@ -486,7 +487,8 @@ void flip_buffers(object_context* ctx)
     }
 
     ctx->new_gpu_dat.g_id_screen_tex = ctx->fetch()->g_id_screen_tex;
-    ctx->new_gpu_dat.gl_screen = ctx->fetch()->gl_screen;
+    ctx->new_gpu_dat.gl_screen[0] = ctx->fetch()->gl_screen[0];
+    ctx->new_gpu_dat.gl_screen[1] = ctx->fetch()->gl_screen[1];
     ctx->new_gpu_dat.gl_framebuffer_id = ctx->fetch()->gl_framebuffer_id;
     ctx->new_gpu_dat.nbuf = (ctx->fetch()->nbuf) % 2;
     ctx->new_gpu_dat.g_clear_col = ctx->gpu_dat.g_clear_col;

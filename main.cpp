@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 
             window.increase_render_events();
 
-            context.fetch()->swap_depth_buffers();
+            context.fetch()->swap_buffers();
         }
 
         window.set_render_event(event);
