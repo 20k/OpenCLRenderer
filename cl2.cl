@@ -77,6 +77,13 @@ struct obj_g_descriptor
     float4 world_pos;   ///w is 0
     float4 world_rot;   ///w is 0
     float4 world_rot_quat;
+
+    ///motion blur
+    float4 old_world_pos_1;
+    float4 old_world_pos_2;
+    float4 old_world_rot_quat_1;
+    float4 old_world_rot_quat_2;
+
     float scale;
     uint tid;           ///texture id
     uint rid;           ///normal map id
@@ -4750,13 +4757,16 @@ float2 decode_vt(uint vt)
 ///rewrite using the raytracers triangle bits
 ///change to 1d
 ///write an outline shader?
+///frame id is not important, its just useful for syncing motion blur writes
+///it just needs to increase, if it jumps then there'll be an artifact in the motion blur
+///could also be used for half pixel jitter etc
 __kernel
 __attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
 //__attribute__((vec_type_hint(float3)))
 void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           float4 screen_clear_colour
+           float4 screen_clear_colour, uint frame_id
            )
 
 ///__global uint sacrifice_children_to_argument_god

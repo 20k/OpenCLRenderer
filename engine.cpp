@@ -1436,6 +1436,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //p3arg_list.push_back(&eng.g_occlusion_intermediate_tex);
     //p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
     p3arg_list.push_back(&dat.g_clear_col);
+    p3arg_list.push_back(&dat.frame_id);
 
     /*for(auto& i : p3arg_list.args)
     {
@@ -1461,6 +1462,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     ///this is the deferred screenspace pass
     auto event = run_kernel_with_string("kernel3", p3global_ws, p3local_ws, 2, p3arg_list);
+
+    dat.frame_id++;
 
     #ifndef REPROJECT_TEST
     //clSetEventCallback(event.get(), CL_COMPLETE, render_async, &eng);
