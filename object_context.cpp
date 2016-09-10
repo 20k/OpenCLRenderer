@@ -755,8 +755,11 @@ void object_context::flush_locations(bool force)
 
     if(force && containers.size() > 0)
     {
+        ///this doesnt do what i want it to do
         clEnqueueBarrier(cl::cqueue);
     }
+
+    cl::cqueue_ooo.flush();
 }
 
 void object_context::flip()
