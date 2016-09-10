@@ -392,6 +392,8 @@ compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_conte
     cl_mem gl_mem = clCreateFromGLTexture2D(cl::context.get(), CL_MEM_READ_ONLY,
                                           GL_TEXTURE_2D, 0, (GLuint)opengl_id, &err);
 
+
+
     if(err != CL_SUCCESS)
     {
         lg::log("Error in clcreatefromgltexture2d in update_gpu_texture ", err);
