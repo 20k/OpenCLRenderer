@@ -4763,8 +4763,8 @@ float2 decode_vt(uint vt)
 __kernel
 __attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
 //__attribute__((vec_type_hint(float3)))
-void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
-           image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
+void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+           image_3d_read array, __write_only image2d_t screen, __read_only image2d_t old_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            float4 screen_clear_colour, uint frame_id
            )
@@ -4832,6 +4832,32 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     //int o_id = T->vertices[0].object_id;
 
     __global struct obj_g_descriptor *G = &gobj[o_id];
+
+    ///update next iteration, retrieve current iteration old worldpos/quat
+    ///for motionblur
+    #ifndef NO_MOTIONBLUR
+
+    float3 old_world_pos;
+    float4 old_world_quat;
+
+    if((frame_id & 1) == 0)
+    {
+        old_world_pos = G->old_world_pos_1.xyz;
+        old_world_quat = G->old_world_rot_quat_1;
+
+        G->old_world_pos_2.xyz = G->world_pos.xyz;
+        G->old_world_rot_quat_2 = G->world_rot_quat;
+    }
+    else
+    {
+        old_world_pos = G->old_world_pos_2.xyz;
+        old_world_quat = G->old_world_rot_quat_2;
+
+        G->old_world_pos_1.xyz = G->world_pos.xyz;
+        G->old_world_rot_quat_1 = G->world_rot_quat;
+    }
+    #endif
+
     ///getting anything from G involves waiting hideously for so many properties to come through
     ///this is probably a massive cause of slowdown, gpus are not good for this, its essentially a shit
     ///linked list
@@ -4854,8 +4880,23 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     global_position += camera_pos;
 
+    ///this is scaled, so we don't have to unscale this as p123 are scaled as well
     float3 object_local = global_position - G->world_pos.xyz;
     object_local = back_rot_quat(object_local, G->world_rot_quat);
+
+    #ifndef NO_MOTIONBLUR
+    float3 last_frame_pos = rot_quat(object_local, old_world_quat);
+    last_frame_pos += old_world_pos;
+
+    last_frame_pos = rot(last_frame_pos, c_pos_old.xyz, c_rot_old.xyz);
+
+    last_frame_pos = depth_project_singular(last_frame_pos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float2 last_screen_pos = last_frame_pos.xy;
+    float2 current_screen_pos = (float2){x, y};
+
+
+    #endif // NO_MOTIONBLUR
 
     float l1,l2,l3;
 

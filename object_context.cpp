@@ -9,7 +9,9 @@ std::map<std::string, objects_container> object_cache;
 
 void object_context_data::swap_buffers()
 {
-    nbuf = (nbuf + 1) % 2;
+    //nbuf = (nbuf + 1) % 2;
+    gl_screen.flip();
+    depth_buffer.flip();
 }
 
 void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
@@ -487,20 +489,18 @@ void flip_buffers(object_context* ctx)
     }
 
     ctx->new_gpu_dat.g_id_screen_tex = ctx->fetch()->g_id_screen_tex;
-    ctx->new_gpu_dat.gl_screen[0] = ctx->fetch()->gl_screen[0];
-    ctx->new_gpu_dat.gl_screen[1] = ctx->fetch()->gl_screen[1];
+
+    //ctx->new_gpu_dat.gl_screen[0] = ctx->fetch()->gl_screen[0];
+    //ctx->new_gpu_dat.gl_screen[1] = ctx->fetch()->gl_screen[1];
+
+    ctx->new_gpu_dat.gl_screen = ctx->fetch()->gl_screen;
+
     ctx->new_gpu_dat.gl_framebuffer_id = ctx->fetch()->gl_framebuffer_id;
-    ctx->new_gpu_dat.nbuf = (ctx->fetch()->nbuf) % 2;
+
     ctx->new_gpu_dat.g_clear_col = ctx->gpu_dat.g_clear_col;
     ctx->new_gpu_dat.frame_id = ctx->gpu_dat.frame_id;
 
-    ///wait. In doing this, we're... well, sharing the old one's actual stored resource
-    ///I smell a fuckup
-    for(int i=0; i<2; i++)
-    {
-        ctx->new_gpu_dat.depth_buffer[i] = ctx->fetch()->depth_buffer[i];
-        //ctx->new_gpu_dat.ensure_screen_buffers(ctx->gpu_dat.s_w, ctx->gpu_dat.s_h, true);
-    }
+    ctx->new_gpu_dat.depth_buffer = ctx->fetch()->depth_buffer;
 
     if(!ctx->new_gpu_dat.has_valid_texture_data)
     {

@@ -157,7 +157,7 @@ compute::event space_manager::blit_space_to_screen(object_context_data& dat)
     cl_int height = dat.s_h;
 
     arg_list blit_space;
-    blit_space.push_back(&dat.gl_screen[dat.nbuf].get());
+    blit_space.push_back(&dat.gl_screen[0].get());
     blit_space.push_back(&g_colour_blend);
     blit_space.push_back(&g_space_depth);
     blit_space.push_back(depth_buffer);
