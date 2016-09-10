@@ -5614,9 +5614,6 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
         return;
     }
 
-    //if(x == 400 && y == 400)
-    //    printf("Ow %f %f %f %f %f %f ", G->world_pos.x, G->world_pos.y, G->world_pos.z, old_world_pos.x, old_world_pos.y, old_world_pos.z);
-
     float2 last_screen_pos = last_frame_pos.xy;
     float2 last_screen_nocamera = last_frame_no_camera.xy;
     float2 current_screen_pos = (float2){x, y};
@@ -5665,11 +5662,6 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
 
     if(fcount != 0)
         accum /= fcount;
-
-    //if(x == 100 && y == 100)
-    //    printf("l %f %f %f %f %f %f ", c_pos.x, c_pos.y, c_pos.z, c_pos_old.x, c_pos_old.y, c_pos_old.z);
-
-    //accum = read_imagef(in_screen, sam_screen, (int2){x, y});
 
     write_imagef(back_screen, (int2){x, y}, accum);
 }
