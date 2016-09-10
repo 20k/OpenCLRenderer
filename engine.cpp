@@ -89,9 +89,6 @@ cl_float4 engine::c_pos;
 cl_float4 engine::c_rot;
 cl_float4 engine::c_rot_keyboard_only;
 
-cl_float4 engine::old_pos;
-cl_float4 engine::old_rot;
-
 int engine::nbuf=0; ///which depth buffer are we using?
 
 compute::buffer engine::g_ui_id_screen;
@@ -537,9 +534,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     delete [] blank;
 
     delete [] distortion_clear;
-
-    old_pos = {0};
-    old_rot = {0};
 
     ready_to_flip = false;
 
@@ -1086,8 +1080,8 @@ void render_async(cl_event event, cl_int event_command_exec_status, void *user_d
         eng.render_events_num = 0;
     }
 
-    eng.old_pos = eng.c_pos;
-    eng.old_rot = eng.c_rot;
+    //eng.old_pos = eng.c_pos;
+    //eng.old_rot = eng.c_rot;
 
     eng.current_frametype = frametype::RENDER;
 }
@@ -1132,6 +1126,28 @@ compute::event engine::draw_godrays(object_context_data& dat)
 compute::event engine::do_pseudo_aa()
 {
     return run_kernel_full_auto("do_pseudo_aa", {width, height}, {8, 8});
+}
+
+compute::event engine::do_motion_blur(object_context_data& dat, cl_float strength, cl_float camera_contribution)
+{
+    arg_list motion_args;
+    motion_args.push_back(&dat.gl_screen[0].get());
+    motion_args.push_back(&dat.gl_screen[0].get());
+    motion_args.push_back(&dat.frame_id);
+    motion_args.push_back(&c_pos);
+    motion_args.push_back(&c_rot);
+    motion_args.push_back(&dat.c_pos_old);
+    motion_args.push_back(&dat.c_rot_old);
+    motion_args.push_back(&strength);
+    motion_args.push_back(&camera_contribution);
+
+    auto event = run_kernel_with_string("do_motion_blur", {width, height}, {16, 16}, 2, motion_args);
+
+    //printf("Mbc %i\n", dat.gl_screen.c);
+
+    //dat.gl_screen.flip();
+
+    return event;
 }
 
 compute::event engine::generate_depth_buffer(object_context_data& dat)
@@ -1330,8 +1346,13 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     register_automatic(&eng.g_tid_buf, "fragment_id_buffer");
     register_automatic(g_screen_out.get_ptr(), "screen");
     register_automatic(g_screen_out.get_ptr(), "in_screen");
+    //register_automatic(&dat.gl_screen[1].get(), "back_screen");
     register_automatic(&dat.g_cut_tri_mem, "cutdown_tris");
     register_automatic(&dat.depth_buffer[0], "depth_buffer");
+    ///this gets incremented in this function, but it doesnt need to be *correct*
+    ///it just needs to increase monotonically
+    //register_automatic(&dat.frame_id, "frame_id");
+    register_automatic(&dat.g_obj_desc, "object_descriptors");
 
     arg_list prearg_list;
 
@@ -1417,13 +1438,12 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //p3arg_list.push_back(&dat.g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
-    p3arg_list.push_back(&engine::old_pos);
-    p3arg_list.push_back(&engine::old_rot);
+    p3arg_list.push_back(&dat.c_pos_old);
+    p3arg_list.push_back(&dat.c_rot_old);
     p3arg_list.push_back(&dat.depth_buffer[0]);
     p3arg_list.push_back(&dat.g_id_screen_tex);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_array);
     p3arg_list.push_back(g_screen_out.get_ptr());
-    p3arg_list.push_back(&dat.gl_screen[1].get());
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_nums);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_sizes);
     p3arg_list.push_back(&dat.g_obj_desc);
@@ -1598,8 +1618,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //clEnqueueReadBuffer(cl::cqueue, depth_buffer[nbuf], CL_TRUE, 0, sizeof(cl_uint)*g_size*g_size, d_depth_buf, 0, NULL, NULL);
     #endif
 
-    engine::old_pos = position;
-    engine::old_rot = rotation;
+    //engine::old_pos = position;
+    //engine::old_rot = rotation;
 
     return event;
 }

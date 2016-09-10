@@ -12,6 +12,8 @@ struct settings
     std::string name = "Lumberjack";
     bool enable_debugging;
     float mouse_sens = 1.f;
+    float motion_blur_strength = 1.f;
+    float motion_blur_camera_contribution = 1.f;
 
     void load(const std::string& loc);
     void save(const std::string& loc);

@@ -20,7 +20,36 @@ namespace compute = boost::compute;
 
 extern std::thread build_thread;
 
-extern std::map<std::string, void*> registered_automatic_argument_map;
+#if 0
+///to manage the difference between cl_mem classes
+///and raw values
+///we can pass cl_mems straight to opencl
+///but we have to pass raw values by value
+struct auto_argument
+{
+    void* ptr = nullptr;
+    int is_naturally_pointer = 1;
+
+    auto_argument(void* pptr, int is_ptr)
+    {
+        if(is_ptr)
+        {
+            ptr = pptr;
+            return;
+        }
+        else
+        {
+            void** nptr = new void*;
+            ///copy pointer value
+            *nptr = pptr;
+
+            ptr = (void*)(&nptr);
+        }
+    }
+};
+#endif
+
+extern std::map<std::string,void*> registered_automatic_argument_map;
 extern std::vector<automatic_argument_identifiers> parsed_automatic_arguments;
 
 #include <string>

@@ -10,8 +10,11 @@ std::map<std::string, objects_container> object_cache;
 void object_context_data::swap_buffers()
 {
     //nbuf = (nbuf + 1) % 2;
-    gl_screen.flip();
+    //gl_screen.flip(); ///if we flip, bad things can happen with cl/gl interaction
     depth_buffer.flip();
+
+    c_pos_old = engine::c_pos;
+    c_rot_old = engine::c_rot;
 }
 
 void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)

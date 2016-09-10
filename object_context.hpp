@@ -36,7 +36,7 @@ struct n_buffer
     void flip()
     {
         c++;
-        c %= N;
+        c = c % N;
     }
 
     T& operator[](std::size_t idx)
@@ -71,6 +71,9 @@ struct object_context_data
     cl_uint tri_num;
     cl_uint obj_num;
     cl_uint frame_id = 0; ///increase monotonically
+
+    cl_float4 c_pos_old{{0}};
+    cl_float4 c_rot_old{{0}};
 
     compute::buffer g_tri_mem;
     compute::buffer g_tri_num;

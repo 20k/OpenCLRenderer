@@ -198,6 +198,8 @@ int main(int argc, char *argv[])
 
             event = window.do_pseudo_aa();
 
+            event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
+
             //event = window.draw_godrays(*context.fetch());
 
             window.increase_render_events();

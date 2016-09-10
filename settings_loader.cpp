@@ -64,7 +64,7 @@ void settings::load(const std::string& loc)
         }
     }
 
-    if(content.size() < 7)
+    if(content.size() < 9)
         return;
 
     width = atoi(content[0].c_str());
@@ -74,6 +74,8 @@ void settings::load(const std::string& loc)
     name = content[4];
     enable_debugging = content[5] == "DEBUG";
     mouse_sens = atof(content[6].c_str());
+    motion_blur_strength = atof(content[7].c_str());
+    motion_blur_camera_contribution = atof(content[8].c_str());
 
     if(name.length() == 0)
     {
@@ -121,6 +123,8 @@ void settings::save(const std::string& loc)
     to_save.push_back(debug_string);
 
     to_save.push_back(std::to_string(mouse_sens) + "f");
+    to_save.push_back(std::to_string(motion_blur_strength));
+    to_save.push_back(std::to_string(motion_blur_camera_contribution));
 
 
     for(int i=0; i<comments.size() && i < to_save.size(); i++)

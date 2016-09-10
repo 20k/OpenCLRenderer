@@ -103,8 +103,8 @@ struct engine
     static cl_float4 c_pos; ///camera position, rotation
     static cl_float4 c_rot;
     static cl_float4 c_rot_keyboard_only;
-    static cl_float4 old_pos;
-    static cl_float4 old_rot;
+    //static cl_float4 old_pos;
+    //static cl_float4 old_rot;
 
     ///move towards making this not a god class
     ///allow other classes to access important parts
@@ -222,6 +222,7 @@ struct engine
     compute::event draw_godrays(object_context_data& dat);
     ///performs pseudo AA on the buffer last rendered to
     compute::event do_pseudo_aa();
+    compute::event do_motion_blur(object_context_data& dat, cl_float strength, cl_float camera_contribution);
 
     void draw_fancy_projectiles(compute::image2d&, compute::buffer&, int); ///fancy looking projectiles
     void draw_ui();
