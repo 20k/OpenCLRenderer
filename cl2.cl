@@ -5648,16 +5648,24 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
     float2 current = current_screen_pos - to_me_vector/2.f;
 
     float4 accum = 0.f;
-    int fcount = 0;
+    float fcount = 0;
 
     for(int i=0; i<n; i++, current += diff)
     {
         if(current.x < 0 || current.x >= SCREENWIDTH || current.y < 0 || current.y >= SCREENHEIGHT)
             continue;
 
+        /*float w = (float)i/n;
+        w -= 0.5f;
+        w *= 2;
+        w = fabs(w);*/
+
+        float w = 1;
+
         float4 col = read_imagef(in_screen, sam_screen, current + 0.5f);
-        accum += col;
-        fcount++;
+        accum += col * w;
+        //fcount++;
+        fcount += w;
     }
 
     if(fcount != 0)
