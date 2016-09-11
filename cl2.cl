@@ -5664,7 +5664,6 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
 
         float4 col = read_imagef(in_screen, sam_screen, current + 0.5f);
         accum += col * w;
-        //fcount++;
         fcount += w;
     }
 
