@@ -364,8 +364,6 @@ compute::event texture::update_internal(cl_mem mem, texture_context_data& gpu_da
     if(acquire)
         clEnqueueReleaseGLObjects(cqueue.get(), 1, &mem, 0, nullptr, &clevent);
 
-    clReleaseMemObject(mem);
-
     if(acquire)
         return compute::event(clevent);
     else
@@ -400,7 +398,11 @@ compute::event texture::update_gpu_texture(const sf::Texture& tex, texture_conte
         throw std::runtime_error("why");
     }
 
-    return update_internal(gl_mem, gpu_dat, flip, cqueue, true);
+    auto event = update_internal(gl_mem, gpu_dat, flip, cqueue, true);
+
+    clReleaseMemObject(gl_mem);
+
+    return event;
 }
 
 compute::event texture::update_gpu_texture_nogl(compute::image2d buf, texture_context_data& gpu_dat, cl_int flip, compute::command_queue cqueue, std::vector<compute::event> events)
