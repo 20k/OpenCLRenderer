@@ -4944,6 +4944,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     ///mip_start is a global parameter, edit it out
     float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
 
+    //col = pow(col, 2.2f);
+
     uint seed1 = wang_hash(x + y*SCREENWIDTH*SCREENHEIGHT);
     uint seed2 = rand_xorshift(seed1);
     uint seed3 = rand_xorshift(seed2);
@@ -5084,9 +5086,13 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
 
         distance_modifier *= distance_modifier;
 
+        float3 light_col = l.col.xyz;
+
+        //light_col = pow(light_col, 2.2f);
+
         ///for the moment, im abusing diffuse to mean both ambient and diffuse
         ///yes it is bad
-        ambient_sum += l.col.xyz * (ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse);
+        ambient_sum += light_col * (ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse);
 
         ///this is madness. no, this is SPARTA. This expression is slightly slower than the one above
         ///I guess this is not the use case for mad
@@ -5139,7 +5145,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
 
         float diffuse = (1.0f-ambient)*light;
 
-        diffuse_sum += diffuse*l.col.xyz*l.brightness * l.diffuse * G->diffuse;
+        diffuse_sum += light_col * (diffuse * l.brightness * l.diffuse * G->diffuse);
 
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal; ///dont use randomised normal because specular can vary intensly with small pertubations of normal
@@ -5153,7 +5159,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
 
         float spec = mdot(H, N);
         spec = pow(spec, G->specular);
-        specular_sum += spec * l.col.xyz * kS * l.brightness * distance_modifier * G->spec_mult;
+        specular_sum += spec * light_col * kS * l.brightness * distance_modifier * G->spec_mult;
 
         #else
         const float kS = 0.4f;
@@ -5191,7 +5197,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
         float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndv));
         //float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
-        specular_sum += l.col.xyz * (spec * kS * l.brightness * distance_modifier) * G->spec_mult;
+        specular_sum += light_col * (spec * kS * l.brightness * distance_modifier) * G->spec_mult;
 
         specular_sum = max(specular_sum, 0.f);
         #endif
@@ -5203,17 +5209,19 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     diffuse_sum += ambient_sum;
 
     //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
-    specular_sum = clamp(specular_sum, 0.0f, 1.0f);
+    //specular_sum = clamp(specular_sum, 0.0f, 1.0f);
     int2 scoord = {x, y};
 
     float reflected_surface_colour = 0.7f;
 
     float3 colclamp = col.xyz + mandatory_light + specular_sum * reflected_surface_colour;
 
-    colclamp = clamp(colclamp, 0.0f, 1.0f);
+    //colclamp = clamp(colclamp, 0.0f, 1.0f);
 
 
     float3 final_col = mad(colclamp, diffuse_sum, specular_sum * (1.f - reflected_surface_colour));
+
+    //final_col = pow(final_col, 1.f/2.2f);
 
     //#define OUTLINE
     #ifdef OUTLINE
