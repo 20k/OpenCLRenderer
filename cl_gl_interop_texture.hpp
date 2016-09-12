@@ -166,6 +166,8 @@ struct cl_gl_interop_texture
 
         glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, target);
 
+        glDrawBuffer(GL_BACK);
+
         int dest_w = w;
         int dest_h = h;
 
