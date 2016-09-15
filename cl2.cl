@@ -1399,18 +1399,12 @@ int ret_cubeface(float3 point, float3 light)
 
     if(arel.x >= arel.y && arel.x >= arel.z)
     {
-        if(rel.x < 0)
-            return 4;
-
-        return 5;
+        return rel.x < 0 ? 4 : 5;
     }
 
     if(arel.y > arel.x && arel.y >= arel.z)
     {
-        if(rel.y < 0)
-            return 1;
-
-        return 3;
+        return rel.y < 0 ? 1 : 3;
     }
 
     if(arel.z > arel.x && arel.z > arel.y)
