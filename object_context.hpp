@@ -102,6 +102,7 @@ struct object_context_data
     cl_float4 g_clear_col = (cl_float4){0};
 
     cl_uint* cpu_id_num = nullptr;
+    cl_uint current_cpu_id_num = 0;
 
     //int dbuf = 0;
     //int sbuf = 0;
@@ -132,6 +133,7 @@ struct object_context_data
 
     void ensure_screen_buffers(int _w, int _h, bool force = false);
     void swap_buffers();
+    void update_cpu_id_num();
 };
 
 struct object_temporaries

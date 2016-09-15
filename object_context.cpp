@@ -7,6 +7,15 @@
 
 std::map<std::string, objects_container> object_cache;
 
+void object_context_data::update_cpu_id_num()
+{
+    cl_uint backup = *cpu_id_num;
+
+    cl_uint curr = (std::max(backup, current_cpu_id_num) + current_cpu_id_num) / 2;
+
+    current_cpu_id_num = curr;
+}
+
 void object_context_data::swap_buffers()
 {
     //nbuf = (nbuf + 1) % 2;
