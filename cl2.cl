@@ -1414,62 +1414,6 @@ int ret_cubeface(float3 point, float3 light)
     }
 
     return 0;
-
-    /*float3 r_pl = point - light;
-
-    float angle = atan2(r_pl.y, r_pl.x);
-
-    angle = angle + M_PI/4.0f;
-
-    if(angle < 0)
-    {
-        angle = 2.f*M_PI - fabs(angle);
-    }
-
-    float angle2 = atan2(r_pl.y, r_pl.z);
-
-    angle2 = angle2 + M_PI/4.0f;
-
-    if(angle2 < 0)
-    {
-        angle2 = 2.f*M_PI - fabs(angle2);
-    }
-
-    if(angle >= M_PI/2.0f && angle < M_PI && angle2 >= M_PI/2.0f && angle2 < M_PI)
-    {
-        return 3;
-    }
-
-    else if(angle <= 2.0f*M_PI && angle > 3.0f*M_PI/2.0f && angle2 <= 2.0f*M_PI && angle2 > 3.0f*M_PI/2.0f)
-    {
-        return 1;
-    }
-
-    float zangle = atan2(r_pl.z, r_pl.x);
-
-    zangle = zangle + M_PI/4.0f;
-
-    if(zangle < 0)
-    {
-        zangle = 2.f*M_PI - fabs(zangle);
-    }
-
-    if(zangle < M_PI/2.0f)
-    {
-        return 5;
-    }
-
-    else if(zangle >= M_PI/2.0f && zangle < M_PI)
-    {
-        return 0;
-    }
-
-    else if(zangle >= M_PI && zangle < 3*M_PI/2.0f)
-    {
-        return 4;
-    }
-
-    return 2;*/
 }
 
 __kernel
@@ -5122,12 +5066,12 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
 
         float occlusion = 1;
 
-        int which_cubeface;
-
         ///ambient wont work correctly in shadows atm
         ///something is wrong with lips of vertices over shadowed areas
-        if(l.shadow == 1 && ((which_cubeface = ret_cubeface(global_position, lpos))!=-1)) ///do shadow bits and bobs
+        if(l.shadow == 1) ///do shadow bits and bobs
         {
+            int which_cubeface = ret_cubeface(global_position, lpos);
+
             ///gets pixel occlusion. Is not smooth
             occlusion = 1.f - generate_hard_occlusion((float2){x, y}, lpos, normal, l2c, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory?
 
