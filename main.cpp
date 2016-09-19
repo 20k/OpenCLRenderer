@@ -1,4 +1,5 @@
 #include "proj.hpp"
+#include "camera_effects.hpp"
 
 ///todo eventually
 ///split into dynamic and static objects
@@ -173,6 +174,9 @@ int main(int argc, char *argv[])
 
     float avg_ftime = 6000;
 
+    screenshake_effect screenshake_test;
+    screenshake_test.init(2000.f, 1.f, 1.f);
+
     ///use event callbacks for rendering to make blitting to the screen and refresh
     ///asynchronous to actual bits n bobs
     ///clSetEventCallback
@@ -238,6 +242,18 @@ int main(int argc, char *argv[])
 
         if(key.isKeyPressed(sf::Keyboard::Comma))
             std::cout << avg_ftime << std::endl;
+
+        if(key.isKeyPressed(sf::Keyboard::Num1))
+            screenshake_test.init(200.f, 1.0f, 1.f);
+
+
+        screenshake_test.tick(window.get_frametime_ms(), window.c_pos, window.c_rot);
+
+        vec3f offset = screenshake_test.get_offset();
+
+        window.c_pos.x += offset.v[0];
+        window.c_pos.y += offset.v[1];
+        window.c_pos.z += offset.v[2];
 
         //std::cout << load_time.getElapsedTime().asMilliseconds() << std::endl;
 
