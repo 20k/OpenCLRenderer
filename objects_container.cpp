@@ -311,7 +311,7 @@ void objects_container::call_obj_vis_load(cl_float4 pos)
     }
 }
 
-void objects_container::g_flush_objects(object_context_data& dat, bool force)
+void objects_container::g_flush_objects(object_context& dat, bool force)
 {
     //int tid = get_object_by_id(id);
 

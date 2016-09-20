@@ -124,7 +124,7 @@ struct objects_container
     cl_float4 get_centre();
 
 
-    void    g_flush_objects(object_context_data& dat, bool force = false); ///calls g_flush for all objects
+    void    g_flush_objects(object_context& dat, bool force = false); ///calls g_flush for all objects
 
     static int get_object_by_id(int);
 

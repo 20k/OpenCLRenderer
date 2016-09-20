@@ -744,11 +744,6 @@ object_context_data* object_context::fetch()
     return &gpu_dat;
 }
 
-object_context_data* object_context::get_current_gpu()
-{
-    return &gpu_dat;
-}
-
 void object_context::set_clear_colour(const cl_float4& col)
 {
     gpu_dat.g_clear_col = col;
@@ -758,7 +753,7 @@ void object_context::flush_locations(bool force)
 {
     for(auto& i : containers)
     {
-        i->g_flush_objects(gpu_dat, force);
+        i->g_flush_objects(*this, force);
     }
 
     if(force && containers.size() > 0)

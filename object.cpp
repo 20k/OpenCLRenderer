@@ -549,9 +549,11 @@ bool dynamic_cache(T& data, cache<T>& c, bool force, bool context_switched, int 
 ///if scene updated behind objects back will not work
 ///this is now called every frame
 ///yay!
-void object::g_flush(object_context_data& dat, bool force)
+void object::g_flush(object_context& cpu_dat, bool force)
 {
     cl_rot_quat = conv_implicit<cl_float4>(rot_quat);
+
+    object_context_data& dat = *cpu_dat.fetch();
 
     if(!gpu_writable)
         return;
@@ -561,6 +563,7 @@ void object::g_flush(object_context_data& dat, bool force)
 
     if(!dat.gpu_data_finished)
         return;
+
 
     int data_id = dat.id;
 
@@ -595,7 +598,12 @@ void object::g_flush(object_context_data& dat, bool force)
 
     cl_event event;
 
+    cl_uint ltid = cpu_dat.tex_ctx.get_gpu_position_id(tid);
+
     bool write = dynamic_cache<float, offsetof(obj_g_descriptor, scale)>(dynamic_scale, scale_cache, force_flush, context_switched, object_g_id, dat, &event);
+
+    if(ltid != -1)
+        write |= dynamic_cache<cl_uint, offsetof(obj_g_descriptor, tid)>(ltid, tid_cache, force_flush, context_switched, object_g_id, dat, &event);
 
     if(write)
     {

@@ -72,6 +72,7 @@ struct object
     cl_uint two_sided;
 
     cache<float> scale_cache;
+    cache<cl_uint> tid_cache{UINT_MAX};
 
     std::vector<cl_event> write_events;
 
@@ -115,7 +116,7 @@ struct object
     void try_load(cl_float4); ///try and get the object, dependent on its visibility
     ///unused, probably removing visibility system due to complete infeasibility of automatic object loading based on anything useful
 
-    void g_flush(object_context_data& dat, bool force = false); ///flush position (currently just) etc to gpu memory
+    void g_flush(object_context& cpu_dat, bool force = false); ///flush position (currently just) etc to gpu memory
 
     void set_buffer_offset(int offset);
 
