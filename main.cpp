@@ -243,6 +243,7 @@ int main(int argc, char *argv[])
         if(key.isKeyPressed(sf::Keyboard::Comma))
             std::cout << avg_ftime << std::endl;
 
+        ///chiv = low frequency, high shake
         if(key.isKeyPressed(sf::Keyboard::Num1))
             screenshake_test.init(200.f, 1.0f, 1.f);
 

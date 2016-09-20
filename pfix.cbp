@@ -68,6 +68,8 @@
 			<Add option="-lopenal32" />
 			<Add option="-logg" />
 		</Linker>
+		<Unit filename="camera_effects.cpp" />
+		<Unit filename="camera_effects.hpp" />
 		<Unit filename="cl2.cl" />
 		<Unit filename="cl_gl_interop_texture.cpp" />
 		<Unit filename="cl_gl_interop_texture.hpp" />
