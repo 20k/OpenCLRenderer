@@ -382,8 +382,6 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
 
                 if(tri_size >= arbitrary_small_bound)
                 {
-                    cl_event ev = events.back().get();
-
                     arg_list fargs;
                     fargs.push_back(&dat.g_tri_mem);
                     fargs.push_back(&obj_id);
