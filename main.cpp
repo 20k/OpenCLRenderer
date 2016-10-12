@@ -17,6 +17,16 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
 ///7ish pre tile deferred
 ///try first bounce in SS, then go to global if fail
 ///Ok, we have to experiment with realtime shadows now
+///what we need is a generic viewport system
+///this way we could single pass rendering all shadows and transparency and also regular rendering
+///itd be pretty great and hopefully faster, but would put pressure on cutdown_tri size and fragments. Eliminate me?
+///major problem: how to deal with irregular height*width problem
+/**
+struct viewport
+{
+    int width, int height, float FOV_CONST, vec3f camera_pos, vec3f camera_rot
+}
+*/
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");

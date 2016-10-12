@@ -423,6 +423,8 @@ extern std::unordered_map<std::string, std::map<int, const void*>> kernel_map;
 inline
 compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint local_ws[], const int dimensions, const arg_list& argv, bool args = true, compute::command_queue& cqueue = cl::cqueue, bool debug = false, const std::vector<compute::event>& events = std::vector<compute::event>())
 {
+    //std::cout << kernel.name << std::endl;
+
     program_ensure_built();
 
     size_t g_ws[dimensions];

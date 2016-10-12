@@ -1,5 +1,5 @@
 #include "game_manager.hpp"
-#include "../obj_mem_manager.hpp"
+//#include "../obj_mem_manager.hpp"
 #include <cstdlib>
 
 game_object* game_manager::spawn_ship()
@@ -39,7 +39,7 @@ void game_manager::spawn_encounter(cl_float4 base_position)
     for(int i=0; i<num; i++)
         ships[i] = game_manager::spawn_ship();
 
-    obj_mem_manager::load_active_objects(); ///sigh
+    //obj_mem_manager::load_active_objects(); ///sigh
 
     float height_variation = 400;
 
@@ -54,6 +54,6 @@ void game_manager::spawn_encounter(cl_float4 base_position)
 
     //batch++;
 
-    obj_mem_manager::g_arrange_mem(); ///hitler
-    obj_mem_manager::g_changeover();
+    //obj_mem_manager::g_arrange_mem(); ///hitler
+    //obj_mem_manager::g_changeover();
 }

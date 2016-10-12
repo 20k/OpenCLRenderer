@@ -1076,7 +1076,7 @@ void render_async(cl_event event, cl_int event_command_exec_status, void *user_d
 
     if(eng.render_events_num < 0)
     {
-        lg::log("what");
+        //lg::log("what");
         eng.render_events_num = 0;
     }
 
@@ -1094,8 +1094,8 @@ void render_async_reproject(cl_event event, cl_int event_command_exec_status, vo
 
     eng.render_events_num--;
 
-    if(eng.render_events_num < 0)
-        lg::log("what");
+    //if(eng.render_events_num < 0)
+    //    lg::log("what");
 
     eng.current_frametype = frametype::REPROJECT;
 }

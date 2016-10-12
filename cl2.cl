@@ -26,6 +26,8 @@
 
 #undef supports_3d_writes
 
+#define LEAP
+
 //#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
 struct interp_container;
@@ -9715,6 +9717,57 @@ void accumulate_to_buffer(__global intconv* buf, int x, int y, float4 val)
     atomic_add(&buf[y*SCREENWIDTH + x].m_ints[0], uval.x);
     atomic_add(&buf[y*SCREENWIDTH + x].m_ints[1], uval.y);
     atomic_add(&buf[y*SCREENWIDTH + x].m_ints[2], uval.z);
+}
+
+__kernel void point_cloud(__global uint* num, __global float4* positions, __global uint* colours, float4 c_pos, float4 c_rot, __write_only image2d_t screen)
+{
+    int id = get_global_id(0);
+
+    uint pid = get_global_id(0);
+
+    if(pid > *num)
+        return;
+
+
+    float3 position = positions[pid].xyz;
+    uint colour = colours[pid];
+
+    float3 camera_pos = c_pos.xyz;
+    float3 camera_rot = c_rot.xyz;
+
+    float3 postrotate = rot(position, camera_pos, camera_rot);
+
+    float3 projected = depth_project_singular(postrotate, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+    float depth = projected.z;
+
+    if(projected.x < 0 || projected.x >= SCREENWIDTH || projected.y < 0 || projected.y >= SCREENHEIGHT)
+        return;
+
+    if(depth < 1)// || depth > depth_far)
+        return;
+
+    float tdepth = depth >= depth_far ? depth_far-1 : depth;
+
+    uint idepth = dcalc(tdepth)*mulint;
+
+    int x, y;
+    x = projected.x;
+    y = projected.y;
+
+
+    float final_modifier = 1.f;
+
+
+    float4 rgba = {colour >> 24, (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF};
+
+    rgba /= 255.0f;
+
+    write_imagef(screen, (int2){x, y}, rgba);
+    write_imagef(screen, (int2){x+1, y}, rgba);
+    write_imagef(screen, (int2){x-1, y}, rgba);
+    write_imagef(screen, (int2){x, y+1}, rgba);
+    write_imagef(screen, (int2){x, y-1}, rgba);
 }
 
 #if 0
