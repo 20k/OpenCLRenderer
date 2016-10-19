@@ -96,6 +96,7 @@ struct obj_g_descriptor
     float diffuse;
     uint two_sided;
     int buffer_offset; ///0 == first buffer, 1 == second etc
+    uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
 };
 
 
@@ -122,6 +123,15 @@ void set_tri_vertex(__global struct triangle* T, int i, float3 pos)
     T->vertices[i].x = pos.x;
     T->vertices[i].y = pos.y;
     T->vertices[i].z = pos.z;
+}
+
+float3 reflect(float3 d, float3 n)
+{
+    n = fast_normalize(n);
+
+    float3 r = d - 2 * dot(d, n) * n;
+
+    return r;
 }
 
 /*float calc_third_areas_i(float x1, float x2, float x3, float y1, float y2, float y3, float x, float y)
@@ -426,6 +436,11 @@ void calc_min_max_oc(float3 points[3], float mx, float my, float width, float he
     ret[1] = clamp(ret[1], mx, width-1);
     ret[2] = clamp(ret[2], my, height-1);
     ret[3] = clamp(ret[3], my, height-1);
+}
+
+float3 get_flat_normal(float3 p0, float3 p1, float3 p2)
+{
+    return cross(p1-p0, p2-p0);
 }
 
 ///small holes are not this fault
@@ -1544,7 +1559,6 @@ void screenspace_godrays(__global uint* depth_buffer, __read_only image2d_t scre
 
     write_imagef(screen_out, (int2){x, y}, my_col * exposure);
 }
-
 
 uint wang_hash(uint seed)
 {
@@ -4734,7 +4748,7 @@ __kernel
 __attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
 //__attribute__((vec_type_hint(float3)))
 void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old, __global uint* depth_buffer, __read_only image2d_t id_buffer,
-           image_3d_read array, __write_only image2d_t screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
+           image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            float4 screen_clear_colour, uint frame_id
            )
@@ -5233,7 +5247,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     //final_col.xy = clamp(fabs(vt), 0.f, 1.f);
     //final_col.z = 0;
 
+    ///duplicating the screen so we can have kernels read/write without breaking everything
     write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
+    write_imagef(backup_screen, scoord, (float4)(final_col.xyz, 1.f));
 
     //write_imagef(screen, scoord, final_col.xyzz);
     //write_imagef(screen, scoord, fabs(normal.xyzz));
@@ -5647,6 +5663,155 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
         accum /= fcount;
 
     write_imagef(back_screen, (int2){x, y}, accum);
+}
+
+__kernel
+void screenspace_reflections(__global struct triangle *triangles, __read_only AUTOMATIC(image2d_t, id_buffer),
+                             __global AUTOMATIC(uint*, fragment_id_buffer),
+                  __read_only image2d_t in_screen, __write_only image2d_t back_screen,
+                  __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer),
+                    __global AUTOMATIC(struct obj_g_descriptor*, object_descriptors), uint frame_id,
+                    float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE            |
+                    CLK_FILTER_NEAREST;
+
+    sampler_t sam_screen =  CLK_NORMALIZED_COORDS_FALSE |
+                            CLK_ADDRESS_NONE            |
+                            CLK_FILTER_LINEAR;
+
+    uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
+
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
+    uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
+
+    /*float3 tris_proj_n[3];
+
+    tris_proj_n[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj_n[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj_n[2] = cutdown_tris[ctri*3 + 2].xyz;*/
+
+    __global struct obj_g_descriptor *G = &object_descriptors[o_id];
+
+    uint dbuf_val = depth_buffer[y*SCREENWIDTH + x];
+
+    if(dbuf_val == mulint)
+    {
+        write_imagef(back_screen, (int2){x, y}, 0.f);
+        return;
+    }
+
+    if(!G->is_ss_reflective)
+        return;
+
+    __global struct triangle* T = &triangles[tri_global];
+
+
+    float ldepth = idcalc((float)dbuf_val/mulint);
+
+    float actual_depth = ldepth;
+
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*actual_depth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*actual_depth/FOV_CONST), actual_depth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, c_rot.xyz);
+
+    global_position += c_pos.xyz;
+
+    ///so we start at global position, and step until we hit something, we need to reflect ray_dir in the normal of the surface
+
+    float3 ray_dir = global_position - c_pos.xyz;
+    float3 ray_start = global_position;
+
+    //float3 flat_normal = get_flat_normal(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2]);
+
+    float3 p1 = vertex_pos(T->vertices[0]);
+    float3 p2 = vertex_pos(T->vertices[1]);
+    float3 p3 = vertex_pos(T->vertices[2]);
+
+    float3 flat_normal = get_flat_normal(p1, p2, p3);
+
+    ///flat normals are incorrect
+    float3 reflected = reflect(ray_dir, flat_normal);
+
+    ray_start = ray_start + fast_normalize(reflected) * 10.f;
+
+    float3 ray_step = fast_normalize(reflected) * 5.f;
+    float3 ray_current = ray_start;
+
+    int max_steps = 100;
+
+    float3 fcol = 0;
+    bool found = false;
+
+    for(int i=0; i<max_steps; i++)
+    {
+        float3 rpos = rot(ray_current, c_pos.xyz, c_rot.xyz);
+
+        float3 spos = depth_project_singular(rpos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+        int2 xy = convert_int2(spos.xy);
+
+        if(xy.x < 0 || xy.x >= SCREENWIDTH || xy.y < 0 || xy.y >= SCREENHEIGHT)
+            return;
+
+        uint current_dbuf = depth_buffer[xy.y * SCREENWIDTH + xy.x];
+
+        float current_depth = idcalc((float)current_dbuf/mulint);
+
+        //if(current_dbuf < dbuf_val)
+        if(current_depth < rpos.z)
+        {
+            found = true;
+            fcol = read_imagef(in_screen, sam, xy).xyz;
+            break;
+        }
+
+        ray_current = ray_current + ray_step;
+    }
+
+    if(!found)
+        return;
+
+    float3 ccol = read_imagef(in_screen, sam, (int2){x, y}).xyz;
+
+    if(found)
+    {
+        ccol = (ccol + fcol) / 2.f;
+
+        write_imagef(back_screen, (int2){x, y}, (float4)(ccol.xyz, 1.f));
+    }
+
+    /*float3 local_forward = {(x - SCREENWIDTH/2.f)*1.f/FOV_CONST, (y - SCREENWIDTH/2.f)*1.f/FOV_CONST, 1.f};
+    float3 global_forward = back_rot(local_forward, 0, c_rot.xyz);
+
+    global_forward += c_pos.xyz;
+
+    ///do the dumb 3d method first, then lets recode to the above godray 2d method
+    float3 ray_dir = global_forward - c_pos.xyz;
+    float3 ray_start = c_pos.xyz;
+
+    float3 ray_current = ray_start;
+
+    int max_steps = 100;
+    float step_length = 1.f;
+
+    for(int i=0; i<max_steps; i++)
+    {
+        float3 rpos = rot(ray_current, c_pos.xyz, c_rot.xyz);
+
+        float3 spos = depth_project_singular(rpos, SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
+
+        ray_current = ray_current + ray_dir;
+    }*/
 }
 
 ///use atomics to be able to reproject forwards, not backwards

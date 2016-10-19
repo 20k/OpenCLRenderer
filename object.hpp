@@ -70,6 +70,7 @@ struct object
     float spec_mult;
     float diffuse;
     cl_uint two_sided;
+    cl_uint is_ss_reflective;
 
     cache<float> scale_cache;
     cache<cl_uint> tid_cache{UINT_MAX};
@@ -89,6 +90,7 @@ struct object
     void set_rot(cl_float4);
     void set_rot_quat(quaternion);
     void set_dynamic_scale(float _scale);
+    void set_ss_reflective(int is_reflective);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();

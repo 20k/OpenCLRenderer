@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
     context.load_active();
 
     sponza->set_specular(0.f);
+    sponza->set_ss_reflective(true);
     context.build(true);
 
 
@@ -213,6 +214,8 @@ int main(int argc, char *argv[])
             event = window.do_pseudo_aa();
 
             event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
+
+            event = window.draw_screenspace_reflections(*context.fetch());
 
             //event = window.draw_godrays(*context.fetch());
 

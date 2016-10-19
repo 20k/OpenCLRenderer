@@ -55,6 +55,8 @@ object::object() : tri_list(0)
     unique_id = gid++;
 
     gpu_writable = false;
+
+    is_ss_reflective = 0;
 }
 
 object::~object()
@@ -101,6 +103,11 @@ void object::set_rot_quat(quaternion q)
 void object::set_dynamic_scale(float _scale)
 {
     dynamic_scale = _scale;
+}
+
+void object::set_ss_reflective(int is_reflective)
+{
+    is_ss_reflective = is_reflective;
 }
 
 void object::offset_pos(cl_float4 _offset)

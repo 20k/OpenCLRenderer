@@ -27,6 +27,7 @@ struct obj_g_descriptor
     cl_float diffuse;
     cl_uint two_sided;
     cl_int buffer_offset;
+    cl_uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
     ///add in a type here for shaders?
 };
 

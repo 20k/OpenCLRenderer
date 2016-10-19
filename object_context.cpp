@@ -274,6 +274,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             desc.diffuse = it.diffuse;
             desc.two_sided = it.two_sided;
             desc.buffer_offset = it.buffer_offset;
+            desc.is_ss_reflective = it.is_ss_reflective;
 
 
             store.gpu_tri_start = triangle_count;

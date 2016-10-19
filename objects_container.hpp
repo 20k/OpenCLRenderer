@@ -64,6 +64,7 @@ struct objects_container
     void    set_rot(cl_float4);
     void    set_rot_quat(quaternion);
     void    set_dynamic_scale(float _scale);
+    void    set_ss_reflective(int is_reflective);
     void    update_subobjs();
     void    offset_pos(cl_float4);
     void    set_file(const std::string&);

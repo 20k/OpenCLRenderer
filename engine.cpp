@@ -1123,6 +1123,25 @@ compute::event engine::draw_godrays(object_context_data& dat)
     return run_kernel_with_string("screenspace_godrays", {width, height}, {16, 16}, 2, args);
 }
 
+compute::event engine::draw_screenspace_reflections(object_context_data& dat)
+{
+    dat.ensure_screen_buffers(width, height);
+
+    arg_list reflection_args;
+    reflection_args.push_back(&dat.g_tri_mem);
+    reflection_args.push_back(&dat.gl_screen[1].get());
+    reflection_args.push_back(&dat.gl_screen[0].get());
+    reflection_args.push_back(&dat.frame_id);
+    reflection_args.push_back(&c_pos);
+    reflection_args.push_back(&c_rot);
+    reflection_args.push_back(&dat.c_pos_old);
+    reflection_args.push_back(&dat.c_rot_old);
+    //reflection_args.push_back(&strength);
+    //reflection_args.push_back(&camera_contribution);
+
+    return run_kernel_with_string("screenspace_reflections", {width, height}, {16, 16}, 2, reflection_args);
+}
+
 compute::event engine::do_pseudo_aa()
 {
     return run_kernel_full_auto("do_pseudo_aa", {width, height}, {8, 8});
@@ -1444,6 +1463,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&dat.g_id_screen_tex);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_array);
     p3arg_list.push_back(g_screen_out.get_ptr());
+    p3arg_list.push_back(dat.gl_screen[1].get_ptr());
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_nums);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_sizes);
     p3arg_list.push_back(&dat.g_obj_desc);

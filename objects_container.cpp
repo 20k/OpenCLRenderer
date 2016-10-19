@@ -94,6 +94,14 @@ void objects_container::set_dynamic_scale(float _scale)
     }
 }
 
+void objects_container::set_ss_reflective(int is_reflective)
+{
+    for(auto& i : objs)
+    {
+        i.set_ss_reflective(is_reflective);
+    }
+}
+
 void objects_container::update_subobjs()
 {
     for(unsigned int i=0; i<objs.size(); i++)
