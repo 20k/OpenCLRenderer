@@ -1150,7 +1150,7 @@ compute::event engine::do_pseudo_aa()
 compute::event engine::do_motion_blur(object_context_data& dat, cl_float strength, cl_float camera_contribution)
 {
     arg_list motion_args;
-    motion_args.push_back(&dat.gl_screen[0].get());
+    motion_args.push_back(&dat.gl_screen[1].get());
     motion_args.push_back(&dat.gl_screen[0].get());
     motion_args.push_back(&dat.frame_id);
     motion_args.push_back(&c_pos);
