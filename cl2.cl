@@ -5684,6 +5684,22 @@ float3 interpolate_single_line_depth(float3 start, float3 finish, float a)
     return ret;
 }
 
+float interpolate_depth_buffer(float2 pos, __global uint* depth_buffer)
+{
+    int2 b = convert_int2(pos);
+
+    float vals[4];
+
+    vals[0] = idcalc((float)depth_buffer[b.y * SCREENWIDTH + b.x] / mulint);
+    vals[1] = idcalc((float)depth_buffer[b.y * SCREENWIDTH + b.x + 1] / mulint);
+    vals[2] = idcalc((float)depth_buffer[(b.y+1) * SCREENWIDTH + b.x] / mulint);
+    vals[3] = idcalc((float)depth_buffer[(b.y+1) * SCREENWIDTH + b.x + 1] / mulint);
+
+    float res = bilinear_interpolate(pos, vals);
+
+    return res;
+}
+
 __kernel
 void screenspace_reflections(__global struct triangle *triangles, __read_only AUTOMATIC(image2d_t, id_buffer),
                              __global AUTOMATIC(uint*, fragment_id_buffer),
@@ -5780,7 +5796,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     reflected = fast_normalize(reflected);
 
-    float3 jittered = global_position + reflected * 2.5;
+    float3 jittered = global_position + reflected * 2.5f;
 
     float3 sspace_jittered = depth_project_singular(rot(jittered, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
     float3 sspace = depth_project_singular(rot(global_position, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
@@ -5802,8 +5818,8 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 vstart = vcurrent;
     float3 vprev = sspace;
 
+
     bool found = false;
-    float3 fcol = 0;
 
     int n = 200;
 
@@ -5820,8 +5836,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         float current_depth = idcalc((float)current_dbuf/mulint);
 
-        if(current_depth < depth_icutoff)
-            continue;
+        ///cannot ever be true
+        //if(current_depth < depth_icutoff)
+        //    continue;
 
         //float line_depth = interpolate_single_line_depth(vprev, vcurrent, a);
 
@@ -5832,7 +5849,6 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         if(current_depth < line_depth - 10.f)//vcurrent.z - 10.f)
         {
             found = true;
-            fcol = read_imagef(in_screen, sam, vci).xyz;
             break;
         }
 
@@ -5844,6 +5860,62 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     if(!found)
         return;
+
+    ///we can normalize vstart with vprev to fix stuff
+    uint seed1 = wang_hash(x + y*SCREENWIDTH*SCREENHEIGHT);
+    uint seed2 = rand_xorshift(seed1);
+    uint seed3 = rand_xorshift(seed2);
+    uint seed4 = rand_xorshift(seed3);
+
+    float f1 = (float)seed2 / pow(2.f,32.f);
+    float f2 = (float)seed3 / pow(2.f,32.f);
+    float f3 = (float)seed4 / pow(2.f,32.f);
+
+    float3 rseed = (float3){f1, f2, f3};
+    rseed = (rseed - 0.5f) * 2;
+
+
+    int bsearch_num = 2;
+
+    float upper_a = a + 0.1f;
+    float lower_a = a-1.1f;
+
+    float test_a;// = (upper_a + lower_a) / 2.f;
+    float last_valid_a = upper_a;
+
+    float3 vfound = vcurrent;
+    float2 vlast_valid = vcurrent.xy;
+
+    for(int i=0; i<bsearch_num; i++)
+    {
+        test_a = (upper_a + lower_a) / 2.f;
+
+        vfound = interpolate_single_line_depth(vprev, vstart, test_a);
+
+        int2 vci = convert_int2(vcurrent.xy);
+
+        uint current_dbuf = depth_buffer[vci.y * SCREENWIDTH + vci.x];
+        float current_depth = idcalc((float)current_dbuf/mulint);
+
+        //float current_depth = interpolate_depth_buffer(vcurrent.xy, depth_buffer);
+
+        float line_depth = vfound.z;
+
+        if(current_depth < line_depth - 10.f)
+        {
+            last_valid_a = test_a;
+            vlast_valid = vfound.xy;
+            upper_a = test_a;
+        }
+        else
+        {
+            lower_a = test_a;
+        }
+    }
+
+    //printf("pre post a %f %f\n", a, last_valid_a);
+
+    float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy + rseed.xy / 2.f).xyz;
 
     float3 ccol = read_imagef(in_screen, sam, (int2){x, y}).xyz;
 
