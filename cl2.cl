@@ -5670,6 +5670,20 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
     write_imagef(back_screen, (int2){x, y}, accum);
 }
 
+float3 interpolate_single_line_depth(float3 start, float3 finish, float a)
+{
+    start.z = 1.f / start.z;
+    finish.z = 1.f / finish.z;
+
+    float ipz = start.z * (1.f - a) + finish.z * a;
+
+    float2 xy = start.xy * (1.f - a) + finish.xy * a;
+
+    float3 ret = (float3)(xy, 1.f / ipz);
+
+    return ret;
+}
+
 __kernel
 void screenspace_reflections(__global struct triangle *triangles, __read_only AUTOMATIC(image2d_t, id_buffer),
                              __global AUTOMATIC(uint*, fragment_id_buffer),
@@ -5766,26 +5780,34 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     reflected = fast_normalize(reflected);
 
-    float3 jittered = global_position + reflected * 10;
+    float3 jittered = global_position + reflected * 2.5;
 
     float3 sspace_jittered = depth_project_singular(rot(jittered, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
     float3 sspace = depth_project_singular(rot(global_position, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
     ///I need to investigate if this is actually correct
     ///Ok. XY is correct, z, is not. Barycentric stuff? Line equation?
+    ///just 1/z me?
     float3 sspace_dir = sspace_jittered - sspace;
 
     float fd = max(fabs(sspace_dir.x), fabs(sspace_dir.y)) + 1;
 
     sspace_dir = sspace_dir / fd;
 
+    //sspace_dir.z = 1.f / sspace_dir.z;
+
+    //sspace_jittered.z = 1.f / sspace_jittered.z;
 
     float3 vcurrent = sspace_jittered;
+    float3 vstart = vcurrent;
+    float3 vprev = sspace;
 
     bool found = false;
     float3 fcol = 0;
 
     int n = 200;
+
+    float a = 1.f;
 
     for(int i=0; i<n; i++)
     {
@@ -5801,16 +5823,23 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         if(current_depth < depth_icutoff)
             continue;
 
+        //float line_depth = interpolate_single_line_depth(vprev, vcurrent, a);
+
+        float line_depth = vcurrent.z;
+
         ///need to find current ray z position given xy
 
-        if(current_depth < vcurrent.z - 10.f)
+        if(current_depth < line_depth - 10.f)//vcurrent.z - 10.f)
         {
             found = true;
             fcol = read_imagef(in_screen, sam, vci).xyz;
             break;
         }
 
-        vcurrent += sspace_dir * 8;
+        a += 1.f;
+
+        vcurrent = interpolate_single_line_depth(vprev, vstart, a);
+        //vcurrent += sspace_dir * 8;
     }
 
     if(!found)
