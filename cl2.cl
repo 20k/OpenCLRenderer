@@ -5789,7 +5789,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 flat_normal = get_flat_normal(p1, p2, p3);
 
     ///the sponza has weird normals
-    normal = flat_normal;
+    //normal = flat_normal;
 
     ///flat normals are incorrect
     float3 reflected = reflect(ray_dir, normal);
@@ -5846,7 +5846,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        if(current_depth < line_depth - 10.f)//vcurrent.z - 10.f)
+        if(current_depth < line_depth - 1.f)//vcurrent.z - 10.f)
         {
             found = true;
             break;
@@ -5886,6 +5886,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 vfound = vcurrent;
     float2 vlast_valid = vcurrent.xy;
 
+
     for(int i=0; i<bsearch_num; i++)
     {
         test_a = (upper_a + lower_a) / 2.f;
@@ -5901,7 +5902,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         float line_depth = vfound.z;
 
-        if(current_depth < line_depth - 10.f)
+        if(current_depth < line_depth - 1.f)
         {
             last_valid_a = test_a;
             vlast_valid = vfound.xy;
@@ -5913,13 +5914,27 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         }
     }
 
+    float ray_len = last_valid_a * fast_length(jittered - global_position);
+
+    float contact_len = 20.f;
+
+    float contact_fade = 1.f - (ray_len / contact_len);
+
+    float max_reflection_contribution = 1.f;
+    contact_fade = clamp(contact_fade, 0.f, 1.f);
+    ///0 = no reflect, 1 = lots
+
     //printf("pre post a %f %f\n", a, last_valid_a);
 
     float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy + rseed.xy / 2.f).xyz;
 
     float3 ccol = read_imagef(in_screen, sam, (int2){x, y}).xyz;
 
-    ccol = (ccol + fcol) / 2.f;
+    //ccol = (ccol + fcol) / 2.f;
+
+    float3 contact_col = fcol * (1.f - contact_fade);
+
+    ccol = (ccol + contact_col) / (1 * (1.f - contact_fade));
 
     write_imagef(back_screen, (int2){x, y}, (float4)(ccol.xyz, 1.f));
 
