@@ -5818,6 +5818,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 vstart = vcurrent;
     float3 vprev = sspace;
 
+    ///we can probably optimise by terminating if the ray travels more than contact_len, particularly in terms of a
+    ///as worked out in the contact hardening section
+    float contact_len = 300.f;
 
     bool found = false;
 
@@ -5884,8 +5887,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float last_valid_a = upper_a;
 
     float3 vfound = vcurrent;
-    float2 vlast_valid = vcurrent.xy;
-
+    float3 vlast_valid = vcurrent;
 
     for(int i=0; i<bsearch_num; i++)
     {
@@ -5905,7 +5907,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         if(current_depth < line_depth - 1.f)
         {
             last_valid_a = test_a;
-            vlast_valid = vfound.xy;
+            vlast_valid = vfound;
             upper_a = test_a;
         }
         else
@@ -5914,9 +5916,15 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         }
     }
 
-    float ray_len = last_valid_a * fast_length(jittered - global_position);
+    float3 global_last = {(vlast_valid.x - SCREENWIDTH/2.f) * vlast_valid.z / FOV_CONST, (vlast_valid.y - SCREENHEIGHT/2.f) * vlast_valid.z / FOV_CONST, vlast_valid.z};
 
-    float contact_len = 20.f;
+    global_last = back_rot(global_last, 0.f, c_rot.xyz);
+
+    global_last += c_pos.xyz;
+
+    //float ray_len = last_valid_a * fast_length(jittered - global_position);
+
+    float ray_len = fast_length(global_last - global_position);
 
     float contact_fade = 1.f - (ray_len / contact_len);
 
@@ -5926,15 +5934,16 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     //printf("pre post a %f %f\n", a, last_valid_a);
 
-    float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy + rseed.xy / 2.f).xyz;
+    float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy).xyz;
+    //float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy + rseed.xy / 2.f).xyz;
 
     float3 ccol = read_imagef(in_screen, sam, (int2){x, y}).xyz;
 
     //ccol = (ccol + fcol) / 2.f;
 
-    float3 contact_col = fcol * (1.f - contact_fade);
+    float3 contact_col = fcol * (contact_fade);
 
-    ccol = (ccol + contact_col) / (1 * (1.f - contact_fade));
+    ccol = (ccol + contact_col) / (1 + (contact_fade));
 
     write_imagef(back_screen, (int2){x, y}, (float4)(ccol.xyz, 1.f));
 
