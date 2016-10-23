@@ -5700,6 +5700,20 @@ float interpolate_depth_buffer(float2 pos, __global uint* depth_buffer)
     return res;
 }
 
+float3 unproject_single(float3 screen_pos, float3 c_pos, float3 c_rot)
+{
+    float3 unproject = (float3){(screen_pos.x - SCREENWIDTH/2.f) * screen_pos.z / FOV_CONST, (screen_pos.y - SCREENHEIGHT/2.f) * screen_pos.z / FOV_CONST, screen_pos.z};
+
+    float3 br = back_rot(unproject, 0.f, c_rot);
+
+    br += c_pos;
+
+    return br;
+}
+
+///ok. Heuristic the first
+///A ray can't start far away, and then bounce away, and hit something closer
+///ok so... if we have a ray dir r and position g, r dot g -> intersect > 90 degrees, not a hit
 __kernel
 void screenspace_reflections(__global struct triangle *triangles, __read_only AUTOMATIC(image2d_t, id_buffer),
                              __global AUTOMATIC(uint*, fragment_id_buffer),
@@ -5801,26 +5815,13 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 sspace_jittered = depth_project_singular(rot(jittered, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
     float3 sspace = depth_project_singular(rot(global_position, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
-    ///I need to investigate if this is actually correct
-    ///Ok. XY is correct, z, is not. Barycentric stuff? Line equation?
-    ///just 1/z me?
-    float3 sspace_dir = sspace_jittered - sspace;
-
-    float fd = max(fabs(sspace_dir.x), fabs(sspace_dir.y)) + 1;
-
-    sspace_dir = sspace_dir / fd;
-
-    //sspace_dir.z = 1.f / sspace_dir.z;
-
-    //sspace_jittered.z = 1.f / sspace_jittered.z;
-
     float3 vcurrent = sspace_jittered;
     float3 vstart = vcurrent;
     float3 vprev = sspace;
 
     ///we can probably optimise by terminating if the ray travels more than contact_len, particularly in terms of a
     ///as worked out in the contact hardening section
-    float contact_len = 300.f;
+    float contact_len = 400.f;
 
     bool found = false;
 
@@ -5849,8 +5850,20 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        if(current_depth < line_depth - 1.f)//vcurrent.z - 10.f)
+        bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - 40.f;
+
+        if(cond)//vcurrent.z - 10.f)
         {
+            /*float3 intersect = vcurrent;
+            intersect.z = current_depth;
+
+            float3 global_intersect = unproject_single(intersect, c_pos.xyz, c_rot.xyz);
+
+            float cangle = dot(fast_normalize(global_intersect - global_position), -fast_normalize(reflected));
+
+            if(cangle > 0)
+                continue;*/
+
             found = true;
             break;
         }
@@ -5858,7 +5871,6 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         a += 1.f;
 
         vcurrent = interpolate_single_line_depth(vprev, vstart, a);
-        //vcurrent += sspace_dir * 8;
     }
 
     if(!found)
