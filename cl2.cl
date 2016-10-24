@@ -5822,7 +5822,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     float bound = 10.f;
 
-    if(sdist > bound + 1.f || sdist < bound - 1.f)
+    //if(sdist > bound + 1.f || sdist < bound - 1.f)
     {
         float back_frac = sdist - bound;
 
@@ -5846,6 +5846,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 vstart = vcurrent;
     float3 vprev = sspace;
 
+    if(vcurrent.x < 0 || vcurrent.y < 0 || vcurrent.x >= SCREENWIDTH || vcurrent.y >= SCREENHEIGHT)
+        return;
+
     //if(x == 400 && y == 400)
     //    printf("%f %f\n", fast_length(vprev.xy - vstart.xy), sdist);
 
@@ -5859,6 +5862,12 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     float a = 1.f;
 
+    float last_depth = 0.f;
+
+    int2 vci = convert_int2(vcurrent.xy);
+    uint current_dbuf = depth_buffer[vci.y * SCREENWIDTH + vci.x];
+    last_depth = idcalc((float)current_dbuf/mulint);
+
     for(int i=0; i<n; i++)
     {
         if(vcurrent.x < 0 || vcurrent.y < 0 || vcurrent.x >= SCREENWIDTH || vcurrent.y >= SCREENHEIGHT)
@@ -5870,6 +5879,8 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         float current_depth = idcalc((float)current_dbuf/mulint);
 
+        //float current_depth = interpolate_depth_buffer(vcurrent.xy, depth_buffer);
+
         ///cannot ever be true
         //if(current_depth < depth_icutoff)
         //    continue;
@@ -5880,7 +5891,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        bool cond = current_depth < line_depth - 1.f;// && current_depth > line_depth - 40.f;
+        //bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - 40.f;
+
+        bool cond = (line_depth > current_depth + 1 && line_depth < last_depth - 1) || (line_depth < current_depth && line_depth > last_depth);// && last_depth < current_dbuf;
 
         if(cond)//vcurrent.z - 10.f)
         {
@@ -5901,11 +5914,14 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         a += 1.f;
 
         vcurrent = interpolate_single_line_depth(vprev, vstart, a);
+
+        last_depth = current_depth;
     }
 
     if(!found)
         return;
 
+    /*
     ///we can normalize vstart with vprev to fix stuff
     uint seed1 = wang_hash(x + y*SCREENWIDTH*SCREENHEIGHT);
     uint seed2 = rand_xorshift(seed1);
@@ -5917,10 +5933,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float f3 = (float)seed4 / pow(2.f,32.f);
 
     float3 rseed = (float3){f1, f2, f3};
-    rseed = (rseed - 0.5f) * 2;
+    rseed = (rseed - 0.5f) * 2;*/
 
-
-    int bsearch_num = 2;
+    int bsearch_num = 4;
 
     float upper_a = a + 0.1f;
     float lower_a = a-1.1f;
@@ -5940,13 +5955,13 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         int2 vci = convert_int2(vcurrent.xy);
 
         uint current_dbuf = depth_buffer[vci.y * SCREENWIDTH + vci.x];
-        float current_depth = idcalc((float)current_dbuf/mulint);
+        //float current_depth = idcalc((float)current_dbuf/mulint);
 
-        //float current_depth = interpolate_depth_buffer(vcurrent.xy, depth_buffer);
+        float current_depth = interpolate_depth_buffer(vcurrent.xy, depth_buffer);
 
         float line_depth = vfound.z;
 
-        if(current_depth < line_depth - 1.f)
+        if(current_depth < line_depth - 1.f && current_depth > line_depth - 40.f)
         {
             last_valid_a = test_a;
             vlast_valid = vfound;
@@ -5957,6 +5972,34 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
             lower_a = test_a;
         }
     }
+
+    //float amax = 50 + 1;
+
+    float3 theoretical_end = interpolate_single_line_depth(vstart, vlast_valid, 1.35f);
+
+    ///0 = no forced fade, 1 = maximum no visual noise
+    float forced_fade = 0.f;
+
+    float fextra = 0.f;
+    float fade_screen_out = 200.f;
+
+    if(theoretical_end.x < 0)
+        fextra += fabs(theoretical_end.x);
+    if(theoretical_end.y < 0)
+        fextra += fabs(theoretical_end.y);
+
+    if(theoretical_end.x >= SCREENWIDTH)
+        fextra += theoretical_end.x - SCREENWIDTH;
+    if(theoretical_end.y >= SCREENHEIGHT)
+        fextra += theoretical_end.y - SCREENHEIGHT;
+
+    fextra /= fade_screen_out;
+    //fextra = 1.f - fextra;
+
+    fextra = clamp(fextra, 0.f, 1.f);
+
+    forced_fade = fextra;
+
 
     float3 global_last = {(vlast_valid.x - SCREENWIDTH/2.f) * vlast_valid.z / FOV_CONST, (vlast_valid.y - SCREENHEIGHT/2.f) * vlast_valid.z / FOV_CONST, vlast_valid.z};
 
@@ -5969,6 +6012,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float ray_len = fast_length(global_last - global_position);
 
     float contact_fade = 1.f - (ray_len / contact_len);
+    contact_fade -= forced_fade;
 
     float max_reflection_contribution = 1.f;
     contact_fade = clamp(contact_fade, 0.f, 1.f);
