@@ -5675,11 +5675,10 @@ float3 interpolate_single_line_depth(float3 start, float3 finish, float a)
     start.z = 1.f / start.z;
     finish.z = 1.f / finish.z;
 
-    float ipz = start.z * (1.f - a) + finish.z * a;
+    //float3 xyz = start * (1.f - a) + finish * a;
+    float3 xyz = mad(start, 1.f - a, finish * a);
 
-    float2 xy = start.xy * (1.f - a) + finish.xy * a;
-
-    float3 ret = (float3)(xy, 1.f / ipz);
+    float3 ret = (float3)(xyz.xy, 1.f / xyz.z);
 
     return ret;
 }
@@ -5810,14 +5809,45 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     reflected = fast_normalize(reflected);
 
-    float3 jittered = global_position + reflected * 2.5f;
+    float3 jittered = global_position + reflected * 10.5f;
 
     float3 sspace_jittered = depth_project_singular(rot(jittered, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
     float3 sspace = depth_project_singular(rot(global_position, c_pos.xyz, c_rot.xyz), SCREENWIDTH, SCREENHEIGHT, FOV_CONST);
 
+    float2 sspace_distance = (sspace_jittered.xy - sspace.xy);
+
+    //float sdist = max(fabs(sspace_distance.x), fabs(sspace_distance.y));
+
+    float sdist = fast_length(sspace_distance);
+
+    float bound = 10.f;
+
+    if(sdist > bound + 1.f || sdist < bound - 1.f)
+    {
+        float back_frac = sdist - bound;
+
+        back_frac /= sdist;
+
+        back_frac = 1.f - back_frac;
+
+        //sspace = interpolate_single_line_depth(sspace, sspace_jittered, 1.f - back_frac);
+
+        float3 ips = (float3)(sspace.xy, 1.f/sspace.z);
+        float3 ipe = (float3)(sspace_jittered.xy, 1.f/sspace_jittered.z);
+
+        float3 ipr = ips * back_frac + ipe * (1.f - back_frac);
+
+        ipr.z = 1.f / ipr.z;
+
+        sspace = ipr;
+    }
+
     float3 vcurrent = sspace_jittered;
     float3 vstart = vcurrent;
     float3 vprev = sspace;
+
+    //if(x == 400 && y == 400)
+    //    printf("%f %f\n", fast_length(vprev.xy - vstart.xy), sdist);
 
     ///we can probably optimise by terminating if the ray travels more than contact_len, particularly in terms of a
     ///as worked out in the contact hardening section
@@ -5850,7 +5880,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - 40.f;
+        bool cond = current_depth < line_depth - 1.f;// && current_depth > line_depth - 40.f;
 
         if(cond)//vcurrent.z - 10.f)
         {
