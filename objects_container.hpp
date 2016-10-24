@@ -60,6 +60,8 @@ struct objects_container
     objects_container();
     void push();
 
+    void    set_screenspace_map_id(cl_uint id);
+
     void    set_pos(cl_float4);
     void    set_rot(cl_float4);
     void    set_rot_quat(quaternion);

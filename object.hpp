@@ -59,6 +59,7 @@ struct object
     cl_uint tid; ///texture id ///on load
     cl_uint bid; ///bumpmap_id
     cl_uint rid;
+    cl_uint ssid;
 
     cl_int object_g_id; ///obj_g_descriptor id ///assigned
 
@@ -84,6 +85,8 @@ struct object
 
     object();
     ~object();
+
+    void set_screenspace_map_id(cl_uint id);
 
     void set_active(bool param);
     void set_pos(cl_float4);

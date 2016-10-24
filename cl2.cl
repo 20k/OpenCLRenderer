@@ -89,6 +89,7 @@ struct obj_g_descriptor
     float scale;
     uint tid;           ///texture id
     uint rid;           ///normal map id
+    uint ssid;          ///screenspace map id, does NOT imply is_ss_reflective
     uint mip_start;
     uint has_bump;
     float specular;
@@ -5830,8 +5831,6 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         back_frac = 1.f - back_frac;
 
-        //sspace = interpolate_single_line_depth(sspace, sspace_jittered, 1.f - back_frac);
-
         float3 ips = (float3)(sspace.xy, 1.f/sspace.z);
         float3 ipe = (float3)(sspace_jittered.xy, 1.f/sspace_jittered.z);
 
@@ -5891,9 +5890,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        //bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - 40.f;
+        bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - 80.f;
 
-        bool cond = (line_depth > current_depth + 1 && line_depth < last_depth - 1) || (line_depth < current_depth && line_depth > last_depth);// && last_depth < current_dbuf;
+        //bool cond = (line_depth > current_depth + 1 && line_depth < last_depth - 1) || (line_depth < current_depth && line_depth > last_depth);// && last_depth < current_dbuf;
 
         if(cond)//vcurrent.z - 10.f)
         {
@@ -5961,7 +5960,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         float line_depth = vfound.z;
 
-        if(current_depth < line_depth - 1.f && current_depth > line_depth - 40.f)
+        if(current_depth < line_depth - 1.f && current_depth > line_depth - 80.f)
         {
             last_valid_a = test_a;
             vlast_valid = vfound;

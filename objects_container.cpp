@@ -25,6 +25,14 @@ objects_container::objects_container()
     id = -1;
 }
 
+void objects_container::set_screenspace_map_id(cl_uint id)
+{
+    for(auto& i : objs)
+    {
+        i.set_screenspace_map_id(id);
+    }
+}
+
 ///this method is pretty much useless i believe now
 ///except potentially the gid++ id allocation
 ///even then, that should be handled by the object context

@@ -31,6 +31,7 @@ object::object() : tri_list(0)
     tid = 0;
     bid = -1;
     rid = -1;
+    ssid = -1;
     isactive = false;
     has_bump = 0;
     isloaded = false;
@@ -70,6 +71,11 @@ object::~object()
     {
         clReleaseEvent(i);
     }
+}
+
+void object::set_screenspace_map_id(cl_uint id)
+{
+    ssid = id;
 }
 
 ///activate the textures in an object

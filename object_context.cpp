@@ -234,6 +234,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             ///texture stuff should really be done elsewhere
             int tid = tex_ctx.get_gpu_position_id(it.tid);
             int rid = tex_ctx.get_gpu_position_id(it.rid);
+            int ssid = tex_ctx.get_gpu_position_id(it.ssid);
 
             //printf("ftid %i\n", tid);
 
@@ -254,6 +255,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             ///desc.tid?
             desc.tid = tid;
             desc.rid = rid;
+            desc.ssid = ssid;
 
             desc.mip_start = mipmap_start;
 
