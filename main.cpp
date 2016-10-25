@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
     object_context context;
 
-    auto sponza = context.make_new();
+    objects_container* sponza = context.make_new();
     sponza->set_file("sp2/sp2.obj");
     sponza->set_active(true);
     //sponza->cache = false;
@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
+    texture* tex = context.tex_ctx.make_new_cached("./objects/test_reflection_map.png");
+    tex->set_texture_location("./objects/test_reflection_map.png");
+
     //window.window.setPosition({-20, -20});
 
     //#ifdef OCULUS
@@ -70,8 +73,9 @@ int main(int argc, char *argv[])
 
     sponza->set_specular(0.f);
     sponza->set_ss_reflective(true);
-    context.build(true);
+    sponza->set_screenspace_map_id(tex->id);
 
+    context.build(true);
 
 
     ///so allocating one thing, then a second, makes memory usage explod
@@ -215,6 +219,7 @@ int main(int argc, char *argv[])
 
             event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
 
+            ///due to the buffer reuse problem, motion blur isn't applied to screenspace reflections
             event = window.draw_screenspace_reflections(*context.fetch());
 
             //event = window.draw_godrays(*context.fetch());

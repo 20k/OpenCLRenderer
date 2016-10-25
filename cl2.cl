@@ -4737,6 +4737,73 @@ float2 decode_vt(uint vt)
     return (float2){xh, yh};
 }
 
+float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 camera_pos, __global struct obj_g_descriptor* G, float2 vt,
+                  float3 p1, float3 p2, float3 p3, float2 vt1, float2 vt2, float2 vt3, float rconst)
+{
+    float x = xy.x;
+    float y = xy.y;
+
+    float3 xpv = {tris_proj[0].x, tris_proj[1].x, tris_proj[2].x};
+    float3 ypv = {tris_proj[0].y, tris_proj[1].y, tris_proj[2].y};
+
+    float3 depths = {tris_proj[0].z, tris_proj[1].z, tris_proj[2].z};
+
+    ///we want 1/depth for interpolation
+    depths = native_recip(depths);
+
+    xpv = round(xpv);
+    ypv = round(ypv);
+
+    float DA, DB, DC;
+
+    ///barycentric coordinates
+    interpolate_get_const(depths, xpv, ypv, rconst, &DA, &DB, &DC);
+
+    ///get the screenspace depth at x+1, and y+1
+    float dmx = mad(DA, x+1, mad(DB, y, DC));
+    float dmy = mad(DA, x, mad(DB, y+1, DC));
+
+    ///unproject the current pixel
+    float3 lmx = (float3){(x + 1 - SCREENWIDTH/2.f)/FOV_CONST, (y - SCREENHEIGHT/2.f)/FOV_CONST, 1};
+    float3 lmy = (float3){(x - SCREENWIDTH/2.f)/FOV_CONST, (y + 1 - SCREENHEIGHT/2.f)/FOV_CONST, 1};
+
+    ///finish back projection by 'multiplying' by depth (p = xy * fov_const / depth)
+    lmx /= dmx;
+    lmy /= dmy;
+
+    ///to global space
+    float3 gmx = back_rot_quat(back_rot(lmx, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
+    float3 gmy = back_rot_quat(back_rot(lmy, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
+
+    float lx1, lx2, lx3;
+    float ly1, ly2, ly3;
+
+    get_barycentric(gmx, p1, p2, p3, &lx1, &lx2, &lx3);
+    get_barycentric(gmy, p1, p2, p3, &ly1, &ly2, &ly3);
+
+    ///interpolate vts at x+1 and y+1
+    float2 vtx = mad(vt1, lx1, mad(vt2, lx2, vt3 * lx3));
+    float2 vty = mad(vt1, ly1, mad(vt2, ly2, vt3 * ly3));
+
+    ///get texture derivatives
+    float2 vdx = vtx - vt;
+    float2 vdy = vty - vt;
+
+    ///wow that was a weird fix
+    ///never would have spotted that texture mipmaps were in slightly the wrong place unless i was debugging anisotropy!
+    vdx = fabs(vdx);
+    vdy = fabs(vdy);
+
+    //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
+
+    ///1.1f is the seemingly minimum
+    const float mip_bias = 1.f / 1.1f;
+
+    float2 vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} * mip_bias;
+
+    return vtdiff;
+}
+
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
@@ -4866,63 +4933,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
     tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
 
-    float3 xpv = {tris_proj[0].x, tris_proj[1].x, tris_proj[2].x};
-    float3 ypv = {tris_proj[0].y, tris_proj[1].y, tris_proj[2].y};
-
-    float3 depths = {tris_proj[0].z, tris_proj[1].z, tris_proj[2].z};
-
-    ///we want 1/depth for interpolation
-    depths = native_recip(depths);
-
-    xpv = round(xpv);
-    ypv = round(ypv);
-
-    float DA, DB, DC;
-
-    ///barycentric coordinates
-    interpolate_get_const(depths, xpv, ypv, rconst, &DA, &DB, &DC);
-
-    ///get the screenspace depth at x+1, and y+1
-    float dmx = mad(DA, x+1, mad(DB, y, DC));
-    float dmy = mad(DA, x, mad(DB, y+1, DC));
-
-    ///unproject the current pixel
-    float3 lmx = (float3){(x + 1 - SCREENWIDTH/2.f)/FOV_CONST, (y - SCREENHEIGHT/2.f)/FOV_CONST, 1};
-    float3 lmy = (float3){(x - SCREENWIDTH/2.f)/FOV_CONST, (y + 1 - SCREENHEIGHT/2.f)/FOV_CONST, 1};
-
-    ///finish back projection by 'multiplying' by depth (p = xy * fov_const / depth)
-    lmx /= dmx;
-    lmy /= dmy;
-
-    ///to global space
-    float3 gmx = back_rot_quat(back_rot(lmx, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
-    float3 gmy = back_rot_quat(back_rot(lmy, 0, camera_rot) + camera_pos - G->world_pos.xyz, G->world_rot_quat);
-
-    float lx1, lx2, lx3;
-    float ly1, ly2, ly3;
-
-    get_barycentric(gmx, p1, p2, p3, &lx1, &lx2, &lx3);
-    get_barycentric(gmy, p1, p2, p3, &ly1, &ly2, &ly3);
-
-    ///interpolate vts at x+1 and y+1
-    float2 vtx = mad(vt1, lx1, mad(vt2, lx2, vt3 * lx3));
-    float2 vty = mad(vt1, ly1, mad(vt2, ly2, vt3 * ly3));
-
-    ///get texture derivatives
-    float2 vdx = vtx - vt;
-    float2 vdy = vty - vt;
-
-    ///wow that was a weird fix
-    ///never would have spotted that texture mipmaps were in slightly the wrong place unless i was debugging anisotropy!
-    vdx = fabs(vdx);
-    vdy = fabs(vdy);
-
-    //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
-
-    ///1.1f is the seemingly minimum
-    const float mip_bias = 1.f / 1.1f;
-
-    float2 vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} * mip_bias;
+    float2 vtdiff = get_vtdiff(tris_proj, (float2){x, y}, camera_rot.xyz, camera_pos.xyz, G, vt, p1, p2, p3, vt1, vt2, vt3, rconst);
 
     ///mip_start is a global parameter, edit it out
     float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
@@ -5720,7 +5731,8 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
                   __read_only image2d_t in_screen, __write_only image2d_t back_screen,
                   __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer),
                     __global AUTOMATIC(struct obj_g_descriptor*, object_descriptors), uint frame_id,
-                    float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old)
+                    float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old,
+                    image_3d_read array, __global uint *nums, __global uint *sizes)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -5740,6 +5752,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
+    float rconst = as_float(fragment_id_buffer[id_val4.x*FRAGMENT_ID_MUL + 4]);
     uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
 
     __global struct obj_g_descriptor *G = &object_descriptors[o_id];
@@ -5755,8 +5768,9 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     if(!G->is_ss_reflective)
         return;
 
-    __global struct triangle* T = &triangles[tri_global];
+    uint ss_id = G->ssid;
 
+    __global struct triangle* T = &triangles[tri_global];
 
     float ldepth = idcalc((float)dbuf_val/mulint);
 
@@ -5782,6 +5796,11 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 n2 = decode_normal(T->vertices[1].normal.xy);
     float3 n3 = decode_normal(T->vertices[2].normal.xy);
 
+    float2 vt1 = decode_vt(T->vertices[0].h_vt);
+    float2 vt2 = decode_vt(T->vertices[1].h_vt);
+    float2 vt3 = decode_vt(T->vertices[2].h_vt);
+
+
     p1 *= G->scale;
     p2 *= G->scale;
     p3 *= G->scale;
@@ -5800,10 +5819,33 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     normal = rot_quat(normal, G->world_rot_quat);
     normal = fast_normalize(normal);
 
+    float2 vt;
+    vt = mad(vt1, l1, mad(vt2, l2, vt3 * l3));
+
     float3 flat_normal = get_flat_normal(p1, p2, p3);
 
     ///the sponza has weird normals
     //normal = flat_normal;
+
+    float3 tris_proj[3];
+
+    ///screenspace triangles
+    tris_proj[0] = cutdown_tris[ctri*3 + 0].xyz;
+    tris_proj[1] = cutdown_tris[ctri*3 + 1].xyz;
+    tris_proj[2] = cutdown_tris[ctri*3 + 2].xyz;
+
+    float reflection_amount = 1.f;
+
+    if(ss_id != -1)
+    {
+        float2 vtdiff = get_vtdiff(tris_proj, (float2){x, y}, c_rot.xyz, c_pos.xyz, G, vt, p1, p2, p3, vt1, vt2, vt3, rconst);
+
+        ///mip_start is a global parameter, edit it out
+        reflection_amount = texture_filter_diff(vt, vtdiff, G->ssid, G->mip_start, nums, sizes, array).x;
+
+        if(reflection_amount < 0.1f)
+            return;
+    }
 
     ///flat normals are incorrect
     float3 reflected = reflect(ray_dir, normal);
@@ -6015,6 +6057,8 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     float max_reflection_contribution = 1.f;
     contact_fade = clamp(contact_fade, 0.f, 1.f);
+
+    contact_fade *= reflection_amount;
     ///0 = no reflect, 1 = lots
 
     //printf("pre post a %f %f\n", a, last_valid_a);

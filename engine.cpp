@@ -1136,8 +1136,9 @@ compute::event engine::draw_screenspace_reflections(object_context_data& dat)
     reflection_args.push_back(&c_rot);
     reflection_args.push_back(&dat.c_pos_old);
     reflection_args.push_back(&dat.c_rot_old);
-    //reflection_args.push_back(&strength);
-    //reflection_args.push_back(&camera_contribution);
+    reflection_args.push_back(&dat.tex_gpu_ctx.g_texture_array);
+    reflection_args.push_back(&dat.tex_gpu_ctx.g_texture_nums);
+    reflection_args.push_back(&dat.tex_gpu_ctx.g_texture_sizes);
 
     return run_kernel_with_string("screenspace_reflections", {width, height}, {16, 16}, 2, reflection_args);
 }
