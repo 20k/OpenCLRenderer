@@ -5909,6 +5909,8 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     uint current_dbuf = depth_buffer[vci.y * SCREENWIDTH + vci.x];
     last_depth = idcalc((float)current_dbuf/mulint);
 
+    const float min_bound = 80.f;
+
     for(int i=0; i<n; i++)
     {
         if(vcurrent.x < 0 || vcurrent.y < 0 || vcurrent.x >= SCREENWIDTH || vcurrent.y >= SCREENHEIGHT)
@@ -5932,7 +5934,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - 80.f;
+        bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - min_bound;
 
         //bool cond = (line_depth > current_depth + 1 && line_depth < last_depth - 1) || (line_depth < current_depth && line_depth > last_depth);// && last_depth < current_dbuf;
 
@@ -6002,7 +6004,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         float line_depth = vfound.z;
 
-        if(current_depth < line_depth - 1.f && current_depth > line_depth - 80.f)
+        if(current_depth < line_depth - 1.f && current_depth > line_depth - min_bound)
         {
             last_valid_a = test_a;
             vlast_valid = vfound;
