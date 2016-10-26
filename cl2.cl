@@ -5520,6 +5520,9 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     //write_imagef(screen, (int2){x, y}, my_normal.xyzz);
 
+    //write_imagef(screen, (int2){x, y}, my_depth_raw == mulint);
+    //write_imagef(front_screen, (int2){x, y}, my_depth_raw == mulint);
+
     ///make array?
     int num_x[2] = {0};
     int num_y[2] = {0};
@@ -5534,7 +5537,9 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     uint avg_id = o_id;
 
-    float my_depth = idcalc((float)depth_buffer[y*SCREENWIDTH + x] / mulint);
+    uint my_depth_raw = depth_buffer[y*SCREENWIDTH + x];
+
+    float my_depth = idcalc((float)my_depth_raw / mulint);
     float avg_depth = my_depth;
     float3 avg_normal = my_normal;
 
@@ -5553,9 +5558,11 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             uint fid = read_imageui(id_buffer, sam, (int2){x+i, y+j}).x;
 
+            uint their_depth_raw = depth_buffer[(y + j)*SCREENWIDTH + x + i];
+
             int fo_id = fragment_id_buffer[fid * FRAGMENT_ID_MUL + 5];
 
-            float depth = idcalc((float)depth_buffer[(y + j)*SCREENWIDTH + x + i] / mulint);
+            float depth = idcalc((float)their_depth_raw / mulint);
 
             float3 found_normal = decode_normal(screen_normals_optional[(y + j)*SCREENWIDTH + x + i]);
 
@@ -5564,10 +5571,10 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             float3 val = read_imagef(in_screen, sam, (int2){x + i, y + j}).xyz;
 
-            int tests[2] = {fo_id != o_id, !depth_approx_equal(my_depth, depth)};
+            //int tests[2] = {fo_id != o_id, !depth_approx_equal(my_depth, depth)};
             //int tests[2] = {fo_id != o_id, dot(my_normal, found_normal) < 0.5f};
 
-            //int tests[1] = {dot(my_normal, found_normal) < AA_angle_cosrad};
+            int tests[2] = {fo_id != o_id, dot(my_normal, found_normal) < AA_angle_cosrad};
 
             for(int kk = 0; kk < num; kk++)
             {
@@ -5603,16 +5610,12 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
 
             avg_id = (fo_id + avg_id)/2;
-            avg_depth = (depth + avg_depth) / 2.f;
+            //avg_depth = (depth + avg_depth) / 2.f;
             avg_normal += (found_normal + avg_normal) / 2.f;
 
             avg_normal = fast_normalize(avg_normal);
         }
     }
-
-    //write_imagef(screen, (int2){x, y}, (dot(avg_normal, my_normal) + 1) / 2.f);
-
-    //return;
 
     bool any = false;
 
@@ -5632,9 +5635,9 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     if(!any)
         return;
 
-    int exit_conditions[2] = {avg_id < o_id, my_depth < avg_depth};
+    //int exit_conditions[2] = {avg_id < o_id, my_depth < avg_depth};
 
-    //int exit_conditions[2] = {dot(avg_normal, my_normal) >= AA_angle_cosrad};
+    int exit_conditions[2] = {avg_id < o_id, dot(avg_normal, my_normal) >= AA_angle_cosrad};
 
     for(int kk=0; kk < num; kk++)
     {
