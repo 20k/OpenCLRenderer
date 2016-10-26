@@ -98,6 +98,7 @@ struct object_context_data
     n_buffer<compute::buffer, 2> depth_buffer;
 
     compute::image2d g_id_screen_tex;
+    compute::buffer g_screen_normals_optional;
 
     cl_float4 g_clear_col = (cl_float4){0};
 

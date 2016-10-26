@@ -4841,6 +4841,7 @@ ushort2 encode_normal(float3 val)
 }
 
 ///we fix up the normals in encode so that xy cannot have a length of 0
+///um. This seems to have a different implementation to the gpu..????
 float3 decode_normal(ushort2 sval)
 {
     float2 val = short_to_float(sval);
@@ -4956,7 +4957,7 @@ __attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
 void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           float4 screen_clear_colour, uint frame_id
+           float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -5401,6 +5402,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
     write_imagef(backup_screen, scoord, (float4)(final_col.xyz, 1.f));
 
+    screen_normals_optional[y * SCREENWIDTH + x] = encode_normal(normal);
+
     //write_imagef(screen, scoord, final_col.xyzz);
     //write_imagef(screen, scoord, fabs(normal.xyzz));
 
@@ -5444,7 +5447,9 @@ bool depth_disjointed(float d1, float d2)
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),
-                  __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer))
+                  __write_only AUTOMATIC(image2d_t, front_screen),
+                  __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer),
+                  __global AUTOMATIC(ushort2*, screen_normals_optional))
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_NONE            |
@@ -5468,6 +5473,8 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
     int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
 
+    float3 my_normal = decode_normal(screen_normals_optional[y*SCREENWIDTH + x]);
+    my_normal = fast_normalize(my_normal);
 
     /*uint up_id = read_imageui(id_buffer, sam, (int2){x, y-1}).x;
     uint right_id = read_imageui(id_buffer, sam, (int2){x+1, y}).x;
@@ -5484,6 +5491,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     write_imagef(screen, (int2){x, y}, (c1 + c2 + c3)/3.f);*/
 
+    //write_imagef(screen, (int2){x, y}, my_normal.xyzz);
 
     ///make array?
     int num_x[2] = {0};
@@ -5501,6 +5509,13 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     float my_depth = idcalc((float)depth_buffer[y*SCREENWIDTH + x] / mulint);
     float avg_depth = my_depth;
+    float3 avg_normal = my_normal;
+
+    float AA_angle_degrees = 20.f;
+
+    float AA_angle_cosrad = cos(AA_angle_degrees * 2 * M_PI / 360.f);
+
+    const int num = 2;
 
     for(int j=-1; j<2; j++)
     {
@@ -5515,14 +5530,19 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             float depth = idcalc((float)depth_buffer[(y + j)*SCREENWIDTH + x + i] / mulint);
 
+            float3 found_normal = decode_normal(screen_normals_optional[(y + j)*SCREENWIDTH + x + i]);
+
             //if(fo_id < o_id)
             //    continue;
 
             float3 val = read_imagef(in_screen, sam, (int2){x + i, y + j}).xyz;
 
             int tests[2] = {fo_id != o_id, !depth_approx_equal(my_depth, depth)};
+            //int tests[2] = {fo_id != o_id, dot(my_normal, found_normal) < 0.5f};
 
-            for(int kk = 0; kk < 2; kk++)
+            //int tests[1] = {dot(my_normal, found_normal) < AA_angle_cosrad};
+
+            for(int kk = 0; kk < num; kk++)
             {
                 //if(fo_id != o_id || !depth_approx_equal(my_depth, depth))
                 if(tests[kk])
@@ -5557,19 +5577,26 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             avg_id = (fo_id + avg_id)/2;
             avg_depth = (depth + avg_depth) / 2.f;
+            avg_normal += (found_normal + avg_normal) / 2.f;
+
+            avg_normal = fast_normalize(avg_normal);
         }
     }
 
+    //write_imagef(screen, (int2){x, y}, (dot(avg_normal, my_normal) + 1) / 2.f);
+
+    //return;
+
     bool any = false;
 
-    for(int kk=0; kk<2; kk++)
+    for(int kk=0; kk<num; kk++)
     {
         ///this was in the original code but is a bug for some reason
         ///INVESTIGATEME AND FIX
         //if(my_samples == 0 || their_samples == 0)
         //    return;
 
-        if(my_samples[kk] == 0 || their_samples[kk] == 0)
+        if(my_samples[kk] == 0 && their_samples[kk] == 0)
             return;
 
         any = true;
@@ -5580,7 +5607,9 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     int exit_conditions[2] = {avg_id < o_id, my_depth < avg_depth};
 
-    for(int kk=0; kk < 2; kk++)
+    //int exit_conditions[2] = {dot(avg_normal, my_normal) >= AA_angle_cosrad};
+
+    for(int kk=0; kk < num; kk++)
     {
         if(num_x[kk] == 1 && num_y[kk] == 1 && num_corner[kk] >= 1)
         {
@@ -5611,6 +5640,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
             float3 accum = my_accum[kk] * wm + their_accum[kk] * wt;
 
             write_imagef(screen, (int2){x, y}, (float4)(accum.xyz, 1.f));
+            write_imagef(front_screen, (int2){x, y}, (float4)(accum.xyz, 1.f));
 
             return;
         }
@@ -5779,7 +5809,7 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
 
     int bound = 50;
 
-    if(n > bound && n != 0)
+    if(n > bound)
     {
         to_me_vector /= n;
         to_me_vector *= bound;

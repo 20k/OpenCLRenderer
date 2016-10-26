@@ -211,6 +211,7 @@ int main(int argc, char *argv[])
 
         compute::event event;
 
+        ///fix AA next
         //if(window.can_render())
         {
             window.generate_realtime_shadowing(*context.fetch());
@@ -223,12 +224,12 @@ int main(int argc, char *argv[])
 
             event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
 
-            event = internal_screen_mip_test->update_internal(context.fetch()->gl_screen[0].get(), context.fetch()->tex_gpu_ctx);
+            //event = internal_screen_mip_test->update_internal(context.fetch()->gl_screen[0].get(), context.fetch()->tex_gpu_ctx);
 
-            internal_screen_mip_test->update_gpu_mipmaps_aggressive(context.fetch()->tex_gpu_ctx);
+            //internal_screen_mip_test->update_gpu_mipmaps_aggressive(context.fetch()->tex_gpu_ctx);
 
             ///due to the buffer reuse problem, motion blur isn't applied to screenspace reflections
-            event = window.draw_screenspace_reflections(*context.fetch(), context, internal_screen_mip_test);
+            //event = window.draw_screenspace_reflections(*context.fetch(), context, internal_screen_mip_test);
 
             //event = window.draw_godrays(*context.fetch());
 

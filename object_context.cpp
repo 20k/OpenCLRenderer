@@ -38,7 +38,7 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
         compute::image_format format_ids(CL_R, CL_UNSIGNED_INT32);
 
         g_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, _w * depth_buffer_width, _h, 0, NULL);
-
+        g_screen_normals_optional = compute::buffer(cl::context, sizeof(cl_ushort2)* _w * _h, CL_MEM_READ_WRITE, nullptr);
         //g_screen = engine::gen_cl_gl_framebuffer_renderbuffer(&gl_framebuffer_id, _w, _h);
 
         gl_screen[0].init(_w, _h, use_gl_interop(), cl::cqueue);
@@ -499,6 +499,7 @@ void flip_buffers(object_context* ctx)
     }
 
     ctx->new_gpu_dat.g_id_screen_tex = ctx->fetch()->g_id_screen_tex;
+    ctx->new_gpu_dat.g_screen_normals_optional = ctx->fetch()->g_screen_normals_optional;
 
     //ctx->new_gpu_dat.gl_screen[0] = ctx->fetch()->gl_screen[0];
     //ctx->new_gpu_dat.gl_screen[1] = ctx->fetch()->gl_screen[1];

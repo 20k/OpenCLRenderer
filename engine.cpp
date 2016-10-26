@@ -529,7 +529,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     g_tiled_global_memory_slot_counter = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &next_free_slot);
     g_tiled_global_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);*/
 
-
     delete [] default_slots;
 
     ///fixme
@@ -1374,8 +1373,11 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     register_automatic(&dat.g_id_screen_tex, "id_buffer");
     register_automatic(&eng.g_tid_buf, "fragment_id_buffer");
-    register_automatic(g_screen_out.get_ptr(), "screen");
-    register_automatic(g_screen_out.get_ptr(), "in_screen");
+    /*register_automatic(g_screen_out.get_ptr(), "screen");
+    register_automatic(g_screen_out.get_ptr(), "in_screen");*/
+    register_automatic(dat.gl_screen[1].get_ptr(), "screen");
+    register_automatic(dat.gl_screen[1].get_ptr(), "in_screen");
+    register_automatic(dat.gl_screen[0].get_ptr(), "front_screen");
     //register_automatic(&dat.gl_screen[1].get(), "back_screen");
     register_automatic(&dat.g_cut_tri_mem, "cutdown_tris");
     register_automatic(&dat.depth_buffer[0], "depth_buffer");
@@ -1383,6 +1385,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     ///it just needs to increase monotonically
     //register_automatic(&dat.frame_id, "frame_id");
     register_automatic(&dat.g_obj_desc, "object_descriptors");
+    register_automatic(&dat.g_screen_normals_optional, "screen_normals_optional");
 
     arg_list prearg_list;
 
@@ -1491,6 +1494,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //p3arg_list.push_back(&eng.g_diffuse_intermediate_tex);
     p3arg_list.push_back(&dat.g_clear_col);
     p3arg_list.push_back(&dat.frame_id);
+    p3arg_list.push_back(&dat.g_screen_normals_optional);
 
     /*for(auto& i : p3arg_list.args)
     {
