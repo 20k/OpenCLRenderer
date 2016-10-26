@@ -76,6 +76,7 @@ void settings::load(const std::string& loc)
     mouse_sens = atof(content[6].c_str());
     motion_blur_strength = atof(content[7].c_str());
     motion_blur_camera_contribution = atof(content[8].c_str());
+    use_post_aa = atoi(content[9].c_str());
 
     if(name.length() == 0)
     {
@@ -125,6 +126,7 @@ void settings::save(const std::string& loc)
     to_save.push_back(std::to_string(mouse_sens) + "f");
     to_save.push_back(std::to_string(motion_blur_strength));
     to_save.push_back(std::to_string(motion_blur_camera_contribution));
+    to_save.push_back(std::to_string(use_post_aa));
 
 
     for(int i=0; i<comments.size() && i < to_save.size(); i++)

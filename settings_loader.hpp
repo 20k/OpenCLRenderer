@@ -10,10 +10,11 @@ struct settings
     std::string ip = "192.168.1.2";
     int quality = 0;
     std::string name = "Lumberjack";
-    bool enable_debugging;
+    bool enable_debugging = false;
     float mouse_sens = 1.f;
     float motion_blur_strength = 1.f;
     float motion_blur_camera_contribution = 1.f;
+    bool use_post_aa = true;
 
     void load(const std::string& loc);
     void save(const std::string& loc);
