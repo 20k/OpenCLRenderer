@@ -6141,7 +6141,7 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
     float3 rseed = (float3){f1, f2, f3};
     rseed = (rseed - 0.5f) * 2;*/
 
-    int bsearch_num = 10;
+    int search_num = 10;
 
     float test_a = a;
 
@@ -6150,7 +6150,7 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
 
     bool f2 = false;
 
-    for(int i=0; i<bsearch_num; i++)
+    for(int i=0; i<search_num; i++)
     {
         vfound = interpolate_single_line_depth(vprev, vstart, test_a);
 
@@ -6167,7 +6167,7 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
             break;
         }
 
-        test_a += 1.f / bsearch_num;
+        test_a += 1.f / search_num;
     }
 
     if(!f2)
@@ -6259,8 +6259,6 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
 
     contact_fade *= reflection_amount;
     ///0 = no reflect, 1 = lots
-
-
 
     float2 unfudge = vlast_valid.xy / (float2){SCREENWIDTH, SCREENHEIGHT};
 
