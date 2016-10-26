@@ -990,6 +990,9 @@ void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __globa
         {
             float4 col = read_tex_array((float2){x*2 + i, y*2 + j}, tex_id, nums, sizes, rarray);
 
+            //if(x*2 + i < 0 || x*2 + i >= width-1 || y*2 + j < 0 || y*2 + j >= width-1)
+            //    col = 0.f;
+
             accum += col * gauss[j+1][i+1];
             div += gauss[j+1][i+1];
         }
@@ -997,12 +1000,12 @@ void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __globa
 
     accum /= div;
 
-    for(int i=0; i<1; i++)
+    //for(int i=0; i<1; i++)
     {
         ///is this just.. wrong?
         ///how on earth has this ever worked???
         ///tex_id is some completely random property
-        int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
+        int mtexid = tex_id * MIP_LEVELS + mipmap_start + 0;
 
         int w2 = nums[mtexid] >> 16;
         float nwidth = sizes[w2];
