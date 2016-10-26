@@ -4231,6 +4231,37 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
 }
 
 
+bool side(float2 p1, float2 p2, float2 p3)
+{
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y) <= 0.0f;
+}
+
+float fside(float2 p1, float2 p2, float2 p3)
+{
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+
+/*bool point_in_tri(float2 pt, float2 v1, float2 v2, float2 v3)
+{
+    bool b1, b2, b3;
+
+    b1 = fside(pt, v1, v2) < 0.001f;
+    b2 = fside(pt, v2, v3) < 0.001f;
+    b3 = fside(pt, v3, v1) < 0.001f;
+
+    return ((b1 == b2) && (b2 == b3));
+}*/
+
+bool point_in_tri(float2 p, float2 p0, float2 p1, float2 p2)
+{
+    float A = 1.f/2 * (-p1.y * p2.x + p0.y * (-p1.x + p2.x) + p0.x * (p1.y - p2.y) + p1.x * p2.y);
+    float sign = A < 0 ? -1 : 1;
+    float s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y) * sign;
+    float t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y) * sign;
+
+    return s > -0.0001 && t > -0.0001 && (s + t) < 2.0001 * A * sign;
+}
+
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
 __kernel
@@ -4333,9 +4364,13 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
             continue;
         }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+        //float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
 
-        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+        //bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+
+        //cond = point_in_tri((float2){x, y}, (float2){tris_proj_n[0].x, tris_proj_n[0].y}, (float2){tris_proj_n[1].x, tris_proj_n[1].y}, (float2){tris_proj_n[2].x, tris_proj_n[2].y});
+
+        bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
@@ -4453,9 +4488,10 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
             continue;
         }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+        /*float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;*/
 
-        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+        bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
@@ -4567,9 +4603,7 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
             continue;
         }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
-
-        bool cond = s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+        bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
@@ -4590,11 +4624,6 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
     }
 }
 
-
-bool side(float2 p1, float2 p2, float2 p3)
-{
-    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y) <= 0.0f;
-}
 
 ///pad buffers so i don't have to do bounds checking? Probably slower
 ///do double skip so that I skip more things outside of a triangle?
@@ -4725,9 +4754,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
             continue;
         }
 
-        float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
-
-        bool cond = s1 < area + mod;//s1 < area + mod;//s1 >= area - mod && s1 <= area + mod;
+        bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
         if(cond)
         {
