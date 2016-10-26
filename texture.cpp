@@ -26,6 +26,7 @@ texture::texture()
     is_active = false;
     is_loaded = false;
     is_unique = false;
+    force_load = false;
     has_mipmaps = false;
     cacheable = true;
 
@@ -463,6 +464,36 @@ void texture::update_gpu_mipmaps(texture_context_data& gpu_dat, compute::command
         rargs.push_back(&gpu_dat.g_texture_array);
 
         run_kernel_with_string("generate_mip_mips", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, rargs, cqueue);
+    }
+}
+
+void texture::update_gpu_mipmaps_aggressive(texture_context_data& gpu_dat, compute::command_queue cqueue)
+{
+    arg_list margs;
+    margs.push_back(&gpu_id);
+    margs.push_back(&gpu_dat.mipmap_start);
+    margs.push_back(&gpu_dat.g_texture_nums);
+    margs.push_back(&gpu_dat.g_texture_sizes);
+    margs.push_back(&gpu_dat.g_texture_array);
+    margs.push_back(&gpu_dat.g_texture_array);
+
+    run_kernel_with_string("generate_mips_aggressive", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, margs, cqueue);
+
+    for(int i=0; i<MIP_LEVELS-1; i++)
+    {
+        cl_uint mip = i;
+
+        arg_list rargs;
+        ///make gpu id part of texture context?
+        rargs.push_back(&gpu_id);
+        rargs.push_back(&mip);
+        rargs.push_back(&gpu_dat.mipmap_start);
+        rargs.push_back(&gpu_dat.g_texture_nums);
+        rargs.push_back(&gpu_dat.g_texture_sizes);
+        rargs.push_back(&gpu_dat.g_texture_array);
+        rargs.push_back(&gpu_dat.g_texture_array);
+
+        run_kernel_with_string("generate_mip_mips_aggressive", {(int)c_image.getSize().x, (int)c_image.getSize().y}, {16, 16}, 2, rargs, cqueue);
     }
 }
 

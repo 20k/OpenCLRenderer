@@ -220,7 +220,7 @@ struct engine
     compute::event draw_bulk_objs_n(object_context_data& dat); ///draw objects to scene
     compute::event draw_tiled_deferred(object_context_data& dat);
     compute::event draw_godrays(object_context_data& dat);
-    compute::event draw_screenspace_reflections(object_context_data& dat);
+    compute::event draw_screenspace_reflections(object_context_data& dat, object_context& cpu_dat, texture* tex);
     ///performs pseudo AA on the buffer last rendered to
     compute::event do_pseudo_aa();
     compute::event do_motion_blur(object_context_data& dat, cl_float strength, cl_float camera_contribution);

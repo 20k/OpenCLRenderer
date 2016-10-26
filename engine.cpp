@@ -35,6 +35,8 @@
 
 #include "cl_gl_interop_texture.hpp"
 
+#include "texture.hpp"
+
 bool rift::enabled = false;
 
 ///rift
@@ -1123,11 +1125,19 @@ compute::event engine::draw_godrays(object_context_data& dat)
     return run_kernel_with_string("screenspace_godrays", {width, height}, {16, 16}, 2, args);
 }
 
-compute::event engine::draw_screenspace_reflections(object_context_data& dat)
+compute::event engine::draw_screenspace_reflections(object_context_data& dat, object_context& cpu_dat, texture* tex)
 {
     dat.ensure_screen_buffers(width, height);
 
+    cl_uint gpu_id = -1;
+
+    if(tex)
+        gpu_id = cpu_dat.tex_ctx.get_gpu_position_id(tex->id);
+
+    //printf("%i gpuid\n", gpu_id);
+
     arg_list reflection_args;
+    reflection_args.push_back(&gpu_id);
     reflection_args.push_back(&dat.g_tri_mem);
     reflection_args.push_back(&dat.gl_screen[1].get());
     reflection_args.push_back(&dat.gl_screen[0].get());

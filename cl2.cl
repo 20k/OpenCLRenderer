@@ -1068,6 +1068,111 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
     }
 }
 
+__kernel
+void generate_mips_aggressive(uint tex_id, uint mipmap_start,  __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    int slice = nums[tex_id] >> 16;
+    float width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
+
+    float4 accum = 0;
+    float div = 0.f;
+
+    for(int j=-1; j<=1; j++)
+    {
+        for(int i=-1; i<=1; i++)
+        {
+            float4 col = read_tex_array((float2){x*2 + i, y*2 + j}, tex_id, nums, sizes, rarray);
+
+            if(col.w < 0.1f)
+                continue;
+
+            accum += col * gauss[j+1][i+1];
+            div += gauss[j+1][i+1];
+        }
+    }
+
+    accum /= div;
+
+    for(int i=0; i<1; i++)
+    {
+        ///is this just.. wrong?
+        ///how on earth has this ever worked???
+        ///tex_id is some completely random property
+        int mtexid = tex_id * MIP_LEVELS + mipmap_start + i;
+
+        int w2 = nums[mtexid] >> 16;
+        float nwidth = sizes[w2];
+
+        float2 yx = ((float2){x * 2, y * 2} / width) * nwidth;
+
+        if(yx.x >= nwidth || yx.y >= nwidth)
+            return;
+
+        write_tex_array(convert_uint4(accum), yx, mtexid, nums, sizes, array);
+    }
+}
+
+__kernel
+void generate_mip_mips_aggressive(uint tex_id, uint mip_level, uint mipmap_start, __global uint* nums, __global uint* sizes, image_3d_write array, image_3d_read rarray)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    uint proper_id = tex_id * MIP_LEVELS + mipmap_start + mip_level;
+
+    int slice = nums[proper_id] >> 16;
+    float width = sizes[slice];
+
+    if(x >= width || y >= width)
+        return;
+
+    const float gauss[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
+
+    float4 accum = 0;
+    float div = 0.f;
+
+    for(int j=-1; j<=1; j++)
+    {
+        for(int i=-1; i<=1; i++)
+        {
+            float4 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
+
+            if(col.w < 0.1f)
+                continue;
+
+            accum += col * gauss[j+1][i+1];
+            div += gauss[j+1][i+1];
+        }
+    }
+
+    accum /= div;
+
+    {
+        ///is this just.. wrong?
+        ///how on earth has this ever worked???
+        ///tex_id is some completely random property
+        uint mtexid = proper_id + 1;
+
+        int w2 = nums[mtexid] >> 16;
+        float nwidth = sizes[w2];
+
+        float2 yx = ((float2){x * 2, y * 2} / width) * nwidth;
+
+        if(yx.x >= nwidth || yx.y >= nwidth)
+            return;
+
+        write_tex_array(convert_uint4(accum), yx, mtexid, nums, sizes, array);
+    }
+}
+
 ///need to dynamically avoid the texture borders
 ///;_;
 ///we're writing directly to the 3d texture array which will be slow :[
@@ -1180,6 +1285,48 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     return result;
 }
 
+float2 texture_mod(float2 in)
+{
+    float2 vtm = in;
+
+    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
+
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
+
+    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
+
+    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
+
+    return vtm;
+}
+
+///direct_interpolating_factor
+///0 = most detailed mip factor, 4 = minimum detailed mip factor, everything else = mip interpolation
+float4 texture_filter_direct(float2 vt, float direct_interpolating_factor, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
+{
+    int slice=nums[tid2] >> 16;
+    int tsize=sizes[slice];
+
+    float2 vtm = texture_mod(vt);
+
+    float fmd = direct_interpolating_factor - (int)direct_interpolating_factor;
+
+    float mip_lower = (int)direct_interpolating_factor;
+
+    int tid_lower = mip_lower == 0 ? tid2 : mip_lower - 1 + mip_start + mul24(tid2, MIP_LEVELS);
+    int tid_higher = clamp(mip_lower, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
+
+    ///fixes swordfighting texture issues, could be a vt issue
+    vtm.x -= 0.5f / tsize;
+
+    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+
+    float4 finalcol = col1*(1.f - fmd) + col2*(fmd);
+
+    return native_divide(finalcol, 255.0f);
+}
+
 ///two mip levels are interchanging inappropriately
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
@@ -1189,16 +1336,7 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     int slice=nums[tid2] >> 16;
     int tsize=sizes[slice];
 
-
-    float2 vtm = vt;
-
-    vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
-
-    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
-
-    vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
-
-    vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
+    float2 vtm = texture_mod(vt);
 
     float worst = fast_length(vtdiff * tsize);
 
@@ -5726,7 +5864,7 @@ float3 unproject_single(float3 screen_pos, float3 c_pos, float3 c_rot)
 ///A ray can't start far away, and then bounce away, and hit something closer
 ///ok so... if we have a ray dir r and position g, r dot g -> intersect > 90 degrees, not a hit
 __kernel
-void screenspace_reflections(__global struct triangle *triangles, __read_only AUTOMATIC(image2d_t, id_buffer),
+void screenspace_reflections(uint tex_id, __global struct triangle *triangles, __read_only AUTOMATIC(image2d_t, id_buffer),
                              __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only image2d_t in_screen, __write_only image2d_t back_screen,
                   __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer),
@@ -5847,6 +5985,30 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
             return;
     }
 
+    /*{
+        float2 unfudge = (float2){x, y} / (float2){SCREENWIDTH, SCREENHEIGHT};
+
+        const float upres = 2048;
+
+        unfudge = texture_mod(unfudge);
+
+        unfudge.x = unfudge.x * (SCREENWIDTH / upres);
+        unfudge.y = unfudge.y * (SCREENHEIGHT / upres);
+
+        unfudge = texture_mod(unfudge);
+
+        unfudge.y = 1.f - unfudge.y;
+
+        vt = unfudge;
+
+        ///mip_start is a global parameter, edit it out
+        float3 col = texture_filter_direct(vt, 4.f, tex_id, G->mip_start, nums, sizes, array).xyz;
+
+        write_imagef(back_screen, (int2){x, y}, (float4)(col.xyz, 1.f));
+
+        return;
+    }*/
+
     ///flat normals are incorrect
     float3 reflected = reflect(ray_dir, normal);
 
@@ -5863,7 +6025,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
     float sdist = fast_length(sspace_distance);
 
-    float bound = 10.f;
+    float bound = 3.f;
 
     //if(sdist > bound + 1.f || sdist < bound - 1.f)
     {
@@ -5934,9 +6096,10 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
 
         ///need to find current ray z position given xy
 
-        bool cond = current_depth < line_depth - 1.f && current_depth > line_depth - min_bound;
+        //bool cond = current_depth < line_depth + 5.f && current_depth > line_depth - 5;
+        bool cond = current_depth < line_depth - 1.f;// && current_depth > line_depth - min_bound;
 
-        //bool cond = (line_depth > current_depth + 1 && line_depth < last_depth - 1) || (line_depth < current_depth && line_depth > last_depth);// && last_depth < current_dbuf;
+        //bool cond = (line_depth > current_depth + 5 && line_depth < last_depth - 5) || (line_depth < current_depth - 5 && line_depth > last_depth + 5);// && last_depth < current_dbuf;
 
         if(cond)//vcurrent.z - 10.f)
         {
@@ -5978,10 +6141,44 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     float3 rseed = (float3){f1, f2, f3};
     rseed = (rseed - 0.5f) * 2;*/
 
-    int bsearch_num = 4;
+    int bsearch_num = 10;
 
-    float upper_a = a + 0.1f;
-    float lower_a = a-1.1f;
+    float test_a = a;
+
+    float3 vfound = vcurrent;
+    float3 vlast_valid = vcurrent;
+
+    bool f2 = false;
+
+    for(int i=0; i<bsearch_num; i++)
+    {
+        vfound = interpolate_single_line_depth(vprev, vstart, test_a);
+
+        int2 vci = convert_int2(vcurrent.xy);
+
+        uint current_dbuf = depth_buffer[vci.y * SCREENWIDTH + vci.x];
+        float current_depth = idcalc((float)current_dbuf/mulint);
+
+        float line_depth = vfound.z;
+
+        if(current_depth < line_depth + 1.f && current_depth > line_depth - 20.f)
+        {
+            f2 = true;
+            break;
+        }
+
+        test_a += 1.f / bsearch_num;
+    }
+
+    if(!f2)
+        return;
+
+    vlast_valid = vfound;
+
+    /*int bsearch_num = 4;
+
+    float upper_a = a;
+    float lower_a = a-1.f;
 
     float test_a;// = (upper_a + lower_a) / 2.f;
     float last_valid_a = upper_a;
@@ -5998,13 +6195,13 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         int2 vci = convert_int2(vcurrent.xy);
 
         uint current_dbuf = depth_buffer[vci.y * SCREENWIDTH + vci.x];
-        //float current_depth = idcalc((float)current_dbuf/mulint);
+        float current_depth = idcalc((float)current_dbuf/mulint);
 
-        float current_depth = interpolate_depth_buffer(vcurrent.xy, depth_buffer);
+        //float current_depth = interpolate_depth_buffer(vcurrent.xy, depth_buffer);
 
         float line_depth = vfound.z;
 
-        if(current_depth < line_depth - 1.f && current_depth > line_depth - min_bound)
+        if(current_depth < line_depth - 1.f && current_depth > line_depth - 10)
         {
             last_valid_a = test_a;
             vlast_valid = vfound;
@@ -6014,7 +6211,7 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
         {
             lower_a = test_a;
         }
-    }
+    }*/
 
     //float amax = 50 + 1;
 
@@ -6063,18 +6260,50 @@ void screenspace_reflections(__global struct triangle *triangles, __read_only AU
     contact_fade *= reflection_amount;
     ///0 = no reflect, 1 = lots
 
-    //printf("pre post a %f %f\n", a, last_valid_a);
+
+
+    float2 unfudge = vlast_valid.xy / (float2){SCREENWIDTH, SCREENHEIGHT};
+
+    const float upres = 2048;
+
+    unfudge = texture_mod(unfudge);
+
+    unfudge.x = unfudge.x * (SCREENWIDTH / upres);
+    unfudge.y = unfudge.y * (SCREENHEIGHT / upres);
+
+    unfudge = texture_mod(unfudge);
+
+    unfudge.y = 1.f - unfudge.y;
+
+    /*float3 col_accum = 0.f;
+
+    int slice=nums[tex_id] >> 16;
+    int tsize=sizes[slice];
+
+    int acc_bound = 2;
+
+    for(int i=-acc_bound; i<acc_bound+1; i++)
+    {
+        for(int j=-acc_bound; j<acc_bound+1; j++)
+        {
+            col_accum += texture_filter_direct(unfudge + (float2){i, j}/tsize, 4.f, tex_id, G->mip_start, nums, sizes, array).xyz;
+        }
+    }
+
+    float3 fcol = col_accum / ((acc_bound+1)*(acc_bound+1)*2);*/
+
+    //float3 fcol = texture_filter_direct(unfudge, MIP_LEVELS, tex_id, G->mip_start, nums, sizes, array).xyz;
 
     float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy).xyz;
     //float3 fcol = read_imagef(in_screen, sam_screen, vlast_valid.xy + rseed.xy / 2.f).xyz;
 
     float3 ccol = read_imagef(in_screen, sam, (int2){x, y}).xyz;
 
-    //ccol = (ccol + fcol) / 2.f;
-
     float3 contact_col = fcol * (contact_fade);
 
     ccol = (ccol + contact_col) / (1 + (contact_fade));
+
+    //ccol = fcol;
 
     write_imagef(back_screen, (int2){x, y}, (float4)(ccol.xyz, 1.f));
 

@@ -38,6 +38,7 @@ struct texture
     bool is_active;
     bool is_loaded;
     bool is_unique; ///ie don't cache me
+    bool force_load;
 
     bool has_mipmaps;
 
@@ -67,6 +68,7 @@ struct texture
 
     void generate_mipmaps();
     void update_gpu_mipmaps(texture_context_data& gpu_dat, compute::command_queue cqueue = cl::cqueue);
+    void update_gpu_mipmaps_aggressive(texture_context_data& gpu_dat, compute::command_queue cqueue = cl::cqueue);
 
     void activate();
     void inactivate();

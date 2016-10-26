@@ -268,6 +268,14 @@ bool texture_context::should_realloc(object_context& ctx)
         }
     }
 
+    for(auto& i : all_textures)
+    {
+        if(i->force_load)
+        {
+            textures_in_use.insert(i->id);
+        }
+    }
+
     if(textures_in_use == last_build_textures)
     {
         return false;
@@ -312,6 +320,14 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
             if(o.ssid != -1)
                 textures_in_use.insert(o.ssid);
+        }
+    }
+
+    for(auto& i : all_textures)
+    {
+        if(i->force_load)
+        {
+            textures_in_use.insert(i->id);
         }
     }
 

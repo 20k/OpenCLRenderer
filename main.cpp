@@ -62,6 +62,10 @@ int main(int argc, char *argv[])
     texture* tex = context.tex_ctx.make_new_cached("./objects/test_reflection_map.png");
     tex->set_texture_location("./objects/test_reflection_map.png");
 
+    texture* internal_screen_mip_test = context.tex_ctx.make_new();
+    internal_screen_mip_test->set_create_colour(sf::Color(255, 128, 255, 0), 2048, 2048);
+    internal_screen_mip_test->force_load = true;
+
     //window.window.setPosition({-20, -20});
 
     //#ifdef OCULUS
@@ -73,7 +77,7 @@ int main(int argc, char *argv[])
 
     sponza->set_specular(0.f);
     sponza->set_ss_reflective(true);
-    sponza->set_screenspace_map_id(tex->id);
+    //sponza->set_screenspace_map_id(tex->id);
 
     context.build(true);
 
@@ -219,8 +223,12 @@ int main(int argc, char *argv[])
 
             event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
 
+            event = internal_screen_mip_test->update_internal(context.fetch()->gl_screen[0].get(), context.fetch()->tex_gpu_ctx);
+
+            internal_screen_mip_test->update_gpu_mipmaps_aggressive(context.fetch()->tex_gpu_ctx);
+
             ///due to the buffer reuse problem, motion blur isn't applied to screenspace reflections
-            event = window.draw_screenspace_reflections(*context.fetch());
+            event = window.draw_screenspace_reflections(*context.fetch(), context, internal_screen_mip_test);
 
             //event = window.draw_godrays(*context.fetch());
 
