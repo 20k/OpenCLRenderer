@@ -284,6 +284,7 @@ struct engine
     void raw_input_process_events();
 
     bool raw_input_active = false;
+    bool raw_input_inited = false;
 
     bool check_alt_enter();
 

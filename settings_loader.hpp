@@ -15,6 +15,7 @@ struct settings
     float motion_blur_strength = 1.f;
     float motion_blur_camera_contribution = 1.f;
     bool use_post_aa = true;
+    bool use_raw_input = true;
 
     void load(const std::string& loc);
     void save(const std::string& loc);

@@ -59,7 +59,6 @@ int main(int argc, char *argv[])
 
     #ifdef RAW_INPUT_ENABLED
     window.raw_input_set_active(true);
-    window.raw_input_init();
     #endif // RAW_INPUT_ENABLED
 
     window.set_camera_pos((cl_float4){-800,150,-570});

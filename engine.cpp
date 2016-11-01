@@ -546,6 +546,8 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     loaded = true;
 
     lg::log("end engine::load()");
+
+    raw_input_inited = false;
 }
 
 void engine::set_light_data(light_gpu& ldat)
@@ -853,6 +855,9 @@ void engine::raw_input_init()
     if(!raw_input_active)
         return;
 
+    if(raw_input_inited)
+        return;
+
     #ifdef RAW_INPUT_ENABLED
     HWND hWnd;
     hWnd = GetActiveWindow();
@@ -869,6 +874,8 @@ void engine::raw_input_init()
         SDL_SetRelativeMouseMode(SDL_FALSE);
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }
+
+    raw_input_inited = true;
 
     #endif // RAW_INPUT_ENABLED
 }
