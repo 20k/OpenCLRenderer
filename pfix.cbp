@@ -67,6 +67,7 @@
 			<Add option="-lflac" />
 			<Add option="-lopenal32" />
 			<Add option="-logg" />
+			<Add option="-lSDL2" />
 		</Linker>
 		<Unit filename="camera_effects.cpp" />
 		<Unit filename="camera_effects.hpp" />
