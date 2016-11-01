@@ -776,6 +776,41 @@ void engine::set_mouse_sens(float sens)
     mouse_sens = sens;
 }
 
+void engine::set_relative_mouse_mode(bool is_relative)
+{
+    if(is_relative == mouse_is_relative)
+        return;
+
+    mouse_is_relative = is_relative;
+
+    #ifdef RAW_INPUT_ENABLED
+    if(raw_input_active)
+    {
+        ///we have to double this as when we refresh the window
+        ///and reset the same setting, it does not seem to stick
+        ///so we have to toggle
+        if(is_relative)
+        {
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+        }
+        else
+        {
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+        }
+    }
+    #endif // RAW_INPUT_ENABLED
+
+    if(!raw_input_active && is_relative)
+    {
+        cmx = width/2;
+        cmy = height/2;
+
+        mouse.setPosition({cmx, cmy}, window);
+    }
+}
+
 void engine::update_scrollwheel_delta(sf::Event& event)
 {
     if(event.mouseWheelScroll.wheel != sf::Mouse::VerticalWheel)
@@ -797,6 +832,74 @@ void engine::reset_scrollwheel_delta()
     scrollwheel_delta = 0.f;
 }
 
+void engine::raw_input_set_active(bool is_active)
+{
+    #ifndef RAW_INPUT_ENABLED
+    return;
+    #endif // RAW_INPUT_ENABLED
+
+    bool was_active = raw_input_active;
+
+    raw_input_active = is_active;
+
+    if(is_active && !was_active)
+    {
+        raw_input_init();
+    }
+}
+
+void engine::raw_input_init()
+{
+    if(!raw_input_active)
+        return;
+
+    #ifdef RAW_INPUT_ENABLED
+    HWND hWnd;
+    hWnd = GetActiveWindow();
+
+    SDL_SetMainReady();
+    SDL_Init(SDL_INIT_VIDEO);
+
+    SDL_Window *w = SDL_CreateWindowFrom(hWnd);
+
+    //SDL_WM_GrabInput(SDL_GRAB_ON);
+
+    if(mouse_is_relative && raw_input_active)
+    {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
+
+    #endif // RAW_INPUT_ENABLED
+}
+
+void engine::raw_input_process_events()
+{
+    #ifdef RAW_INPUT_ENABLED
+
+    if(!raw_input_active)
+    {
+        return;
+    }
+
+    mdx = 0;
+    mdy = 0;
+
+    SDL_Event event;
+
+    while(SDL_PollEvent(&event))
+    {
+        if (event.type == SDL_MOUSEMOTION)
+        {
+            mdx += event.motion.xrel;
+            mdy += event.motion.yrel;
+
+            //printf("rel %i %i\n", mdx, mdy);
+        }
+    }
+    #endif // RAW_INPUT_ENABLED
+}
+
 bool engine::check_alt_enter()
 {
     sf::Keyboard key;
@@ -814,16 +917,6 @@ void engine::set_focus(bool _focus)
     focus = _focus;
 }
 
-/*void engine::set_scrollwheel_hack()
-{
-    skip_scrollwheel = true;
-}
-
-void engine::reset_scrollwheel_hack()
-{
-    skip_scrollwheel = false;
-}*/
-
 void engine::update_mouse(float from_x, float from_y, bool use_from_position, bool reset_to_from_position)
 {
     int mx, my;
@@ -831,23 +924,26 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
     mx = get_mouse_x();
     my = get_mouse_y();
 
-    if(!use_from_position)
+    if(!raw_input_active)
     {
-        mdx = mx - cmx;
-        mdy = my - cmy;
+        if(!use_from_position)
+        {
+            mdx = mx - cmx;
+            mdy = my - cmy;
+        }
+        else
+        {
+            mdx = mx - from_x;
+            mdy = my - from_y;
+        }
     }
-    else
-    {
-        mdx = mx - from_x;
-        mdy = my - from_y;
-    }
-
 
     if(reset_to_from_position)
     {
         sf::Mouse mouse;
 
-        mouse.setPosition({from_x, from_y}, window);
+        if(!raw_input_active)
+            mouse.setPosition({from_x, from_y}, window);
 
         window.setMouseCursorVisible(false);
     }
@@ -855,6 +951,49 @@ void engine::update_mouse(float from_x, float from_y, bool use_from_position, bo
     {
         window.setMouseCursorVisible(true);
     }
+
+    cmx = mx;
+    cmy = my;
+}
+
+void engine::tick_mouse()
+{
+    int mx, my;
+
+    mx = get_mouse_x();
+    my = get_mouse_y();
+
+    int from_x = width/2;
+    int from_y = height/2;
+
+    if(!raw_input_active)
+    {
+        if(!mouse_is_relative)
+        {
+            mdx = mx - cmx;
+            mdy = my - cmy;
+        }
+        else
+        {
+            mdx = mx - from_x;
+            mdy = my - from_y;
+        }
+    }
+
+    if(mouse_is_relative)
+    {
+        if(!raw_input_active)
+            mouse.setPosition({from_x, from_y}, window);
+
+        window.setMouseCursorVisible(false);
+    }
+    else
+    {
+        window.setMouseCursorVisible(true);
+    }
+
+    //printf("%i %i raw\n", mdx, mdy);
+    //printf("%i %i sfl\n\n", mx - from_x, my - from_y);
 
     cmx = mx;
     cmy = my;

@@ -57,6 +57,11 @@ int main(int argc, char *argv[])
 
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
 
+    #ifdef RAW_INPUT_ENABLED
+    window.raw_input_set_active(true);
+    window.raw_input_init();
+    #endif // RAW_INPUT_ENABLED
+
     window.set_camera_pos((cl_float4){-800,150,-570});
 
     texture* tex = context.tex_ctx.make_new_cached("./objects/test_reflection_map.png");
@@ -202,6 +207,10 @@ int main(int argc, char *argv[])
     while(window.window.isOpen() && !window.is_requested_close())
     {
         sf::Clock c;
+
+        #ifdef RAW_INPUT_ENABLED
+        window.raw_input_process_events();
+        #endif // RAW_INPUT_ENABLED
 
         while(window.window.pollEvent(Event))
         {

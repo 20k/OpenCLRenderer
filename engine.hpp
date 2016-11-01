@@ -43,6 +43,12 @@
 using namespace OVR;
 #endif
 
+#define RAW_INPUT_ENABLED
+#ifdef RAW_INPUT_ENABLED
+#define SDL_MAIN_HANDLED
+#include <SDL2/SDL.h>
+#endif // RAW_INPUT_ENABLED
+
 namespace compute = boost::compute;
 
 struct point_cloud_info;
@@ -259,6 +265,7 @@ struct engine
     void process_input();
     void set_input_handler(control_input& in);
     void update_mouse(float from_x = 0.f, float from_y = 0.f, bool use_from_position = false, bool reset_to_from_position = false);
+    void tick_mouse();
     int get_mouse_x();
     int get_mouse_y();
     int get_mouse_delta_x();
@@ -266,8 +273,17 @@ struct engine
     float get_mouse_sens_adjusted_x();
     float get_mouse_sens_adjusted_y();
     void set_mouse_sens(float sens);
+    void set_relative_mouse_mode(bool is_relative);
     void update_scrollwheel_delta(sf::Event& event);
     void reset_scrollwheel_delta();
+
+    bool mouse_is_relative = false;
+
+    void raw_input_set_active(bool is_active);
+    void raw_input_init();
+    void raw_input_process_events();
+
+    bool raw_input_active = false;
 
     bool check_alt_enter();
 
