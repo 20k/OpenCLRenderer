@@ -466,7 +466,7 @@ compute::event run_kernel_with_list(kernel &kernel, cl_uint global_ws[], cl_uint
         ///2d kernels into 1d because its much faster (I hate everyone)
         if(dimensions == 1)
         {
-            l_ws[i] = kernel.work_size;
+            //l_ws[i] = kernel.work_size;
         }
 
         if(g_ws[i] % l_ws[i]!=0)

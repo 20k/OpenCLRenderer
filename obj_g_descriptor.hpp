@@ -30,6 +30,8 @@ struct obj_g_descriptor
     cl_int buffer_offset;
     cl_uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
     ///add in a type here for shaders?
+    //cl_uint padding;
 };
 
 #endif // INCLUDED_H_OBJ_G_DESCRIPTOR
+

@@ -124,10 +124,11 @@ struct cl_gl_interop_texture
         init(_w, _h, use_gl_interop, cqueue);
     }
 
+    ///unacceptable to destroy here due to potential context switch, must be handled manually
     void init(int _w, int _h, int use_gl_interop, compute::command_queue cqueue)
     {
-        if(has_init)
-            destroy();
+        //if(has_init)
+        //    destroy();
 
         w = _w;
         h = _h;
@@ -346,7 +347,7 @@ struct cl_gl_interop_texture
 
     ~cl_gl_interop_texture()
     {
-        destroy();
+        //destroy();
     }
 };
 

@@ -530,7 +530,7 @@ bool dynamic_cache(T& data, cache<T>& c, bool force, bool context_switched, int 
         cl_int ret;
 
         if(!force)
-            ret = clEnqueueWriteBuffer(cl::cqueue_ooo, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + offset, sizeof(T), &c.cur, c.init, o_ev, &ev);
+            ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + offset, sizeof(T), &c.cur, c.init, o_ev, &ev);
         else
             ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + offset, sizeof(T), &c.cur, c.init, o_ev, &ev);
 
@@ -663,21 +663,21 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     if(dirty_pos && dirty_rot)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue_ooo, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
     }
     else if(dirty_pos)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue_ooo, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, event_ptr, &event); ///only position
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4), &posrot.lo, num_events, event_ptr, &event); ///only position
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
     }
     else if(dirty_rot)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue_ooo, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, event_ptr, &event); ///only rotation
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &posrot.hi, num_events, event_ptr, &event); ///only rotation
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
@@ -685,7 +685,7 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     if(dirty_rot_quat)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue_ooo, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4)*2, sizeof(cl_float4), &cl_rot_quat, num_events, event_ptr, &event); ///only rotation
+        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4)*2, sizeof(cl_float4), &cl_rot_quat, num_events, event_ptr, &event); ///only rotation
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);

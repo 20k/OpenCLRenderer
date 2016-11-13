@@ -1471,7 +1471,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     ///1 thread per triangle
     cl_uint p1global_ws = dat.tri_num;
-    cl_uint local = 128;
+    cl_uint local = 256;
 
     if(dat.tri_num <= 0)
         return compute::event();
@@ -1589,8 +1589,6 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     ///makes literally no sense, just roll with it
     cl_uint p2global_ws = dat.current_cpu_id_num * id_fudge + 1000;
 
-    cl_uint local2 = 256;
-
     ///recover ids from z buffer by redoing previous step, this could be changed by using 2d atomic map to merge the kernels
 
     ///hmmm. Using second kernel seems to have better depth complexity
@@ -1607,6 +1605,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     run_kernel_with_string("kernel2", &p2global_ws, &local, 1, p2arg_list);
 
+    //printf("k12 %i %i\n", p1global_ws_new, p2global_ws);
+
     //sf::Clock c3;
     //int nnbuf = (dat.nbuf + 1) % 2;
 
@@ -1617,8 +1617,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //p3arg_list.push_back(&dat.g_tri_num);
     p3arg_list.push_back(&position);
     p3arg_list.push_back(&rotation);
-    p3arg_list.push_back(&dat.c_pos_old);
-    p3arg_list.push_back(&dat.c_rot_old);
+    //p3arg_list.push_back(&dat.c_pos_old);
+    //p3arg_list.push_back(&dat.c_rot_old);
     p3arg_list.push_back(&dat.depth_buffer[0]);
     p3arg_list.push_back(&dat.g_id_screen_tex);
     p3arg_list.push_back(&dat.tex_gpu_ctx.g_texture_array);
@@ -1662,7 +1662,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //printf("gpuarray %i\n", dat.tex_gpu_ctx.g_texture_array.size());
 
     cl_uint p3global_ws[] = {eng.width, eng.height};
-    cl_uint p3local_ws[] = {8, 8};
+    cl_uint p3local_ws[] = {16, 16};
 
     ///this is the deferred screenspace pass
     auto event = run_kernel_with_string("kernel3", p3global_ws, p3local_ws, 2, p3arg_list);

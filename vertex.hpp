@@ -22,10 +22,16 @@ struct vertex
     //void set_pad2(cl_uint);
 
     private:
-    cl_float x, y, z;
+    /*cl_float x, y, z;
     cl_uint pad;
     cl_ushort2 normal; ///compressed
-    cl_uint vt;
+    cl_uint vt;*/
+
+    cl_float4 pos;
+    cl_float4 normal;
+    cl_float2 vt;
+    cl_uint pad;
+    cl_uint pad2;
 };
 
 #endif

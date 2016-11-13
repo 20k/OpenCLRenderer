@@ -133,17 +133,23 @@ cl_float2 packed_half_to_float2(cl_uint h)
 
 cl_float4 vertex::get_pos() const
 {
-    return {x, y, z, 0};
+    //return {x, y, z, 0};
+
+    return pos;
 }
 
 cl_float4 vertex::get_normal() const
 {
-    return decode_normal(short_to_float(normal));
+    //return decode_normal(short_to_float(normal));
+
+    return normal;
 }
 
 cl_float2 vertex::get_vt() const
 {
-    return packed_half_to_float2(vt);
+    //return packed_half_to_float2(vt);
+
+    return vt;
 }
 
 cl_uint vertex::get_pad() const
@@ -158,14 +164,18 @@ cl_uint vertex::get_pad() const
 
 void vertex::set_pos(cl_float4 val)
 {
-    x = val.x;
-    y = val.y;
-    z = val.z;
+    //x = val.x;
+    //y = val.y;
+    //z = val.z;
+
+    pos = val;
 }
 
 void vertex::set_normal(cl_float4 val)
 {
-    normal = float_to_short(encode_normal(val));
+    //normal = float_to_short(encode_normal(val));
+
+    normal = val;
 }
 
 ///ok new plan
@@ -182,7 +192,9 @@ void vertex::set_vt(cl_float2 vtm)
 
     vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;*/
 
-    vt = float2_to_packed_half(vtm);
+    //vt = float2_to_packed_half(vtm);
+
+    vt = vtm;
 }
 
 void vertex::set_pad(cl_uint val)

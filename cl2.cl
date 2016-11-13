@@ -100,30 +100,42 @@ struct obj_g_descriptor
     uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
 };
 
-
 struct vertex
+{
+    float4 pos;
+    float4 normal;
+    float2 vt;
+    uint object_id;
+    uint pad2;
+};
+
+/*struct vertex
 {
     float x, y, z;
     uint object_id;
     ushort2 normal;
     uint h_vt;
-};
+};*/
 
 struct triangle
 {
     struct vertex vertices[3];
 };
 
-float3 vertex_pos(struct vertex v)
+float3 vertex_pos(__global struct vertex* v)
 {
-    return (float3)(v.x, v.y, v.z);
+    //return (float3)(v->x, v->y, v->z);
+
+    return v->pos.xyz;
 }
 
 void set_tri_vertex(__global struct triangle* T, int i, float3 pos)
 {
-    T->vertices[i].x = pos.x;
+    /*T->vertices[i].x = pos.x;
     T->vertices[i].y = pos.y;
-    T->vertices[i].z = pos.z;
+    T->vertices[i].z = pos.z;*/
+
+    T->vertices[i].pos.xyz = pos;
 }
 
 float3 reflect(float3 d, float3 n)
@@ -311,7 +323,7 @@ float3 rot_quat(const float3 point, float4 quat)
 {
     quat = fast_normalize(quat);
 
-    float3 t = 2 * cross(quat.xyz, point);
+    float3 t = 2.f * cross(quat.xyz, point);
 
     return point + quat.w * t + cross(quat.xyz, t);
 }
@@ -322,9 +334,11 @@ float3 back_rot_quat(const float3 point, const float4 quat)
 
     conj.xyz = -conj.xyz;
 
-    float len = fast_length(conj);
+    //float len = fast_length(conj);
 
-    return rot_quat(point, conj / (len * len));
+    float len_sq = dot(conj, conj);
+
+    return rot_quat(point, conj / len_sq);
 }
 
 ///a rot then a back rot 'cancel' out
@@ -467,9 +481,9 @@ float3 rot_quat_with_offset(float3 pos, float3 c_pos, float3 c_rot, float3 offse
 
 void rot_3(__global struct triangle *triangle, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset, float3 ret[3])
 {
-    ret[0] = rot(vertex_pos(triangle->vertices[0]), 0, rotation_offset);
-    ret[1] = rot(vertex_pos(triangle->vertices[1]), 0, rotation_offset);
-    ret[2] = rot(vertex_pos(triangle->vertices[2]), 0, rotation_offset);
+    ret[0] = rot(vertex_pos(&triangle->vertices[0]), 0, rotation_offset);
+    ret[1] = rot(vertex_pos(&triangle->vertices[1]), 0, rotation_offset);
+    ret[2] = rot(vertex_pos(&triangle->vertices[2]), 0, rotation_offset);
 
     ret[0] = rot(ret[0] + offset, c_pos, c_rot);
     ret[1] = rot(ret[1] + offset, c_pos, c_rot);
@@ -3810,20 +3824,20 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     for(int i=0; i<3; i++)
     {
-        if(any(isnan(vertex_pos(T->vertices[i]))))
+        if(any(isnan(vertex_pos(&T->vertices[i]))))
             return;
 
-        if(any(fabs(vertex_pos(T->vertices[i])) >= FLT_MAX/8192.f))
+        if(any(fabs(vertex_pos(&T->vertices[i])) >= FLT_MAX/8192.f))
             return;
 
-        if(any(isinf(vertex_pos(T->vertices[i]))))
+        if(any(isinf(vertex_pos(&T->vertices[i]))))
             return;
     }
 
     //printf("c %f %f %f %f ", G->world_rot_quat.x, G->world_rot_quat.y, G->world_rot_quat.z, G->world_rot_quat.w);
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
+    full_rotate_quat(vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     uint b_id = atomic_add(id_cutdown_tris, num);
@@ -3949,13 +3963,13 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
     for(int i=0; i<3; i++)
     {
-        if(any(isnan(vertex_pos(T->vertices[i]))))
+        if(any(isnan(vertex_pos(&T->vertices[i]))))
             return;
 
-        if(any(fabs(vertex_pos(T->vertices[i])) >= FLT_MAX/8192.f))
+        if(any(fabs(vertex_pos(&T->vertices[i])) >= FLT_MAX/8192.f))
             return;
 
-        if(any(isinf(vertex_pos(T->vertices[i]))))
+        if(any(isinf(vertex_pos(&T->vertices[i]))))
             return;
     }
 
@@ -3996,7 +4010,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     {
         //float3 project = rot_quat_with_offset(vertex_pos(T->vertices[kk]), c_pos, )
 
-        float3 rotated = rot_quat(vertex_pos(T->vertices[kk]), G->world_rot_quat);
+        float3 rotated = rot_quat(vertex_pos(&T->vertices[kk]), G->world_rot_quat);
         rotated += g_world_pos;
 
         ///need to add object positions???!
@@ -4026,7 +4040,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         int num = 0;
 
         ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-        full_rotate_quat(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
+        full_rotate_quat(vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
         ///can replace rotation with a swizzle for shadowing
 
         uint b_id = atomic_add(id_cutdown_tris, num);
@@ -4149,7 +4163,7 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
         return;
 
     ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-    full_rotate_n_extra(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
+    full_rotate_n_extra(vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
     int ooany[2];
@@ -4761,6 +4775,10 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
+        //float s1 = calc_third_areas_i(xpv.x, xpv.y, xpv.z, ypv.x, ypv.y, ypv.z, x, y);
+
+        //bool cond = s1 < area + mod;
+
         if(cond)
         {
             //float fmydepth = A * x + B * y + C;
@@ -4803,7 +4821,7 @@ float mdot(float3 v1, float3 v2)
     return max(0.f, dot(v1, v2));
 }
 
-#define DIM_KERNEL3 8
+//#define DIM_KERNEL3 8
 
 /*float2 encode_normal(float3 val)
 {
@@ -4886,6 +4904,11 @@ float3 decode_normal(ushort2 sval)
     return ret;
 }
 
+float3 get_normal(__global struct vertex* v)
+{
+    return v->normal.xyz;
+}
+
 uint encode_vt(float2 h)
 {
     ushort x;
@@ -4906,6 +4929,11 @@ float2 decode_vt(uint vt)
     float yh = vload_half(0, (const __private half*)&y);
 
     return (float2){xh, yh};
+}
+
+float2 get_vt(__global struct vertex* v)
+{
+    return v->vt;
 }
 
 float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 camera_pos, __global struct obj_g_descriptor* G, float2 vt,
@@ -4984,9 +5012,9 @@ float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 came
 ///it just needs to increase, if it jumps then there'll be an artifact in the motion blur
 ///could also be used for half pixel jitter etc
 __kernel
-__attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
+//__attribute__((reqd_work_group_size(DIM_KERNEL3, DIM_KERNEL3, 1)))
 //__attribute__((vec_type_hint(float3)))
-void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old, __global uint* depth_buffer, __read_only image2d_t id_buffer,
+void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional
@@ -5039,17 +5067,17 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     float2 vt1, vt2, vt3;
     float3 n1, n2, n3; ///when I do the rewrite, make me a normalized float2
 
-    p1 = vertex_pos(T->vertices[0]);
-    p2 = vertex_pos(T->vertices[1]);
-    p3 = vertex_pos(T->vertices[2]);
+    p1 = vertex_pos(&T->vertices[0]);
+    p2 = vertex_pos(&T->vertices[1]);
+    p3 = vertex_pos(&T->vertices[2]);
 
-    vt1 = decode_vt(T->vertices[0].h_vt);
-    vt2 = decode_vt(T->vertices[1].h_vt);
-    vt3 = decode_vt(T->vertices[2].h_vt);
+    vt1 = get_vt(&T->vertices[0]);
+    vt2 = get_vt(&T->vertices[1]);
+    vt3 = get_vt(&T->vertices[2]);
 
-    n1 = decode_normal(T->vertices[0].normal.xy);
-    n2 = decode_normal(T->vertices[1].normal.xy);
-    n3 = decode_normal(T->vertices[2].normal.xy);
+    n1 = get_normal(&T->vertices[0]);
+    n2 = get_normal(&T->vertices[1]);
+    n3 = get_normal(&T->vertices[2]);
 
 
     //int o_id = T->vertices[0].object_id;
@@ -5131,6 +5159,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
         return;
     }*/
 
+    #if 0
     ///normal maps are just all wrong atm
     if(gobj[o_id].rid != -1)
     {
@@ -5179,6 +5208,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
 
         normal = fast_normalize(normal);*/
     }
+    #endif
 
     float3 ambient_sum = 0;
 
@@ -5215,6 +5245,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, fl
     ///but I'd like something a bit more impactful than that
     ///generally there are a lot of lights, so i don't think its a massive issue
     ///I'm not really sure whats going on with this define usage
+    //#define NO_SSAO
     #ifndef NO_SSAO
     #define USE_SSAO
     #endif
@@ -5991,17 +6022,17 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
     float3 ray_dir = global_position - c_pos.xyz;
     float3 ray_start = global_position;
 
-    float3 p1 = vertex_pos(T->vertices[0]);
-    float3 p2 = vertex_pos(T->vertices[1]);
-    float3 p3 = vertex_pos(T->vertices[2]);
+    float3 p1 = vertex_pos(&T->vertices[0]);
+    float3 p2 = vertex_pos(&T->vertices[1]);
+    float3 p3 = vertex_pos(&T->vertices[2]);
 
-    float3 n1 = decode_normal(T->vertices[0].normal.xy);
-    float3 n2 = decode_normal(T->vertices[1].normal.xy);
-    float3 n3 = decode_normal(T->vertices[2].normal.xy);
+    float3 n1 = get_normal(&T->vertices[0]);
+    float3 n2 = get_normal(&T->vertices[1]);
+    float3 n3 = get_normal(&T->vertices[2]);
 
-    float2 vt1 = decode_vt(T->vertices[0].h_vt);
-    float2 vt2 = decode_vt(T->vertices[1].h_vt);
-    float2 vt3 = decode_vt(T->vertices[2].h_vt);
+    float2 vt1 = get_vt(&T->vertices[0]);
+    float2 vt2 = get_vt(&T->vertices[1]);
+    float2 vt3 = get_vt(&T->vertices[2]);
 
 
     p1 *= G->scale;
@@ -7459,7 +7490,7 @@ void kernel3_oculus(__global struct triangle *triangles, struct p2 c_pos, struct
 
     float l1,l2,l3;
 
-    get_barycentric(global_position, vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]), &l1, &l2, &l3);
+    get_barycentric(global_position, vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]), &l1, &l2, &l3);
 
     float2 vt;
     vt = T->vertices[0].vt * l1 + T->vertices[1].vt * l2 + T->vertices[2].vt * l3;
@@ -8608,7 +8639,7 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
         ///so, i need to replace this
         ///with the interpolated version? new_pos + new_offset SHOULD be interpolated, so it
         ///should automagically work!
-        float3 to_central_line = shortest_to_line((float3){0,0,0}, (float3){0, 1, 0}, vertex_pos(original->vertices[i]));
+        float3 to_central_line = shortest_to_line((float3){0,0,0}, (float3){0, 1, 0}, vertex_pos(&original->vertices[i]));
 
         float3 to_my_point = -to_central_line;
 
@@ -8632,11 +8663,11 @@ void attach_to_string(__global struct triangle* tris, int tri_start, int tri_end
     }
 
     ///I don't know why the winding order seems to be reversed
-    float3 tmp = vertex_pos(T->vertices[0]);
-    set_tri_vertex(T, 0, vertex_pos(T->vertices[1]));
+    float3 tmp = vertex_pos(&T->vertices[0]);
+    set_tri_vertex(T, 0, vertex_pos(&T->vertices[1]));
     set_tri_vertex(T, 1, tmp);
 
-    float3 normal = tri_to_normal(vertex_pos(T->vertices[0]), vertex_pos(T->vertices[1]), vertex_pos(T->vertices[2]));
+    float3 normal = tri_to_normal(vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]));
 
     T->vertices[0].normal.xy = encode_normal(normal);
     T->vertices[1].normal.xy = encode_normal(normal);

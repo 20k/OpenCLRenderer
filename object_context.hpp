@@ -133,6 +133,7 @@ struct object_context_data
     bool has_valid_texture_data = false;
 
     void ensure_screen_buffers(int _w, int _h, bool force = false);
+    void destroy_screen_buffers();
     void swap_buffers();
     void update_cpu_id_num();
 };
@@ -204,7 +205,7 @@ struct object_context
 
     static cl_uint gid;
 
-
+    void destroy_context_unrenewables();
     void increment_context_id();
     int get_context_id();
 

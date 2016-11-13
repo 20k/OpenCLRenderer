@@ -66,6 +66,15 @@ void object_context_data::ensure_screen_buffers(int _w, int _h, bool force)
     s_h = _h;
 }
 
+void object_context_data::destroy_screen_buffers()
+{
+    gl_screen[0].destroy();
+    gl_screen[1].destroy();
+
+    s_w = 0;
+    s_h = 0;
+}
+
 cl_uint object_context::gid = 0;
 
 objects_container* object_context::make_new()
@@ -764,12 +773,17 @@ void object_context::flush_locations(bool force)
         clEnqueueBarrier(cl::cqueue);
     }
 
-    cl::cqueue_ooo.flush();
+    //cl::cqueue_ooo.flush();
 }
 
 void object_context::flip()
 {
     flip_buffers(this);
+}
+
+void object_context::destroy_context_unrenewables()
+{
+    gpu_dat.destroy_screen_buffers();
 }
 
 void object_context::increment_context_id()
