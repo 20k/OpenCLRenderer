@@ -4264,7 +4264,7 @@ bool point_in_tri(float2 p, float2 p0, float2 p1, float2 p2)
     float s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y) * sign;
     float t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y) * sign;
 
-    return s > -0.0001 && t > -0.0001 && (s + t) < 2.0001 * A * sign;
+    return s > -0.0001f && t > -0.0001f && (s + t) < 2.0001f * A * sign;
 }
 
 ///rotates and projects triangles into screenspace, writes their depth atomically

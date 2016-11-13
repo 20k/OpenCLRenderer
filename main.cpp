@@ -63,12 +63,12 @@ int main(int argc, char *argv[])
 
     window.set_camera_pos((cl_float4){-800,150,-570});
 
-    texture* tex = context.tex_ctx.make_new_cached("./objects/test_reflection_map.png");
+    /*texture* tex = context.tex_ctx.make_new_cached("./objects/test_reflection_map.png");
     tex->set_texture_location("./objects/test_reflection_map.png");
 
     texture* internal_screen_mip_test = context.tex_ctx.make_new();
     internal_screen_mip_test->set_create_colour(sf::Color(255, 128, 255, 0), 2048, 2048);
-    internal_screen_mip_test->force_load = true;
+    internal_screen_mip_test->force_load = true;*/
 
     //window.window.setPosition({-20, -20});
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     context.load_active();
 
     sponza->set_specular(0.f);
-    sponza->set_ss_reflective(true);
+    sponza->set_ss_reflective(false);
     //sponza->set_screenspace_map_id(tex->id);
 
     context.build(true);
