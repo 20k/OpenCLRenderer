@@ -2019,39 +2019,36 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
 
     int samples = 2;
 
+    float2 fspos = convert_float2(spos);
+
     //float bias = 20.f;
 
     float acc = 0.f;
-    float n = 0;
 
-    for(int z=-samples; z<=samples; z++)
+    for(int y=-samples; y<=samples; y++)
     {
-        for(int y=-samples; y<=samples; y++)
+        for(int x=-samples; x<=samples; x++)
         {
-            for(int x=-samples; x<=samples; x++)
+            float2 offset = (float2)(x, y) * world_rad;
+
+            offset = round(offset);
+
+            float2 world = fspos + offset;
+
+            world = clamp(world, 1.f, (float2){SCREENWIDTH-2.f, SCREENHEIGHT-2.f});
+
+            ///calculate depth at pixel
+            float d2 = idcalc((float)depth_buffer[((int)world.y) * SCREENWIDTH + (int)world.x] / mulint);
+
+            for(float z=-samples; z<=samples; z+=1.f)
             {
-                float3 offset = (float3)(x, y, z) * (float3)(world_rad, world_rad, 1);
-
-                int2 world = spos + (int2)(offset.x, offset.y);
-
-                world = clamp(world, 1.f, (int2){SCREENWIDTH-2, SCREENHEIGHT-2});
-
-                n += 1;
-
-                //float2 foffset = (float2)(spos.x, spos.y) + offset.xy;
-                //foffset = clamp(foffset, 1.f, (float2){SCREENWIDTH-2, SCREENHEIGHT-2});
-                //float d2 = bilinear_interpolate_shadow(foffset, depth_buffer, depth + offset.z, 0.f, SCREENWIDTH);
-
-                ///calculate depth at pixel
-                float d2 = idcalc((float)depth_buffer[(world.y) * SCREENWIDTH + world.x] / mulint);
-
-                if(d2 > depth + offset.z)
-                    acc+=1;
+                if(d2 > depth + z)
+                    acc+=1.f;
             }
         }
     }
 
-    acc /= n;
+    acc /= pow(samples*2.f + 1.f, 3.f);
 
     #ifndef SSAO_DIV
     #define SSAO_DIV 2.5f
@@ -5460,6 +5457,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     ///low vtdiff = low mipmap level
     //final_col.xy = clamp(fabs(vt), 0.f, 1.f);
     //final_col.z = 0;
+
+    //final_col.xyz = ssao;
 
     ///duplicating the screen so we can have kernels read/write without breaking everything
     write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
