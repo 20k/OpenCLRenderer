@@ -12657,7 +12657,7 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
                                 __write_only image2d_t screen, __read_only image2d_t r_screen,
                                 __global uint* depth_buffer,
                                 float4 c_pos, float4 c_rot,
-                                float4 smoke_loc)
+                                float4 smoke_loc, float brightness, float4 clear_col)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -12665,7 +12665,7 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
-    write_imagef(screen, (int2){x, y}, 0.5f);
+    write_imagef(screen, (int2){x, y}, clear_col);
 
 
     uint depth = depth_buffer[y*SCREENWIDTH + x];
@@ -12701,6 +12701,10 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
     sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
                     CLK_ADDRESS_CLAMP |
                     CLK_FILTER_LINEAR;
+
+    sampler_t sam_near = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_NONE |
+                    CLK_FILTER_NEAREST;
 
     float3 fdim = convert_float3(dim.xyz);
 
@@ -12763,8 +12767,12 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
 
     accum = native_sqrt(accum);
 
+    float3 in_col = read_imagef(r_screen, sam_near, (int2){x, y}).xyz;
+
+    float3 ocol = clamp(accum * brightness + in_col.xyz, 0.f, 1.f);
+
     ///dkfjkdsfj
-    write_imagef(screen, (int2){x, y}, accum);
+    write_imagef(screen, (int2){x, y}, ocol.xyzz);
     //write_imagef(screen, (int2){x, y}, pos.xyzz / 255.f);
 }
 
@@ -12772,7 +12780,7 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
                                 __write_only image2d_t screen, __read_only image2d_t r_screen,
                                 __global uint* depth_buffer,
                                 float4 c_pos, float4 c_rot,
-                                float4 smoke_loc)
+                                float4 smoke_loc, float brightness, float4 clear_col)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);

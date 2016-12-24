@@ -238,7 +238,7 @@ struct engine
     void draw_raytrace();
     compute::event draw_smoke(object_context_data& dat, smoke& s, cl_int solid);
     compute::event draw_smoke_as_fire(object_context_data& dat, smoke& s, cl_int solid);
-    compute::event draw_smoke_dbuf(object_context_data& dat, smoke& s);
+    compute::event draw_smoke_dbuf(object_context_data& dat, smoke& s, cl_float brightness);
     void draw_voxel_grid(compute::buffer& buf, int w, int h, int d);
     ///i hate this function
     void draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer bz, compute::buffer lx, compute::buffer ly, compute::buffer lz, compute::buffer defx, compute::buffer defy, compute::buffer defz, int w, int h, int d); ///why has nobody fixed this

@@ -2916,7 +2916,7 @@ compute::event engine::draw_smoke_as_fire(object_context_data& dat, smoke& s, cl
     return event;
 }
 
-compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
+compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s, cl_float brightness)
 {
     int n_dens = s.n_dens;
     int n_vel = s.n_vel;
@@ -2960,6 +2960,8 @@ compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
     args.push_back(&this->c_pos);
     args.push_back(&this->c_rot);
     args.push_back(&s.pos);
+    args.push_back(&brightness);
+    args.push_back(&dat.g_clear_col);
 
     if(!s.is_solid)
         return run_kernel_with_string("dbuf_render_fluid", {dat.s_w, dat.s_h}, {16, 16}, 2, args);

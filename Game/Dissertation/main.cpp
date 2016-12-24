@@ -327,13 +327,14 @@ int main(int argc, char *argv[])
 
         window.increase_render_events();
 
-        window.clear_screen(*context.fetch());
+        //window.clear_screen(*context.fetch());
 
         ///so, really we could prearrange as part of normal
         ///and then just do a separated part1?
         ///need to clear depth buffer
         if(!gloop.within(window.c_pos, 50))
         {
+            window.clear_depth_buffer(*context.fetch());
             window.generate_depth_buffer(*context.fetch());
 
             lg::log("depth");
@@ -360,7 +361,7 @@ int main(int argc, char *argv[])
 
         //window.clear_depth_buffer(*context.fetch(), 500);
 
-        auto event = window.draw_smoke_dbuf(*context.fetch(), gloop);
+        auto event = window.draw_smoke_dbuf(*context.fetch(), gloop, 0.8f);
         //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
         //smoke_particles.tick(*context.fetch(), gloop, window);
@@ -378,7 +379,7 @@ int main(int argc, char *argv[])
 
         //window.clear_screen(*context.fetch());
 
-        window.clear_depth_buffer(*context.fetch());
+        //window.clear_depth_buffer(*context.fetch());
 
         context.fetch()->swap_buffers();
 
