@@ -254,6 +254,7 @@ struct engine
     void clear_screen(object_context_data& dat);
     void flip();
     void clear_depth_buffer(object_context_data& dat);
+    void clear_depth_buffer(object_context_data& dat, cl_uint val);
 
     /*void manual_screen_acquire(object_context_data& dat);
     void manual_screen_blit(object_context_data& dat);

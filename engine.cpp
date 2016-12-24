@@ -3402,6 +3402,17 @@ void engine::clear_depth_buffer(object_context_data& dat)
     run_kernel_with_string("clear_depth_buffer", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
 }
 
+void engine::clear_depth_buffer(object_context_data& dat, cl_uint val)
+{
+    dat.ensure_screen_buffers(width, height);
+
+    arg_list args;
+    args.push_back(&dat.depth_buffer[0]);
+    args.push_back(&val);
+
+    run_kernel_with_string("clear_depth_buffer_val", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
+}
+
 void engine::swap_depth_buffers()
 {
     nbuf++;

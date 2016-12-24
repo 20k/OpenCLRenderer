@@ -9429,6 +9429,18 @@ void clear_depth_buffer(__global uint* dbuf)
 }
 
 __kernel
+void clear_depth_buffer_val(__global uint* dbuf, uint val)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    dbuf[y*SCREENWIDTH + x] = val;
+}
+
+__kernel
 void clear_depth_buffer_size(__global uint* dbuf, uint len)
 {
     int id = get_global_id(0);

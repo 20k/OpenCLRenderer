@@ -178,6 +178,8 @@ int main(int argc, char *argv[])
 
     //gloop.roughness += 500.f;
 
+    ///if camera within cube bounds, fill depth buffer with 0s
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -319,7 +321,32 @@ int main(int argc, char *argv[])
         ///so, really we could prearrange as part of normal
         ///and then just do a separated part1?
         ///need to clear depth buffer
-        window.generate_depth_buffer(*context.fetch());
+        if(!gloop.within(window.c_pos, 50))
+        {
+            window.generate_depth_buffer(*context.fetch());
+
+            lg::log("depth");
+        }
+        else
+        {
+            float largest_dist = gloop.get_largest_dist(window.c_pos);
+
+            ///uuuh.. I guess pretend its a cube
+            float to_plane = largest_dist - gloop.uwidth/2.f;
+
+            //lg::log(to_plane, " dfdf");
+
+            ///we need a way to set this from the host and then query it
+            float depth_far_hack = 350000;
+
+            float depth = to_plane < 5 ? 5 : to_plane;
+
+            window.clear_depth_buffer(*context.fetch(), (depth / depth_far_hack) * UINT_MAX);
+
+            lg::log("clear");
+        }
+
+        //window.clear_depth_buffer(*context.fetch(), 500);
 
         auto event = window.draw_smoke_dbuf(*context.fetch(), gloop);
         //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);

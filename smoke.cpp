@@ -416,3 +416,25 @@ void smoke::displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box
                       &val,
                       0, nullptr, nullptr);*/
 }
+
+bool smoke::within(cl_float4 loc, float fudge)
+{
+    cl_float4 rel = sub(loc, pos);
+
+    return rel.x >= -fudge && rel.y >= -fudge && rel.z >= -fudge && rel.x < uwidth + fudge && rel.y < uheight + fudge && rel.z < udepth + fudge;
+}
+
+float smoke::get_largest_dist(cl_float4 loc)
+{
+    cl_float4 rel = sub(loc, add(pos, div((cl_float4){uwidth, uheight, udepth}, 2.f)));
+
+    //cl_float4 rel = sub(loc, pos);
+
+    rel.x = fabs(rel.x);
+    rel.y = fabs(rel.y);
+    rel.z = fabs(rel.z);
+
+    printf("%f %f %f\n", rel.x, rel.y, rel.z);
+
+    return std::max(rel.x, std::max(rel.y, rel.z));
+}
