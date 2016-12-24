@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
             window.clear_depth_buffer(*context.fetch());
             window.generate_depth_buffer(*context.fetch());
 
-            lg::log("depth");
+            //lg::log("depth");
         }
         ///what we really need to do in the below case is clear the depth buffer, and then draw tris on top of that
         else
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
 
             window.clear_depth_buffer(*context.fetch(), (depth / depth_far_hack) * UINT_MAX);
 
-            lg::log("clear");
+            //lg::log("clear");
         }
 
         //window.clear_depth_buffer(*context.fetch(), 500);
