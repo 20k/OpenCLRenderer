@@ -2961,7 +2961,10 @@ compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s)
     args.push_back(&this->c_rot);
     args.push_back(&s.pos);
 
-    return run_kernel_with_string("dbuf_render_fluid", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
+    if(!s.is_solid)
+        return run_kernel_with_string("dbuf_render_fluid", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
+    else
+        return run_kernel_with_string("dbuf_render_fluid_solid", {dat.s_w, dat.s_h}, {16, 16}, 2, args);
 }
 
 #if 0

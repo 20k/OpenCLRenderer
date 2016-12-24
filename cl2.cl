@@ -2532,8 +2532,11 @@ void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* 
     if(x >= dim.x || y >= dim.y || z >= dim.z)
         return;
 
+    //int imin = -6;
+    //int imax = -1;
+
     int imin = -6;
-    int imax = -1;
+    int imax = 4;
 
     float3 yval = y_of(x, y, z, dim.x, dim.y, dim.z, w1, w2, w3, imin, imax);
 
@@ -12609,7 +12612,7 @@ struct cube
     float4 corners[8];
 };
 
-float3 get_normal(__read_only image3d_t voxel, float3 final_pos)
+float3 get_normal_fluid(__read_only image3d_t voxel, float3 final_pos)
 {
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
                 CLK_ADDRESS_CLAMP_TO_EDGE |
@@ -12741,6 +12744,192 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
 
     ///dkfjkdsfj
     write_imagef(screen, (int2){x, y}, accum);
+    //write_imagef(screen, (int2){x, y}, pos.xyzz / 255.f);
+}
+
+__kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
+                                __write_only image2d_t screen, __read_only image2d_t r_screen,
+                                __global uint* depth_buffer,
+                                float4 c_pos, float4 c_rot,
+                                float4 smoke_loc)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+        return;
+
+    write_imagef(screen, (int2){x, y}, 0.5f);
+
+
+    uint depth = depth_buffer[y*SCREENWIDTH + x];
+
+    if(depth == mulint)
+        return;
+
+
+    float ldepth = idcalc((float)depth/mulint);
+
+    ///unprojected pixel coordinate
+    float3 local_position = {((x - SCREENWIDTH/2.0f)*ldepth/FOV_CONST), ((y - SCREENHEIGHT/2.0f)*ldepth/FOV_CONST), ldepth};
+
+    ///backrotate pixel coordinate into globalspace
+    float3 global_position = back_rot(local_position, 0, c_rot.xyz);
+
+    global_position += c_pos.xyz;
+
+    //global_position += (float3){dim.x/2.f, 0, dim.z/2.f};
+
+
+    float3 ray_dir = global_position - c_pos.xyz;
+
+    ///if we're in the cube, this needs to be c_pos
+    float3 ray_origin = global_position;
+
+    float3 ndir = fast_normalize(ray_dir);
+
+    float3 pos = ray_origin - smoke_loc.xyz;
+
+
+
+    sampler_t sam_lin = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP |
+                    CLK_FILTER_LINEAR;
+
+    float3 fdim = convert_float3(dim.xyz);
+
+    int n = 0;
+    int p = 0;
+
+    float accum = 0;
+
+    float melement = max3(fabs(ndir.x), fabs(ndir.y), fabs(ndir.z));
+
+    ndir = ndir / melement;
+
+    pos += ndir * 10;
+
+    bool backup = false;
+
+    float skip_multiplier = 5;
+
+    //float threshold = 40.f;
+
+    float solid_threshold = 0.05f;
+
+    int skip_count = 0;
+
+    float skip_amount = 10.f;
+
+    ///vecme
+    ///8.5ms vanilla
+    while(all(pos >= 0) && all(pos < fdim))
+    {
+        float val = read_imagef(voxel, sam_lin, pos.xyzz).x;
+
+        pos += ndir;
+
+        /*if(val <= 0.0001f && skip_count <= 0)
+        {
+            pos += ndir * skip_multiplier;
+            backup = true;
+        }
+        else
+        {
+            if(backup)
+            {
+                pos -= ndir * (skip_multiplier*2);
+                backup = false;
+
+                accum -= val;
+
+                skip_count = skip_multiplier * 2;
+
+                pos = clamp(pos, 1.f, fdim-1.f);
+            }
+
+            accum += val;
+        }*/
+
+        if(val > solid_threshold)
+        {
+            accum = 1.f;
+
+            break;
+        }
+    }
+
+    bool skipped = false;
+
+    accum /= solid_threshold;
+
+    if(accum > 0)
+    {
+        int step_const = 8;
+
+        float step_div = 10;
+
+        pos -= ndir * step_const;
+
+        //ndir /= step_const;
+
+        ndir /= step_div;
+
+        int snum;
+
+        snum = step_const * step_div;
+
+        for(int i=0; i<snum+1; i++)
+        {
+             float val = read_imagef(voxel, sam_lin, (float4)(pos.xyz, 0)).x;
+
+             if(fabs(val) >= solid_threshold)
+             {
+                 //voxel_accumulate = 1;
+                 break;
+             }
+
+             pos += ndir;
+        }
+    }
+
+    accum = clamp(accum, 0.f, 1.f);
+
+    float3 final_pos = pos;
+
+    ///turns out that the problem IS just hideously unsmoothed normals
+
+    float3 normal = {0, 1, 0};
+
+    {
+        normal = get_normal_fluid(voxel, final_pos);
+
+        normal = normalize(normal);
+    }
+
+
+    float3 half_size = fdim / 2.f;
+
+    float light = 1;
+
+    {
+        final_pos -= half_size;
+
+        //final_pos /= rel;
+
+        final_pos += smoke_loc.xyz;
+
+        float3 tlight = {0, 1000, 0};
+
+        light = dot(normal, fast_normalize(tlight - final_pos));
+        //light = dot(normal, fast_normalize(lights[0].pos.xyz - final_pos));
+
+        light = clamp(light, 0.0f, 1.0f);
+    }
+
+
+    ///dkfjkdsfj
+    write_imagef(screen, (int2){x, y}, accum * light);
     //write_imagef(screen, (int2){x, y}, pos.xyzz / 255.f);
 }
 
@@ -13166,7 +13355,7 @@ __kernel void render_voxel_cube(__read_only image3d_t voxel, int width, int heig
 
     if(is_solid)
     {
-        normal = get_normal(voxel, final_pos);
+        normal = get_normal_fluid(voxel, final_pos);
 
         normal = normalize(normal);
     }
@@ -13477,7 +13666,7 @@ __kernel void render_voxel_fire(__read_only image3d_t voxel, int width, int heig
 
     if(is_solid)
     {
-        normal = get_normal(voxel, final_pos);
+        normal = get_normal_fluid(voxel, final_pos);
 
         normal = normalize(normal);
     }
