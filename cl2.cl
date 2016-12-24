@@ -2535,8 +2535,8 @@ void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* 
     //int imin = -6;
     //int imax = -1;
 
-    int imin = -6;
-    int imax = 4;
+    int imin = -7;
+    int imax = -1;
 
     float3 yval = y_of(x, y, z, dim.x, dim.y, dim.z, w1, w2, w3, imin, imax);
 
@@ -2967,7 +2967,14 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     //len = 1.f - len;
 
+    //len = len * 4;
+
+    ///so a higher velocity means less roughness
     len = 1.f / len;
+
+    ///higher len = more roughness
+
+    //len = pow(len, 2.f);
 
     len = clamp(len, 0.00001f, 0.8f);
 
@@ -3016,6 +3023,8 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     return val;
 }
+
+///could probably make this much faster by outputting shorts or even chars
 
 ///do one advect of diffuse with post_upscale higher res?
 ///dedicated upscaling kernel?
@@ -12819,7 +12828,11 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
 
     ndir = ndir / melement;
 
-    pos += ndir * 10;
+    //ndir /= 4.f;
+
+    //pos += ndir * 10;
+
+    pos += ndir;
 
     bool backup = false;
 
@@ -12833,13 +12846,14 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
 
     float skip_amount = 10.f;
 
+    bool found = false;
+    bool has_immediately_terminated = true;
+
     ///vecme
     ///8.5ms vanilla
     while(all(pos >= 0) && all(pos < fdim))
     {
         float val = read_imagef(voxel, sam_lin, pos.xyzz).x;
-
-        pos += ndir;
 
         /*if(val <= 0.0001f && skip_count <= 0)
         {
@@ -12867,15 +12881,26 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
         {
             accum = 1.f;
 
+            found = true;
+
             break;
         }
+
+        has_immediately_terminated = false;
+
+        pos += ndir;
+
+        //accum += val;
     }
+
+    if(!found)
+        return;
 
     bool skipped = false;
 
-    accum /= solid_threshold;
+    //accum /= solid_threshold;
 
-    if(accum > 0)
+    if(found)
     {
         int step_const = 8;
 
@@ -12889,13 +12914,13 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
 
         int snum;
 
-        snum = step_const * step_div;
+        snum = step_const * step_div * 1.5f;
 
         for(int i=0; i<snum+1; i++)
         {
              float val = read_imagef(voxel, sam_lin, (float4)(pos.xyz, 0)).x;
 
-             if(fabs(val) >= solid_threshold)
+             if(val >= solid_threshold)
              {
                  //voxel_accumulate = 1;
                  break;
@@ -12924,6 +12949,7 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
 
     float light = 1;
 
+    if(found)
     {
         final_pos -= half_size;
 
@@ -12938,6 +12964,13 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
 
         light = clamp(light, 0.0f, 1.0f);
     }
+    /*else
+    {
+        accum = pow(accum / 1.1f, 3.f);
+    }*/
+
+    if(has_immediately_terminated)
+        light = 1.f;
 
 
     ///dkfjkdsfj

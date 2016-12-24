@@ -180,6 +180,8 @@ int main(int argc, char *argv[])
 
     ///if camera within cube bounds, fill depth buffer with 0s
 
+    bool simulate = true;
+
     while(window.window.isOpen())
     {
         sf::Clock c;
@@ -193,7 +195,13 @@ int main(int argc, char *argv[])
 
         //gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, force, box_size, displace_amount);
 
-        gloop.tick(0.33f);
+        if(simulate)
+            gloop.tick(0.33f);
+        else
+        {
+            gloop.n_vel = 1;
+            gloop.n_dens = 1;
+        }
 
         //window.input();
 
@@ -235,6 +243,9 @@ int main(int argc, char *argv[])
             gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 1, 0}, force, box_size, displace_amount);
         }
 
+        if(key.isKeyPressed(sf::Keyboard::G))
+            simulate = false;
+
         if(key.isKeyPressed(sf::Keyboard::Add))
         {
             gloop.voxel_bound += 1.f;
@@ -263,7 +274,7 @@ int main(int argc, char *argv[])
 
         if(key.isKeyPressed(sf::Keyboard::RBracket))
         {
-            gloop.roughness += 1.f;
+            gloop.roughness += 1.f / 20.f;
         }
         if(key.isKeyPressed(sf::Keyboard::LBracket))
         {
@@ -327,6 +338,7 @@ int main(int argc, char *argv[])
 
             lg::log("depth");
         }
+        ///what we really need to do in the below case is clear the depth buffer, and then draw tris on top of that
         else
         {
             float largest_dist = gloop.get_largest_dist(window.c_pos);
@@ -339,7 +351,7 @@ int main(int argc, char *argv[])
             ///we need a way to set this from the host and then query it
             float depth_far_hack = 350000;
 
-            float depth = to_plane < 5 ? 5 : to_plane;
+            float depth = to_plane < 0.01f ? 0.01f : to_plane;
 
             window.clear_depth_buffer(*context.fetch(), (depth / depth_far_hack) * UINT_MAX);
 
@@ -358,10 +370,11 @@ int main(int argc, char *argv[])
         window.render_me = true;
         window.last_frametype = frametype::RENDER;
 
+        window.render_block();
+
         window.blit_to_screen(*context.fetch());
 
         window.flip();
-        window.render_block();
 
         //window.clear_screen(*context.fetch());
 
