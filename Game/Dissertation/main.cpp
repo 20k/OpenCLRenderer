@@ -1,7 +1,7 @@
 #include "../../proj.hpp"
 #include "../../vec.hpp"
 #include "../../goo.hpp"
-#include "../smoke_particles.hpp"
+//#include "../smoke_particles.hpp"
 
 template<int N, typename cl_type>
 void do_fluid_displace(int mx, int my, lattice<N, cl_type>& lat)
@@ -200,6 +200,9 @@ int main(int argc, char *argv[])
 
         //lat.tick(NULL);
 
+        if(key.isKeyPressed(sf::Keyboard::F10))
+            window.window.close();
+
         if(key.isKeyPressed(sf::Keyboard::I))
         {
             gloop.displace({gloop.width/2, gloop.height/2, gloop.depth/2}, {0, 0, 1}, force, box_size, displace_amount);
@@ -337,7 +340,7 @@ int main(int argc, char *argv[])
 
         window.clear_depth_buffer(*context.fetch());
 
-        context.fetch()->swap_depth_buffers();
+        context.fetch()->swap_buffers();
 
         if(key.isKeyPressed(sf::Keyboard::M))
             std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
