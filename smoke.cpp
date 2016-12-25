@@ -94,6 +94,31 @@ void del_data(cl_event event, cl_int event_command_exec_status, void *user_data)
     delete [] ((float*)user_data);
 }
 
+/*template<typename T>
+void
+init_buffer(T* buf, int N)
+{
+    static_assert(false, "type not supported");
+}*/
+
+void
+init_buffer(cl_float* buf, int N)
+{
+    for(unsigned int i = 0; i<N; i++)
+    {
+        buf[i] = (cl_float)rand() / (RAND_MAX + 1);
+    }
+}
+
+void
+init_buffer(cl_ushort* buf, int N)
+{
+    for(unsigned int i = 0; i<N; i++)
+    {
+        buf[i] = ((cl_float)rand() / (RAND_MAX + 1)) * (USHRT_MAX - 1);
+    }
+}
+
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
 {
     n_dens = 0;
@@ -166,35 +191,43 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     //clSetEventCallback(eimg, CL_COMPLETE, &del_data, buf);
 
-    g_w1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    g_w2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    g_w3 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    using datatype = cl_ushort;
 
-    auto gnw1 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    auto gnw2 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    auto gnw3 = compute::buffer(cl::context, sizeof(cl_float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w1 = compute::buffer(cl::context, sizeof(datatype)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w2 = compute::buffer(cl::context, sizeof(datatype)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    g_w3 = compute::buffer(cl::context, sizeof(datatype)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    auto gnw1 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw2 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw3 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
     cl_int ntotal = uwidth*uheight*udepth;
 
     float* tw1, *tw2, *tw3;
 
+    ///...why don't i delete these?
     ///needs to be nw, nh, nd
     tw1 = new float[uwidth*uheight*udepth];
     tw2 = new float[uwidth*uheight*udepth];
     tw3 = new float[uwidth*uheight*udepth];
 
-    for(unsigned int i = 0; i<uwidth*uheight*udepth; i++)
+    /*for(unsigned int i = 0; i<uwidth*uheight*udepth; i++)
     {
-        tw1[i] = (float)rand() / RAND_MAX;
-        tw2[i] = (float)rand() / RAND_MAX;
-        tw3[i] = (float)rand() / RAND_MAX;
-    }
+        tw1[i] = (datatype)rand() / RAND_MAX;
+        tw2[i] = (datatype)rand() / RAND_MAX;
+        tw3[i] = (datatype)rand() / RAND_MAX;
+    }*/
+
+    ///I'm an idiot, this can't be a ushort... at least atm. GPU expects floats, this is the PREWAVELET noise
+    init_buffer(tw1, uwidth*uheight*udepth);
+    init_buffer(tw2, uwidth*uheight*udepth);
+    init_buffer(tw3, uwidth*uheight*udepth);
 
     cl_event e1, e2, e3;
 
-    clEnqueueWriteBuffer(cl::cqueue, gnw1.get(), CL_FALSE, 0, sizeof(cl_float)*ntotal, tw1, 0, nullptr, &e1); ///both position and rotation dirty
-    clEnqueueWriteBuffer(cl::cqueue, gnw2.get(), CL_FALSE, 0, sizeof(cl_float)*ntotal, tw2, 0, nullptr, &e2); ///both position and rotation dirty
-    clEnqueueWriteBuffer(cl::cqueue, gnw3.get(), CL_FALSE, 0, sizeof(cl_float)*ntotal, tw3, 0, nullptr, &e3); ///both position and rotation dirty
+    clEnqueueWriteBuffer(cl::cqueue, gnw1.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw1, 0, nullptr, &e1);
+    clEnqueueWriteBuffer(cl::cqueue, gnw2.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw2, 0, nullptr, &e2);
+    clEnqueueWriteBuffer(cl::cqueue, gnw3.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw3, 0, nullptr, &e3);
 
 
     cl_int4 dims = {uwidth, uheight, udepth};
@@ -209,13 +242,15 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     y_args.push_back(&g_w2);
     y_args.push_back(&g_w3);
 
-    std::vector<cl_event> wl = {e1, e2, e3};
+    std::vector<compute::event> events = {compute::event(e1), compute::event(e2), compute::event(e3)};
 
-    clEnqueueMarkerWithWaitList(cl::cqueue.get(), wl.size(), &wl[0], nullptr);
+    //std::vector<cl_event> wl = {e1, e2, e3};
+
+    //clEnqueueMarkerWithWaitList(cl::cqueue.get(), wl.size(), &wl[0], nullptr);
 
     ///there's still some squareness in the gpu upscaling
     ///turns out its present in cpu side as well
-    run_kernel_with_string("get_y_of", {uwidth, uheight, udepth}, {16, 16, 1}, 3, y_args);
+    run_kernel_with_string("get_y_of", {uwidth, uheight, udepth}, {16, 16, 1}, 3, y_args, cl::cqueue, events);
 
     g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, 0, NULL);
 
@@ -434,7 +469,7 @@ float smoke::get_largest_dist(cl_float4 loc)
     rel.y = fabs(rel.y);
     rel.z = fabs(rel.z);
 
-    printf("%f %f %f\n", rel.x, rel.y, rel.z);
+    //printf("%f %f %f\n", rel.x, rel.y, rel.z);
 
     return std::max(rel.x, std::max(rel.y, rel.z));
 }

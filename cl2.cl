@@ -2362,6 +2362,8 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
 
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
 
+//typedef float fluid_noise_format;
+
 ///fix this stupidity
 ///need to do b-spline trilinear? What?
 float3 get_wavelet(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3)
@@ -2372,10 +2374,12 @@ float3 get_wavelet(int x, int y, int z, int width, int height, int depth, __glob
 
     int x1, y1, z1;
 
+    ///% super slow, but oh wlel
     x1 = (x + width - 1) % width;
     y1 = (y + height - 1) % height;
     z1 = (z + depth - 1) % depth;
 
+    ///not 100% sure this will be cached correctly on nwidia
     float d1y = w1[IX(x, y, z)] - w1[IX(x, y1, z)];
     float d2z = w2[IX(x, y, z)] - w2[IX(x, y, z1)];
 
@@ -2521,9 +2525,18 @@ void fill_random_buffer(int num, __global float* to_fill, int offset)
 }
 #endif
 
+//#define FLUID_FLOATS
+
+#ifdef FLUID_FLOATS
+#define FLUID_NOISE float
+#else
+#define FLUID_NOISE ushort
+#define FLUID_NOISE_MULT (USHRT_MAX - 1)
+#endif
+
 __kernel
 void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* w3,
-              __global float* ow1, __global float* ow2, __global float* ow3)
+              __global FLUID_NOISE* ow1, __global FLUID_NOISE* ow2, __global FLUID_NOISE* ow3)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -2540,9 +2553,33 @@ void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* 
 
     float3 yval = y_of(x, y, z, dim.x, dim.y, dim.z, w1, w2, w3, imin, imax);
 
-    ow1[z*dim.x*dim.y + y*dim.x + x] = yval.x;
-    ow2[z*dim.x*dim.y + y*dim.x + x] = yval.y;
-    ow3[z*dim.x*dim.y + y*dim.x + x] = yval.z;
+    yval = clamp(yval, -1.f, 1.f);
+
+    int pos = z*dim.x*dim.y + y*dim.x + x;
+
+    #ifdef FLUID_FLOATS
+    ow1[pos] = yval.x;
+    ow2[pos] = yval.y;
+    ow3[pos] = yval.z;
+    #else
+    yval = (yval + 1) / 2.f;
+
+    yval *= FLUID_NOISE_MULT;
+
+    //ushort3 sval = convert_ushort3(yval);
+
+    ushort3 sval;
+
+    sval.x = yval.x;
+    sval.y = yval.y;
+    sval.z = yval.z;
+
+    ow1[pos] = sval.x;
+    ow2[pos] = sval.y;
+    ow3[pos] = sval.z;
+
+    //printf("%i %f sval\n", sval.x, yval.x);
+    #endif
 }
 
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
@@ -2867,7 +2904,7 @@ float do_trilinear(__global float* buf, float vx, float vy, float vz, int width,
     return y1 * (1.0f - zfrac) + y2 * zfrac;
 }
 
-float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global float* w1, __global float* w2, __global float* w3, __read_only image3d_t d_in, float roughness)
+float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global FLUID_NOISE* w1, __global FLUID_NOISE* w2, __global FLUID_NOISE* w3, __read_only image3d_t d_in, float roughness)
 {
     int width, height, depth;
 
@@ -2905,9 +2942,22 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     ///offsets into the same tile dont seem to improve anything
     ///would reduce noise generation time, need to check more exhaustively
+    #ifdef FLUID_FLOATS
     wval.x = w1[pos];
     wval.y = w2[pos];
     wval.z = w3[pos];
+
+    #else
+    wval.x = w1[pos];
+    wval.y = w2[pos];
+    wval.z = w3[pos];
+
+    wval /= FLUID_NOISE_MULT;
+
+    wval *= 2;
+    wval -= 1.f;
+    #endif
+
     //wval.z = wval.y;
 
     sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
@@ -3035,7 +3085,7 @@ __kernel void post_upscale(int width, int height, int depth,
                            int uw, int uh, int ud,
                            //__global float* xvel, __global float* yvel, __global float* zvel,
                            __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
-                           __global float* w1, __global float* w2, __global float* w3,
+                           __global FLUID_NOISE* w1, __global FLUID_NOISE* w2, __global FLUID_NOISE* w3,
                            //__global float* x_out, __global float* y_out, __global float* z_out,
                            __read_only image3d_t d_in, __write_only image3d_t d_out, int scale, float roughness)
 {
