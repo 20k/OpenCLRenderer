@@ -361,7 +361,9 @@ int main(int argc, char *argv[])
 
         //window.clear_depth_buffer(*context.fetch(), 500);
 
-        auto event = window.draw_smoke_dbuf(*context.fetch(), gloop, 0.8f);
+        ///post upscale starting at 1ms
+
+        auto event = window.draw_smoke_dbuf(*context.fetch(), gloop, 1.5f);
         //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
         //smoke_particles.tick(*context.fetch(), gloop, window);

@@ -3016,7 +3016,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
 
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
-    val += val * length(vval);
+    val += val * fast_length(vval);
 
     ///this disables upscaling
     //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
@@ -12653,6 +12653,7 @@ float3 get_normal_fluid(__read_only image3d_t voxel, float3 final_pos)
     return normal;
 }
 
+///could we trace multiple fluids here? Could we upscale multiple fluids in post upscale?
 __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
                                 __write_only image2d_t screen, __read_only image2d_t r_screen,
                                 __global uint* depth_buffer,
@@ -12731,7 +12732,7 @@ __kernel void dbuf_render_fluid(__read_only image3d_t voxel, int4 dim,
     ///8.5ms vanilla
     while(all(pos >= 0) && all(pos < fdim))
     {
-        float val = read_imagef(voxel, sam_lin, pos.xyzz).x;
+        float val = read_imagef(voxel, sam_lin, pos.xyzz).x * brightness;
 
         pos += ndir;
 
@@ -12788,7 +12789,7 @@ __kernel void dbuf_render_fluid_solid(__read_only image3d_t voxel, int4 dim,
     if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
         return;
 
-    write_imagef(screen, (int2){x, y}, 0.5f);
+    write_imagef(screen, (int2){x, y}, clear_col);
 
 
     uint depth = depth_buffer[y*SCREENWIDTH + x];

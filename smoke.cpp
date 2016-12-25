@@ -153,7 +153,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
                 if(lpos < 0)
                     continue;
 
-                buf[lpos] = 10.0f;
+                buf[lpos] = 1.0f;
             }
         }
 
