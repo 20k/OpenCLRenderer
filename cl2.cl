@@ -2532,6 +2532,8 @@ void fill_random_buffer(int num, __global float* to_fill, int offset)
 #else
 #define FLUID_NOISE ushort
 #define FLUID_NOISE_MULT (USHRT_MAX - 1)
+//#define FLUID_NOISE uchar
+//#define FLUID_NOISE_MULT (UCHAR_MAX -1)
 #endif
 
 __kernel
@@ -3064,6 +3066,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     ///need to pass in real dt
     ///draw from here somehow?
 
+    ///the scattered read from d_in is probably awful
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
     val += val * fast_length(vval);

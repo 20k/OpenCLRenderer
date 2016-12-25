@@ -119,6 +119,15 @@ init_buffer(cl_ushort* buf, int N)
     }
 }
 
+void
+init_buffer(cl_uchar* buf, int N)
+{
+    for(unsigned int i = 0; i<N; i++)
+    {
+        buf[i] = ((cl_float)rand() / (RAND_MAX + 1)) * (UCHAR_MAX - 1);
+    }
+}
+
 void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
 {
     n_dens = 0;
@@ -146,6 +155,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     udepth = depth*scale;
 
     compute::image_format format(CL_R, CL_FLOAT);
+    compute::image_format vel_format(CL_R, CL_HALF_FLOAT);
 
     cl_float* buf = new cl_float[width*height*depth]();
     cl_float4 fill_col = {0};
@@ -155,9 +165,9 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     for(int i=0; i<2; i++)
     {
         g_voxel[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
-        g_velocity_x[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
-        g_velocity_y[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
-        g_velocity_z[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, width, height, depth, 0, 0, NULL);
+        g_velocity_x[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, vel_format, width, height, depth, 0, 0, NULL);
+        g_velocity_y[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, vel_format, width, height, depth, 0, 0, NULL);
+        g_velocity_z[i] = compute::image3d(cl::context, CL_MEM_READ_WRITE, vel_format, width, height, depth, 0, 0, NULL);
 
         if(i == 1)
             continue;
@@ -191,6 +201,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
 
     //clSetEventCallback(eimg, CL_COMPLETE, &del_data, buf);
 
+    ///if you fiddle with this, you must change fluid_noise to match in c2.cl above get_y_of
     using datatype = cl_ushort;
 
     g_w1 = compute::buffer(cl::context, sizeof(datatype)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
