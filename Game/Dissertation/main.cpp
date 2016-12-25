@@ -363,6 +363,7 @@ int main(int argc, char *argv[])
 
         ///post upscale starting at 1ms
 
+        ///maybe trace at half res, then fill in the blanks by doing more tracing, but we'd have a massive headstart?
         auto event = window.draw_smoke_dbuf(*context.fetch(), gloop, 1.5f);
         //auto event = window.draw_smoke(*context.fetch(), gloop, gloop.is_solid);
 
