@@ -3077,6 +3077,78 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     return val;
 }
 
+float get_upscaled_density_novel(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global FLUID_NOISE* w1, __global FLUID_NOISE* w2, __global FLUID_NOISE* w3, __read_only image3d_t d_in, float roughness)
+{
+    int width, height, depth;
+
+    width = size.x;
+    height = size.y;
+    depth = size.z;
+
+    int uw, uh, ud;
+
+    uw = upscaled_size.x;
+    uh = upscaled_size.y;
+    ud = upscaled_size.z;
+
+    int x, y, z;
+
+    x = loc.x;
+    y = loc.y;
+    z = loc.z;
+
+    float rx, ry, rz;
+    ///imprecise, we need something else
+    rx = (float)x / (float)scale;
+    ry = (float)y / (float)scale;
+    rz = (float)z / (float)scale;
+
+    float3 wval = 0;
+
+    int pos = z*uw*uh + y*uw + x;
+
+    ///would be beneficial to be able to use lower res smoke
+    ///ALMOST CERTAINLY NEED TO INTERPOLATE
+
+    uint total_pos = uw*uh*ud;
+
+    ///offsets into the same tile dont seem to improve anything
+    ///would reduce noise generation time, need to check more exhaustively
+    #ifdef FLUID_FLOATS
+    wval.x = w1[pos];
+    wval.y = w2[pos];
+    wval.z = w3[pos];
+
+    #else
+    wval.x = w1[pos];
+    wval.y = w2[pos];
+    wval.z = w3[pos];
+
+    wval /= FLUID_NOISE_MULT;
+
+    wval *= 2;
+    wval -= 1.f;
+    #endif
+
+    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
+                    CLK_ADDRESS_CLAMP_TO_EDGE |
+                    CLK_FILTER_LINEAR;
+
+
+    ///slightly better rendering if we dont use currently velocity as well in advection
+    float3 vval = wval * roughness / 5.f;
+
+    ///the scattered read from d_in is probably awful
+    float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
+
+    val += val * fast_length(vval);
+
+    ///this disables upscaling
+    //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
+
+    return val;
+}
+
 ///could probably make this much faster by outputting shorts or even chars
 
 ///do one advect of diffuse with post_upscale higher res?
@@ -3100,6 +3172,24 @@ __kernel void post_upscale(int width, int height, int depth,
         return;
 
     float val = get_upscaled_density((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
+
+    write_imagef(d_out, (int4){x, y, z, 0}, val);
+}
+
+__kernel void post_upscale_novel(int width, int height, int depth,
+                           int uw, int uh, int ud,
+                           __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
+                           __global FLUID_NOISE* w1, __global FLUID_NOISE* w2, __global FLUID_NOISE* w3,
+                           __read_only image3d_t d_in, __write_only image3d_t d_out, int scale, float roughness)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+
+    if(x >= uw || y >= uh || z >= ud)
+        return;
+
+    float val = get_upscaled_density_novel((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
 
     write_imagef(d_out, (int4){x, y, z, 0}, val);
 }

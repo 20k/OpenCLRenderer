@@ -30,6 +30,7 @@ struct smoke
     compute::buffer g_w2;
     compute::buffer g_w3;
 
+    cl_int is_velocity_enabled = 1;
     cl_float4 pos, rot;
     cl_int width, height, depth;
     cl_int uwidth, uheight, udepth;
@@ -43,10 +44,13 @@ struct smoke
     cl_float roughness;
 
     ///later define spatial and real resolution differently
-    void init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness);
+    ///implement render scale vs render size
+    void init(int _width, int _height, int _depth, int _upscale, int _render_size, int _is_solid, float _voxel_bound, float _roughness);
     void tick(float timestep);
     void displace(cl_float4 loc, cl_float4 dir, cl_float amount, cl_float box_size, cl_float add_amount);
 
     bool within(cl_float4 loc, float fudge = 0);
     float get_largest_dist(cl_float4 loc);
+
+    void set_velocity_enabled(bool is_enabled);
 };

@@ -128,7 +128,7 @@ init_buffer(cl_uchar* buf, int N)
     }
 }
 
-void smoke::init(int _width, int _height, int _depth, int _scale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
+void smoke::init(int _width, int _height, int _depth, int _upscale, int _render_size, int _is_solid, float _voxel_bound, float _roughness)
 {
     n_dens = 0;
     n_vel = 0;
@@ -136,7 +136,7 @@ void smoke::init(int _width, int _height, int _depth, int _scale, int _render_si
     width = _width;
     height = _height;
     depth = _depth;
-    scale = _scale;
+    scale = _upscale;
     render_size = _render_size;
     is_solid = _is_solid;
     roughness = _roughness;
@@ -484,3 +484,9 @@ float smoke::get_largest_dist(cl_float4 loc)
 
     return std::max(rel.x, std::max(rel.y, rel.z));
 }
+
+void smoke::set_velocity_enabled(bool is_enabled)
+{
+    is_velocity_enabled = is_enabled;
+}
+

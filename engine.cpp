@@ -2944,7 +2944,11 @@ compute::event engine::draw_smoke_dbuf(object_context_data& dat, smoke& s, cl_fl
     cl_uint local_ws[3] = {16, 16, 1};
 
     ///this also upscales the diffusion buffer
-    run_kernel_with_string("post_upscale", global_ws, local_ws, 3, post_args);
+
+    if(s.is_velocity_enabled)
+        run_kernel_with_string("post_upscale", global_ws, local_ws, 3, post_args);
+    else
+        run_kernel_with_string("post_upscale_novel", global_ws, local_ws, 3, post_args);
 
 
     dat.ensure_screen_buffers(width, height);

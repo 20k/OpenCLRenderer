@@ -244,7 +244,10 @@ int main(int argc, char *argv[])
         }
 
         if(key.isKeyPressed(sf::Keyboard::G))
+        {
             simulate = false;
+            gloop.set_velocity_enabled(false);
+        }
 
         if(key.isKeyPressed(sf::Keyboard::Add))
         {
