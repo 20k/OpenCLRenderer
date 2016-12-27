@@ -2772,7 +2772,7 @@ float advect_func_vel_tex(float x, float y, float z,
 
     float3 vvec = (float3){x, y, z} - distance;
 
-    float val = read_imagef(d_in, sam, vvec.xyzz + 0.5f).x;
+    float val = read_imagef(d_in, sam, (float4)(vvec.xyz, 0.f) + 0.5f).x;
 
     return val;
 }
@@ -3077,7 +3077,7 @@ float get_upscaled_density(int3 loc, int3 size, int3 upscaled_size, int scale, _
     return val;
 }
 
-float get_upscaled_density_novel(int3 loc, int3 size, int3 upscaled_size, int scale, __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel, __global FLUID_NOISE* w1, __global FLUID_NOISE* w2, __global FLUID_NOISE* w3, __read_only image3d_t d_in, float roughness)
+float get_upscaled_density_novel(int3 loc, int3 size, int3 upscaled_size, int scale, __global FLUID_NOISE* w1, __global FLUID_NOISE* w2, __global FLUID_NOISE* w3, __read_only image3d_t d_in, float roughness)
 {
     int width, height, depth;
 
@@ -3118,7 +3118,6 @@ float get_upscaled_density_novel(int3 loc, int3 size, int3 upscaled_size, int sc
     wval.x = w1[pos];
     wval.y = w2[pos];
     wval.z = w3[pos];
-
     #else
     wval.x = w1[pos];
     wval.y = w2[pos];
@@ -3130,11 +3129,6 @@ float get_upscaled_density_novel(int3 loc, int3 size, int3 upscaled_size, int sc
     wval -= 1.f;
     #endif
 
-    sampler_t sam = CLK_NORMALIZED_COORDS_FALSE |
-                    CLK_ADDRESS_CLAMP_TO_EDGE |
-                    CLK_FILTER_LINEAR;
-
-
     ///slightly better rendering if we dont use currently velocity as well in advection
     float3 vval = wval * roughness / 5.f;
 
@@ -3142,9 +3136,6 @@ float get_upscaled_density_novel(int3 loc, int3 size, int3 upscaled_size, int sc
     float val = advect_func_vel_tex(rx, ry, rz, width, height, depth, d_in, vval.x, vval.y, vval.z, 0.33f);
 
     val += val * fast_length(vval);
-
-    ///this disables upscaling
-    //val = read_imagef(d_in, sam, (float4){rx, ry, rz, 0} + 0.5f).x;
 
     return val;
 }
@@ -3176,6 +3167,7 @@ __kernel void post_upscale(int width, int height, int depth,
     write_imagef(d_out, (int4){x, y, z, 0}, val);
 }
 
+///change this to 1d coordinates?
 __kernel void post_upscale_novel(int width, int height, int depth,
                            int uw, int uh, int ud,
                            __read_only image3d_t xvel, __read_only image3d_t yvel, __read_only image3d_t zvel,
@@ -3189,7 +3181,7 @@ __kernel void post_upscale_novel(int width, int height, int depth,
     if(x >= uw || y >= uh || z >= ud)
         return;
 
-    float val = get_upscaled_density_novel((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, xvel, yvel, zvel, w1, w2, w3, d_in, roughness);
+    float val = get_upscaled_density_novel((int3){x, y, z}, (int3){width, height, depth}, (int3){uw, uh, ud}, scale, w1, w2, w3, d_in, roughness);
 
     write_imagef(d_out, (int4){x, y, z, 0}, val);
 }
