@@ -2584,6 +2584,16 @@ void get_y_of(int4 dim, __global float* w1, __global float* w2, __global float* 
     #endif
 }
 
+///kernel to deform the underlying noise generation of get_y_of above
+///essentially its just a direction vector array displacing the noise
+///this method should allow you to eg implement an overall curl to the vector offset
+///or eg flowing in a particular direction *overall*
+__kernel
+void deform_fluid_noise()
+{
+
+}
+
 ///translate global to local by -box coords, means you're not bluntly appling the kernel if its wrong?
 ///force_pos is offset within the box
 __kernel
