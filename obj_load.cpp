@@ -882,7 +882,7 @@ void load_object_cube_tex(objects_container* pobj, vec3f start, vec3f fin, float
 
     if(center)
     {
-        pobj->translate_centre({-size, -len/2, -size});
+        pobj->translate_centre({0, -len/2, 0});
     }
 }
 
