@@ -15,8 +15,9 @@ void obj_rect(objects_container* obj, texture& tex, cl_float2 dim);
 void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim);
 
 
-void load_object_cube(objects_container* obj, vec3f start, vec3f fin, float size, std::string tex_name);
-void load_object_cube_tex(objects_container* obj, vec3f start, vec3f fin, float size, texture& tex);
+///size is half of the width
+void load_object_cube(objects_container* obj, vec3f start, vec3f fin, float size, std::string tex_name, bool center = false);
+void load_object_cube_tex(objects_container* obj, vec3f start, vec3f fin, float size, texture& tex, bool center = false);
 
 
 ///calls f for every num

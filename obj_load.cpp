@@ -755,18 +755,18 @@ triangle points_to_tri(cl_float4 in[3], float size, float len, int which_side) /
 }
 
 ///fin - start is the object direction
-void load_object_cube(objects_container* pobj, vec3f start, vec3f fin, float size, std::string tex_name)
+void load_object_cube(objects_container* pobj, vec3f start, vec3f fin, float size, std::string tex_name, bool center)
 {
     texture_context* tex_ctx = &pobj->parent->tex_ctx;
 
     ///remember to set location if its just making new
     texture* tex = tex_ctx->make_new_cached(tex_name.c_str());
 
-    return load_object_cube_tex(pobj, start, fin, size, *tex);
+    return load_object_cube_tex(pobj, start, fin, size, *tex, center);
 }
 
 ///fin - start is the object direction
-void load_object_cube_tex(objects_container* pobj, vec3f start, vec3f fin, float size, texture& tex)
+void load_object_cube_tex(objects_container* pobj, vec3f start, vec3f fin, float size, texture& tex, bool center)
 {
     texture_context* tex_ctx = &pobj->parent->tex_ctx;
 
@@ -879,5 +879,10 @@ void load_object_cube_tex(objects_container* pobj, vec3f start, vec3f fin, float
     pobj->isloaded = true;
 
     pobj->set_specular(0.9f);
+
+    if(center)
+    {
+        pobj->translate_centre({-size, -len/2, -size});
+    }
 }
 
