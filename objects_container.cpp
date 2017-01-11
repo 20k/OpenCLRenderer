@@ -254,6 +254,14 @@ void objects_container::notify_child_transform_update()
     }
 }
 
+void objects_container::set_children_texture_id(cl_uint tid)
+{
+    for(auto& i : objs)
+    {
+        i.tid = tid;
+    }
+}
+
 void objects_container::translate_centre(cl_float4 amount)
 {
     for(unsigned int i=0; i<objs.size(); i++)

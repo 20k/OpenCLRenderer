@@ -722,7 +722,10 @@ void object::g_flush(object_context& cpu_dat, bool force)
         //cl_event old = event;
 
         ///the cl_true here is a big reason for the slowdown on object context change
-        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
+        ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, nullptr); ///both position and rotation dirty
+
+        ///wtf is this? We're leaking an event?
+        //ret = clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
     }
 
     for(auto& i : write_events)

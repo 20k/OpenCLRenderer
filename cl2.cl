@@ -5618,8 +5618,11 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     //final_col.xyz = ssao;
 
     ///duplicating the screen so we can have kernels read/write without breaking everything
-    write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
-    write_imagef(backup_screen, scoord, (float4)(final_col.xyz, 1.f));
+    /*write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
+    write_imagef(backup_screen, scoord, (float4)(final_col.xyz, 1.f));*/
+
+    write_imagef(screen, scoord, (float4)(final_col.xyz, col.w));
+    write_imagef(backup_screen, scoord, (float4)(final_col.xyz, col.w));
 
     screen_normals_optional[y * SCREENWIDTH + x] = encode_normal(normal);
 
@@ -7067,7 +7070,7 @@ void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _
 
     float4 fc2 = read_imagef(_dst, sam, (int2){ix, iy});
 
-    float3 col = mad(fc1.xyz, fc1.w, fc2.xyz);
+    float3 col = mad(fc1.xyz, fc1.w, fc2.xyz * (1.f - fc1.w));
 
     float4 acol = (float4)(col.xyz, fc1.w);
 

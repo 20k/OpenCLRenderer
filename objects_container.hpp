@@ -76,6 +76,7 @@ struct objects_container
     void    set_parent(objects_container* ctr);
     void    calculate_world_transform();
     void    notify_child_transform_update();
+    void    set_children_texture_id(cl_uint tid);
 
     void    translate_centre(cl_float4);
 

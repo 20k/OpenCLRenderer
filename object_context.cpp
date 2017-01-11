@@ -325,6 +325,7 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
 
     dat.tri_num = tri_num;
 
+    lg::log("Tri num ", tri_num);
 
     bool first_init = !context.fetch()->gpu_data_finished;
 
