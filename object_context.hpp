@@ -18,6 +18,7 @@
 
 #include <SFML/System.hpp>
 #include "cl_gl_interop_texture.hpp"
+#include "async_read.hpp"
 
 namespace compute = boost::compute;
 
@@ -136,6 +137,9 @@ struct object_context_data
     void destroy_screen_buffers();
     void swap_buffers();
     void update_cpu_id_num();
+
+    ///Warning: Dependent on the internal type of g_id_screen_tex
+    async_read<cl_int> read_id_tex(int x, int y);
 };
 
 struct object_temporaries

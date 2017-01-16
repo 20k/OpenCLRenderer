@@ -75,6 +75,18 @@ void object_context_data::destroy_screen_buffers()
     s_h = 0;
 }
 
+async_read<cl_int> object_context_data::read_id_tex(int x, int y)
+{
+    ///return invalid type, check .valid()
+    if(x < 0 || y < 0 || x >= s_w || y >= s_h)
+        return async_read<cl_int>();
+
+    async_read<cl_int> reader;
+    reader.image_read(g_id_screen_tex.get(), x, y);
+
+    return reader;
+}
+
 cl_uint object_context::gid = 0;
 
 objects_container* object_context::make_new()

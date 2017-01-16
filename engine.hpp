@@ -294,6 +294,7 @@ struct engine
     float get_scrollwheel_delta();
     float get_frametime();
     float get_frametime_ms();
+    float get_frametime_s();
     float get_time_since_frame_start();
 
     int get_width();
@@ -309,6 +310,10 @@ struct engine
 
     compute::event blend(object_context_data& _src, object_context_data& _dst);
     compute::event blend_with_depth(object_context_data& _src, object_context_data& _dst);
+
+    ///Dependent on the internal type AND LAYOUT of the fragment buffer
+    ///id_val4.x * FRAGMENT_ID_MUL + 5
+    async_read<cl_uint> read_g_tid_buf_o_id(int id);
 
     ///?
     static compute::opengl_renderbuffer gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h);

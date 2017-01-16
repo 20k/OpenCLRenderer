@@ -1085,6 +1085,11 @@ float engine::get_frametime_ms()
     return get_frametime() / 1000.f;
 }
 
+float engine::get_frametime_s()
+{
+    return get_frametime_ms() / 1000.f;
+}
+
 float engine::get_time_since_frame_start()
 {
     return ftime.getElapsedTime().asMicroseconds() - current_time;
@@ -2210,6 +2215,19 @@ compute::event engine::blend_with_depth(object_context_data& src, object_context
     args.push_back(&dim);
 
     return run_kernel_with_string("blend_screens_with_depth", {dim.x*dim.y}, {128}, 1, args);
+}
+
+async_read<cl_uint> engine::read_g_tid_buf_o_id(int id)
+{
+    ///return invalid type, check .valid()
+    if(id < 0)
+        return async_read<cl_uint>();
+
+    ///id_val4.x * FRAGMENT_ID_MUL + 5
+    async_read<cl_uint> reader;
+    reader.buffer_read(g_tid_buf.get(), id * 6 + 5);
+
+    return reader;
 }
 
 #if 0
