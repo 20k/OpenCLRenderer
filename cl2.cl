@@ -5191,8 +5191,12 @@ float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 came
 
     //vtdiff = (float2){vdx.x * vdy.y, -vdx.y * vdy.x};
 
+    #ifndef MIP_BIAS
+    #define MIP_BIAS 1.1f
+    #endif // MIP_BIAS
+
     ///1.1f is the seemingly minimum
-    const float mip_bias = 1.f / 1.1f;
+    const float mip_bias = 1.f / MIP_BIAS;
 
     float2 vtdiff = (float2){vdx.x + vdy.x, vdx.y + vdy.y} * mip_bias;
 
