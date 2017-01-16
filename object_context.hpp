@@ -224,6 +224,8 @@ struct object_context
 
     int depth_buffer_width = 1;
 
+    int translate_gpu_o_id_to_container_offset(int o_id);
+
 private:
 
     ///so we can use write async

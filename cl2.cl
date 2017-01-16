@@ -5211,6 +5211,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     {
         ///temp, remember to fix when we're back in action
         //write_imagei(object_ids, (int2){x, y}, -1);
+        //write_imageui(id_buffer, (int2){x, y}, -1);
         write_imagef(screen, (int2){x, y}, screen_clear_colour);
         return;
     }
@@ -5625,6 +5626,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     write_imagef(backup_screen, scoord, (float4)(final_col.xyz, col.w));
 
     screen_normals_optional[y * SCREENWIDTH + x] = encode_normal(normal);
+
+    //write_imagef(screen, scoord, (float)o_id / 5.f);
 
     //write_imagef(screen, scoord, final_col.xyzz);
     //write_imagef(screen, scoord, fabs(normal.xyzz));

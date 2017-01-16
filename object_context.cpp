@@ -817,3 +817,21 @@ void object_context::set_depth_buffer_width(int n)
 
     gpu_dat.ensure_screen_buffers(gpu_dat.s_w, gpu_dat.s_h);
 }
+
+int object_context::translate_gpu_o_id_to_container_offset(int o_id)
+{
+    for(int i = 0; i < containers.size(); i++)
+    {
+        objects_container* cont = containers[i];
+
+        for(int j = 0; j < cont->objs.size(); j++)
+        {
+            object& o = cont->objs[j];
+
+            if(o.object_g_id == o_id)
+                return i; ///not a typo
+        }
+    }
+
+    return -1;
+}
