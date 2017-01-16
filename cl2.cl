@@ -73,6 +73,13 @@ struct light
     float godray_intensity;
 };
 
+///Don't use me as an actual type see
+enum object_feature_flag
+{
+    FEATURE_FLAG_SS_REFLECTIVE = 1,
+    FEATURE_FLAG_TWO_SIDED = 2,
+    FEATURE_FLAG_OUTLINE = 4,
+};
 
 struct obj_g_descriptor
 {
@@ -95,10 +102,16 @@ struct obj_g_descriptor
     float specular;
     float spec_mult;
     float diffuse;
-    uint two_sided;
+    //uint two_sided;
     int buffer_offset; ///0 == first buffer, 1 == second etc
-    uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
+    //uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
+    int feature_flag;
 };
+
+bool has_feature(int feature_flag, enum object_feature_flag flag)
+{
+    return (feature_flag & flag) > 0;
+}
 
 struct vertex
 {
@@ -3996,13 +4009,17 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
     uint b_id = atomic_add(id_cutdown_tris, num);
 
+    int feature_flag = G->feature_flag;
+
+    bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
+
     ///up to here takes 14 ms
 
     ///If the triangle intersects with the near clipping plane, there are two
     ///otherwise 1
     for(int i=0; i<num; i++)
     {
-        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+        int valid = is_two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
 
         int cond = (tris_proj[i][0].x < 0 && tris_proj[i][1].x < 0 && tris_proj[i][2].x < 0)  ||
             (tris_proj[i][0].x >= ewidth && tris_proj[i][1].x >= ewidth && tris_proj[i][2].x >= ewidth) ||
@@ -4183,6 +4200,10 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
     float scale = G->scale;
 
+    int feature_flag = G->feature_flag;
+
+    bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
+
     //uint base_id = atomic_add(id_cutdown_tris, num_faces);
 
     ///we could use which_cubeface to determine which face a triangle vertex lies in
@@ -4205,7 +4226,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         ///otherwise 1
         for(int i=0; i<num; i++)
         {
-            int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+            int valid = is_two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
 
             int cond = (tris_proj[i][0].x < 0 && tris_proj[i][1].x < 0 && tris_proj[i][2].x < 0)  ||
                 (tris_proj[i][0].x >= ewidth && tris_proj[i][1].x >= ewidth && tris_proj[i][2].x >= ewidth) ||
@@ -4320,11 +4341,15 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
     full_rotate_n_extra(vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]), tris_proj, &num, c_pos.xyz, c_rot.xyz, (G->world_pos).xyz, (G->world_rot).xyz, efov, ewidth, eheight);
     ///can replace rotation with a swizzle for shadowing
 
+    int feature_flag = G->feature_flag;
+
+    bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
+
     int ooany[2];
 
     for(int i=0; i<num; i++)
     {
-        int valid = G->two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
+        int valid = is_two_sided || backface_cull_expanded(tris_proj[i][0], tris_proj[i][1], tris_proj[i][2]);
 
         ooany[i] = valid;
     }
@@ -5387,9 +5412,13 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 point_to_camera = camera_pos - global_position;
     float3 point_to_cameran = fast_normalize(point_to_camera);
 
+    int feature_flag = G->feature_flag;
+
+    bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
+
 
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
-    int flip_normals = !is_front && G->two_sided == 1;
+    int flip_normals = !is_front && is_two_sided == 1;
 
     //flip_normals = 0;
 
@@ -6161,7 +6190,12 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
         return;
     }
 
-    if(!G->is_ss_reflective)
+    int feature_flag = G->feature_flag;
+
+    bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
+    bool is_ss_reflective = has_feature(feature_flag, FEATURE_FLAG_SS_REFLECTIVE);
+
+    if(!is_ss_reflective)
         return;
 
     uint ss_id = G->ssid;

@@ -30,6 +30,8 @@ struct object
     cl_uint gpu_tri_start;
     cl_uint gpu_tri_end;
 
+    cl_int feature_flag;
+
     ///put the current texture id in here, as well as
     ///the texture addressing information
     ///allow the tex_gpu structure to have a .write(gpu/cpu_texture, object)
@@ -70,8 +72,8 @@ struct object
     float specular;
     float spec_mult;
     float diffuse;
-    cl_uint two_sided;
-    cl_uint is_ss_reflective;
+    //cl_uint two_sided;
+    //cl_uint is_ss_reflective;
 
     cache<float> scale_cache;
     cache<cl_uint> tid_cache{UINT_MAX};
@@ -94,6 +96,7 @@ struct object
     void set_rot_quat(quaternion);
     void set_dynamic_scale(float _scale);
     void set_ss_reflective(int is_reflective);
+    void set_two_sided(bool is_two_sided);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();

@@ -487,7 +487,7 @@ void objects_container::set_two_sided(bool two_sided)
 {
     for(auto& i : objs)
     {
-        i.two_sided = two_sided;
+        i.set_two_sided(two_sided);
     }
 }
 

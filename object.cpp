@@ -7,6 +7,32 @@
 #include "logging.hpp"
 #include <cstddef>
 
+enum object_feature_flag
+{
+    FEATURE_FLAG_SS_REFLECTIVE = 1,
+    FEATURE_FLAG_TWO_SIDED = 2,
+    FEATURE_FLAG_OUTLINE = 4,
+};
+
+bool has_feature(int feature_flag, object_feature_flag flag)
+{
+    return (feature_flag & flag) > 0;
+}
+
+cl_int set_flag(cl_int feature_flag, object_feature_flag flag, int is_true)
+{
+    if(is_true)
+    {
+        feature_flag |= 1 << (flag - 1);
+    }
+    else
+    {
+        feature_flag &= ~(cl_uint)(1 << (flag - 1));
+    }
+
+    return feature_flag;
+}
+
 cl_uint object::gid = 0;
 
 int obj_null_vis(object* obj, cl_float4 c_pos)
@@ -45,7 +71,9 @@ object::object() : tri_list(0)
     spec_mult = 1.f;
     diffuse = 1.f;
 
-    two_sided = 0;
+    //two_sided = 0;
+
+    feature_flag = 0;
 
     tri_num = 0;
 
@@ -57,7 +85,7 @@ object::object() : tri_list(0)
 
     gpu_writable = false;
 
-    is_ss_reflective = 0;
+    //is_ss_reflective = 0;
 }
 
 object::~object()
@@ -113,7 +141,14 @@ void object::set_dynamic_scale(float _scale)
 
 void object::set_ss_reflective(int is_reflective)
 {
-    is_ss_reflective = is_reflective;
+    feature_flag = set_flag(feature_flag, FEATURE_FLAG_SS_REFLECTIVE, is_reflective);
+}
+
+void object::set_two_sided(bool is_two_sided)
+{
+    feature_flag = set_flag(feature_flag, FEATURE_FLAG_TWO_SIDED, is_two_sided);
+
+    printf("Fflag %i %i\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", feature_flag, has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED));
 }
 
 void object::offset_pos(cl_float4 _offset)

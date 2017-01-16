@@ -26,11 +26,13 @@ struct obj_g_descriptor
     cl_float specular;
     cl_float spec_mult;
     cl_float diffuse;
-    cl_uint two_sided;
+    //cl_uint two_sided;
     cl_int buffer_offset;
-    cl_uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
+    //cl_uint is_ss_reflective; ///0 no screenspace reflections, 1 is screenspace reflections
     ///add in a type here for shaders?
     //cl_uint padding;
+
+    cl_int feature_flag;
 };
 
 #endif // INCLUDED_H_OBJ_G_DESCRIPTOR
