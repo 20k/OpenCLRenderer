@@ -1020,12 +1020,21 @@ void generate_mips(uint tex_id, uint mipmap_start,  __global uint* nums, __globa
             //if(x*2 + i < 0 || x*2 + i >= width-1 || y*2 + j < 0 || y*2 + j >= width-1)
             //    col = 0.f;
 
+            col.w /= 255.f;
+
+            col.xyz *= col.w;
+
             accum += col * gauss[j+1][i+1];
             div += gauss[j+1][i+1];
         }
     }
 
     accum /= div;
+
+    if(accum.w > 0.00000001f)
+        accum.xyz /= accum.w;
+
+    accum.w *= 255.f;
 
     //for(int i=0; i<1; i++)
     {
@@ -1071,6 +1080,10 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
         {
             float4 col = read_tex_array((float2){x*2 + i, y*2 + j}, proper_id, nums, sizes, rarray);
 
+            col.w /= 255.f;
+
+            col.xyz *= col.w;
+
             accum += col * gauss[j+1][i+1];
             div += gauss[j+1][i+1];
         }
@@ -1078,6 +1091,10 @@ void generate_mip_mips(uint tex_id, uint mip_level, uint mipmap_start, __global 
 
     accum /= div;
 
+    if(accum.w > 0.00000001f)
+        accum.xyz /= accum.w;
+
+    accum.w *= 255.f;
 
     //for(int i=0; i<1; i++)
     {
