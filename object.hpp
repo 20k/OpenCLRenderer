@@ -77,6 +77,7 @@ struct object
 
     cache<float> scale_cache;
     cache<cl_uint> tid_cache{UINT_MAX};
+    cache<cl_int> feature_flag_cache;
 
     std::vector<cl_event> write_events;
 
@@ -97,6 +98,7 @@ struct object
     void set_dynamic_scale(float _scale);
     void set_ss_reflective(int is_reflective);
     void set_two_sided(bool is_two_sided);
+    void set_outlined(bool is_outlined);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();

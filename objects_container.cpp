@@ -491,6 +491,14 @@ void objects_container::set_two_sided(bool two_sided)
     }
 }
 
+void objects_container::set_outlined(bool is_outlined)
+{
+    for(auto& i : objs)
+    {
+        i.set_outlined(is_outlined);
+    }
+}
+
 void objects_container::hide()
 {
     ///well, this is the official location for this terrible hack now

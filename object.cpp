@@ -23,11 +23,11 @@ cl_int set_flag(cl_int feature_flag, object_feature_flag flag, int is_true)
 {
     if(is_true)
     {
-        feature_flag |= 1 << (flag - 1);
+        feature_flag |= flag;
     }
     else
     {
-        feature_flag &= ~(cl_uint)(1 << (flag - 1));
+        feature_flag &= ~(cl_uint)(flag);
     }
 
     return feature_flag;
@@ -147,8 +147,14 @@ void object::set_ss_reflective(int is_reflective)
 void object::set_two_sided(bool is_two_sided)
 {
     feature_flag = set_flag(feature_flag, FEATURE_FLAG_TWO_SIDED, is_two_sided);
+}
 
-    printf("Fflag %i %i\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", feature_flag, has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED));
+void object::set_outlined(bool is_outlined)
+{
+    feature_flag = set_flag(feature_flag, FEATURE_FLAG_OUTLINE, is_outlined);
+
+    if(is_outlined)
+        printf("%i \n", feature_flag);
 }
 
 void object::offset_pos(cl_float4 _offset)
@@ -652,6 +658,8 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     if(ltid != -1)
         write |= dynamic_cache<cl_uint, offsetof(obj_g_descriptor, tid)>(ltid, tid_cache, force_flush, context_switched, object_g_id, dat, &event);
+
+    write |= dynamic_cache<cl_int, offsetof(obj_g_descriptor, feature_flag)>(feature_flag, feature_flag_cache, force_flush, context_switched, object_g_id, dat, &event);
 
     if(write)
     {

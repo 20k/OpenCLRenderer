@@ -110,6 +110,7 @@ struct objects_container
     void    set_diffuse(float); ///kD
     void    set_normal(const std::string&);
     void    set_two_sided(bool);
+    void    set_outlined(bool);
 
     void    hide();
 
