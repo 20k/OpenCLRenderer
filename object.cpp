@@ -152,9 +152,6 @@ void object::set_two_sided(bool is_two_sided)
 void object::set_outlined(bool is_outlined)
 {
     feature_flag = set_flag(feature_flag, FEATURE_FLAG_OUTLINE, is_outlined);
-
-    if(is_outlined)
-        printf("%i \n", feature_flag);
 }
 
 void object::offset_pos(cl_float4 _offset)
