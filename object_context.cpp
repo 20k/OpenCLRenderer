@@ -673,6 +673,8 @@ void object_context::build(bool force, bool async)
 
     new_gpu_dat.has_valid_texture_data = textures_realloc;
 
+    new_gpu_dat.use_experimental_reflections = use_experimental_reflections;
+
     auto descriptor_events = alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
 
     std::vector<cl_event> flattened;
@@ -836,4 +838,9 @@ int object_context::translate_gpu_o_id_to_container_offset(int o_id)
     }
 
     return -1;
+}
+
+void object_context::enable_experimental_reflections()
+{
+    use_experimental_reflections = true;
 }

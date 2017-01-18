@@ -106,6 +106,8 @@ struct object_context_data
     cl_uint* cpu_id_num = nullptr;
     cl_uint current_cpu_id_num = 0;
 
+    compute::buffer g_reflection_data;
+
     //int dbuf = 0;
     //int sbuf = 0;
 
@@ -140,6 +142,8 @@ struct object_context_data
 
     ///Warning: Dependent on the internal type of g_id_screen_tex
     async_read<cl_int> read_id_tex(int x, int y);
+
+    bool use_experimental_reflections = false;
 };
 
 struct object_temporaries
@@ -226,10 +230,14 @@ struct object_context
 
     int translate_gpu_o_id_to_container_offset(int o_id);
 
+    void enable_experimental_reflections();
+
 private:
 
     ///so we can use write async
     std::vector<obj_g_descriptor> object_descriptors;
+
+    bool use_experimental_reflections = false;
 };
 
 #endif // OBJECT_CONTEXT_HPP_INCLUDED

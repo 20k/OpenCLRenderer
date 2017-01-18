@@ -4608,7 +4608,6 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     }
 }
 
-
 __kernel
 void kernel1_realtime_shadowing(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* depth_buffer, __global uint* f_len,
            __global float4* cutdown_tris)

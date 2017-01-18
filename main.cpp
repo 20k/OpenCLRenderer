@@ -228,9 +228,9 @@ int main(int argc, char *argv[])
             event = window.draw_bulk_objs_n(*context.fetch());
             //event = window.draw_tiled_deferred(*context.fetch());
 
-            event = window.do_pseudo_aa();
+            //event = window.do_pseudo_aa();
 
-            event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
+            //event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
 
             //event = internal_screen_mip_test->update_internal(context.fetch()->gl_screen[0].get(), context.fetch()->tex_gpu_ctx);
 
