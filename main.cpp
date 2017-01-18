@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
 
     window.set_opencl_extra_command_line("-D TILE_DIM=64");
     window.set_opencl_extra_command_line("-D depth_icutoff=20");
+    window.set_opencl_extra_command_line("-D USE_EXPERIMENTAL_REFLECTIONS");
     window.append_opencl_extra_command_line("-D SHADOWBIAS=120");
 
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
