@@ -9,6 +9,7 @@ std::vector<light*> light::lightlist;
 std::vector<cl_uint> light::active;
 
 bool light::dirty_shadow = true;
+int light::expected_clear_kernel_size = 256;
 
 void light::set_pos(cl_float4 p)
 {
@@ -182,10 +183,22 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
 
     if(dirty_shadow)
     {
-        ///blank cubemap filled with UINT_MAX
-        engine::g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint)*l_size*l_size*6*ln, CL_MEM_READ_WRITE, NULL);
+        uint32_t total_len = sizeof(cl_uint)*l_size*l_size*6*ln;
 
-        cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
+        if(total_len % expected_clear_kernel_size != 0)
+        {
+            int rem = total_len % expected_clear_kernel_size;
+
+            total_len -= rem;
+            total_len += expected_clear_kernel_size;
+        }
+
+        ///blank cubemap filled with UINT_MAX
+        engine::g_shadow_light_buffer = compute::buffer(cl::context, total_len, CL_MEM_READ_WRITE, NULL);
+
+        ///we clear the shadow buffer before using it anyway
+        ///even if we didn't, we should use enqueuefillbuffer
+        /*cl_uint* buf = (cl_uint*) clEnqueueMapBuffer(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_uint)*l_size*l_size*6*ln, 0, NULL, NULL, NULL);
 
         ///not sure how this pans out for stalling
         ///badly
@@ -194,7 +207,7 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
             buf[i] = UINT_MAX;
         }
 
-        clEnqueueUnmapMemObject(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), buf, 0, NULL, NULL);
+        clEnqueueUnmapMemObject(cl::cqueue.get(), engine::g_shadow_light_buffer.get(), buf, 0, NULL, NULL);*/
     }
 
     if(old_dat)

@@ -56,6 +56,9 @@ struct light
     static light_gpu build(light_gpu* old_dat = nullptr);
 
     static int get_num_shadowcasting_lights();
+
+    ///256
+    static int expected_clear_kernel_size;
 };
 
 

@@ -1449,9 +1449,8 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             arg_list cargs;
             cargs.push_back(&temp_l_mem);
-            cargs.push_back(&len);
 
-            run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size/4 - 1}, {256}, 1, cargs);
+            run_kernel_with_string("clear_depth_buffer_size_nocheck", {buf_reg.size/4 - 1}, {light::expected_clear_kernel_size}, 1, cargs);
 
             cl_float4 no_rot = {0};
 

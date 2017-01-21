@@ -9673,6 +9673,14 @@ void clear_depth_buffer_size(__global uint4* dbuf, int len)
     dbuf[id] = mulint;
 }
 
+__kernel
+void clear_depth_buffer_size_nocheck(__global uint4* dbuf)
+{
+    const int id = get_global_id(0);
+
+    dbuf[id] = mulint;
+}
+
 #ifdef EXPERIMENTAL
 __kernel
 void render_naive_points(int num, __global float4* positions, __global uint* colours, float4 c_pos, float4 c_rot, __global uint4* screen_buf)
