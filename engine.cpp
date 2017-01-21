@@ -81,6 +81,7 @@ cl_uint* engine::blank_light_buf;
 
 ///gpuside light buffer, and lightmap cubemap resolution
 compute::buffer engine::g_shadow_light_buffer;
+compute::buffer engine::g_static_shadow_light_buffer;
 cl_uint engine::l_size;
 
 cl_uint engine::height;
@@ -490,6 +491,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //obj_mem_manager::g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &zero);
 
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+    g_static_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
     lg::log("post pseudo shadow light buffer");
 
@@ -1426,7 +1428,7 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
     }*/
 
     ///for every light, generate a cubemap for that light if its a light which casts a shadow
-    for(unsigned int i=0, n=0; i<light::lightlist.size(); i++)
+    for(unsigned int i=0, nn=0, kk=0; i<light::lightlist.size(); i++)
     {
         if(light::lightlist[i]->shadow==1)
         {
@@ -1434,11 +1436,11 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             cl_buffer_region buf_reg;
 
-            buf_reg.origin = n*sizeof(cl_uint)*l_size*l_size*6;
+            buf_reg.origin = nn*sizeof(cl_uint)*l_size*l_size*6;
             buf_reg.size   = sizeof(cl_uint)*l_size*l_size*6;
 
             ///uuh. We're gunne need to clear the shadow light buffer (!!!)
-            if(n != 0)
+            if(nn != 0)
                 temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
             else
                 temp_l_mem = g_shadow_light_buffer.get();
@@ -1452,6 +1454,8 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             cl_float4 no_rot = {0};
 
+            cl_int only_static = 0;
+
             arg_list prearg_list;
 
             prearg_list.push_back(&dat.g_tri_mem);
@@ -1464,20 +1468,13 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             prearg_list.push_back(&dat.g_cut_tri_num);
             prearg_list.push_back(&dat.g_cut_tri_mem);
             prearg_list.push_back(&dat.g_obj_desc);
+            prearg_list.push_back(&only_static);
 
             run_kernel_with_string("prearrange_realtime_shadowing", &p1global_ws, &local, 1, prearg_list);
 
-            /*cl_uint dbg_cut = 0;
+            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), light::static_lights_are_dirty, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[nn], 0, NULL, NULL);
 
-            clEnqueueReadBuffer(cl::cqueue.get(), &dat.g_cut_tri_num.get(), CL_TRUE, 0, sizeof(cl_uint), &dbg_cut, 0, nullptr, nullptr);
-
-            printf("dbg cut %i\n", dbg_cut);*/
-
-            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_FALSE, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[n], 0, NULL, NULL);
-
-            cl_uint fragments_number = light_data->shadow_fragments_count[n] * 1.1;
-
-            //printf("%i fragment number\n", fragments_number);
+            cl_uint fragments_number = light_data->shadow_fragments_count[nn] * 1.1;
 
             arg_list p1arg_list;
             p1arg_list.push_back(&dat.g_tri_mem);
@@ -1488,12 +1485,83 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             run_kernel_with_string("kernel1_realtime_shadowing", &fragments_number, &local, 1, p1arg_list);
 
-            if(n != 0)
+            if(nn != 0)
                 clReleaseMemObject(temp_l_mem);
 
-            n++;
+            nn++;
+        }
+
+        if(light::lightlist[i]->shadow && light::lightlist[i]->is_static && light::static_lights_are_dirty)
+        {
+            cl::cqueue.finish();
+
+            lg::log("Static is dirty ", i);
+
+            cl_mem temp_l_mem;
+
+            cl_buffer_region buf_reg;
+
+            buf_reg.origin = kk*sizeof(cl_uint)*l_size*l_size*6;
+            buf_reg.size   = sizeof(cl_uint)*l_size*l_size*6;
+
+            ///uuh. We're gunne need to clear the shadow light buffer (!!!)
+            if(kk != 0)
+                temp_l_mem = clCreateSubBuffer(g_static_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+            else
+                temp_l_mem = g_static_shadow_light_buffer.get();
+
+            //cl_uint len = l_size*l_size*6;
+
+            arg_list cargs;
+            cargs.push_back(&temp_l_mem);
+
+            run_kernel_with_string("clear_depth_buffer_size_nocheck", {buf_reg.size/4 - 1}, {light::expected_clear_kernel_size}, 1, cargs);
+
+            cl_float4 no_rot = {0};
+
+            cl_int only_static = 1;
+
+            arg_list prearg_list;
+
+            prearg_list.push_back(&dat.g_tri_mem);
+            prearg_list.push_back(&dat.g_tri_num);
+            prearg_list.push_back(&light::lightlist[i]->pos);
+            prearg_list.push_back(&no_rot); ///irrelevant
+            prearg_list.push_back(&this->g_tid_buf);
+            prearg_list.push_back(&this->g_tid_buf_max_len);
+            prearg_list.push_back(&dat.g_tid_lightbuf_atomic_count);
+            prearg_list.push_back(&dat.g_cut_tri_num);
+            prearg_list.push_back(&dat.g_cut_tri_mem);
+            prearg_list.push_back(&dat.g_obj_desc);
+            prearg_list.push_back(&only_static);
+
+            run_kernel_with_string("prearrange_realtime_shadowing", &p1global_ws, &local, 1, prearg_list);
+
+            cl_uint fragment_num = 0;
+
+            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &fragment_num, 0, NULL, NULL);
+
+            cl_uint fragments_number = fragment_num;
+
+            arg_list p1arg_list;
+            p1arg_list.push_back(&dat.g_tri_mem);
+            p1arg_list.push_back(&this->g_tid_buf);
+            p1arg_list.push_back(&temp_l_mem);
+            p1arg_list.push_back(&dat.g_tid_lightbuf_atomic_count);
+            p1arg_list.push_back(&dat.g_cut_tri_mem);
+
+            run_kernel_with_string("kernel1_realtime_shadowing", &fragments_number, &local, 1, p1arg_list);
+
+            if(kk != 0)
+                clReleaseMemObject(temp_l_mem);
+
+            kk++;
+
+            lg::log("Finish static dirty ", i);
         }
     }
+
+    light::static_lights_are_dirty = false;
 
     return compute::event();
 }
@@ -1670,6 +1738,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&eng.light_data->g_light_num);
     p3arg_list.push_back(&eng.light_data->g_light_mem);
     p3arg_list.push_back(&engine::g_shadow_light_buffer); ///not a class member, need to fix this
+    p3arg_list.push_back(&engine::g_static_shadow_light_buffer); ///not a class member, need to fix this
     p3arg_list.push_back(&dat.depth_buffer[1]);
     p3arg_list.push_back(&eng.g_tid_buf);
     p3arg_list.push_back(&dat.g_cut_tri_mem);

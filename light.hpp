@@ -20,6 +20,8 @@ struct light_gpu
 };
 
 ///lights need to be able to be activated and deactivated
+///So. If a light is static, we want to render only static geometry
+///and then mark a flag cpuside
 struct light
 {
     cl_float4 pos;
@@ -29,7 +31,7 @@ struct light
     cl_float radius;
     cl_float diffuse;
     cl_float godray_intensity;
-    cl_int is_static;
+    cl_int is_static; ///this means we can apply the static geometry optimisation
 
     light();
 
@@ -48,6 +50,7 @@ struct light
 
     static std::vector<light*> lightlist;
     static std::vector<cl_uint> active;
+    static bool static_lights_are_dirty;
 
     static int get_light_id(light*);
     static light* add_light(const light* l); ///to global light list
@@ -58,6 +61,7 @@ struct light
     static light_gpu build(light_gpu* old_dat = nullptr);
 
     static int get_num_shadowcasting_lights();
+    static int get_num_static_shadowcasters();
 
     ///256
     static int expected_clear_kernel_size;

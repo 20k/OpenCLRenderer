@@ -147,6 +147,7 @@ struct engine
     compute::buffer g_normals_screen; ///unused 2d normal buffer
     compute::buffer g_texture_screen; ///unused 2d texture coordinate buffer
     static compute::buffer g_shadow_light_buffer; ///buffer for light cubemaps for shadows
+    static compute::buffer g_static_shadow_light_buffer; ///buffer for static light cubemaps for shadows
     compute::buffer g_tile_information;
     compute::buffer g_tile_count;
 

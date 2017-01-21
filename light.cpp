@@ -10,6 +10,7 @@ std::vector<cl_uint> light::active;
 
 bool light::dirty_shadow = true;
 int light::expected_clear_kernel_size = 256;
+bool light::static_lights_are_dirty = true;
 
 void light::set_pos(cl_float4 p)
 {
@@ -55,12 +56,17 @@ void light::set_godray_intensity(cl_float g)
 
 void light::set_is_static(bool st)
 {
+    if(is_static != st)
+        static_lights_are_dirty = true;
+
     is_static = st;
 }
 
 void light::invalidate_buffers()
 {
     dirty_shadow = true;
+
+    static_lights_are_dirty = true;
 }
 
 void light::set_active(bool s)
@@ -100,6 +106,9 @@ light* light::add_light(const light* l)
     if(l->shadow)
         dirty_shadow = true;
 
+    if(l->is_static)
+        static_lights_are_dirty = true;
+
     light* new_light = new light(*l);
     lightlist.push_back(new_light);
     active.push_back(true);
@@ -115,6 +124,9 @@ void light::remove_light(light* l)
         lg::log("warning, could not remove light, not found");
         return;
     }
+
+    if(l->is_static)
+        static_lights_are_dirty = true;
 
     if(l->shadow)
         dirty_shadow = true;
@@ -199,8 +211,16 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
             total_len += expected_clear_kernel_size;
         }
 
+        int static_shadow_extra = get_num_static_shadowcasters();
+
+        uint32_t static_len = sizeof(cl_uint) * l_size * l_size * 6 * static_shadow_extra;
+
         ///blank cubemap filled with UINT_MAX
         engine::g_shadow_light_buffer = compute::buffer(cl::context, total_len, CL_MEM_READ_WRITE, NULL);
+
+        static_len = max(static_len, (uint32_t)sizeof(cl_uint));
+        engine::g_static_shadow_light_buffer = compute::buffer(cl::context, static_len, CL_MEM_READ_WRITE, NULL);
+
 
         ///we clear the shadow buffer before using it anyway
         ///even if we didn't, we should use enqueuefillbuffer
@@ -238,6 +258,21 @@ int light::get_num_shadowcasting_lights()
     {
         if(i->shadow == 1)
             c++;
+    }
+
+    return c;
+}
+
+int light::get_num_static_shadowcasters()
+{
+    int c = 0;
+
+    for(auto& i : lightlist)
+    {
+        if(i->shadow == 1 && i->is_static)
+        {
+            c++;
+        }
     }
 
     return c;

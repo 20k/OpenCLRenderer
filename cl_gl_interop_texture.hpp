@@ -334,15 +334,20 @@ struct cl_gl_interop_texture
         {
             ///we have to pick a command queue
             compute::opengl_enqueue_release_gl_objects(1, &g_texture_gl.get(), cl::cqueue);
+            g_texture_gl = compute::opengl_renderbuffer();
         }
 
         if(has_init && which_item == 1)
         {
+            g_texture_nogl = compute::image2d();
+
             for(auto& i : buffer_history)
             {
                 delete [] i;
             }
         }
+
+        ev = compute::event();
     }
 
     ~cl_gl_interop_texture()

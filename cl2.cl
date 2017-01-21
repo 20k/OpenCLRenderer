@@ -4105,7 +4105,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 ///we need a method to disable shadows on specific objects
 __kernel
 void prearrange_realtime_shadowing(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
-                __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj)
+                __global uint* id_cutdown_tris, __global float4* cutdown_tris, __global struct obj_g_descriptor* gobj, int only_static)
 {
     uint id = get_global_id(0);
 
@@ -4141,6 +4141,14 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     float eheight = LIGHTBUFFERDIM;
 
     const __global struct obj_g_descriptor* G = &gobj[o_id];
+
+    int feature_flag = G->feature_flag;
+
+    if(!only_static && has_feature(feature_flag, FEATURE_FLAG_IS_STATIC))
+        return;
+
+    if(only_static && !has_feature(feature_flag, FEATURE_FLAG_IS_STATIC))
+        return;
 
     float3 tris_proj[2][3]; ///projected triangles
 
@@ -4218,8 +4226,6 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     }
 
     float scale = G->scale;
-
-    int feature_flag = G->feature_flag;
 
     bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
 
@@ -5217,7 +5223,7 @@ __kernel
 //__attribute__((vec_type_hint(float3)))
 void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
-           __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
+           __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint* static_light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional
            )
 
@@ -5415,6 +5421,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 ambient_sum = 0;
 
     int shnum = 0;
+    int static_num = 0;
 
     ///for the laser effect
     float3 mandatory_light = {0,0,0};
@@ -5463,6 +5470,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     //col = ssao;
 
+    bool static_geometry = has_feature(feature_flag, FEATURE_FLAG_IS_STATIC);
+
     ///slightly perturb normals to fix banding
     float3 lighting_normal = normal + rseed / 100.f;
     lighting_normal = fast_normalize(lighting_normal);
@@ -5475,8 +5484,18 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         const float3 lpos = l.pos.xyz;
 
+        float3 l2c = lpos - global_position; ///light to pixel position
 
-        float3 l2c = lpos - global_position; ///light to pixel positio
+        float occlusion = 1;
+
+        if(l.is_static)
+        {
+            int which_cubeface = ret_cubeface(global_position, lpos);
+
+            occlusion = 1.f - generate_hard_occlusion((float2){x, y}, lpos, normal, l2c, static_light_depth_buffer, which_cubeface, global_position, static_num); ///copy occlusion into local memory?
+
+            static_num++;
+        }
 
         float3 point_to_light = lpos - global_position;
 
@@ -5500,7 +5519,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///I guess this is not the use case for mad
         //ambient_sum = mad(l.col.xyz, ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse, ambient_sum);
 
-        float occlusion = 1;
 
         ///ambient wont work correctly in shadows atm
         ///something is wrong with lips of vertices over shadowed areas
@@ -5509,7 +5527,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
             int which_cubeface = ret_cubeface(global_position, lpos);
 
             ///gets pixel occlusion. Is not smooth
-            occlusion = 1.f - generate_hard_occlusion((float2){x, y}, lpos, normal, l2c, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory?
+            float dyn_occlusion = 1.f - generate_hard_occlusion((float2){x, y}, lpos, normal, l2c, light_depth_buffer, which_cubeface, global_position, shnum); ///copy occlusion into local memory?
+
+            occlusion = min(occlusion, dyn_occlusion);
 
             ///multiplying by val fixes stupidity cases
             //occlusion += occluded;// * fast_length(l.col.xyz);
