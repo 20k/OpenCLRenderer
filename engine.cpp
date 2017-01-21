@@ -1443,9 +1443,7 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             else
                 temp_l_mem = g_shadow_light_buffer.get();
 
-            cl_uint len = l_size*l_size*6;
-
-            len = len / 4;
+            //cl_uint len = l_size*l_size*6;
 
             arg_list cargs;
             cargs.push_back(&temp_l_mem);
