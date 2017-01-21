@@ -53,6 +53,11 @@ void light::set_godray_intensity(cl_float g)
     godray_intensity = g;
 }
 
+void light::set_is_static(bool st)
+{
+    is_static = st;
+}
+
 void light::invalidate_buffers()
 {
     dirty_shadow = true;
@@ -157,6 +162,7 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
     ///gpu light memory
     dat.g_light_mem = compute::buffer(cl::context, sizeof(light)*clamped_num, CL_MEM_READ_ONLY);
 
+    ///wtf? Isn't this super dangerous? What if the vector data goes out of scope?
     if(found_num > 0)
         cl::cqueue.enqueue_write_buffer_async(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
 

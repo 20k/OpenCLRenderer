@@ -71,6 +71,7 @@ struct light
     float radius;
     float diffuse;
     float godray_intensity;
+    int is_static;
 };
 
 ///Don't use me as an actual type see

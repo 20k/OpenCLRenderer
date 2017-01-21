@@ -29,6 +29,7 @@ struct light
     cl_float radius;
     cl_float diffuse;
     cl_float godray_intensity;
+    cl_int is_static;
 
     light();
 
@@ -41,6 +42,7 @@ struct light
     void set_diffuse(cl_float);
     void set_active(bool);
     void set_godray_intensity(cl_float);
+    void set_is_static(bool);
 
     static void invalidate_buffers();
 
