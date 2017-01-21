@@ -1396,6 +1396,16 @@ compute::event engine::generate_depth_buffer(object_context_data& dat)
     return run_kernel_with_string("kernel1", &p1global_ws_new, &local, 1, p1arg_list);
 }
 
+/*cl_int clEnqueueFillBuffer (	cl_command_queue  command_queue ,
+ 	cl_mem  buffer ,
+ 	const void  *pattern ,
+ 	size_t  pattern_size ,
+ 	size_t  offset ,
+ 	size_t  size ,
+ 	cl_uint  num_events_in_wait_list ,
+ 	const cl_event  *event_wait_list ,
+ 	cl_event  *event )*/
+
 compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 {
     dat.ensure_screen_buffers(width, height);
@@ -1404,6 +1414,16 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
     cl_uint p1global_ws = dat.tri_num;
     cl_uint local = 256;
+
+    /*if(light::lightlist.size() > 0)
+    {
+        cl_uint pattern = UINT_MAX;
+
+        clEnqueueFillBuffer(cl::cqueue.get(), g_shadow_light_buffer.get(), &pattern, sizeof(cl_uint), 0,
+                            sizeof(cl_uint)*l_size*l_size*6*light::get_num_shadowcasting_lights(),
+                            0, nullptr, nullptr);
+
+    }*/
 
     ///for every light, generate a cubemap for that light if its a light which casts a shadow
     for(unsigned int i=0, n=0; i<light::lightlist.size(); i++)
@@ -1425,11 +1445,13 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             cl_uint len = l_size*l_size*6;
 
+            len = len / 4;
+
             arg_list cargs;
             cargs.push_back(&temp_l_mem);
             cargs.push_back(&len);
 
-            run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size}, {256}, 1, cargs);
+            run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size/4 - 1}, {256}, 1, cargs);
 
             cl_float4 no_rot = {0};
 

@@ -9663,7 +9663,7 @@ void clear_depth_buffer_val(__global uint* dbuf, uint val)
 }
 
 __kernel
-void clear_depth_buffer_size(__global uint* dbuf, uint len)
+void clear_depth_buffer_size(__global uint4* dbuf, int len)
 {
     int id = get_global_id(0);
 

@@ -54,6 +54,8 @@ struct light
     static bool dirty_shadow;
 
     static light_gpu build(light_gpu* old_dat = nullptr);
+
+    static int get_num_shadowcasting_lights();
 };
 
 

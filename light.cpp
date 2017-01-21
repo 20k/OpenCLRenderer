@@ -210,3 +210,16 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
 
     return dat;
 }
+
+int light::get_num_shadowcasting_lights()
+{
+    int c = 0;
+
+    for(auto& i : lightlist)
+    {
+        if(i->shadow == 1)
+            c++;
+    }
+
+    return c;
+}
