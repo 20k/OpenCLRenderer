@@ -80,6 +80,7 @@ enum object_feature_flag
     FEATURE_FLAG_SS_REFLECTIVE = 1,
     FEATURE_FLAG_TWO_SIDED = 2,
     FEATURE_FLAG_OUTLINE = 4,
+    FEATURE_FLAG_IS_STATIC = 8,
 };
 
 struct obj_g_descriptor

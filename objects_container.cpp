@@ -262,6 +262,14 @@ void objects_container::set_children_texture_id(cl_uint tid)
     }
 }
 
+void objects_container::set_is_static(bool is_static)
+{
+    for(auto& i : objs)
+    {
+        i.set_is_static(is_static);
+    }
+}
+
 void objects_container::translate_centre(cl_float4 amount)
 {
     for(unsigned int i=0; i<objs.size(); i++)

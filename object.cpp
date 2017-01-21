@@ -12,6 +12,7 @@ enum object_feature_flag
     FEATURE_FLAG_SS_REFLECTIVE = 1,
     FEATURE_FLAG_TWO_SIDED = 2,
     FEATURE_FLAG_OUTLINE = 4,
+    FEATURE_FLAG_IS_STATIC = 8,
 };
 
 bool has_feature(int feature_flag, object_feature_flag flag)
@@ -152,6 +153,11 @@ void object::set_two_sided(bool is_two_sided)
 void object::set_outlined(bool is_outlined)
 {
     feature_flag = set_flag(feature_flag, FEATURE_FLAG_OUTLINE, is_outlined);
+}
+
+void object::set_is_static(bool is_static)
+{
+    feature_flag = set_flag(feature_flag, FEATURE_FLAG_IS_STATIC, is_static);
 }
 
 void object::offset_pos(cl_float4 _offset)

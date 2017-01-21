@@ -99,6 +99,7 @@ struct object
     void set_ss_reflective(int is_reflective);
     void set_two_sided(bool is_two_sided);
     void set_outlined(bool is_outlined);
+    void set_is_static(bool is_static);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();
