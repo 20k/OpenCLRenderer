@@ -291,8 +291,6 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("Trying to initialise with width ", videowidth, " and height ", height);
 
-    sf::WindowHandle dummy_handle = dummy_window.getSystemHandle();
-
     //if(!loaded)
     {
         ///window.create might invalidate the context
@@ -306,9 +304,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         #endif
     }
     //else
-    //{
+    {
         //window.setSize({videowidth, height});
-    //}
+
+        //window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
+    }
 
     lg::log("Successful init");
 
@@ -555,7 +555,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     ///only if we're experimenting with no context recreation
-    //if(!loaded)
+    if(!loaded)
         raw_input_inited = false;
 
     loaded = true;
