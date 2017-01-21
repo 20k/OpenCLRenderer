@@ -303,12 +303,13 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
         #endif
     }
-    //else
+    ///for this to work, sfml would need to support going fullscreen without recreating context
+    /*else
     {
-        //window.setSize({videowidth, height});
+        window.setSize({videowidth, height});
 
-        //window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
-    }
+        window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
+    }*/
 
     lg::log("Successful init");
 
@@ -555,7 +556,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     ///only if we're experimenting with no context recreation
-    if(!loaded)
+    //if(!loaded)
         raw_input_inited = false;
 
     loaded = true;
