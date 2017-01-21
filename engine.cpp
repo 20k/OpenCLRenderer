@@ -291,17 +291,24 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("Trying to initialise with width ", videowidth, " and height ", height);
 
+    sf::WindowHandle dummy_handle = dummy_window.getSystemHandle();
 
-
-    ///window.create might invalidate the context
-    #ifdef OCULUS
-    window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
-    #else
-    if(!fullscreen)
-        window.create(sf::VideoMode(videowidth, height), name);
-    else
+    //if(!loaded)
+    {
+        ///window.create might invalidate the context
+        #ifdef OCULUS
         window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
-    #endif
+        #else
+        if(!fullscreen)
+            window.create(sf::VideoMode(videowidth, height), name);
+        else
+            window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
+        #endif
+    }
+    //else
+    //{
+        //window.setSize({videowidth, height});
+    //}
 
     lg::log("Successful init");
 
@@ -333,6 +340,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         cl::cqueue_ooo.finish();
 
         oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
+        //build(loc, width, height, l_size, only_3d, opencl_extra_command_line);
+
+        //build_thread = std::thread(build, loc, width, height, l_size, only_3d, opencl_extra_command_line);
     }
 
     lg::log("post opencl");
@@ -543,11 +553,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     //glEnable(GL_TEXTURE2D); ///?
 
+
+    ///only if we're experimenting with no context recreation
+    //if(!loaded)
+        raw_input_inited = false;
+
     loaded = true;
 
     lg::log("end engine::load()");
 
-    raw_input_inited = false;
 }
 
 void engine::set_light_data(light_gpu& ldat)
