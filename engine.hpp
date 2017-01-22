@@ -97,6 +97,7 @@ struct light_gpu;
 struct engine
 {
     bool requested_close = false;
+    bool suppress_resize = false;
 
     control_input input_handler;
     sf::Mouse mouse;
@@ -291,6 +292,7 @@ struct engine
     bool check_alt_enter();
 
     void set_focus(bool _focus);
+    bool suppress_resizing();
 
     float get_scrollwheel_delta();
     float get_frametime();

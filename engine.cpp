@@ -292,7 +292,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("Trying to initialise with width ", videowidth, " and height ", height);
 
-    if(!loaded)
+    bool do_resize_hack = true;
+
+    #ifdef WIN32
+    if(!loaded || !do_resize_hack)
+    #endif // WIN32
     {
         ///window.create might invalidate the context
         #ifdef OCULUS
@@ -301,39 +305,72 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         if(!fullscreen)
             window.create(sf::VideoMode(videowidth, height), name);
         else
-            window.create(sf::VideoMode(videowidth, height), name, sf::Style::Fullscreen);
+            window.create(sf::VideoMode::getDesktopMode(), name, sf::Style::Fullscreen);
         #endif
     }
     ///for this to work, sfml would need to support going fullscreen without recreating context
+    #ifdef WIN32
     else
     {
         window.setSize({videowidth, height});
 
         window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
 
+        HWND handle = window.getSystemHandle();
+
+        LONG_PTR lStyle = GetWindowLongPtr(handle, GWL_STYLE);
+        LONG_PTR lExStyle = GetWindowLongPtr(handle, GWL_EXSTYLE);
+
+        LONG_PTR style_mod = (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+        LONG_PTR exstyle_mod = (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+
         if(fullscreen)
         {
-            HWND handle = window.getSystemHandle();
-
-            LONG_PTR lStyle = GetWindowLongPtr(handle, GWL_STYLE);
-            lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+            lStyle &= ~style_mod;
             SetWindowLongPtr(handle, GWL_STYLE, lStyle);
 
-            LONG_PTR lExStyle = GetWindowLongPtr(handle, GWL_EXSTYLE);
-            lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+            lExStyle &= ~exstyle_mod;
             SetWindowLongPtr(handle, GWL_EXSTYLE, lExStyle);
 
-            SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_DRAWFRAME);
         }
+        else
+        {
+            SetWindowLongPtr(handle, GWL_STYLE, WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE | WS_SIZEBOX | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+        }
+
+        //SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_DRAWFRAME);
     }
+    #endif // WIN32
 
     lg::log("Successful init");
 
     is_fullscreen = fullscreen;
 
-    if(loaded)
+    if(loaded && !fullscreen)
     {
         window.setPosition({old_win_pos.x, old_win_pos.y});
+    }
+
+    if(loaded && fullscreen)
+    {
+        int yheight = 0;
+
+        #ifdef WIN32
+        HWND handle = window.getSystemHandle();
+
+        yheight = GetSystemMetrics(SM_CYCAPTION);
+
+        RECT rcClient, rcWind;
+        POINT ptDiff;
+        GetClientRect(handle, &rcClient);
+        GetWindowRect(handle, &rcWind);
+        ptDiff.x = (rcWind.right - rcWind.left) - rcClient.right;
+        ptDiff.y = (rcWind.bottom - rcWind.top) - rcClient.bottom;
+
+        yheight = ptDiff.y;
+        #endif // WIN32
+
+        window.setPosition({0, -yheight});
     }
 
     ///passed in as compilation parameter to opencl
@@ -359,7 +396,13 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         //oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
         //build(loc, width, height, l_size, only_3d, opencl_extra_command_line);
 
-        build_thread = std::thread(build, loc, width, height, l_size, only_3d, opencl_extra_command_line);
+        #ifdef WIN32
+        if(do_resize_hack)
+            build_thread = std::thread(build, loc, width, height, l_size, only_3d, opencl_extra_command_line);
+        #endif
+
+        if(!do_resize_hack)
+            oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
     }
 
     lg::log("post opencl");
@@ -573,10 +616,14 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     ///only if we're experimenting with no context recreation
-    if(!loaded)
+    if(!do_resize_hack)
+        raw_input_inited = false;
+
+    if(!loaded && do_resize_hack)
         raw_input_inited = false;
 
     loaded = true;
+    suppress_resize = true;
 
     lg::log("end engine::load()");
 
@@ -954,6 +1001,11 @@ bool engine::check_alt_enter()
 void engine::set_focus(bool _focus)
 {
     focus = _focus;
+}
+
+bool engine::suppress_resizing()
+{
+    return suppress_resize;
 }
 
 void engine::update_mouse(float from_x, float from_y, bool use_from_position, bool reset_to_from_position)
