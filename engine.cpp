@@ -338,6 +338,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     int yheight = 0;
 
+    ///now AKA borderless window mode, but its a massive hack to get this to work
     bool do_resize_hack = true;
 
     bool do_title_resize_operations = false;
@@ -352,8 +353,12 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         #else
         if(!fullscreen)
             window.create(sf::VideoMode(videowidth, height), name);
-        else
+
+        if(fullscreen && !do_resize_hack)
             window.create(sf::VideoMode::getDesktopMode(), name, sf::Style::Fullscreen);
+
+        if(fullscreen && do_resize_hack)
+            window.create(sf::VideoMode::getDesktopMode(), name);
         #endif
     }
     ///for this to work, sfml would need to support going fullscreen without recreating context
