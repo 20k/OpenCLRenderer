@@ -11,6 +11,7 @@ std::vector<cl_uint> light::active;
 bool light::dirty_shadow = true;
 int light::expected_clear_kernel_size = 256;
 bool light::static_lights_are_dirty = true;
+bool light::dirty_gpu = false;
 
 void light::set_pos(cl_float4 p)
 {
@@ -67,6 +68,8 @@ void light::invalidate_buffers()
     dirty_shadow = true;
 
     static_lights_are_dirty = true;
+
+    dirty_gpu = true;
 }
 
 void light::set_active(bool s)
@@ -176,13 +179,22 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
 
     ///wtf? Isn't this super dangerous? What if the vector data goes out of scope?
     if(found_num > 0)
-        cl::cqueue.enqueue_write_buffer_async(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
+    {
+        if(!dirty_gpu)
+            cl::cqueue.enqueue_write_buffer_async(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
+        else
+            cl::cqueue.enqueue_write_buffer(dat.g_light_mem, 0, sizeof(light)*found_num, light_straight.data());
+
+    }
 
     dat.g_light_num = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_ONLY, nullptr);
-    cl::cqueue.enqueue_write_buffer_async(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
+
+    if(!dirty_gpu)
+        cl::cqueue.enqueue_write_buffer_async(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
+    else
+        cl::cqueue.enqueue_write_buffer(dat.g_light_num, 0, sizeof(cl_uint), &found_num);
 
     dat.any_godray = any_godray;
-
 
     ///sacrifice soul to chaos gods, allocate light buffers here
 
@@ -255,6 +267,7 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
     }
 
     dirty_shadow = false;
+    dirty_gpu = false;
 
     return dat;
 }

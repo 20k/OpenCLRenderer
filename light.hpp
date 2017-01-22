@@ -57,6 +57,7 @@ struct light
     static void remove_light(light* l);
 
     static bool dirty_shadow;
+    static bool dirty_gpu;
 
     static light_gpu build(light_gpu* old_dat = nullptr);
 

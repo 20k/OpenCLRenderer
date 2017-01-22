@@ -350,8 +350,11 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
         //    delete dat.cpu_id_num;
 
         cl_uint zero = 0;
-        context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
-        context.fetch()->g_tid_lightbuf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+        context.fetch()->g_tid_buf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
+        context.fetch()->g_tid_lightbuf_atomic_count = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
+
+        clEnqueueFillBuffer(cl::cqueue2.get(), context.fetch()->g_tid_buf_atomic_count.get(), &zero, sizeof(cl_uint), 0, sizeof(cl_uint), 0, nullptr, nullptr);
+        clEnqueueFillBuffer(cl::cqueue2.get(), context.fetch()->g_tid_lightbuf_atomic_count.get(), &zero, sizeof(cl_uint), 0, sizeof(cl_uint), 0, nullptr, nullptr);
 
         lg::log("alloced g_tid_buf_atomic_count + g_tid_lightbuf_atomic_count");
     }

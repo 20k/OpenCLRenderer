@@ -1432,7 +1432,8 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
     cl_uint p1global_ws = dat.tri_num;
     cl_uint local = 256;
 
-    /*if(light::lightlist.size() > 0)
+    ///what the fuck? This fixes the resize crash?
+    if(light::lightlist.size() > 0)
     {
         cl_uint pattern = UINT_MAX;
 
@@ -1440,7 +1441,14 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
                             sizeof(cl_uint)*l_size*l_size*6*light::get_num_shadowcasting_lights(),
                             0, nullptr, nullptr);
 
-    }*/
+
+        if(light::static_lights_are_dirty)
+        {
+            clEnqueueFillBuffer(cl::cqueue.get(), g_static_shadow_light_buffer.get(), &pattern, sizeof(cl_uint), 0,
+                            sizeof(cl_uint)*l_size*l_size*6*light::get_num_static_shadowcasters(),
+                            0, nullptr, nullptr);
+        }
+    }
 
     ///for every light, generate a cubemap for that light if its a light which casts a shadow
     for(unsigned int i=0, nn=0, kk=0; i<light::lightlist.size(); i++)
@@ -1454,18 +1462,23 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             buf_reg.origin = nn*sizeof(cl_uint)*l_size*l_size*6;
             buf_reg.size   = sizeof(cl_uint)*l_size*l_size*6;
 
+            cl_int ret = CL_SUCCESS;
+
             ///uuh. We're gunne need to clear the shadow light buffer (!!!)
             if(nn != 0)
-                temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+                temp_l_mem = clCreateSubBuffer(g_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, &ret);
             else
                 temp_l_mem = g_shadow_light_buffer.get();
 
-            //cl_uint len = l_size*l_size*6;
+            assert(ret == CL_SUCCESS);
+
+            /*cl_uint len = l_size*l_size*6;
 
             arg_list cargs;
             cargs.push_back(&temp_l_mem);
+            cargs.push_back(&len);
 
-            run_kernel_with_string("clear_depth_buffer_size_nocheck", {buf_reg.size/4 - 1}, {light::expected_clear_kernel_size}, 1, cargs);
+            run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size}, {light::expected_clear_kernel_size}, 1, cargs);*/
 
             cl_float4 no_rot = {0};
 
@@ -1522,21 +1535,25 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             buf_reg.origin = kk*sizeof(cl_uint)*l_size*l_size*6;
             buf_reg.size   = sizeof(cl_uint)*l_size*l_size*6;
 
+            cl_int ret = CL_SUCCESS;
+
             ///uuh. We're gunne need to clear the shadow light buffer (!!!)
             if(kk != 0)
-                temp_l_mem = clCreateSubBuffer(g_static_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, NULL);
+                temp_l_mem = clCreateSubBuffer(g_static_shadow_light_buffer.get(), CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &buf_reg, &ret);
             else
                 temp_l_mem = g_static_shadow_light_buffer.get();
 
+            assert(ret == CL_SUCCESS);
 
             //lg::log("Created sub");
 
-            //cl_uint len = l_size*l_size*6;
+            cl_uint len = l_size*l_size*6;
 
-            arg_list cargs;
+            /*arg_list cargs;
             cargs.push_back(&temp_l_mem);
+            cargs.push_back(&len);
 
-            run_kernel_with_string("clear_depth_buffer_size_nocheck", {buf_reg.size/4 - 1}, {light::expected_clear_kernel_size}, 1, cargs);
+            run_kernel_with_string("clear_depth_buffer_size", {buf_reg.size}, {light::expected_clear_kernel_size}, 1, cargs);*/
 
             //lg::log("Cleared depth buffer");
 
