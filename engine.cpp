@@ -222,7 +222,7 @@ int window_fuckery(sf::RenderWindow& window, int videowidth, int height, bool fu
     }
     else
     {
-        SetWindowLongPtr(handle, GWL_STYLE, WS_CAPTION  | WS_VISIBLE | WS_THICKFRAME | WS_SIZEBOX | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+        SetWindowLongPtr(handle, GWL_STYLE, WS_CAPTION  | WS_VISIBLE | WS_THICKFRAME | WS_SIZEBOX | WS_SYSMENU | WS_MINIMIZEBOX);
     }
 
     return yheight;
@@ -373,6 +373,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         ///and we don't even call setwindow pos. Who knows. This probably wont work on nvidia (kill me)
         yheight = window_fuckery(window, videowidth, height, fullscreen);
     }
+    #endif // WIN32
+
+    #ifdef WIN32
+    window_fuckery(window, videowidth, height, fullscreen);
     #endif // WIN32
 
     lg::log("Successful init");
