@@ -4225,6 +4225,12 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         skip_structure[cface] = 1;
     }
 
+    float3 v1 = vertex_pos(&T->vertices[0]);
+    float3 v2 = vertex_pos(&T->vertices[1]);
+    float3 v3 = vertex_pos(&T->vertices[2]);
+
+    float4 qrot = G->world_rot_quat;
+
     float scale = G->scale;
 
     bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
@@ -4240,7 +4246,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         int num = 0;
 
         ///this rotates the triangles and does clipping, but nothing else (ie no_extras)
-        full_rotate_quat(vertex_pos(&T->vertices[0]), vertex_pos(&T->vertices[1]), vertex_pos(&T->vertices[2]), tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, G->world_rot_quat, scale, efov, ewidth, eheight);
+        full_rotate_quat(v1, v2, v3, tris_proj, &num, c_pos.xyz, r_struct[kk], g_world_pos, qrot, scale, efov, ewidth, eheight);
         ///can replace rotation with a swizzle for shadowing
 
         uint b_id = atomic_add(id_cutdown_tris, num);
