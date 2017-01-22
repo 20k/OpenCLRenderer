@@ -633,10 +633,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     //glEnable(GL_TEXTURE2D); ///?
 
 
-    ///only if we're experimenting with no context recreation
     if(!do_resize_hack)
         raw_input_inited = false;
 
+    ///ie if we're experimenting with context stuff, dont recreate the raw input as the context isn't invalid
     if(!loaded && do_resize_hack)
         raw_input_inited = false;
 
