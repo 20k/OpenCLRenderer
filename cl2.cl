@@ -4062,7 +4062,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         float area = (min_max[1]-min_max[0])*(min_max[3]-min_max[2]);
 
-        float thread_num = ceil(native_divide(area, op_size));
+        int thread_num = ceil(native_divide(area, op_size));
         ///threads to renderone triangle based on its bounding-box area
 
         ///makes no apparently difference moving atomic out, presumably its a pretty rare case
@@ -4079,7 +4079,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         //if(b*FRAGMENT_ID_MUL + thread_num*FRAGMENT_ID_MUL < *id_buffer_maxlength)
         {
-            for(uint a = 0; a < thread_num; a++)
+            for(int a = 0; a < thread_num; a++)
             {
                 ///work out if is valid, if not do c++ then continue;
 
