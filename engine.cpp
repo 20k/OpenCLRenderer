@@ -375,6 +375,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     }
     #endif // WIN32
 
+    ///so that the default window initialised will get the maximisation thing disabled properly, also if we're booting in fullscreen
     #ifdef WIN32
     window_fuckery(window, videowidth, height, fullscreen);
     #endif // WIN32
