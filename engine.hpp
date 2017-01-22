@@ -348,6 +348,8 @@ struct engine
     void append_opencl_extra_command_line(const std::string& str);
 
     std::string opencl_extra_command_line;
+
+    int stored_titlebar_height = 0;
 };
 
 struct arg_list

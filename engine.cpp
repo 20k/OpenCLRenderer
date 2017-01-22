@@ -185,6 +185,50 @@ bool engine::is_requested_close()
     return requested_close;
 }
 
+#ifdef WIN32
+///fuck this shit I'm out
+///does borderless window toggling and also returns the height of the bar at the top
+int window_fuckery(sf::RenderWindow& window, int videowidth, int height, bool fullscreen)
+{
+    window.setSize({videowidth, height});
+
+    window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
+
+    HWND handle = window.getSystemHandle();
+
+    RECT rcClient, rcWind;
+    POINT ptDiff;
+    GetClientRect(handle, &rcClient);
+    GetWindowRect(handle, &rcWind);
+    ptDiff.x = (rcWind.right - rcWind.left) - rcClient.right;
+    ptDiff.y = (rcWind.bottom - rcWind.top) - rcClient.bottom;
+
+    int yheight = ptDiff.y;
+
+
+    LONG_PTR lStyle = GetWindowLongPtr(handle, GWL_STYLE);
+    LONG_PTR lExStyle = GetWindowLongPtr(handle, GWL_EXSTYLE);
+
+    LONG_PTR style_mod = (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+    LONG_PTR exstyle_mod = (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+
+    if(fullscreen)
+    {
+        lStyle &= ~style_mod;
+        SetWindowLongPtr(handle, GWL_STYLE, lStyle);
+
+        lExStyle &= ~exstyle_mod;
+        //SetWindowLongPtr(handle, GWL_EXSTYLE, lExStyle);
+    }
+    else
+    {
+        SetWindowLongPtr(handle, GWL_STYLE, WS_CAPTION  | WS_VISIBLE | WS_THICKFRAME | WS_SIZEBOX | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+    }
+
+    return yheight;
+}
+#endif
+
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d, bool fullscreen)
 {
     #ifdef RIFT
@@ -292,7 +336,11 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("Trying to initialise with width ", videowidth, " and height ", height);
 
+    int yheight = 0;
+
     bool do_resize_hack = true;
+
+    bool do_title_resize_operations = false;
 
     #ifdef WIN32
     if(!loaded || !do_resize_hack)
@@ -312,33 +360,13 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     #ifdef WIN32
     else
     {
-        window.setSize({videowidth, height});
+        window_fuckery(window, videowidth, height, fullscreen);
 
-        window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
-
-        HWND handle = window.getSystemHandle();
-
-        LONG_PTR lStyle = GetWindowLongPtr(handle, GWL_STYLE);
-        LONG_PTR lExStyle = GetWindowLongPtr(handle, GWL_EXSTYLE);
-
-        LONG_PTR style_mod = (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
-        LONG_PTR exstyle_mod = (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-
-        if(fullscreen)
-        {
-            lStyle &= ~style_mod;
-            SetWindowLongPtr(handle, GWL_STYLE, lStyle);
-
-            lExStyle &= ~exstyle_mod;
-            SetWindowLongPtr(handle, GWL_EXSTYLE, lExStyle);
-
-        }
-        else
-        {
-            SetWindowLongPtr(handle, GWL_STYLE, WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE | WS_SIZEBOX | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
-        }
-
-        //SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_DRAWFRAME);
+        ///I don't know. I dont know why we have to do this twice, it just fixes absolutely everything ever
+        ///Why? Who knows. SFML seems to have a heart attack if you just call setview/setsize again for a second time
+        ///without doing all the appropriate window fiddling afterwards, even though nothing has changed
+        ///and we don't even call setwindow pos. Who knows. This probably wont work on nvidia (kill me)
+        yheight = window_fuckery(window, videowidth, height, fullscreen);
     }
     #endif // WIN32
 
@@ -346,31 +374,21 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     is_fullscreen = fullscreen;
 
+    ///imgui mouse position is off for some reason
     if(loaded && !fullscreen)
     {
         window.setPosition({old_win_pos.x, old_win_pos.y});
     }
 
-    if(loaded && fullscreen)
+    ///problem is,we setwindowpos here which applies the above updates, which means that our titlebar is no longer valid
+    if(loaded && fullscreen && do_resize_hack)
     {
-        int yheight = 0;
-
-        #ifdef WIN32
-        HWND handle = window.getSystemHandle();
-
-        yheight = GetSystemMetrics(SM_CYCAPTION);
-
-        RECT rcClient, rcWind;
-        POINT ptDiff;
-        GetClientRect(handle, &rcClient);
-        GetWindowRect(handle, &rcWind);
-        ptDiff.x = (rcWind.right - rcWind.left) - rcClient.right;
-        ptDiff.y = (rcWind.bottom - rcWind.top) - rcClient.bottom;
-
-        yheight = ptDiff.y;
-        #endif // WIN32
-
         window.setPosition({0, -yheight});
+    }
+
+    if(loaded && !fullscreen && do_resize_hack)
+    {
+        window.setPosition({10, 10});
     }
 
     ///passed in as compilation parameter to opencl
