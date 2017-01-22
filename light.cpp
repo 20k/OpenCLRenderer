@@ -211,14 +211,23 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
             total_len += expected_clear_kernel_size;
         }
 
+        ///blank cubemap filled with UINT_MAX
+        engine::g_shadow_light_buffer = compute::buffer(cl::context, total_len, CL_MEM_READ_WRITE, NULL);
+
         int static_shadow_extra = get_num_static_shadowcasters();
 
         uint32_t static_len = sizeof(cl_uint) * l_size * l_size * 6 * static_shadow_extra;
 
-        ///blank cubemap filled with UINT_MAX
-        engine::g_shadow_light_buffer = compute::buffer(cl::context, total_len, CL_MEM_READ_WRITE, NULL);
-
         static_len = max(static_len, (uint32_t)sizeof(cl_uint));
+
+        if(static_len % expected_clear_kernel_size != 0)
+        {
+            int rem = static_len % expected_clear_kernel_size;
+
+            static_len -= rem;
+            static_len += expected_clear_kernel_size;
+        }
+
         engine::g_static_shadow_light_buffer = compute::buffer(cl::context, static_len, CL_MEM_READ_WRITE, NULL);
 
 

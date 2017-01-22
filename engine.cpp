@@ -292,7 +292,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("Trying to initialise with width ", videowidth, " and height ", height);
 
-    //if(!loaded)
+    if(!loaded)
     {
         ///window.create might invalidate the context
         #ifdef OCULUS
@@ -305,12 +305,27 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         #endif
     }
     ///for this to work, sfml would need to support going fullscreen without recreating context
-    /*else
+    else
     {
         window.setSize({videowidth, height});
 
         window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
-    }*/
+
+        if(fullscreen)
+        {
+            HWND handle = window.getSystemHandle();
+
+            LONG_PTR lStyle = GetWindowLongPtr(handle, GWL_STYLE);
+            lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+            SetWindowLongPtr(handle, GWL_STYLE, lStyle);
+
+            LONG_PTR lExStyle = GetWindowLongPtr(handle, GWL_EXSTYLE);
+            lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+            SetWindowLongPtr(handle, GWL_EXSTYLE, lExStyle);
+
+            SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_DRAWFRAME);
+        }
+    }
 
     lg::log("Successful init");
 
@@ -341,10 +356,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         cl::cqueue2.finish();
         cl::cqueue_ooo.finish();
 
-        oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
+        //oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
         //build(loc, width, height, l_size, only_3d, opencl_extra_command_line);
 
-        //build_thread = std::thread(build, loc, width, height, l_size, only_3d, opencl_extra_command_line);
+        build_thread = std::thread(build, loc, width, height, l_size, only_3d, opencl_extra_command_line);
     }
 
     lg::log("post opencl");
@@ -558,7 +573,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
 
     ///only if we're experimenting with no context recreation
-    //if(!loaded)
+    if(!loaded)
         raw_input_inited = false;
 
     loaded = true;
@@ -1472,7 +1487,9 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             run_kernel_with_string("prearrange_realtime_shadowing", &p1global_ws, &local, 1, prearg_list);
 
-            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), light::static_lights_are_dirty, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[nn], 0, NULL, NULL);
+            ///maybe the problem is the classic "these reads are unordered and break when we refresh the context"
+            ///remember, CL_TRUE here should be light::static_lights_are_dirty, ONLY FOR TESTING
+            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[nn], 0, NULL, NULL);
 
             cl_uint fragments_number = light_data->shadow_fragments_count[nn] * 1.1;
 
@@ -1491,6 +1508,7 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             nn++;
         }
 
+        #if 1
         if(light::lightlist[i]->shadow && light::lightlist[i]->is_static && light::static_lights_are_dirty)
         {
             cl::cqueue.finish();
@@ -1510,12 +1528,17 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             else
                 temp_l_mem = g_static_shadow_light_buffer.get();
 
+
+            //lg::log("Created sub");
+
             //cl_uint len = l_size*l_size*6;
 
             arg_list cargs;
             cargs.push_back(&temp_l_mem);
 
             run_kernel_with_string("clear_depth_buffer_size_nocheck", {buf_reg.size/4 - 1}, {light::expected_clear_kernel_size}, 1, cargs);
+
+            //lg::log("Cleared depth buffer");
 
             cl_float4 no_rot = {0};
 
@@ -1537,9 +1560,14 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             run_kernel_with_string("prearrange_realtime_shadowing", &p1global_ws, &local, 1, prearg_list);
 
+            lg::log("Prearranged");
+
             cl_uint fragment_num = 0;
 
+            ///so this seems to crash. Why? Is this connected to the blend_screens_with_depth issue?
             clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &fragment_num, 0, NULL, NULL);
+
+            lg::log("Post Read ", fragment_num);
 
             cl_uint fragments_number = fragment_num;
 
@@ -1555,10 +1583,13 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
             if(kk != 0)
                 clReleaseMemObject(temp_l_mem);
 
+            lg::log("Kernel 1\'d");
+
             kk++;
 
             lg::log("Finish static dirty ", i);
         }
+        #endif
     }
 
     light::static_lights_are_dirty = false;
@@ -2305,12 +2336,15 @@ compute::event engine::blend_with_depth(object_context_data& src, object_context
 {
     cl_int2 dim = {dst.s_w, dst.s_h};
 
+    assert(dst.s_w == src.s_w);
+    assert(dst.s_h == src.s_h);
+
     arg_list args;
     //args.push_back(&src.)
 
-    args.push_back(&src.gl_screen[0].get());
-    args.push_back(&dst.gl_screen[0].get());
-    args.push_back(&dst.gl_screen[0].get());
+    args.push_back(src.gl_screen[0].get_ptr());
+    args.push_back(dst.gl_screen[0].get_ptr());
+    args.push_back(dst.gl_screen[0].get_ptr());
 
     args.push_back(&src.depth_buffer[0]);
     args.push_back(&dst.depth_buffer[0]);
