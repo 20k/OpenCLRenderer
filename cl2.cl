@@ -4008,7 +4008,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     if(fast_length(g_world_pos - c_pos.xyz) > depth_far)
         return;
 
-    for(int i=0; i<3; i++)
+    /*for(int i=0; i<3; i++)
     {
         if(any(isnan(vertex_pos(&T->vertices[i]))))
             return;
@@ -4018,7 +4018,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         if(any(isinf(vertex_pos(&T->vertices[i]))))
             return;
-    }
+    }*/
 
     //printf("c %f %f %f %f ", G->world_rot_quat.x, G->world_rot_quat.y, G->world_rot_quat.z, G->world_rot_quat.w);
 
@@ -4159,7 +4159,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     if(fast_length(g_world_pos - c_pos.xyz) > depth_far)
         return;
 
-    for(int i=0; i<3; i++)
+    /*for(int i=0; i<3; i++)
     {
         if(any(isnan(vertex_pos(&T->vertices[i]))))
             return;
@@ -4169,7 +4169,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
         if(any(isinf(vertex_pos(&T->vertices[i]))))
             return;
-    }
+    }*/
 
     float3 r_struct[6];
     r_struct[0]=(float3)
