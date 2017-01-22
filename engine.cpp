@@ -1502,7 +1502,7 @@ compute::event engine::generate_realtime_shadowing(object_context_data& dat)
 
             ///maybe the problem is the classic "these reads are unordered and break when we refresh the context"
             ///remember, CL_TRUE here should be light::static_lights_are_dirty, ONLY FOR TESTING
-            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), CL_TRUE, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[nn], 0, NULL, NULL);
+            clEnqueueReadBuffer(cl::cqueue, dat.g_tid_lightbuf_atomic_count.get(), light::static_lights_are_dirty, 0, sizeof(cl_uint), &light_data->shadow_fragments_count[nn], 0, NULL, NULL);
 
             cl_uint fragments_number = light_data->shadow_fragments_count[nn] * 1.1;
 
