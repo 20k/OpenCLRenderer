@@ -4197,7 +4197,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
         0.0,            M_PI/2.0,       0.0
     };
 
-    short skip_structure[6] = {0,0,0,0,0,0};
+    int skip_structure[6] = {0,0,0,0,0,0};
     //int num_faces = 0;
 
     /*pr[2] = rot_quat_with_offset(v3, c_pos, c_rot, offset, rotation_offset);
