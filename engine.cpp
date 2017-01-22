@@ -1817,6 +1817,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
 
     //printf("gpuarray %i\n", dat.tex_gpu_ctx.g_texture_array.size());
 
+    ///changing this to 1d seemingly has no effect on performance
     cl_uint p3global_ws[] = {eng.width, eng.height};
     cl_uint p3local_ws[] = {16, 16};
 
