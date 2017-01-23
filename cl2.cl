@@ -786,12 +786,6 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     float tnumy = floor(native_divide(which, hnum));
     float tnumx = mad(-tnumy, hnum, which);//which - tnumy * hnum;
 
-    //float tx = tnumx*width;
-    //float ty = tnumy*width;
-
-    ///???? wow, 6.3 -> 6 from removing this line
-    //coords = fmod(coords, width);
-
     coords = clamp(coords, 0.001f, width - 0.001f);
 
     float2 res = mad((float2){tnumx, tnumy}, width, coords);
