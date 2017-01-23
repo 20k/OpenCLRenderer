@@ -1493,9 +1493,13 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     float4 col1 = return_bilinear_col_all_precalculated(vtm * size_lower, which_lower, slice_lower, size_lower, array);
     float4 col2 = return_bilinear_col_all_precalculated(vtm * size_higher, which_higher, slice_higher, size_higher, array);
 
-    float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
+    //float4 final_col = col1*(1.0f-fmd) + col2*(fmd);
 
-    return native_divide(finalcol, 255.0f);
+    float4 final_col = mix(col1, col2, fmd);
+
+    const float i255 = 1.f / 255.f;
+
+    return final_col * i255;
 }
 
 float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
