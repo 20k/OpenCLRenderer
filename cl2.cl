@@ -812,6 +812,7 @@ float4 read_tex_array_all_precalculated(float2 coord_absolute_coordinates, int w
     const float imax_tex_size = 1.f/2048;
 
     float ihnum = width * imax_tex_size;
+
     float tnumy = floor(which * ihnum);
     float tnumx = which - tnumy / ihnum;
 
@@ -1462,6 +1463,7 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     int tid_higher = clamp(mip_lower, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
 
     ///fixes swordfighting texture issues, could be a vt issue
+    ///If textures are broken for any reason, it was this
     //vtm *= (float)tsize;
     //vtm.x -= 0.5f / tsize;
 
