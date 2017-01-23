@@ -811,13 +811,6 @@ float4 read_tex_array_all_precalculated(float2 coord_absolute_coordinates, int w
     const float max_tex_size = 2048;
     const float imax_tex_size = 1.f/2048;
 
-    //float hnum = floor(native_divide(max_tex_size, width));
-    ///max horizontal and vertical nums
-
-    //float tnumy = floor(native_divide(which, hnum));
-    //float tnumx = mad(-tnumy, hnum, which);//which - tnumy * hnum;
-
-    //float hnum = max_tex_size / width;
     float ihnum = width * imax_tex_size;
     float tnumy = floor(which * ihnum);
     float tnumx = which - tnumy / ihnum;
