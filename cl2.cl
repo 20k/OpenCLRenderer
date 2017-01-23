@@ -7246,6 +7246,7 @@ void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _
 {
     int id = get_global_id(0);
 
+    ///subbing in dim.x and dim.y for screenwidth/height not faster. Which is a generally encouraging sign for future performance fiddling
     int ix = id % dim.x;
     int iy = id / dim.x;
     //int ix = id - iy * SCREENWIDTH; ///not faster
