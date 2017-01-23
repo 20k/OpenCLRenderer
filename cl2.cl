@@ -810,6 +810,42 @@ float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *si
     return t;
 }
 
+float4 read_tex_array_all_precalculated(float2 coord_absolute_coordinates, int which, int slice, float width, image_3d_read array)
+{
+    float2 coords = coord_absolute_coordinates;
+
+    const float max_tex_size = 2048;
+    const float imax_tex_size = 1.f/2048;
+
+    //float hnum = floor(native_divide(max_tex_size, width));
+    ///max horizontal and vertical nums
+
+    //float tnumy = floor(native_divide(which, hnum));
+    //float tnumx = mad(-tnumy, hnum, which);//which - tnumy * hnum;
+
+    //float hnum = max_tex_size / width;
+    float ihnum = width * imax_tex_size;
+    float tnumy = floor(which * ihnum);
+    float tnumx = which - tnumy / ihnum;
+
+    coords = clamp(coords, 0.001f, width - 0.001f);
+
+    float2 res = mad((float2){tnumx, tnumy}, width, coords);
+
+    ///width - fixes bug
+    ///remember to add 0.5f to this
+    int4 coord;
+    coord.xy = convert_int2(res);
+    coord.z = slice;
+
+    uint4 col;
+    col = read_image_3d_hardware(coord, array, max_tex_size, max_tex_size);
+
+    float4 t = convert_float4(col);
+
+    return t;
+}
+
 
 ///0 -> 255
 ///this is gpu_id weird combination
@@ -1298,8 +1334,8 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
 ///fixme
 float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uint *sizes, image_3d_read array) ///takes a normalised input
 {
-    int which=nums[tid];
-    float width=sizes[which >> 16];
+    int compound=nums[tid];
+    float width=sizes[compound >> 16];
 
     float2 mcoord = coord * width;
 
@@ -1326,10 +1362,42 @@ float4 return_bilinear_col(float2 coord, uint tid, global uint *nums, global uin
     float4 result;
 
     result = mad(colours[0], buvr.x, colours[1] * uvratio.x) * buvr.y + mad(colours[2], buvr.x, colours[3] * uvratio.x) * uvratio.y;
+    //result = (colours[0] * buvr.x + colours[1] * uvratio.x) * buvr.y + (colours[2] * buvr.x + colours[3] * uvratio.x) * uvratio.y;
 
     ///if using hardware linear interpolation
     ///can't while we're still using integers
     //float3 result = read_tex_array(mcoord, tid, nums, sizes, array);
+
+    return result;
+}
+
+float4 return_bilinear_col_all_precalculated(float2 coord_absolute_coordinates, int which, int slice, float width, image_3d_read array)
+{
+    float2 mcoord = coord_absolute_coordinates;
+
+    float2 coords[4];
+
+    float2 pos = floor(mcoord);
+
+    coords[0].x=pos.x, coords[0].y=pos.y;
+    coords[1].x=pos.x+1, coords[1].y=pos.y;
+    coords[2].x=pos.x, coords[2].y=pos.y+1;
+    coords[3].x=pos.x+1, coords[3].y=pos.y+1;
+
+    float4 colours[4];
+
+    for(int i=0; i<4; i++)
+    {
+        colours[i]=read_tex_array_all_precalculated(coords[i], which, slice, width, array);
+    }
+
+    float2 uvratio = mcoord - pos;
+
+    float2 buvr = 1.f - uvratio;
+
+    float4 result;
+
+    result = mad(colours[0], buvr.x, colours[1] * uvratio.x) * buvr.y + mad(colours[2], buvr.x, colours[3] * uvratio.x) * uvratio.y;
 
     return result;
 }
@@ -1382,7 +1450,10 @@ float4 texture_filter_direct(float2 vt, float direct_interpolating_factor, int t
 ///use texture coordinates derived from global instead of local? might fix triangle clipping issues :D
 float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, global uint *nums, global uint *sizes, image_3d_read array)
 {
-    int slice=nums[tid2] >> 16;
+    int nv=nums[tid2];
+
+    int slice = nv >> 16;
+    //int which = nv & 0x0000FFFF;
     int tsize=sizes[slice];
 
     float2 vtm = texture_mod(vt);
@@ -1404,10 +1475,27 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     int tid_higher = clamp(mip_lower, 0.f, MIP_LEVELS-1.f) + mip_start + mul24(tid2, MIP_LEVELS);
 
     ///fixes swordfighting texture issues, could be a vt issue
-    vtm.x -= 0.5f / tsize;
+    //vtm *= (float)tsize;
+    //vtm.x -= 0.5f / tsize;
 
-    float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
-    float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+    //float4 col1 = return_bilinear_col(vtm, tid_lower, nums, sizes, array);
+    //float4 col2 = return_bilinear_col(vtm, tid_higher, nums, sizes, array);
+
+    int lower_nv = nums[tid_lower];
+    int higher_nv = nums[tid_higher];
+
+    int slice_lower = lower_nv >> 16;
+    int slice_higher = higher_nv >> 16;
+
+    int which_lower = lower_nv & 0x0000FFFF;
+    int which_higher = higher_nv & 0x0000FFFF;
+
+    ///we could work this out instead
+    int size_lower = sizes[slice_lower];
+    int size_higher = sizes[slice_higher];
+
+    float4 col1 = return_bilinear_col_all_precalculated(vtm * size_lower, which_lower, slice_lower, size_lower, array);
+    float4 col2 = return_bilinear_col_all_precalculated(vtm * size_higher, which_higher, slice_higher, size_higher, array);
 
     float4 finalcol = col1*(1.0f-fmd) + col2*(fmd);
 
@@ -5358,9 +5446,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     uint seed3 = rand_xorshift(seed2);
     uint seed4 = rand_xorshift(seed3);
 
-    float f1 = (float)seed2 / pow(2.f,32.f);
-    float f2 = (float)seed3 / pow(2.f,32.f);
-    float f3 = (float)seed4 / pow(2.f,32.f);
+    float f1 = (float)seed2 / (float)UINT_MAX;
+    float f2 = (float)seed3 / (float)UINT_MAX;
+    float f3 = (float)seed4 / (float)UINT_MAX;
 
     float3 rseed = (float3){f1, f2, f3};
     rseed = (rseed - 0.5f) * 2;
