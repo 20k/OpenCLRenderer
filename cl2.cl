@@ -1493,8 +1493,6 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     float4 col1 = return_bilinear_col_all_precalculated(vtm * size_lower, which_lower, slice_lower, size_lower, array);
     float4 col2 = return_bilinear_col_all_precalculated(vtm * size_higher, which_higher, slice_higher, size_higher, array);
 
-    //float4 final_col = col1*(1.0f-fmd) + col2*(fmd);
-
     float4 final_col = mix(col1, col2, fmd);
 
     const float i255 = 1.f / 255.f;
@@ -5674,7 +5672,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         const float kS = 1.f;
 
         float spec = mdot(H, N);
-        spec = pow(spec, G->specular);
+        //spec = pow(spec, G->specular);
+        spec = pow(spec, 50.f);
         specular_sum += spec * light_col * kS * l.brightness * distance_modifier * G->spec_mult;
 
         #else
