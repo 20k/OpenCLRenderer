@@ -5070,7 +5070,6 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
         ///finally going to have to fix this to get optimal performance
 
         //y = floor((float)(pixel_along + pcount) * iwidth) + min_max.z;
-
         y = floor(mad(pixel_along + pcount, iwidth, min_max.z));
 
         x = y != ty ? running_width_mod + min_max.x : x;
@@ -7249,6 +7248,7 @@ void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _
 
     int ix = id % dim.x;
     int iy = id / dim.x;
+    //int ix = id - iy * SCREENWIDTH; ///not faster
 
     if(iy >= dim.y)
         return;
