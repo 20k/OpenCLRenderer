@@ -1480,8 +1480,15 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
     int which_higher = higher_nv & 0x0000FFFF;
 
     ///we could work this out instead
-    int size_lower = sizes[slice_lower];
-    int size_higher = sizes[slice_higher];
+    ///nope. Although int -> float here saved some time
+    float size_lower = sizes[slice_lower];
+    float size_higher = sizes[slice_higher];
+
+    ///working it outs slower
+    /*float size_lower = tsize / (float)pow(2.f, mip_lower);
+    float size_higher = size_lower / 2;
+    if(tid_lower == tid_higher)
+        size_higher = size_lower;*/
 
     float4 col1 = return_bilinear_col_all_precalculated(vtm * size_lower, which_lower, slice_lower, size_lower, array);
     float4 col2 = return_bilinear_col_all_precalculated(vtm * size_higher, which_higher, slice_higher, size_higher, array);
