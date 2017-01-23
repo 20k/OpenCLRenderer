@@ -2114,7 +2114,7 @@ float generate_ssao(int2 spos, __global uint* depth_buffer)
     uint seed1 = wang_hash(spos.x + SCREENWIDTH * SCREENHEIGHT * spos.y);
     uint seed2 = rand_xorshift(seed1);
 
-    float foffset = (float)seed2 / pow(2.f, 32.f);
+    float foffset = (float)seed2 / UINT_MAX;
 
     float depth = idcalc((float)depth_buffer[spos.y * SCREENWIDTH + spos.x] / mulint);
 
