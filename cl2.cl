@@ -5530,18 +5530,12 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 l2p = camera_pos - global_position;
     l2p = fast_normalize(l2p);
 
-    float3 point_to_camera = camera_pos - global_position;
-    float3 point_to_cameran = fast_normalize(point_to_camera);
-
     int feature_flag = G->feature_flag;
 
     bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
 
-
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
     int flip_normals = !is_front && is_two_sided == 1;
-
-    //flip_normals = 0;
 
     if(flip_normals)
         normal = -normal;
