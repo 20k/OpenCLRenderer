@@ -800,7 +800,8 @@ void load_object_cube_tex(objects_container* pobj, vec3f start, vec3f fin, float
     vec3f rot = dir.get_euler();
 
     std::vector<triangle> tris;
-    tris.resize(12);
+    //tris.resize(12);
+    tris.reserve(12);
 
 
     cl_float4 out[2][3];
