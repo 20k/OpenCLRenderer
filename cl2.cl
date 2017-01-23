@@ -4647,12 +4647,19 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     float iwidth = 1.f / width;
 
+    float running_width_mod = (pixel_along + pcount) % width;
+
     ///while more pixels to write
     while(pcount < op_size)
     {
         pcount++;
 
         x+=1;
+
+        running_width_mod += 1;
+
+        if(running_width_mod >= width)
+            running_width_mod = 0;
 
         //investigate not doing any of this at all
 
@@ -4662,10 +4669,9 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         y = floor(mad(pixel_along + pcount, iwidth, min_max[2]));
 
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+        x = y != ty ? running_width_mod + min_max[0] : x;
 
         //x = y != ty ? pixel_along + pcount - (y - min_max[2]) * width + min_max[0] : x;
-
 
         if(y >= min_max[3])
         {
@@ -4777,6 +4783,8 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
 
     float iwidth = 1.f / width;
 
+    float running_width_mod = (pixel_along + pcount) % width;
+
     ///while more pixels to write
     while(pcount < op_size_light)
     {
@@ -4784,11 +4792,16 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
 
         x+=1;
 
+        running_width_mod += 1.f;
+
+        if(running_width_mod >= width)
+            running_width_mod = 0;
+
         float ty = y;
 
         y = floor(mad(pixel_along + pcount, iwidth, min_max[2]));
 
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max[0] : x;
+        x = y != ty ? running_width_mod + min_max[0] : x;
 
         if(y >= min_max[3])
         {
@@ -5038,11 +5051,19 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     ///while more pixels to write
     ///write to local memory, then flush to texture?
+
+    float running_width_mod = (pixel_along + pcount) % width;
+
     while(pcount < op_size)
     {
         pcount++;
 
         x+=1;
+
+        running_width_mod += 1.f;
+
+        if(running_width_mod >= width)
+            running_width_mod = 0;
 
         float ty = y;
 
@@ -5052,8 +5073,9 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         y = floor(mad(pixel_along + pcount, iwidth, min_max.z));
 
-        x = y != ty ? ((pixel_along + pcount) % width) + min_max.x : x;
+        x = y != ty ? running_width_mod + min_max.x : x;
 
+        //x = y != ty ? ((pixel_along + pcount) % width) + min_max.x : x;
         //x = y != ty ? pixel_along + pcount - (y - min_max.z) * width + min_max.x : x;
 
         if(y >= min_max.w)
@@ -5559,6 +5581,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     bool static_geometry = has_feature(feature_flag, FEATURE_FLAG_IS_STATIC);
 
     ///slightly perturb normals to fix banding
+    ///not using lighting normals slightly faster
     float3 lighting_normal = normal + rseed / 100.f;
     lighting_normal = fast_normalize(lighting_normal);
 
