@@ -1644,6 +1644,16 @@ float4 texture_filter_diff_with_anisotropy(float2 vt, float2 vtdiff, int tid2, u
     return native_divide(finalcol, 255.0f);*/
 }
 
+///source, dest, source alpha, 1-source alpha
+///I might need to add a whole shading language for this kind of thing eh
+float4 alpha_blend(float4 fc1, float4 fc2)
+{
+    float3 col = mad(fc1.xyz, fc1.w, fc2.xyz * (1.f - fc1.w));
+
+    float4 acol = (float4)(col.xyz, fc1.w);
+
+    return acol;
+}
 
 ///end of unrewritten code
 
@@ -5337,7 +5347,8 @@ __kernel
 void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __global uint* depth_buffer, __read_only image2d_t id_buffer,
            image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint* static_light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
-           float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional
+           float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional,
+            int use_optional_blend_buffer, __global uint* optional_blend_buffer_depth, __read_only image2d_t optional_blend_screen
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -5809,6 +5820,22 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     ///duplicating the screen so we can have kernels read/write without breaking everything
     /*write_imagef(screen, scoord, (float4)(final_col.xyz, 1.f));
     write_imagef(backup_screen, scoord, (float4)(final_col.xyz, 1.f));*/
+
+    #ifdef CAN_INTEGRATED_BLEND
+    if(use_optional_blend_buffer)
+    {
+        uint optional_depth = optional_blend_buffer_depth[y * SCREENWIDTH + x];
+
+        if(optional_depth < *ft)
+        {
+            float4 optional_col = read_imagef(optional_blend_screen, sam, (int2){x, y});
+
+            final_col = alpha_blend(optional_col, final_col.xyzz).xyz;
+        }
+
+        ///ignoring final_col.w here may be an error for chaining
+    }
+    #endif
 
     write_imagef(screen, scoord, (float4)(final_col.xyz, col.w));
     write_imagef(backup_screen, scoord, (float4)(final_col.xyz, col.w));
@@ -7241,6 +7268,8 @@ void blend_screens(__read_only image2d_t src, __read_only image2d_t _dst, __writ
     write_imagef(dst, (int2){ix, iy}, acol);
 }
 
+///should implement this into kernel3
+///would also remove the need for read/write hack
 __kernel
 void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _dst, __write_only image2d_t dst, __global uint* src_depth, __global uint* dst_depth, int2 dim)
 {
@@ -7268,9 +7297,11 @@ void blend_screens_with_depth(__read_only image2d_t src, __read_only image2d_t _
 
     float4 fc2 = read_imagef(_dst, sam, (int2){ix, iy});
 
-    float3 col = mad(fc1.xyz, fc1.w, fc2.xyz * (1.f - fc1.w));
+    //float3 col = mad(fc1.xyz, fc1.w, fc2.xyz * (1.f - fc1.w));
 
-    float4 acol = (float4)(col.xyz, fc1.w);
+    //float4 acol = (float4)(col.xyz, fc1.w);
+
+    float4 acol = alpha_blend(fc1, fc2);
 
     write_imagef(dst, (int2){ix, iy}, acol);
 }

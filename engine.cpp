@@ -579,12 +579,18 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     g_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
     g_static_shadow_light_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
 
+
     lg::log("post pseudo shadow light buffer");
 
     compute::image_format format(CL_R, CL_UNSIGNED_INT32);
     compute::image_format format_ids(CL_R, CL_UNSIGNED_INT32);
     compute::image_format format_occ(CL_R, CL_FLOAT);
     compute::image_format format_diffuse(CL_RGBA, CL_FLOAT);
+
+
+    dummy_buffer = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, &zero);
+    dummy_image2d_t = compute::image2d(cl::context, CL_MEM_READ_WRITE, format, 64, 64, 0, NULL);
+
     ///screen ids as a uint32 texture
     //g_id_screen_tex             = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
     //g_reprojected_id_screen_tex = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_ids, width, height, 0, NULL);
@@ -1845,6 +1851,13 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     //sf::Clock c3;
     //int nnbuf = (dat.nbuf + 1) % 2;
 
+    cl_int use_optional_blend = 0;
+
+    if(dat.blend_render_context != nullptr)
+    {
+        use_optional_blend = 1;
+    }
+
     /// many arguments later
 
     arg_list p3arg_list;
@@ -1877,6 +1890,18 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     p3arg_list.push_back(&dat.g_clear_col);
     p3arg_list.push_back(&dat.frame_id);
     p3arg_list.push_back(&dat.g_screen_normals_optional);
+    p3arg_list.push_back(&use_optional_blend);
+
+    if(use_optional_blend)
+    {
+        p3arg_list.push_back(&dat.blend_render_context->fetch()->depth_buffer[0]);
+        p3arg_list.push_back(dat.blend_render_context->fetch()->gl_screen[0].get_ptr());
+    }
+    else
+    {
+        p3arg_list.push_back(&eng.dummy_buffer);
+        p3arg_list.push_back(&eng.dummy_image2d_t);
+    }
 
     /*for(auto& i : p3arg_list.args)
     {

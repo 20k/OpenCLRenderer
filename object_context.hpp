@@ -67,6 +67,8 @@ struct n_buffer
     }
 };
 
+struct object_context;
+
 struct object_context_data
 {
     cl_uint tri_num;
@@ -144,6 +146,11 @@ struct object_context_data
     async_read<cl_int> read_id_tex(int x, int y);
 
     bool use_experimental_reflections = false;
+
+    ///see object_context
+    ///this is going to get messy if all info that needs passing from object context to data
+    ///goes like this, it might be better to scrap the external distinction... but then it is somewhat helpful
+    object_context* blend_render_context = nullptr;
 };
 
 struct object_temporaries
@@ -168,6 +175,10 @@ struct container_temporaries
 ///if the order of the objects is swapped around, or a middle one is deleted etc
 struct object_context
 {
+    ///we assume that this render context renders before us, and then we use its alpha information
+    ///to blend with ourselves, thus skipping a kernel
+    object_context* blend_render_context = nullptr;
+
     texture_context tex_ctx;
 
     std::atomic_int rebuilding_async{0};
@@ -231,6 +242,8 @@ struct object_context
     int translate_gpu_o_id_to_container_offset(int o_id);
 
     void enable_experimental_reflections();
+
+    void set_blend_render_context(object_context& other_ctx);
 
 private:
 

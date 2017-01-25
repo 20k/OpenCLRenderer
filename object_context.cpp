@@ -551,6 +551,8 @@ void flip_buffers(object_context* ctx)
 
     ctx->new_gpu_dat.ensure_screen_buffers(ctx->new_gpu_dat.s_w, ctx->new_gpu_dat.s_h);
 
+    ctx->new_gpu_dat.blend_render_context = ctx->blend_render_context;
+
     ///from cpu context to gpu context
 
     ctx->gpu_dat = ctx->new_gpu_dat;
@@ -846,4 +848,9 @@ int object_context::translate_gpu_o_id_to_container_offset(int o_id)
 void object_context::enable_experimental_reflections()
 {
     use_experimental_reflections = true;
+}
+
+void object_context::set_blend_render_context(object_context& other_context)
+{
+    blend_render_context = &other_context;
 }

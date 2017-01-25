@@ -129,6 +129,9 @@ struct engine
     compute::buffer g_tiled_global_memory_slot_counter;
     compute::buffer g_tiled_global_count;
 
+    compute::buffer dummy_buffer;
+    compute::image2d dummy_image2d_t;
+
 
     cl_int tile_size;
     cl_int tile_num_w, tile_num_h;
