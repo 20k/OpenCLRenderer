@@ -1342,12 +1342,12 @@ void render_async(cl_event event, cl_int event_command_exec_status, void *user_d
 
     eng.render_me = true;
 
-    eng.render_events_num--;
+    //eng.render_events_num--;
 
     if(eng.render_events_num < 0)
     {
         //lg::log("what");
-        eng.render_events_num = 0;
+        //eng.render_events_num = 0;
     }
 
     //eng.old_pos = eng.c_pos;
@@ -3491,11 +3491,21 @@ void engine::render_block()
         render_async(cl_event(), 0, this);
     }
 
-    if(event_queue.size() > 0)
+    if(event_queue.size() > engine::max_input_lag_frames)
     {
         clWaitForEvents(1, &event_queue.front().get());
 
+        //render_async(cl_event(), 0, this);
+        //render_me = true;
+
         event_queue.pop_front();
+    }
+
+    if(event_queue.size() > engine::max_input_lag_frames)
+    {
+        cl::cqueue.finish();
+
+        event_queue.clear();
     }
 }
 
@@ -3571,7 +3581,7 @@ void engine::flip()
 {
     if(render_me)
     {
-        render_me = false;
+        //render_me = false;
 
         old_time = current_time;
         current_time = ftime.getElapsedTime().asMicroseconds();
@@ -3898,4 +3908,9 @@ bool can_write_3d_textures()
 bool use_3d_texture_array()
 {
     return false;
+}
+
+void engine::set_max_input_lag_frames(int max_frames)
+{
+    max_input_lag_frames = max_frames;
 }

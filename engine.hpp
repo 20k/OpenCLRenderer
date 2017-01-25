@@ -353,6 +353,10 @@ struct engine
     std::string opencl_extra_command_line;
 
     int stored_titlebar_height = 0;
+
+    int max_input_lag_frames = 0;
+
+    void set_max_input_lag_frames(int max_frames);
 };
 
 struct arg_list
