@@ -3305,6 +3305,8 @@ void engine::draw_cloth(compute::buffer bx, compute::buffer by, compute::buffer 
 
 void engine::set_render_event(compute::event& event)
 {
+    ///why does this fix microstuttering?
+    ///Current theory is that it forces the events to be treated separately, rather than all being blocked at once
     clSetEventCallback(event.get(), CL_COMPLETE, render_async, this);
 
     event_queue.push_back(event);
