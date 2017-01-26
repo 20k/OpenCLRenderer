@@ -94,6 +94,8 @@ typedef frametype::frametype frametype_t;
 
 struct light_gpu;
 
+float calculate_fov_constant_from_hfov(float horizontal_fov_degrees, float screenwidth);
+
 struct engine
 {
     bool requested_close = false;
@@ -110,6 +112,7 @@ struct engine
     static cl_float4 c_pos; ///camera position, rotation
     static cl_float4 c_rot;
     static cl_float4 c_rot_keyboard_only;
+    float horizontal_fov_degrees = 120; ///horizontal
     //static cl_float4 old_pos;
     //static cl_float4 old_rot;
 
@@ -203,7 +206,8 @@ struct engine
 
     void request_close();
     bool is_requested_close();
-    void load(cl_uint, cl_uint, cl_uint, const std::string&, const std::string&, bool only_3d = false, bool fullscreen = false);
+    void set_fov(float horizontal_fov_degrees);
+    void load(cl_uint width, cl_uint height, cl_uint depth, const std::string& name, const std::string& opencl_file, bool only_3d = false, bool fullscreen = false);
 
     static cl_float4 rot_about(cl_float4, cl_float4, cl_float4);
     static cl_float4 rot_about_camera(cl_float4);

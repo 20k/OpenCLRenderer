@@ -116,6 +116,22 @@ void Timer::stop()
     stopped = true;
 }
 
+float calculate_fov_constant_from_hfov(float horizontal_fov_degrees, float screenwidth)
+{
+    float fov_radians = (horizontal_fov_degrees / 360.f) * 2 * M_PI;
+
+    ///fov_const, screenwidth/2, and whatever that third length is called form a right angled triangle triangle
+    float triangle_angle = fov_radians / 2;
+
+    ///tan o = screenwidth/2 / fov_const
+    ///1/tan = fov_const / screenwidth/2
+    ///fov_const = screenwidth/2 / tan
+
+    float fov_constant = (screenwidth/2) / tan(triangle_angle);
+
+    return fov_constant;
+}
+
 compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* renderbuffer_id, int w, int h)
 {
     ///OpenGL is literally the worst API
@@ -228,6 +244,11 @@ int window_fuckery(sf::RenderWindow& window, int videowidth, int height, bool fu
     return yheight;
 }
 #endif
+
+void engine::set_fov(float phorizontal_fov_degrees)
+{
+    horizontal_fov_degrees = phorizontal_fov_degrees;
+}
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d, bool fullscreen)
 {
@@ -403,6 +424,14 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     ///passed in as compilation parameter to opencl
     l_size = 512;
+
+
+    float fov = calculate_fov_constant_from_hfov(horizontal_fov_degrees, width);
+    std::string fov_str = std::to_string(fov) + "f";
+
+    append_opencl_extra_command_line("-D FOV_CONST=" + fov_str);
+
+    lg::log("fov angle degrees ", horizontal_fov_degrees, " fov_const ", fov, " fov_str " + fov_str);
 
     sf::Clock ocltime;
 
