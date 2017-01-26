@@ -793,7 +793,10 @@ void object_context::flush_locations(bool force)
     {
         ///this doesnt do what i want it to do
         clEnqueueBarrier(cl::cqueue);
+        clEnqueueBarrier(cl::cqueue2);
     }
+
+    cl::cqueue2.flush();
 
     //cl::cqueue_ooo.flush();
 }
