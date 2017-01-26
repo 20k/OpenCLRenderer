@@ -782,8 +782,13 @@ void object_context::set_clear_colour(const cl_float4& col)
     gpu_dat.g_clear_col = col;
 }
 
-void object_context::flush_locations(bool force)
+///the problem with this is i think that we write while rendering is still going
+///double buffer the object buffer?
+void object_context::flush_locations(bool force, compute::event* render_event)
 {
+    if(render_event)
+        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 1, &render_event->get(), nullptr);
+
     for(auto& i : containers)
     {
         i->g_flush_objects(*this, force);
@@ -792,14 +797,11 @@ void object_context::flush_locations(bool force)
     if(force && containers.size() > 0)
     {
         ///this doesnt do what i want it to do
-        clEnqueueBarrier(cl::cqueue);
-        clEnqueueBarrier(cl::cqueue2);
+        clEnqueueBarrier(cl::cqueue.get());
+        clEnqueueBarrier(cl::cqueue2.get());
     }
 
     cl::cqueue2.flush();
-
-    //cl::cqueue_ooo.flush();
-}
 
 void object_context::flip()
 {

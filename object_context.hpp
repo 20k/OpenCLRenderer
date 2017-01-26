@@ -209,7 +209,7 @@ struct object_context
     object_context_data* fetch();
 
     void set_clear_colour(const cl_float4& col);
-    void flush_locations(bool force = false);
+    void flush_locations(bool force = false, compute::event* render_event = nullptr); ///render event only necessarily for pipelining
 
     ///this is currently useless, as we'are always using a pointer to gpu_dat
     ///we're just duplicating the data ;_;
