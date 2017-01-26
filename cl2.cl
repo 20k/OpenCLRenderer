@@ -5373,6 +5373,16 @@ float implementation_acos(float x)
     return rational_acos(x);
 }
 
+float e_to_x(float x)
+{
+    return ((x+3)*(x+3) + 3) / ((x-3)*(x-3) + 3);
+}
+
+float e_to_mx(float x)
+{
+    return ((x-3)*(x-3) + 3) / ((x+3)*(x+3) + 3);
+}
+
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
@@ -5663,6 +5673,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float distance_modifier = 1.0f - native_divide(distance, l.radius);
 
+        if(distance_modifier <= 0)
+            continue;
+
         distance_modifier = max(0.f, distance_modifier);
 
         distance_modifier *= distance_modifier;
@@ -5773,7 +5786,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float alpha = implementation_acos(ndh);
         ///very expensive, possibly due to alpha
         ///this is the gaussian distribution version
-        float microfacet = gauss_constant*native_exp(-alpha*alpha/(rough*rough));
+        float microfacet = gauss_constant*native_exp(-alpha*alpha/(rough*rough)); ///barely faster if at all to approximate
 
         float c1 = native_divide(2 * ndh * ndv, vdh);
         float c2 = native_divide(2 * ndh * ndl, vdh);
