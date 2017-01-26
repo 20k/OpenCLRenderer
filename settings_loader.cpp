@@ -64,8 +64,11 @@ void settings::load(const std::string& loc)
         }
     }
 
-    if(content.size() < 11)
+    if(content.size() < 12)
+    {
+        lg::log("Invalid settings file");
         return;
+    }
 
     width = atoi(content[0].c_str());
     height = atoi(content[1].c_str());
@@ -79,6 +82,7 @@ void settings::load(const std::string& loc)
     use_post_aa = atoi(content[9].c_str());
     use_raw_input = atoi(content[10].c_str());
     frames_of_input_lag = atoi(content[11].c_str());
+    horizontal_fov_degrees = atof(content[12].c_str());
 
     if(name.length() == 0)
     {
@@ -131,6 +135,7 @@ void settings::save(const std::string& loc)
     to_save.push_back(std::to_string(use_post_aa));
     to_save.push_back(std::to_string(use_raw_input));
     to_save.push_back(std::to_string(frames_of_input_lag));
+    to_save.push_back(std::to_string(horizontal_fov_degrees));
 
 
     for(int i=0; i<comments.size() && i < to_save.size(); i++)

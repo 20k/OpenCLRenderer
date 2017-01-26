@@ -17,6 +17,7 @@ struct settings
     bool use_post_aa = true;
     bool use_raw_input = true;
     int frames_of_input_lag = 1;
+    float horizontal_fov_degrees = 90;
 
     void load(const std::string& loc);
     void save(const std::string& loc);
