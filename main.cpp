@@ -201,6 +201,8 @@ int main(int argc, char *argv[])
     screenshake_effect screenshake_test;
     screenshake_test.init(2000.f, 1.f, 1.f);
 
+    window.set_max_input_lag_frames(1);
+
     ///use event callbacks for rendering to make blitting to the screen and refresh
     ///asynchronous to actual bits n bobs
     ///clSetEventCallback
