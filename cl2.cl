@@ -5335,6 +5335,44 @@ float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 came
     return vtdiff;
 }
 
+float cubic_acos(float x)
+{
+   return (-0.69813170079773212f * x * x - 0.87266462599716477f) * x + 1.5707963267948966f;
+}
+
+float nvidia_acos(float x)
+{
+    float neg = x<0;
+
+    x=fabs(x);
+    float ret = -0.0187293f;
+    ret = ret * x;
+    ret = ret + 0.0742610f;
+    ret = ret * x;
+    ret = ret - 0.2121144f;
+    ret = ret * x;
+    ret = ret + 1.5707288f;
+    ret = ret * sqrt(1.0f-x);
+    ret = ret - 2 * neg * ret;
+    return neg * 3.14159265358979f + ret;
+}
+
+float rational_acos(float x)
+{
+    float a = -0.939115566365855f;
+    float b =  0.9217841528914573f;
+    float c = -1.2845906244690837f;
+    float d =  0.295624144969963174f;
+
+    return M_PI/2.f + (a*x + b*x*x*x) / (1.f + c*x*x + d * pow(x, 4.f));
+}
+
+///rational_acos seems to win at performance and accuracy
+float implementation_acos(float x)
+{
+    return rational_acos(x);
+}
+
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
@@ -5694,6 +5732,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float3 H = fast_normalize(l2p + l2c);
         float3 N = normal; ///dont use randomised normal because specular can vary intensly with small pertubations of normal
 
+        ///skipping specular is 7.2 -> 6.6/6.7
+        ///doing low graphics specular is 7.2 -> 6.9
+
         ///sigh, the blinn-phong is broken
         ///the brokenness is now the mdot, something should be a dot instead
         #define HIGH_GRAPHICS
@@ -5703,8 +5744,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float spec = mdot(H, N);
         //spec = pow(spec, G->specular);
-        spec = pow(spec, 50.f);
-        specular_sum += spec * light_col * kS * l.brightness * distance_modifier * G->spec_mult;
+        //spec = pow(spec, 50.f);
+        specular_sum += light_col * (spec * kS * l.brightness * distance_modifier * 0.3f);
 
         #else
         const float kS = 0.4f;
@@ -5718,25 +5759,27 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         const float F0 = 0.4f;
 
+        ///free
         float fresnel = F0 + (1 - F0) * native_powr((1.f - vdh), 5.f);
 
 
         float rough = clamp(1.f - G->specular, 0.001f, 10.f);
 
-        float microfacet = (native_recip(M_PI * rough * rough * native_powr(ndh, 4.f))) *
-                            native_exp(native_divide((ndh*ndh - 1.f), (rough*rough * ndh*ndh)));
+        //float microfacet = (native_recip(M_PI * rough * rough * native_powr(ndh, 4.f))) *
+        //                    native_exp(native_divide((ndh*ndh - 1.f), (rough*rough * ndh*ndh)));
 
         const float gauss_constant = 0.8346f;
 
-        float alpha = acos(ndh);
-        float micro_2 = gauss_constant*native_exp(-(alpha*alpha)/(rough*rough));
-
-        microfacet = micro_2;
+        float alpha = implementation_acos(ndh);
+        ///very expensive, possibly due to alpha
+        ///this is the gaussian distribution version
+        float microfacet = gauss_constant*native_exp(-alpha*alpha/(rough*rough));
 
         float c1 = native_divide(2 * ndh * ndv, vdh);
         float c2 = native_divide(2 * ndh * ndl, vdh);
         //float c2 = native_divide(2 * ndh * ndl, ldh);
 
+        ///mediumly expensive
         float geometric = min3(1.f, c1, c2);
 
         float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndv));
