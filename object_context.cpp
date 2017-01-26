@@ -802,6 +802,7 @@ void object_context::flush_locations(bool force, compute::event* render_event)
     }
 
     cl::cqueue2.flush();
+}
 
 void object_context::flip()
 {
