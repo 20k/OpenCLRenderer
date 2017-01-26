@@ -4,7 +4,9 @@
 
 #define MIP_LEVELS 4
 
+#ifndef FOV_CONST
 #define FOV_CONST 500.0f
+#endif
 
 #define LFOV_CONST (LIGHTBUFFERDIM/2.0f)
 
@@ -26,7 +28,7 @@
 
 #undef supports_3d_writes
 
-#define LEAP
+//#define LEAP
 
 //#define IX(i,j,k) ((i) + (width*(j)) + (width*height*(k)))
 
