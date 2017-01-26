@@ -5601,6 +5601,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     {
         const float ambient = 0.2f * ssao;
 
+        ///might be slow on nvidia
         const struct light l = lights[i];
 
         const float3 lpos = l.pos.xyz;
