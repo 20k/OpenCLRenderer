@@ -561,6 +561,8 @@ float3 depth_project_singular(float3 rotated, float width, float height, float f
 ///this clips with the near plane, but do we want to clip with the screen instead?
 ///could be generating huge triangles that fragment massively
 ///so, i think its all the branching and random array accesses that make this super slow
+///evaluate projection pyramid thing instead of using depth_icutoff, get depth at point
+///no. we need to clip properly ;_;
 void generate_new_triangles(float3 points[3], int *num, float3 ret[2][3])
 {
     int id_valid;
@@ -5676,8 +5678,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         if(distance_modifier <= 0)
             continue;
 
-        distance_modifier = max(0.f, distance_modifier);
-
         distance_modifier *= distance_modifier;
 
         float3 light_col = l.col.xyz;
@@ -5688,7 +5688,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///yes it is bad
         ambient_sum += light_col * (ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse);
 
-        ///this is madness. no, this is SPARTA. This expression is slightly slower than the one above
+        ///this is madness. no, this is SPARTA. This expression is slightly slower than the one aboveg
         ///I guess this is not the use case for mad
         //ambient_sum = mad(l.col.xyz, ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse, ambient_sum);
 
