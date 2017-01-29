@@ -2624,7 +2624,7 @@ float3 get_wavelet_interpolated(float lx, float ly, float lz, int width, int hei
 }
 
 
-float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
+float3 y_of(float x, float y, float z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
             int imin, int imax)
 {
     float3 accum = 0;
@@ -5653,7 +5653,11 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     for(int i=0; i<num_lights; i++)
     {
-        const float ambient = 0.2f * ssao;
+        #ifndef AMBIENT
+        #define AMBIENT 0.2f
+        #endif // AMBIENT
+
+        const float ambient = AMBIENT * ssao;
 
         ///might be slow on nvidia
         const struct light l = lights[i];
@@ -6380,6 +6384,7 @@ float interpolate_depth_buffer(float2 pos, __global uint* depth_buffer)
     vals[2] = idcalc((float)depth_buffer[(b.y+1) * SCREENWIDTH + b.x] / mulint);
     vals[3] = idcalc((float)depth_buffer[(b.y+1) * SCREENWIDTH + b.x + 1] / mulint);
 
+    ///pos + 0.5f?
     float res = bilinear_interpolate(pos, vals);
 
     return res;
@@ -16284,5 +16289,142 @@ void gravity_alt_render(int num, __global float4* in_p, __global float4* out_p,
     buffer_accum(screen_buf, x, y, rgba);
 }
 
-
 #endif
+
+#ifdef PROC_GEN_TERRAIN
+
+float evaluate(int2 coord, int2 dim, __global ushort* s1v)
+{
+    int x = coord.x;
+    int y = coord.y;
+
+    //x = x % dim.x;
+    //y = y % dim.y;
+
+    x = clamp(x, 0, dim.x-1);
+    y = clamp(y, 0, dim.y-1);
+
+    float s1 = s1v[y*dim.x + x];
+
+    s1 /= USHRT_MAX-1;
+
+    s1 *= 2;
+
+    s1 -= 1.f;
+
+    return s1;
+}
+
+float3 do_read(float2 coord, int2 dim, __global ushort* s1x, __global ushort* s1y, __global ushort* s1z)
+{
+    int2 base = convert_int2(coord);
+
+    float valuesx[4];
+    float valuesy[4];
+    float valuesz[4];
+
+    valuesx[0] = evaluate(base, dim, s1x);
+    valuesx[1] = evaluate(base + (int2){1, 0}, dim, s1x);;
+    valuesx[2] = evaluate(base + (int2){0, 1}, dim, s1x);;
+    valuesx[3] = evaluate(base + (int2){1, 1}, dim, s1x);;
+
+    valuesy[0] = evaluate(base, dim, s1y);
+    valuesy[1] = evaluate(base + (int2){1, 0}, dim, s1y);;
+    valuesy[2] = evaluate(base + (int2){0, 1}, dim, s1y);;
+    valuesy[3] = evaluate(base + (int2){1, 1}, dim, s1y);;
+
+    valuesz[0] = evaluate(base, dim, s1z);
+    valuesz[1] = evaluate(base + (int2){1, 0}, dim, s1z);;
+    valuesz[2] = evaluate(base + (int2){0, 1}, dim, s1z);;
+    valuesz[3] = evaluate(base + (int2){1, 1}, dim, s1z);;
+
+    float3 ret;
+
+    ret.x = bilinear_interpolate(coord - floor(coord) + 0.5f, valuesx);
+    ret.y = bilinear_interpolate(coord - floor(coord) + 0.5f, valuesy);
+    ret.z = bilinear_interpolate(coord - floor(coord) + 0.5f, valuesz);
+
+    return ret;
+}
+
+__kernel
+void do_procgen_terrain(int width, int height, int xoffset, int yoffset, __global struct obj_g_descriptor* gobj,
+                        __global ushort* s1x, __global ushort* s1y, __global ushort* s1z,
+                        __global ushort* s2x, __global ushort* s2y, __global ushort* s2z,
+                        __global ushort* s3x, __global ushort* s3y, __global ushort* s3z,
+                        __global float* w1, __global float* w2, __global float* w3, float frac,
+                        float2 pos_offset, float ctime_s)
+{
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if(x >= width || y >= height)
+        return;
+
+    int id = y*width + x;
+
+    /*wval /= USHRT_MAX-1;
+
+    wval *= 2;
+    wval -= 1.f;*/
+
+    /*float3 s1 = {s1x[id], s1y[id], s1z[id]};
+    float3 s2 = {s2x[id], s2y[id], s2z[id]};
+    float3 s3 = {s3x[id], s3y[id], s3z[id]};
+
+    s1 /= USHRT_MAX-1;
+    s2 /= USHRT_MAX-1;
+    s3 /= USHRT_MAX-1;
+
+    s1 *= 2;
+    s2 *= 2;
+    s3 *= 2;
+
+    s1 -= 1.f;
+    s2 -= 1.f;
+    s3 -= 1.f;*/
+
+    float3 res = {x, 0, y};
+    res *= 50.f;
+
+    float2 ev = (float2){x, y};
+
+    //res += do_read(ev/4, (int2){width, height}, s1x, s1y, s1z) * 2000.1f;
+    /*res += do_read(ev, (int2){width, height}, s1x, s1y, s1z) * 500.1f;
+    res += do_read(ev*2, (int2){width, height}, s1x, s1y, s1z) * 250.1f;
+    res += do_read(ev*4, (int2){width, height}, s1x, s1y, s1z) * 150.1f;
+
+    res += do_read(ev/4.f, (int2){width, height}, s2x, s2y, s2z) * 1000.f;*/
+
+    //float3 y_of(int x, int y, int z, int width, int height, int depth, __global float* w1, __global float* w2, __global float* w3,
+    //        int imin, int imax)
+
+    //res += do_read(ev, (int2){width, height}, s1x, s1y, s1z).xyz * 2000.f;
+    //res.y += do_read(ev*2, (int2){width, height}, s1x, s1y, s1z).z * 1000.f;
+    //res.y += do_read(ev*4, (int2){width, height}, s1x, s1y, s1z).z * 500.f;
+
+
+    //float phase_angle = atan2(y, x);
+    //float phase_magnitude = 10.f;
+
+    float wave_angle = M_PI/8;
+    float wave_magnitude = 1.f;
+
+    float xof = cos(wave_angle) * wave_magnitude * x;
+    float yof = sin(wave_angle) * wave_magnitude * y;
+
+    int imin = -7;
+    int imax = -1;
+
+    float3 addto = y_of(x + pos_offset.x, y + pos_offset.y, fabs(pos_offset.x + pos_offset.y)/1.f + ctime_s*13.f + xof + yof, 500, 500, 500, w1, w2, w3, imin, imax) * 2000.f * frac;
+    //res += y_of(x + pos_offset.x, y + pos_offset.y, 10.f, 500, 500, 500, w1, w2, w3, -4, 2) * 20.f * frac
+
+    res.y += addto.y;
+    res.xz += addto.xz / 10.f;
+
+    //res.x = x * 50;
+    //res.z = y * 50;
+
+    gobj[id].world_pos = res.xyzz;
+}
+#endif // PROC_GEN_TERRAIN

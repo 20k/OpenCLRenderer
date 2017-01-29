@@ -10,10 +10,20 @@
 
 #include <initializer_list>
 
+#include <vec/vec.hpp>
+
 cl_float3 y_of(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3,
             int imin = -4, int imax = 2);
 
 namespace compute = boost::compute;
+
+struct gpu_noisedata
+{
+    compute::buffer g_w1, g_w2, g_w3;
+    std::vector<compute::event> events;
+};
+
+gpu_noisedata get_noisedata(vec3i dim);
 
 struct smoke
 {

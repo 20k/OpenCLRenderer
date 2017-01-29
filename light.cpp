@@ -91,6 +91,7 @@ light::light()
     brightness = 1.f;
     diffuse = 1.f;
     godray_intensity = 0;
+    is_static = 0;
 }
 
 int light::get_light_id(light* l)

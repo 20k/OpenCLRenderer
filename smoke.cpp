@@ -7,6 +7,58 @@
 ///scrap this macro, its causing issues
 #define IX(x, y, z) ((z)*width*height + (y)*width + (x))
 
+void init_buffer(cl_float* buf, int N);
+
+gpu_noisedata get_noisedata(vec3i dim)
+{
+    int uwidth = dim.x();
+    int uheight = dim.y();
+    int udepth = dim.z();
+
+    auto gnw1 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw2 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw3 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+
+    float* tw1, *tw2, *tw3;
+
+    ///...why don't i delete these?
+    ///needs to be nw, nh, nd
+    tw1 = new float[uwidth*uheight*udepth];
+    tw2 = new float[uwidth*uheight*udepth];
+    tw3 = new float[uwidth*uheight*udepth];
+
+    /*for(unsigned int i = 0; i<uwidth*uheight*udepth; i++)
+    {
+        tw1[i] = (datatype)rand() / RAND_MAX;
+        tw2[i] = (datatype)rand() / RAND_MAX;
+        tw3[i] = (datatype)rand() / RAND_MAX;
+    }*/
+
+    ///I'm an idiot, this can't be a ushort... at least atm. GPU expects floats, this is the PREWAVELET noise
+    init_buffer(tw1, uwidth*uheight*udepth);
+    init_buffer(tw2, uwidth*uheight*udepth);
+    init_buffer(tw3, uwidth*uheight*udepth);
+
+    cl_int ntotal = uwidth*uheight*udepth;
+
+    cl_event e1, e2, e3;
+
+    clEnqueueWriteBuffer(cl::cqueue, gnw1.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw1, 0, nullptr, &e1);
+    clEnqueueWriteBuffer(cl::cqueue, gnw2.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw2, 0, nullptr, &e2);
+    clEnqueueWriteBuffer(cl::cqueue, gnw3.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw3, 0, nullptr, &e3);
+
+    std::vector<compute::event> events = {compute::event(e1, false), compute::event(e2, false), compute::event(e2, false)};
+
+    gpu_noisedata dat;
+
+    dat.events = events;
+    dat.g_w1 = gnw1;
+    dat.g_w2 = gnw2;
+    dat.g_w3 = gnw3;
+
+    return dat;
+}
+
 cl_float3 get_wavelet(int x, int y, int z, int width, int height, int depth, float* w1, float* w2, float* w3)
 {
     x = x % width;
@@ -208,38 +260,17 @@ void smoke::init(int _width, int _height, int _depth, int _upscale, int _render_
     g_w2 = compute::buffer(cl::context, sizeof(datatype)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
     g_w3 = compute::buffer(cl::context, sizeof(datatype)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
 
-    auto gnw1 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    /*auto gnw1 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
     auto gnw2 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
-    auto gnw3 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);
+    auto gnw3 = compute::buffer(cl::context, sizeof(float)*uwidth*uheight*udepth, CL_MEM_READ_WRITE, NULL);*/
 
-    cl_int ntotal = uwidth*uheight*udepth;
+    gpu_noisedata gpu_noisedat = get_noisedata({uwidth, uheight, udepth});
 
-    float* tw1, *tw2, *tw3;
+    auto gnw1 = gpu_noisedat.g_w1;
+    auto gnw2 = gpu_noisedat.g_w2;
+    auto gnw3 = gpu_noisedat.g_w3;
 
-    ///...why don't i delete these?
-    ///needs to be nw, nh, nd
-    tw1 = new float[uwidth*uheight*udepth];
-    tw2 = new float[uwidth*uheight*udepth];
-    tw3 = new float[uwidth*uheight*udepth];
-
-    /*for(unsigned int i = 0; i<uwidth*uheight*udepth; i++)
-    {
-        tw1[i] = (datatype)rand() / RAND_MAX;
-        tw2[i] = (datatype)rand() / RAND_MAX;
-        tw3[i] = (datatype)rand() / RAND_MAX;
-    }*/
-
-    ///I'm an idiot, this can't be a ushort... at least atm. GPU expects floats, this is the PREWAVELET noise
-    init_buffer(tw1, uwidth*uheight*udepth);
-    init_buffer(tw2, uwidth*uheight*udepth);
-    init_buffer(tw3, uwidth*uheight*udepth);
-
-    cl_event e1, e2, e3;
-
-    clEnqueueWriteBuffer(cl::cqueue, gnw1.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw1, 0, nullptr, &e1);
-    clEnqueueWriteBuffer(cl::cqueue, gnw2.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw2, 0, nullptr, &e2);
-    clEnqueueWriteBuffer(cl::cqueue, gnw3.get(), CL_FALSE, 0, sizeof(float)*ntotal, tw3, 0, nullptr, &e3);
-
+    std::vector<compute::event> events = gpu_noisedat.events;
 
     cl_int4 dims = {uwidth, uheight, udepth};
 
@@ -253,10 +284,6 @@ void smoke::init(int _width, int _height, int _depth, int _upscale, int _render_
     y_args.push_back(&g_w2);
     y_args.push_back(&g_w3);
 
-    std::vector<compute::event> events = {compute::event(e1), compute::event(e2), compute::event(e3)};
-
-    //std::vector<cl_event> wl = {e1, e2, e3};
-
     //clEnqueueMarkerWithWaitList(cl::cqueue.get(), wl.size(), &wl[0], nullptr);
 
     ///there's still some squareness in the gpu upscaling
@@ -265,6 +292,7 @@ void smoke::init(int _width, int _height, int _depth, int _upscale, int _render_
 
     g_voxel_upscale = compute::image3d(cl::context, CL_MEM_READ_WRITE, format, uwidth, uheight, udepth, 0, 0, NULL);
 
+    ///barrier instead? Why marker? Marker is purely so we can query
     clEnqueueMarkerWithWaitList(cl::cqueue.get(), 1, &eimg, nullptr);
 
     #if 0
