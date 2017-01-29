@@ -1463,15 +1463,16 @@
 	"smoke.hpp"
 	"engine.hpp"
 
-1482751459 c:\users\james\desktop\render_projects\openclrenderer\smoke.hpp
+1485590742 c:\users\james\desktop\render_projects\openclrenderer\smoke.hpp
 	<gl/glew.h>
 	<boost/compute/source.hpp>
 	<boost/compute/system.hpp>
 	<boost/compute/algorithm/iota.hpp>
 	<boost/compute/interop/opengl.hpp>
 	<initializer_list>
+	<vec/vec.hpp>
 
-1482619205 c:\users\james\desktop\render_projects\openclrenderer\engine.hpp
+1485413127 c:\users\james\desktop\render_projects\openclrenderer\engine.hpp
 	<gl/glew.h>
 	<SFML/graphics.hpp>
 	<vector>
@@ -1500,7 +1501,7 @@
 	"Rift/Src/OVR_CAPI.h"
 	<SDL2/SDL.h>
 
-1479009293 c:\users\james\desktop\render_projects\openclrenderer\object.hpp
+1484981950 c:\users\james\desktop\render_projects\openclrenderer\object.hpp
 	<vector>
 	"triangle.hpp"
 	<string>
@@ -1517,10 +1518,10 @@
 1479014385 c:\users\james\desktop\render_projects\openclrenderer\vertex.hpp
 	<cl/cl.h>
 
-1479019828 c:\users\james\desktop\render_projects\openclrenderer\obj_g_descriptor.hpp
+1484602392 c:\users\james\desktop\render_projects\openclrenderer\obj_g_descriptor.hpp
 	<CL/CL.h>
 
-1479009293 c:\users\james\desktop\render_projects\openclrenderer\objects_container.hpp
+1484981958 c:\users\james\desktop\render_projects\openclrenderer\objects_container.hpp
 	<gl/glew.h>
 	"object.hpp"
 	<functional>
@@ -1545,7 +1546,7 @@
 	"clstate.h"
 	<stdint.h>
 
-1479009293 c:\users\james\desktop\render_projects\openclrenderer\light.hpp
+1485052119 c:\users\james\desktop\render_projects\openclrenderer\light.hpp
 	<cl/cl.h>
 	<vector>
 	<boost/compute/system.hpp>
@@ -1854,7 +1855,7 @@
 	<limits.h>
 	<boost/compute/system.hpp>
 
-1472895814 c:\users\james\desktop\render_projects\openclrenderer\obj_load.hpp
+1483686737 c:\users\james\desktop\render_projects\openclrenderer\obj_load.hpp
 	<string>
 	"object.hpp"
 	"objects_container.hpp"
@@ -2012,7 +2013,7 @@
 	"clstate.h"
 	"logging.hpp"
 
-1482999685 source:c:\users\james\desktop\render_projects\openclrenderer\engine.cpp
+1485413150 source:c:\users\james\desktop\render_projects\openclrenderer\engine.cpp
 	<gl/glew.h>
 	<gl/gl.h>
 	"engine.hpp"
@@ -2090,7 +2091,7 @@
 	"clstate.h"
 	"engine.hpp"
 
-1479009293 source:c:\users\james\desktop\render_projects\openclrenderer\light.cpp
+1485586406 source:c:\users\james\desktop\render_projects\openclrenderer\light.cpp
 	"light.hpp"
 	<iostream>
 	<float.h>
@@ -2113,7 +2114,7 @@
 	<SFML/System/Clock.hpp>
 	<set>
 
-1479009293 source:c:\users\james\desktop\render_projects\openclrenderer\obj_load.cpp
+1485159107 source:c:\users\james\desktop\render_projects\openclrenderer\obj_load.cpp
 	"obj_load.hpp"
 	<cstdio>
 	<cstdlib>
@@ -2149,7 +2150,7 @@
 	"engine.hpp"
 	<map>
 
-1479029130 source:c:\users\james\desktop\render_projects\openclrenderer\object.cpp
+1485428507 source:c:\users\james\desktop\render_projects\openclrenderer\object.cpp
 	"object.hpp"
 	"clstate.h"
 	"texture.hpp"
@@ -2159,7 +2160,7 @@
 	"logging.hpp"
 	<cstddef>
 
-1479009293 source:c:\users\james\desktop\render_projects\openclrenderer\objects_container.cpp
+1484981978 source:c:\users\james\desktop\render_projects\openclrenderer\objects_container.cpp
 	"objects_container.hpp"
 	<iostream>
 	"obj_load.hpp"
@@ -2178,7 +2179,7 @@
 
 1375407184 c:\users\james\desktop\render_projects\openclrenderer\planet_gen\cubetables.hpp
 
-1482751338 source:c:\users\james\desktop\render_projects\openclrenderer\smoke.cpp
+1485670221 source:c:\users\james\desktop\render_projects\openclrenderer\smoke.cpp
 	"smoke.hpp"
 	"clstate.h"
 	"engine.hpp"
@@ -2242,7 +2243,7 @@
 	"engine.hpp"
 	"vec.hpp"
 
-1479029768 c:\users\james\desktop\render_projects\openclrenderer\object_context.hpp
+1485429877 c:\users\james\desktop\render_projects\openclrenderer\object_context.hpp
 	<cl/cl.h>
 	<gl/glew.h>
 	<boost/compute/system.hpp>
@@ -2254,6 +2255,7 @@
 	<thread>
 	<SFML/System.hpp>
 	"cl_gl_interop_texture.hpp"
+	"async_read.hpp"
 
 1477371614 c:\users\james\desktop\render_projects\openclrenderer\texture_context.hpp
 	<vector>
@@ -2272,7 +2274,7 @@
 1472895814 source:c:\users\james\desktop\render_projects\openclrenderer\logging.cpp
 	"logging.hpp"
 
-1479029983 source:c:\users\james\desktop\render_projects\openclrenderer\object_context.cpp
+1485430325 source:c:\users\james\desktop\render_projects\openclrenderer\object_context.cpp
 	"object_context.hpp"
 	"objects_container.hpp"
 	"engine.hpp"
@@ -2301,7 +2303,7 @@
 	<boost/compute/interop/opengl.hpp>
 	"../object_context.hpp"
 
-1479030165 c:\users\james\desktop\render_projects\openclrenderer\cl_gl_interop_texture.hpp
+1484990548 c:\users\james\desktop\render_projects\openclrenderer\cl_gl_interop_texture.hpp
 	<gl/glew.h>
 	<SFML/graphics.hpp>
 	<vector>
@@ -2325,4 +2327,12 @@
 
 1479009293 source:c:\users\james\desktop\render_projects\openclrenderer\ocl.cpp
 	"ocl.h"
+
+1484527875 c:\users\james\desktop\render_projects\openclrenderer\async_read.hpp
+	<boost/compute/source.hpp>
+	<boost/compute/system.hpp>
+	<boost/compute/algorithm/iota.hpp>
+	<boost/compute/interop/opengl.hpp>
+	<assert.h>
+	"logging.hpp"
 
