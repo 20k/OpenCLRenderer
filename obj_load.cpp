@@ -492,9 +492,7 @@ void obj_load(objects_container* pobj)
         obj.bid = b_id;
         obj.has_bump = isbump;
 
-
         cl_uint normal_id = -1;
-
 
         if(pobj->normal_map != "")
         {
