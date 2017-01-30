@@ -22,7 +22,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
 inline
 std::string get_file_name(const std::string& path)
 {
-    size_t s = path.find_last_of('/\\');
+    size_t s = path.find_last_of("/\\");
 
     return path.substr(s+1, std::string::npos);
 }
