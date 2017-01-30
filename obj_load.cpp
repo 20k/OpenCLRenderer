@@ -420,9 +420,16 @@ void obj_load(objects_container* pobj)
 
         bool file_to_load_exists = file_exists(full);
 
-        if(!file_to_load_exists)
+        if(!file_to_load_exists && texture_name != "")
         {
             lg::log("Warning file does not exist: ", full);
+
+            full = dir + "/" + get_file_name(texture_name);
+
+            file_to_load_exists = file_exists(full);
+
+            if(!file_to_load_exists)
+                lg::log("Warning recovery alternate name does not exist: ", full);
         }
 
         texture* tex;
@@ -455,7 +462,9 @@ void obj_load(objects_container* pobj)
             }
             else
             {
-                assert(false);
+                tex->set_create_colour(sf::Color(255, 0, 255), 128, 128);
+
+                lg::log("Warning, all attempts to get a reasonable texture in obj_load have failed");
             }
         }
 
