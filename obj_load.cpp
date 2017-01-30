@@ -12,19 +12,34 @@
 #include <list>
 #include "vec.hpp"
 #include "logging.hpp"
+#include <vec/vec.hpp>
+#include "util.hpp"
 
-std::map<std::string, objects_container> cache_map;
+bool file_exists(const std::string& fname)
+{
+    std::ifstream file;
+    file.open(fname.c_str());
+
+    return file.good();
+}
+
+bool is_samemtl(const std::string& str, const std::string newmtl_name)
+{
+    return (str.substr(0, 7) == "newmtl ") && str.substr(str.find_last_of(" ")+1, newmtl_name.size()) == newmtl_name;
+}
 
 ///get diffuse name
 std::string retrieve_diffuse_new(const std::vector<std::string>& file, const std::string& name)
 {
     bool found = false;
+
     for(unsigned int i=0; i<file.size(); i++)
     {
-        if(strncmp(file[i].c_str(), "newmtl ", 7)==0 && file[i].substr(file[i].find_last_of(" ")+1, name.size()) == name)
+        if(is_samemtl(file[i], name))
         {
             found = true;
         }
+
         if(found && strncmp(file[i].c_str(), "map_Kd ", 7)==0)
         {
             return file[i].substr(file[i].find_last_of(' ')+1, std::string::npos);
@@ -38,18 +53,21 @@ std::string retrieve_diffuse_new(const std::vector<std::string>& file, const std
 std::string retrieve_bumpmap(const std::vector<std::string>& file, const std::string& name)
 {
     bool found = false;
+
     for(unsigned int i=0; i<file.size(); i++)
     {
         ///found newmtl + name of material
-        if(strncmp(file[i].c_str(), "newmtl ", 7)==0 && file[i].substr(file[i].find_last_of(' ')+1, name.size()) == name)
+        if(is_samemtl(file[i], name))
         {
             found = true;
             continue;
         }
+
         if(found && strncmp(file[i].c_str(), "map_Bump ", 9)==0)
         {
             return file[i].substr(file[i].find_last_of(' ')+1, std::string::npos);
         }
+
         if(found && strncmp(file[i].c_str(), "newmtl ", 7)==0)
         {
             return std::string("None");
@@ -59,7 +77,45 @@ std::string retrieve_bumpmap(const std::vector<std::string>& file, const std::st
     return std::string("None");
 }
 
+///eg
+///Kd 0.298039 0.529412 0.427451
+vec3f get_Kd(const std::vector<std::string>& file, const std::string name, bool& success)
+{
+    bool found_mtl = false;
 
+    for(const std::string& line : file)
+    {
+        if(is_samemtl(line, name))
+        {
+            found_mtl = true;
+            continue;
+        }
+
+        if(!found_mtl)
+            continue;
+
+        if(line.substr(0, 2) == "Kd")
+        {
+            std::vector<std::string> splitted = split(line, ' ');
+
+            assert(splitted.size() > 3);
+
+            vec3f pos;
+
+            pos.x() = atof(splitted[1].c_str());
+            pos.y() = atof(splitted[2].c_str());
+            pos.z() = atof(splitted[3].c_str());
+
+            success = true;
+
+            return pos;
+        }
+    }
+
+    success = false;
+
+    return {0,0,0};
+}
 
 ///vertex, texture coordinate, normal
 ///remember, offset by one for faces
@@ -149,8 +205,10 @@ void obj_load(objects_container* pobj)
 
     std::ifstream file;
     std::ifstream mtlfile;
+
     file.open(filename.c_str());
     mtlfile.open(mtlname.c_str());
+
     std::vector<std::string> file_contents;
     std::vector<std::string> mtlf_contents;
 
@@ -193,19 +251,19 @@ void obj_load(objects_container* pobj)
             continue;
         }
 
-        if(ln[0]=='v' && ln[1]!=' ')
+        if(ln[0] == 'v' && ln[1] != ' ')
         {
             vc++;
         }
-        else if(ln[0]=='v' && ln[1]=='n')
+        else if(ln[0] == 'v' && ln[1] == 'n')
         {
             vnc++;
         }
-        else if(ln[0]=='v' && ln[1]=='t')
+        else if(ln[0] == 'v' && ln[1] == 't')
         {
             vtc++;
         }
-        else if(ln[0]=='f' && ln[1] == ' ')
+        else if(ln[0] == 'f' && ln[1] == ' ')
         {
             fc++;
         }
@@ -229,54 +287,67 @@ void obj_load(objects_container* pobj)
 
     for(size_t i=0; i<file_contents.size(); i++)
     {
+        ///I must have been braindamaged when i wrote this code
         if(file_contents[i][0] == 'f' && file_contents[i][1] == ' ')
         {
             usefc++;
+
             int v[3];
             int vt[3];
             int vn[3];
+
             decompose_face(file_contents[i], v, vt, vn);
+
             indices f;
+
             for(int j=0; j<3; j++)
             {
                 f.v[j]  = v[j];
                 f.vt[j] = vt[j];
                 f.vn[j] = vn[j];
             }
+
             fl.push_back(f);
+
             continue;
         }
         ///if == n then push normals etc
         else if(file_contents[i][0] == 'v' && file_contents[i][1] == ' ')
         {
             float v[3];
+
             decompose_attribute(file_contents[i], v, 3);
 
             cl_float4 t;
             t = {v[0], v[1], v[2], 0};
 
             vl.push_back(t);
+
             continue;
         }
         else if(file_contents[i][0] == 'v' && file_contents[i][1] == 't' && file_contents[i][2] == ' ')
         {
             float vt[3];
+
             decompose_attribute(file_contents[i], vt, 2);
 
             cl_float2 t = {vt[0], vt[1]};
 
             vtl.push_back(t);
+
             continue;
         }
         else if(file_contents[i][0] == 'v' && file_contents[i][1] == 'n' && file_contents[i][2] == ' ')
         {
             float vn[3];
+
             decompose_attribute(file_contents[i], vn, 3);
 
             cl_float4 t;
             t = {vn[0], vn[1], vn[2], 0};
 
             vnl.push_back(t);
+
             continue;
         }
         //dont bother with the rest of it
@@ -284,6 +355,7 @@ void obj_load(objects_container* pobj)
         {
             usemtl_pos.push_back(usefc);
             usemtl_name.push_back(file_contents[i].substr(file_contents[i].find_last_of(" ")+1, std::string::npos));
+
             continue;
         }
     }
@@ -303,10 +375,12 @@ void obj_load(objects_container* pobj)
         vertex vert[3];
         indices index;
         index = fl[i];
+
         for(int j=0; j<3; j++)
         {
             cl_float4 v, vn;
             cl_float2 vt;
+
             v  = vl [index.v [j]];
             vt = vtl[index.vt[j]];
             vn = vnl[index.vn[j]];
@@ -318,9 +392,11 @@ void obj_load(objects_container* pobj)
         }
 
         triangle t;
+
         t.vertices[0] = vert[0];
         t.vertices[1] = vert[1];
         t.vertices[2] = vert[2];
+
         tris.push_back(t);
     }
 
@@ -342,13 +418,17 @@ void obj_load(objects_container* pobj)
         std::string bumpmap_name = retrieve_bumpmap    (mtlf_contents, usemtl_name[i]);
         std::string full = dir + "/" + texture_name;
 
-        //texture tex;
+        bool file_to_load_exists = file_exists(full);
+
+        if(!file_to_load_exists)
+        {
+            lg::log("Warning file does not exist: ", full);
+        }
 
         texture* tex;
 
-        if(pobj->textures_are_unique)
+        if(pobj->textures_are_unique || texture_name == "" || !file_to_load_exists)
         {
-            //tex->set_unique();
             tex = tex_ctx->make_new();
         }
         else
@@ -356,15 +436,31 @@ void obj_load(objects_container* pobj)
             tex = tex_ctx->make_new_cached(full);
         }
 
-        tex->set_location(full);
+        if(texture_name != "" && file_to_load_exists)
+        {
+            tex->set_location(full);
+        }
+        else
+        {
+            bool success = false;
+            vec3f kd;
 
-        //tex.type = 0;
-        //tex.set_texture_location(full);
-        //tex.push();
+            kd = get_Kd(mtlf_contents, usemtl_name[i], success) * 255.f;
 
-        //printf("%s %i\n", full.c_str(), tex.id);
+            if(success)
+            {
+                lg::log("kd ", success, " ", kd.x(), kd.y(), kd.z());
+
+                tex->set_create_colour(sf::Color(kd.x(), kd.y(), kd.z()), 128, 128);
+            }
+            else
+            {
+                assert(false);
+            }
+        }
 
         bool isbump = false;
+
         cl_uint b_id = -1;
 
         if(bumpmap_name != std::string("None"))
@@ -392,8 +488,7 @@ void obj_load(objects_container* pobj)
 
         obj.tri_num = obj.tri_list.size(); ///needs to be removed
 
-        obj.tid = tex->id; ///this is potentially bad if textures are removed
-        //std::cout << obj.tid << std::endl;
+        obj.tid = tex->id;
         obj.bid = b_id;
         obj.has_bump = isbump;
 
@@ -420,7 +515,6 @@ void obj_load(objects_container* pobj)
 
         obj.isloaded = true;
 
-        ///fixme
         c->objs.push_back(obj); ///does this copy get eliminated? ///timing this says yes
     }
 

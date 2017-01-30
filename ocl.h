@@ -56,8 +56,6 @@ extern std::vector<automatic_argument_identifiers> parsed_automatic_arguments;
 #include <sstream>
 #include <vector>
 
-///https://stackoverflow.com/questions/236129/split-a-string-in-c
-
 bool supports_extension(const std::string& ext_name);
 
 struct driver_blacklist_info
