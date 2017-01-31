@@ -310,6 +310,16 @@ void object::scale(float f)
     }
 }
 
+void object::set_quantise_position(bool do_quantise, float grid_size)
+{
+    position_quantise = do_quantise;
+
+    if(do_quantise)
+    {
+        position_quantise_grid_size = grid_size;
+    }
+}
+
 void object::patch_non_square_texture_maps(texture_context& ctx)
 {
     texture* tex = ctx.id_to_tex(tid);
@@ -517,6 +527,11 @@ cl_float2 object::get_exact_height_bounds()
     return {minh, maxh};
 }
 
+float object::get_min_y()
+{
+    return get_exact_height_bounds().x;
+}
+
 void object::set_vis_func(std::function<int (object*, cl_float4)> vis)
 {
     obj_vis = vis;
@@ -652,6 +667,17 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     posrot.lo = pos;
     posrot.hi = rot;
+
+    if(position_quantise)
+    {
+        posrot.lo = div(posrot.lo, position_quantise_grid_size);
+
+        posrot.lo.x = round(posrot.lo.x);
+        posrot.lo.y = round(posrot.lo.y);
+        posrot.lo.z = round(posrot.lo.z);
+
+        posrot.lo = mult(posrot.lo, position_quantise_grid_size);
+    }
 
     cl_event event;
 

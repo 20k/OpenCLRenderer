@@ -53,6 +53,8 @@ struct objects_container
     std::vector<object> objs;
 
     float requested_scale = 1.f;
+    float position_quantise_grid_size = 1;
+    bool position_quantise = false;
 
     ///global list of object containers
     static std::vector<objects_container*> obj_container_list;
@@ -78,6 +80,7 @@ struct objects_container
     void    notify_child_transform_update();
     void    set_children_texture_id(cl_uint tid);
     void    set_is_static(bool is_static);
+    void    set_quantise_position(bool do_quantise, float grid_size = 1);
 
     void    translate_centre(cl_float4);
 
@@ -125,10 +128,11 @@ struct objects_container
     void    patch_non_2pow_texture_maps(); ///maps eg a 254 x 234 -> 254 x 234 under a 256x256 backing, correcting the vts to do so
     void    patch_stretch_texture_to_full(); /// maps eg a 254 x 234 -> 256 x 256 using the full range
 
+
     ///currently uncached
     ///local centre, not world
     cl_float4 get_centre();
-
+    float get_min_y();
 
     void    g_flush_objects(object_context& dat, bool force = false); ///calls g_flush for all objects
 

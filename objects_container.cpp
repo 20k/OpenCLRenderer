@@ -270,6 +270,22 @@ void objects_container::set_is_static(bool is_static)
     }
 }
 
+void objects_container::set_quantise_position(bool do_quantise, float grid_size)
+{
+    position_quantise = do_quantise;
+
+    if(do_quantise)
+    {
+        position_quantise_grid_size = grid_size;
+    }
+
+    for(object& o : objs)
+    {
+        o.set_quantise_position(do_quantise, grid_size);
+    }
+}
+
+
 void objects_container::translate_centre(cl_float4 amount)
 {
     for(unsigned int i=0; i<objs.size(); i++)
@@ -451,6 +467,18 @@ cl_float4 objects_container::get_centre()
     {
         return {0};
     }
+}
+
+float objects_container::get_min_y()
+{
+    float miny = FLT_MAX;
+
+    for(object& i : objs)
+    {
+        miny = std::min(miny, i.get_min_y());
+    }
+
+    return miny;
 }
 
 void objects_container::unload()

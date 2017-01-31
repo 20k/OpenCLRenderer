@@ -86,6 +86,9 @@ struct object
 
     bool gpu_writable;
 
+    float position_quantise_grid_size = 1;
+    bool position_quantise = false;
+
     object();
     ~object();
 
@@ -105,6 +108,7 @@ struct object
     void swap_90_perp();
     void stretch(int dim, float amount);
     void scale(float);
+    void set_quantise_position(bool do_quantise, float grid_size = 1);
 
     void patch_non_square_texture_maps(texture_context& ctx);
     void patch_non_2pow_texture_maps(texture_context& ctx);
@@ -115,6 +119,7 @@ struct object
     ///this is uncached for the moment
     cl_float4 get_centre();
     cl_float2 get_exact_height_bounds(); ///expensive!
+    float get_min_y();
 
     void translate_centre(cl_float4);
 
