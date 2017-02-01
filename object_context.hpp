@@ -251,6 +251,8 @@ private:
     std::vector<obj_g_descriptor> object_descriptors;
 
     bool use_experimental_reflections = false;
+
+    std::map<std::string, objects_container> object_cache;
 };
 
 #endif // OBJECT_CONTEXT_HPP_INCLUDED

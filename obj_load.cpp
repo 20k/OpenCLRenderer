@@ -458,11 +458,11 @@ void obj_load(objects_container* pobj)
             {
                 lg::log("kd ", success, " ", kd.x(), kd.y(), kd.z());
 
-                tex->set_create_colour(sf::Color(kd.x(), kd.y(), kd.z()), 128, 128);
+                tex->set_create_colour(sf::Color(kd.x(), kd.y(), kd.z()), 32, 32);
             }
             else
             {
-                tex->set_create_colour(sf::Color(255, 0, 255), 128, 128);
+                tex->set_create_colour(sf::Color(255, 0, 255), 32, 32);
 
                 lg::log("Warning, all attempts to get a reasonable texture in obj_load have failed");
             }

@@ -5,8 +5,6 @@
 #include "engine.hpp"
 #include "texture.hpp"
 
-std::map<std::string, objects_container> object_cache;
-
 void object_context_data::update_cpu_id_num()
 {
     cl_uint backup = *cpu_id_num;
