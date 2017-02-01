@@ -5847,6 +5847,12 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     }
     #endif
 
+    #ifdef STYLISED
+    float outline = generate_outline(scoord,depth_buffer, rot(normal, 0, c_rot.xyz));
+
+    final_col += outline/10.f;
+    #endif
+
     //float3 flat_normal = fast_normalize(cross(tris_proj[1] - tris_proj[0], tris_proj[2] - tris_proj[0]));
 
     //float3 flat_normal = fast_normalize(cross(p2 - p1, p3 - p1));
