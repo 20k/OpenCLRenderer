@@ -681,6 +681,10 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     cl_event event;
 
+    ///suboptimal performance for objects with no texture... which is currently impossible but note to self
+    if((force_flush || last_gpu_position_id == -1))
+        last_gpu_position_id = cpu_dat.tex_ctx.get_gpu_position_id(tid);
+
     cl_uint ltid = cpu_dat.tex_ctx.get_gpu_position_id(tid);
 
     bool write = dynamic_cache<float, offsetof(obj_g_descriptor, scale)>(dynamic_scale, scale_cache, force_flush, context_switched, object_g_id, dat, &event);

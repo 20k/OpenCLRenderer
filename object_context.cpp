@@ -618,6 +618,7 @@ void object_context::build_tick(bool async)
 /// and B
 ///make this function not naively rebuild every time its asked if its not necessary
 ///Ok so. All of the writes here need to be ordered with events, using a queue is not good enough
+///can probably fix async if i put a barrier before for rendering same as the write fix
 void object_context::build(bool force, bool async)
 {
     ///if we call build rapidly

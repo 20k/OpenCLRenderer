@@ -286,7 +286,7 @@ bool texture_context::should_realloc(object_context& ctx)
 
 int texture_context::get_gpu_position_id(texture_id_t id)
 {
-    int c = 0;
+    /*int c = 0;
 
     for(auto& i : texture_id_orders)
     {
@@ -296,7 +296,14 @@ int texture_context::get_gpu_position_id(texture_id_t id)
         c++;
     }
 
-    return -1;
+    return -1;*/
+
+    auto it = texture_id_orders_position_map.find(id);
+
+    if(it == texture_id_orders_position_map.end())
+        return -1;
+
+    return it->second;
 }
 
 bool use_3d_texture_array();
@@ -336,8 +343,13 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
         texture_order.push_back(i);
     }
 
+    texture_id_orders_position_map.clear();
     texture_id_orders = texture_order;
 
+    for(int i=0; i<texture_id_orders.size(); i++)
+    {
+        texture_id_orders_position_map[texture_id_orders[i]] = i;
+    }
 
     mipmap_start = textures_in_use.size();
 

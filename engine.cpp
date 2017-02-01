@@ -957,6 +957,9 @@ void engine::set_relative_mouse_mode(bool is_relative)
 
 void engine::update_scrollwheel_delta(sf::Event& event)
 {
+    if(event.type != sf::Event::MouseWheelScrolled)
+        return;
+
     if(event.mouseWheelScroll.wheel != sf::Mouse::VerticalWheel)
         return;
 

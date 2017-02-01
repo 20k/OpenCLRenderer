@@ -11,6 +11,8 @@
 #include <boost/compute/algorithm/iota.hpp>
 #include <boost/compute/interop/opengl.hpp>
 
+#include <unordered_map>
+
 #define TEXTURE_CONTEXT_MAX_SIZE_IMAGE 2048
 #define TEXTURE_CONTEXT_MIP_LEVELS 4
 
@@ -36,6 +38,7 @@ struct texture_context
 {
     std::vector<texture*> all_textures;
     std::vector<texture_id_t> texture_id_orders;
+    std::unordered_map<texture_id_t, int> texture_id_orders_position_map;
 
     std::set<texture_id_t> last_build_textures;
 

@@ -216,13 +216,13 @@ void obj_load(objects_container* pobj)
 
     if(!file.is_open())
     {
-        lg::log(filename, " could not be opened");
+        lg::log(filename, " could not be opened in obj_load (file)");
         return;
     }
 
     if(!mtlfile.is_open())
     {
-        lg::log(mtlname, " could not be found");
+        lg::log(mtlname, " could not be found in obj_load (mtlfile)");
     }
 
     ///load .obj file contents
