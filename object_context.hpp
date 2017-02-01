@@ -200,10 +200,10 @@ struct object_context
     void load_active();
 
     ///this causes a gpu reallocation
-    void build(bool force = false, bool async = false);
+    void build(bool force = false, bool async = false, compute::event* async_render_event = nullptr);
 
     void build_request();
-    void build_tick(bool async = false);
+    void build_tick(bool async = false, compute::event* async_render_event = nullptr);
 
     ///this fetches the internal context data
     object_context_data* fetch();

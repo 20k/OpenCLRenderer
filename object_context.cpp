@@ -593,7 +593,7 @@ void object_context::build_request()
     request_dirty = true;
 }
 
-void object_context::build_tick(bool async)
+void object_context::build_tick(bool async, compute::event* async_render_event)
 {
     if(request_dirty)
     {
@@ -617,7 +617,7 @@ void object_context::build_tick(bool async)
 ///make this function not naively rebuild every time its asked if its not necessary
 ///Ok so. All of the writes here need to be ordered with events, using a queue is not good enough
 ///can probably fix async if i put a barrier before for rendering same as the write fix
-void object_context::build(bool force, bool async)
+void object_context::build(bool force, bool async, compute::event* async_render_event)
 {
     ///if we call build rapidly
     ///this will get cleared and be invalid
