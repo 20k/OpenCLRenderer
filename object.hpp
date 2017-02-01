@@ -67,7 +67,7 @@ struct object
 
     cl_uint has_bump; ///does this object have a bumpmap
 
-    cl_uint last_gpu_position_id = -1;
+    //cl_uint last_gpu_position_id = -1;
 
     ///despite being named similarly, these two are very different
     ///specular = 1.f - rough, diffuse = kD
