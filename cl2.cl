@@ -5446,6 +5446,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         //write_imagei(object_ids, (int2){x, y}, -1);
         //write_imageui(id_buffer, (int2){x, y}, -1);
         write_imagef(screen, (int2){x, y}, screen_clear_colour);
+        write_imagef(backup_screen, (int2){x, y}, screen_clear_colour);
         return;
     }
 
