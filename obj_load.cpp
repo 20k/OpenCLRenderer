@@ -595,6 +595,103 @@ void obj_rect(objects_container* pobj, texture& tex, cl_float2 dim)
     pobj->isloaded = true;
 }
 
+void obj_rect_tessellated(objects_container* pobj, texture& tex, cl_float2 dim, float tessellate_dim)
+{
+    object obj;
+
+    obj.isloaded = true;
+
+    cl_float2 hdim = {dim.x/2, dim.y/2};
+
+    ///1 + this many of points
+    ///how many of length tessellate dim fit into dim
+    float xnum = dim.x / tessellate_dim;
+    float ynum = dim.y / tessellate_dim;
+
+    int xp = xnum + 1;
+    int yp = ynum + 1;
+
+    float start_x = -dim.x/2;
+    float start_y = -dim.y/2;
+
+    for(int y = 0; y < yp; y++)
+    {
+        for(int x = 0; x < xp; x++)
+        {
+            std::array<cl_float4, 6> tris;
+
+            tris[0] = {start_x + tessellate_dim, start_y, 0};
+            tris[1] = {start_x, start_y, 0};
+            tris[2] = {start_x, start_y + tessellate_dim, 0};
+
+            tris[3] = {start_x + tessellate_dim, start_y, 0};
+            tris[4] = {start_x, start_y + tessellate_dim, 0};
+            tris[5] = {start_x + tessellate_dim, start_y + tessellate_dim, 0};
+
+            triangle t1, t2;
+
+            t1.vertices[0].set_pos(tris[0]);
+            t1.vertices[1].set_pos(tris[1]);
+            t1.vertices[2].set_pos(tris[2]);
+
+            t2.vertices[0].set_pos(tris[3]);
+            t2.vertices[1].set_pos(tris[4]);
+            t2.vertices[2].set_pos(tris[5]);
+
+            cl_float4 normal = {0, 0, -1};
+
+            t1.vertices[0].set_normal(normal);
+            t1.vertices[1].set_normal(normal);
+            t1.vertices[2].set_normal(normal);
+
+            t2.vertices[0].set_normal(normal);
+            t2.vertices[1].set_normal(normal);
+            t2.vertices[2].set_normal(normal);
+
+            for(int i=0; i<3; i++)
+            {
+                float vx = (t1.vertices[i].get_pos().x + dim.x/2) / dim.x;
+                float vy = (t1.vertices[i].get_pos().y + dim.y/2) / dim.y;
+
+                t1.vertices[i].set_vt({vx, vy});
+            }
+
+            for(int i=0; i<3; i++)
+            {
+                float vx = (t2.vertices[i].get_pos().x + dim.x/2) / dim.x;
+                float vy = (t2.vertices[i].get_pos().y + dim.y/2) / dim.y;
+
+                t2.vertices[i].set_vt({vx, vy});
+            }
+
+            obj.tri_list.push_back(t1);
+            obj.tri_list.push_back(t2);
+
+            std::cout << "t1" << std::endl;
+
+            for(int i=0; i<3; i++)
+            {
+                printf("t %f %f %f\n", t1.vertices[i].get_pos().x, t1.vertices[i].get_pos().y, t1.vertices[i].get_pos().z);
+            }
+
+            start_x += tessellate_dim;
+        }
+
+        start_y += tessellate_dim;
+        start_x = -dim.x/2;
+    }
+
+    obj.tri_num = obj.tri_list.size();
+
+    obj.tid = tex.id;
+
+    pobj->objs.push_back(obj);
+
+    pobj->isloaded = true;
+
+    printf("INUM %i\n\n\n\n\n\n\n\n\n\n", obj.tri_num);
+}
+
 struct ttri
 {
     cl_float4 pos[3];

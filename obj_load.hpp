@@ -12,6 +12,8 @@ void obj_load(objects_container* obj);
 
 void obj_rect(objects_container* obj, texture& tex, cl_float2 dim);
 
+void obj_rect_tessellated(objects_container* obj, texture& tex, cl_float2 dim, float tessellate_dim);
+
 void obj_cube_by_extents(objects_container* pobj, texture& tex, cl_float4 dim);
 
 
