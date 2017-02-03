@@ -876,6 +876,19 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, __global uint* num
     write_image_3d_hardware(coord, array, to_write, max_tex_size, max_tex_size);
 }
 
+__kernel void write_col_to_tex(uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, int x, int y, float4 col)
+{
+    if(get_global_id(0) > 1)
+        return;
+
+    uint4 ucol = convert_uint4(col * 255);
+
+    int slice = nums[tex_id] >> 16;
+    float width = sizes[slice];
+
+    write_tex_array(ucol, (float2){x, y}, tex_id, nums, sizes, array);
+}
+
 ///why is the texture actually floats, not 32bit rgba? surface format optimisation?
 __kernel void update_gpu_tex(__read_only image2d_t tex, uint tex_id, uint mipmap_start, __global uint* nums, __global uint* sizes, image_3d_write array, int flip)
 {

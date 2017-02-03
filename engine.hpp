@@ -287,6 +287,9 @@ struct engine
     void update_scrollwheel_delta(sf::Event& event);
     void reset_scrollwheel_delta();
 
+    vec3f get_camera_pos();
+    vec3f get_camera_rot();
+
     bool mouse_is_relative = false;
 
     void raw_input_set_active(bool is_active);

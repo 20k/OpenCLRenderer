@@ -608,8 +608,8 @@ void obj_rect_tessellated(objects_container* pobj, texture& tex, cl_float2 dim, 
     float xnum = dim.x / tessellate_dim;
     float ynum = dim.y / tessellate_dim;
 
-    int xp = xnum + 1;
-    int yp = ynum + 1;
+    int xp = xnum;
+    int yp = ynum;
 
     float start_x = -dim.x/2;
     float start_y = -dim.y/2;
@@ -667,13 +667,6 @@ void obj_rect_tessellated(objects_container* pobj, texture& tex, cl_float2 dim, 
             obj.tri_list.push_back(t1);
             obj.tri_list.push_back(t2);
 
-            std::cout << "t1" << std::endl;
-
-            for(int i=0; i<3; i++)
-            {
-                printf("t %f %f %f\n", t1.vertices[i].get_pos().x, t1.vertices[i].get_pos().y, t1.vertices[i].get_pos().z);
-            }
-
             start_x += tessellate_dim;
         }
 
@@ -688,8 +681,6 @@ void obj_rect_tessellated(objects_container* pobj, texture& tex, cl_float2 dim, 
     pobj->objs.push_back(obj);
 
     pobj->isloaded = true;
-
-    printf("INUM %i\n\n\n\n\n\n\n\n\n\n", obj.tri_num);
 }
 
 struct ttri

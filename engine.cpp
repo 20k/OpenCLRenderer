@@ -979,6 +979,16 @@ void engine::reset_scrollwheel_delta()
     scrollwheel_delta = 0.f;
 }
 
+vec3f engine::get_camera_pos()
+{
+    return xyz_to_vec(c_pos);
+}
+
+vec3f engine::get_camera_rot()
+{
+    return xyz_to_vec(c_rot);
+}
+
 void engine::raw_input_set_active(bool is_active)
 {
     #ifndef RAW_INPUT_ENABLED
