@@ -658,8 +658,10 @@ void object::g_flush(object_context& cpu_dat, bool force)
         if(last_pos.s[i] != pos.s[i])
             dirty_pos = true;
 
+        #ifdef LEGACY_ROTATION_SYSTEM
         if(last_rot.s[i] != rot.s[i])
             dirty_rot = true;
+        #endif
 
         if(last_rot_quat.s[i] != cl_rot_quat.s[i])
             dirty_rot_quat = true;

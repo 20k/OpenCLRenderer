@@ -7,6 +7,8 @@
 struct triangle
 {
     vertex vertices[3];
+
+    void generate_flat_normals();
 };
 
 ///arbitrary winding
