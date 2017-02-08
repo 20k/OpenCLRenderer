@@ -491,7 +491,7 @@ float3 get_flat_normal(float3 p0, float3 p1, float3 p2)
 ///cannot be float as || float is not valid on some platforms
 int backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
-    return cross(fast_normalize(p1-p0), fast_normalize(p2-p0)).z <= 0.01f;
+    return cross((p1-p0), (p2-p0)).z < 0.f;
 }
 
 float3 rot_with_offset(const float3 pos, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset)
