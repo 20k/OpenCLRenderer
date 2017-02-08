@@ -523,6 +523,8 @@ void flip_buffers(object_context* ctx)
         ctx->new_gpu_dat.cpu_id_num = ctx->fetch()->cpu_id_num;
     }
 
+    ctx->new_gpu_dat.current_cpu_id_num = ctx->fetch()->current_cpu_id_num;
+
     ctx->new_gpu_dat.g_id_screen_tex = ctx->fetch()->g_id_screen_tex;
     ctx->new_gpu_dat.g_screen_normals_optional = ctx->fetch()->g_screen_normals_optional;
 
@@ -599,7 +601,7 @@ void object_context::build_tick(bool async, compute::event* async_render_event)
     {
         sf::Clock clk;
 
-        build(false, async);
+        build(false, async, async_render_event);
 
         #ifdef PROFILING
         printf("Build time ms %f\n", clk.getElapsedTime().asMicroseconds() / 1000.f);
@@ -630,6 +632,11 @@ void object_context::build(bool force, bool async, compute::event* async_render_
         flip_buffers(this);
 
         lg::log("cap");
+    }
+
+    if(async_render_event)
+    {
+        clEnqueueBarrierWithWaitList(cl::cqueue2.get(), 1, &async_render_event->get(), nullptr);
     }
 
     bool textures_realloc = false;
