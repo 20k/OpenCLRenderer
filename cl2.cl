@@ -486,10 +486,12 @@ float3 get_flat_normal(float3 p0, float3 p1, float3 p2)
 }
 
 ///small holes are not this fault
+///SMALL HOLES WERE THIS FUNCTIONS FAULT
+///screw you old james
 ///cannot be float as || float is not valid on some platforms
 int backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
-    return cross(p1-p0, p2-p0).z < 0;
+    return cross(fast_normalize(p1-p0), fast_normalize(p2-p0)).z <= 0.01f;
 }
 
 float3 rot_with_offset(const float3 pos, const float3 c_pos, const float3 c_rot, const float3 offset, const float3 rotation_offset)
@@ -4864,6 +4866,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
 
+    ///we no longer use area, so get rid of this
     float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
     float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
 
@@ -4899,7 +4902,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     int pcount = -1;
 
-    float mod = area / MOD_ERROR;
+    //float mod = area / MOD_ERROR;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
@@ -5155,9 +5158,9 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
 
     int pcount = -1;
 
-    float mod = 2;
+    //float mod = 2;
 
-    mod = area / 5000.f;
+    //mod = area / 5000.f;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
