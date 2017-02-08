@@ -49,6 +49,16 @@ float max3(float x,  float y,  float z)
     return max(max(x,y),z);
 }
 
+int imin3(int x, int y, int z)
+{
+    return min(min(x,y),z);
+}
+
+int imax3(int x, int y, int z)
+{
+    return max(max(x,y),z);
+}
+
 ///mad
 float calc_area(float3 x, float3 y)
 {
@@ -4656,6 +4666,180 @@ bool point_in_tri(float2 p, float2 p0, float2 p1, float2 p2)
     return s > -0.0001f && t > -0.0001f && (s + t) < 2.0001f * A * sign;
 }
 
+///http://forum.devmaster.net/t/advanced-rasterization/6145
+/*void Rasterizer::triangle(const Vertex &v1, const Vertex &v2, const Vertex &v3)
+{
+    // 28.4 fixed-point coordinates
+    const int Y1 = iround(16.0f * v1.y);
+    const int Y2 = iround(16.0f * v2.y);
+    const int Y3 = iround(16.0f * v3.y);
+
+    const int X1 = iround(16.0f * v1.x);
+    const int X2 = iround(16.0f * v2.x);
+    const int X3 = iround(16.0f * v3.x);
+
+    // Deltas
+    const int DX12 = X1 - X2;
+    const int DX23 = X2 - X3;
+    const int DX31 = X3 - X1;
+
+    const int DY12 = Y1 - Y2;
+    const int DY23 = Y2 - Y3;
+    const int DY31 = Y3 - Y1;
+
+    // Fixed-point deltas
+    const int FDX12 = DX12 << 4;
+    const int FDX23 = DX23 << 4;
+    const int FDX31 = DX31 << 4;
+
+    const int FDY12 = DY12 << 4;
+    const int FDY23 = DY23 << 4;
+    const int FDY31 = DY31 << 4;
+
+    // Bounding rectangle
+    int minx = (min(X1, X2, X3) + 0xF) >> 4;
+    int maxx = (max(X1, X2, X3) + 0xF) >> 4;
+    int miny = (min(Y1, Y2, Y3) + 0xF) >> 4;
+    int maxy = (max(Y1, Y2, Y3) + 0xF) >> 4;
+
+    (char*&)colorBuffer += miny * stride;
+
+    // Half-edge constants
+    int C1 = DY12 * X1 - DX12 * Y1;
+    int C2 = DY23 * X2 - DX23 * Y2;
+    int C3 = DY31 * X3 - DX31 * Y3;
+
+    // Correct for fill convention
+    if(DY12 < 0 || (DY12 == 0 && DX12 > 0)) C1++;
+    if(DY23 < 0 || (DY23 == 0 && DX23 > 0)) C2++;
+    if(DY31 < 0 || (DY31 == 0 && DX31 > 0)) C3++;
+
+    int CY1 = C1 + DX12 * (miny << 4) - DY12 * (minx << 4);
+    int CY2 = C2 + DX23 * (miny << 4) - DY23 * (minx << 4);
+    int CY3 = C3 + DX31 * (miny << 4) - DY31 * (minx << 4);
+
+    for(int y = miny; y < maxy; y++)
+    {
+        int CX1 = CY1;
+        int CX2 = CY2;
+        int CX3 = CY3;
+
+        for(int x = minx; x < maxx; x++)
+        {
+            if(CX1 > 0 && CX2 > 0 && CX3 > 0)
+            {
+                colorBuffer[x] = 0x00FFFFFF;
+            }
+
+            CX1 -= FDY12;
+            CX2 -= FDY23;
+            CX3 -= FDY31;
+        }
+
+        CY1 += FDX12;
+        CY2 += FDX23;
+        CY3 += FDX31;
+
+        (char*&)colorBuffer += stride;
+    }
+}*/
+
+#if 0
+bool npoint_in_tri(float3 v1, float3 v2, float3 v3, int2 pos)
+{
+    const int Y1 = round(16.0f * v1.y);
+    const int Y2 = round(16.0f * v2.y);
+    const int Y3 = round(16.0f * v3.y);
+
+    const int X1 = round(16.0f * v1.x);
+    const int X2 = round(16.0f * v2.x);
+    const int X3 = round(16.0f * v3.x);
+
+    // Deltas
+    const int DX12 = X1 - X2;
+    const int DX23 = X2 - X3;
+    const int DX31 = X3 - X1;
+
+    const int DY12 = Y1 - Y2;
+    const int DY23 = Y2 - Y3;
+    const int DY31 = Y3 - Y1;
+
+    // Fixed-point deltas
+    const int FDX12 = DX12 << 4;
+    const int FDX23 = DX23 << 4;
+    const int FDX31 = DX31 << 4;
+
+    const int FDY12 = DY12 << 4;
+    const int FDY23 = DY23 << 4;
+    const int FDY31 = DY31 << 4;
+
+    // Bounding rectangle
+    int minx = (imin3(X1, X2, X3) + 0xF) >> 4;
+    int maxx = (imax3(X1, X2, X3) + 0xF) >> 4;
+    int miny = (imin3(Y1, Y2, Y3) + 0xF) >> 4;
+    int maxy = (imax3(Y1, Y2, Y3) + 0xF) >> 4;
+
+    //(char*&)colorBuffer += miny * stride;
+
+    // Half-edge constants
+    int C1 = DY12 * X1 - DX12 * Y1;
+    int C2 = DY23 * X2 - DX23 * Y2;
+    int C3 = DY31 * X3 - DX31 * Y3;
+
+    // Correct for fill convention
+    if(DY12 < 0 || (DY12 == 0 && DX12 > 0)) C1++;
+    if(DY23 < 0 || (DY23 == 0 && DX23 > 0)) C2++;
+    if(DY31 < 0 || (DY31 == 0 && DX31 > 0)) C3++;
+
+    int CY1 = C1 + DX12 * (miny << 4) - DY12 * (minx << 4);
+    int CY2 = C2 + DX23 * (miny << 4) - DY23 * (minx << 4);
+    int CY3 = C3 + DX31 * (miny << 4) - DY31 * (minx << 4);
+
+
+    CY1 += FDX12 * (pos.y - miny);
+    CY2 += FDX23 * (pos.y - miny);
+    CY3 += FDX31 * (pos.y - miny);
+
+    int CX1 = CY1;
+    int CX2 = CY2;
+    int CX3 = CY3;
+
+    CX1 -= FDY12 * (pos.x - minx);
+    CX2 -= FDY23 * (pos.x - minx);
+    CX3 -= FDY31 * (pos.x - minx);
+
+
+
+    /*for(int y = miny; y < maxy; y++)
+    {
+        int CX1 = CY1;
+        int CX2 = CY2;
+        int CX3 = CY3;
+
+        for(int x = minx; x < maxx; x++)
+        {
+            if(CX1 > 0 && CX2 > 0 && CX3 > 0)
+            {
+                colorBuffer[x] = 0x00FFFFFF;
+            }
+
+            CX1 -= FDY12;
+            CX2 -= FDY23;
+            CX3 -= FDY31;
+        }
+
+        CY1 += FDX12;
+        CY2 += FDX23;
+        CY3 += FDX31;
+
+        (char*&)colorBuffer += stride;
+    }*/
+
+    return CX1 >= 0 && CX2 >= 0 && CX3 >= 0;
+}
+#endif
+
+
 ///rotates and projects triangles into screenspace, writes their depth atomically
 ///lets do something cleverer with this
 __kernel
@@ -4771,6 +4955,8 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
         //cond = point_in_tri((float2){x, y}, (float2){tris_proj_n[0].x, tris_proj_n[0].y}, (float2){tris_proj_n[1].x, tris_proj_n[1].y}, (float2){tris_proj_n[2].x, tris_proj_n[2].y});
 
         bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
+
+        //bool cond = npoint_in_tri(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2], (int2){x, y});
 
         ///pixel within triangle within allowance, more allowance for larger triangles, less for smaller
         if(cond)
@@ -5113,7 +5299,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     //float mod = 1;
 
-    float mod = area / MOD_ERROR;
+    //float mod = area / MOD_ERROR;
 
     //mod = max(1.f, mod);
 
@@ -5167,6 +5353,8 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
         {
             continue;
         }
+
+        //bool cond = npoint_in_tri(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2], (int2){x, y});
 
         bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
@@ -5460,6 +5648,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         //write_imageui(id_buffer, (int2){x, y}, -1);
         write_imagef(screen, (int2){x, y}, screen_clear_colour);
         write_imagef(backup_screen, (int2){x, y}, screen_clear_colour);
+
         return;
     }
 
@@ -5765,6 +5954,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         diffuse_sum += light_col * (diffuse * l.brightness * l.diffuse * G->diffuse);
 
         float3 H = fast_normalize(l2p + l2c);
+
         float3 N = normal; ///dont use randomised normal because specular can vary intensly with small pertubations of normal
 
         ///skipping specular is 7.2 -> 6.6/6.7
@@ -5923,6 +6113,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///ignoring final_col.w here may be an error for chaining
     }
     #endif
+
+
+    //final_col = ((T->vertices[0].normal.x + T->vertices[0].normal.y));
+    //final_col = ((T->vertices[0].vt.x + T->vertices[0].vt.y) + (T->vertices[1].vt.x + T->vertices[1].vt.y) + (T->vertices[1].vt.x + T->vertices[1].vt.y))/6;
 
     write_imagef(screen, scoord, (float4)(final_col.xyz, col.w));
     write_imagef(backup_screen, scoord, (float4)(final_col.xyz, col.w));
