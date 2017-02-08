@@ -486,8 +486,6 @@ float3 get_flat_normal(float3 p0, float3 p1, float3 p2)
 }
 
 ///small holes are not this fault
-///SMALL HOLES WERE THIS FUNCTIONS FAULT
-///screw you old james
 ///cannot be float as || float is not valid on some platforms
 int backface_cull_expanded(float3 p0, float3 p1, float3 p2)
 {
