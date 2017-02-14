@@ -157,6 +157,11 @@ cl_uint vertex::get_pad() const
     return pad;
 }
 
+cl_uint vertex::get_vertex_col() const
+{
+    return vertex_col;
+}
+
 /*cl_uint vertex::get_pad2() const
 {
     return pad2;
@@ -200,6 +205,14 @@ void vertex::set_vt(cl_float2 vtm)
 void vertex::set_pad(cl_uint val)
 {
     pad = val;
+}
+
+void vertex::set_vertex_col(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    vertex_col = (cl_uint)r << 32 - 8;
+    vertex_col |= (cl_uint)g << 32 - 16;
+    vertex_col |= (cl_uint)b << 32 - 24;
+    vertex_col |= (cl_uint)a;
 }
 
 /*void vertex::set_pad2(cl_uint val)

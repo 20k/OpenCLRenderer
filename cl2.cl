@@ -133,7 +133,7 @@ struct vertex
     float4 normal;
     float2 vt;
     uint object_id;
-    uint pad2;
+    uint vertex_col;
 };
 
 /*struct vertex
@@ -5520,6 +5520,18 @@ float2 get_vt(__global struct vertex* v)
     return v->vt;
 }
 
+float4 get_vertex_col(__global struct vertex* v)
+{
+    float4 rgba;
+
+    rgba.x = v->vertex_col >> 24;
+    rgba.y = (v->vertex_col >> 16) & 0xFF;
+    rgba.z = (v->vertex_col >> 8) & 0xFF;
+    rgba.w = (v->vertex_col) & 0xFF;
+
+    return rgba / 255.f;
+}
+
 float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 camera_pos, __global struct obj_g_descriptor* G, float2 vt,
                   float3 p1, float3 p2, float3 p3, float2 vt1, float2 vt2, float2 vt3, float rconst)
 {
@@ -5713,9 +5725,21 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 normal;
     normal = mad(n1, l1, mad(n2, l2, n3 * l3));
 
+    float3 model_normal = normal;
+
     normal = rot_quat(normal, G->world_rot_quat);
 
     normal = fast_normalize(normal);
+
+    bool has_colour_already = false;
+    float4 vertex_col = 0;
+
+    if(T->vertices[0].vertex_col != 0)
+    {
+        has_colour_already = true;
+
+        vertex_col = mad(get_vertex_col(&T->vertices[0]), l1, mad(get_vertex_col(&T->vertices[1]), l2, get_vertex_col(&T->vertices[2]) * l3));
+    }
 
     float3 tris_proj[3];
 
@@ -5726,8 +5750,16 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     float2 vtdiff = get_vtdiff(tris_proj, (float2){x, y}, camera_rot.xyz, camera_pos.xyz, G, vt, p1, p2, p3, vt1, vt2, vt3, rconst);
 
-    ///mip_start is a global parameter, edit it out
-    float4 col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    float4 col;
+
+    if(!has_colour_already)
+    {
+        col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+    }
+    else
+    {
+        col = vertex_col;
+    }
 
     //col = pow(col, 2.2f);
 
@@ -5801,6 +5833,63 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         normal = fast_normalize(normal);*/
     }
     #endif
+
+    ///http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
+    if(gobj[o_id].rid != -1)
+    {
+        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array).xyz;
+
+        t_normal = 2.f * t_normal - 1.f;
+
+        /*t_normal.yz = t_normal.zy;*/
+
+        t_normal = normalize(t_normal);
+
+        //col.xyz = t_normal;
+
+        /*write_imagef(screen, (int2){x, y}, col.xyzz);
+
+        return;*/
+
+        //float3 deltaPos1 = tris_proj[1] - tris_proj[0];
+        //float3 deltaPos2 = tris_proj[2] - tris_proj[0];
+
+        float3 deltaPos1 = p2 - p1;
+        float3 deltaPos2 = p3 - p1;
+
+        float2 deltaUV1 = vt2 - vt1;
+        float2 deltaUV2 = vt3 - vt1;
+
+        float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+        float3 tangent = (deltaPos1 * deltaUV2.y   - deltaPos2 * deltaUV1.y)*r;
+        float3 bitangent = (deltaPos2 * deltaUV1.x   - deltaPos1 * deltaUV2.x)*r;
+
+        //printf("%f %f %f\n", bitangent.x, bitangent.y, bitangent.z);
+
+        tangent = fast_normalize(tangent);
+        bitangent = fast_normalize(bitangent);
+
+        tangent = fast_normalize(tangent - model_normal * dot(model_normal, tangent));
+
+        if (dot(cross(model_normal, tangent), bitangent) < 0.0f)
+        {
+             tangent = tangent * -1.0f;
+        }
+
+        float3 model_space;
+
+        model_space.x = (tangent.x * t_normal.x + bitangent.x * t_normal.y + model_normal.x * t_normal.z);
+        model_space.y = (tangent.y * t_normal.x + bitangent.y * t_normal.y + model_normal.y * t_normal.z);
+        model_space.z = (tangent.z * t_normal.x + bitangent.z * t_normal.y + model_normal.z * t_normal.z);
+
+        model_space = rot_quat(model_space, G->world_rot_quat);
+
+        normal = normalize(model_space);
+    }
+
+
+    //col.xyz = normal;
+    //col.xyz = t_normal;
 
     float3 ambient_sum = 0;
 
