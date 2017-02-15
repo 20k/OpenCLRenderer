@@ -5894,7 +5894,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         #define AMBIENT 0.2f
         #endif // AMBIENT
 
-        const float ambient = AMBIENT * ssao;
+        const float ambient = AMBIENT;
 
         ///might be slow on nvidia
         const struct light l = lights[i];
@@ -5971,11 +5971,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
             light = dot(l2c, normal);
         }*/
 
-        light *= distance_modifier;
-
-        light *= occlusion;
-
-        light *= ssao;
+        light *= distance_modifier * occlusion;
 
         #ifdef BECKY_HACK
         light = 1;
@@ -6050,10 +6046,12 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         #endif
 
         specular_sum *= occlusion;
-        specular_sum *= ssao;
     }
 
     diffuse_sum += ambient_sum;
+
+    specular_sum *= ssao;
+    diffuse_sum *= ssao;
 
     //diffuse_sum = clamp(diffuse_sum, 0.0f, 1.0f);
     //specular_sum = clamp(specular_sum, 0.0f, 1.0f);
