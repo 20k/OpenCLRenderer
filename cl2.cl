@@ -2516,6 +2516,25 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
 
     float3 global_position = back_rotated;
 
+    ///use with pixelation
+    #ifdef DO_YOU_LOVE_CRYENGINE_SHADOWS
+    float3 seed_pos = round(fabs(global_position)*1000)/1000;
+
+    uint seed1 = wang_hash(seed_pos.z * 10000.f + seed_pos.y * 100.f + seed_pos.x);
+    uint seed2 = rand_xorshift(seed1);
+    uint seed3 = rand_xorshift(seed2);
+    uint seed4 = rand_xorshift(seed3);
+
+    float f1 = (float)seed2 / (float)UINT_MAX;
+    float f2 = (float)seed3 / (float)UINT_MAX;
+    float f3 = (float)seed4 / (float)UINT_MAX;
+
+    float3 rseed = (float3){f1, f2, f3};
+    rseed = (rseed - 0.5f) * 2;
+
+    global_position += rseed * 10;
+    #endif
+
     int ldepth_map_id = which_cubeface;
 
     float3 rotation = r_struct[ldepth_map_id];
@@ -2570,6 +2589,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
     shadow /= 9.f;
     #endif
 
+    #define SMOOTH_SHADOWS
     #ifdef SMOOTH_SHADOWS
 
     ///wtf? We should only have 9 samples, 16 is definitely wrong
@@ -2607,51 +2627,7 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
 
     float2 extra = postrotate_pos.xy - floor(postrotate_pos.xy);
 
-    /*#if 1
-    int conditions[3*3];
-
-    for(int y=-1; y<=1; y++)
-    {
-        for(int x=-1; x<=1; x++)
-        {
-            float ldp1 = idcalc(native_divide((float)ldepth_map[(ipr.y + y)*LIGHTBUFFERDIM + ipr.x + x], mulint));
-
-            int c1 = dpth > ldp1 + bias ? 1 : 0;
-
-            conditions[(y+1)*3 + x + 1] = c1;
-        }
-    }
-
-    float scale = 1.f;
-
-    float v1[4] = {get_occ(conditions, 0, 0), get_occ(conditions, 1, 0), get_occ(conditions, 0, 1), get_occ(conditions, 1, 1)};
-    float v2[4] = {get_occ(conditions, 1, 0), get_occ(conditions, 2, 0), get_occ(conditions, 1, 1), get_occ(conditions, 2, 1)};
-    float v3[4] = {get_occ(conditions, 0, 1), get_occ(conditions, 1, 1), get_occ(conditions, 0, 2), get_occ(conditions, 1, 2)};
-    float v4[4] = {get_occ(conditions, 1, 1), get_occ(conditions, 2, 1), get_occ(conditions, 1, 2), get_occ(conditions, 2, 2)};
-
-    float s1 = clamped_bilinear_interpolate(-0.25f + 0.5f, v1);
-    float s2 = clamped_bilinear_interpolate((float2){0.25f, -0.25f} + 0.5f, v2);
-    float s3 = clamped_bilinear_interpolate((float2){-0.25f, 0.25f} + 0.5f, v3);
-    float s4 = clamped_bilinear_interpolate((float2){0.25f, 0.25f} + 0.5f, v4);
-
-    float vals[4] = {s1, s2, s3, s4};
-
-    shadow = bilinear_interpolate(postrotate_pos.xy + 0.5f, vals);
-    #endif // 0*/
-
-
-
-    /*float xv = extra.x * conditions[1*3 + 2] + (1.f - extra.x) * conditions[1*3 + 0];
-    float yv = extra.y * conditions[2*3 + 1] + (1.f - extra.y) * conditions[0*3 + 1];
-
-    return (xv + yv)/2.f;*/
-
-    /*float v1[4] = {get_occ(conditions, 0, 0), get_occ(conditions, 1, 0), get_occ(conditions, 0, 1), get_occ(conditions, 1, 1)};
-    float v2[4] = {get_occ(conditions, 1, 0), get_occ(conditions, 2, 0), get_occ(conditions, 1, 1), get_occ(conditions, 2, 1)};
-    float v3[4] = {get_occ(conditions, 0, 1), get_occ(conditions, 1, 1), get_occ(conditions, 0, 2), get_occ(conditions, 1, 2)};
-    float v4[4] = {get_occ(conditions, 1, 1), get_occ(conditions, 2, 1), get_occ(conditions, 1, 2), get_occ(conditions, 2, 2)};*/
-
-    #define SUPER
+    //#define SUPER
     #ifdef SUPER
 
     int conditions[2*2];
@@ -2672,10 +2648,6 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
 
     return bilinear_interpolate(extra + 0.5f, v1);
     #endif
-
-    //shadow /= 4.f;
-
-    //shadow = (s1 + s2 + s3 + s4)/4.f;
 
     ///run this value through a curve to get different distributions
     return shadow;
