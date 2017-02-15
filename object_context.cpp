@@ -204,7 +204,7 @@ void object_context::load_active()
 
 ///fills the object descriptors for the objects contained within object_containers
 ///texture ids will be broken for async realloc
-static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::vector<objects_container*>& containers, int mipmap_start, std::vector<obj_g_descriptor> &object_descriptors, std::vector<container_temporaries>& new_container_data)
+static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::vector<objects_container*>& containers, std::vector<obj_g_descriptor> &object_descriptors, std::vector<container_temporaries>& new_container_data)
 {
     int n=0;
 
@@ -276,7 +276,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
             desc.rid = rid;
             desc.ssid = ssid;
 
-            desc.mip_start = mipmap_start;
+            //desc.mip_start = mipmap_start;
 
             ///fill other information in
             desc.world_pos = it.pos;
@@ -322,7 +322,7 @@ static int generate_gpu_object_descriptor(texture_context& tex_ctx, const std::v
 ///ok, so we need to know if we've got to force a build
 ///so make this return a vector of events, that we wait on
 ///so, reallocating seems to leak a little bit of gpu memory somewehere
-std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_context& context, object_context_data& dat, bool force)
+std::vector<compute::event> alloc_gpu(cl_uint tri_num, object_context& context, object_context_data& dat, bool force)
 {
     std::vector<compute::event> events;
 
@@ -433,7 +433,7 @@ std::vector<compute::event> alloc_gpu(int mip_start, cl_uint tri_num, object_con
     return events;
 }
 
-std::vector<compute::event> alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, int mip_start, object_context_data& dat)
+std::vector<compute::event> alloc_object_descriptors(const std::vector<obj_g_descriptor>& object_descriptors, object_context_data& dat)
 {
     std::vector<compute::event> events;
 
@@ -661,7 +661,7 @@ void object_context::build(bool force, bool async, compute::event* async_render_
     new_container_data.clear();
     ready_to_flip = false;
 
-    int tri_num = generate_gpu_object_descriptor(tex_ctx, containers, tex_ctx.mipmap_start, object_descriptors, new_container_data);
+    int tri_num = generate_gpu_object_descriptor(tex_ctx, containers, object_descriptors, new_container_data);
 
     new_gpu_dat = object_context_data();
 
@@ -672,7 +672,7 @@ void object_context::build(bool force, bool async, compute::event* async_render_
     }
 
     sf::Clock agpu;
-    auto gpu_alloc_events = alloc_gpu(tex_ctx.mipmap_start, tri_num, *this, new_gpu_dat, force);
+    auto gpu_alloc_events = alloc_gpu(tri_num, *this, new_gpu_dat, force);
 
     //cl::cqueue2.finish();
 
@@ -686,7 +686,7 @@ void object_context::build(bool force, bool async, compute::event* async_render_
 
     new_gpu_dat.use_experimental_reflections = use_experimental_reflections;
 
-    auto descriptor_events = alloc_object_descriptors(object_descriptors, tex_ctx.mipmap_start, new_gpu_dat);
+    auto descriptor_events = alloc_object_descriptors(object_descriptors, new_gpu_dat);
 
     std::vector<cl_event> flattened;
 

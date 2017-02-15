@@ -21,7 +21,7 @@ struct obj_g_descriptor
     cl_uint tid; ///texture id
     cl_uint rid;
     cl_uint ssid;
-    cl_uint mip_start;
+    //cl_uint mip_start;
     cl_uint has_bump;
     cl_float specular;
     cl_float spec_mult;

@@ -111,7 +111,7 @@ struct obj_g_descriptor
     uint tid;           ///texture id
     uint rid;           ///normal map id
     uint ssid;          ///screenspace map id, does NOT imply is_ss_reflective
-    uint mip_start;
+    //uint mip_start;
     uint has_bump;
     float specular;
     float spec_mult;
@@ -5618,7 +5618,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
            image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint* static_light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional,
-            int use_optional_blend_buffer, __global uint* optional_blend_buffer_depth, __read_only image2d_t optional_blend_screen
+            int use_optional_blend_buffer, __global uint* optional_blend_buffer_depth, __read_only image2d_t optional_blend_screen, uint mip_start
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -5754,7 +5754,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     if(!has_colour_already)
     {
-        col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, gobj[o_id].mip_start, nums, sizes, array);
+        col = texture_filter_diff(vt, vtdiff, gobj[o_id].tid, mip_start, nums, sizes, array);
     }
     else
     {
@@ -5783,61 +5783,11 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         return;
     }*/
 
-    #if 0
-    ///normal maps are just all wrong atm
-    if(gobj[o_id].rid != -1)
-    {
-        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array).xyz;
-
-        normal = fast_normalize(t_normal);
-
-
-
-        /*t_normal = 2.f * t_normal - 1.f;
-
-        t_normal.yz = t_normal.zy;*/
-
-        ///we're gunna have to calculate the derivatives and do tangent stuff :[
-
-        ///cannot possibly be right
-        /*t_normal = rot(t_normal, 0.f, G->world_rot.xyz);
-
-        normal = normal + t_normal;
-
-        normal = fast_normalize(normal);*/
-
-        ///x space pert, y space pert, z offset
-        ///need to transform into world space
-
-        /*t_normal = fast_normalize(t_normal);
-
-        float away = t_normal.z;
-
-        t_normal.z = t_normal.y;
-        t_normal.y = away;
-
-        t_normal.y = fabs(t_normal.y);
-
-        float cangle = dot((float3){0, 1, 0}, t_normal);
-
-        float angle2 = acos(cangle);
-
-        float y = atan2(t_normal.z, t_normal.x);
-
-        float3 rotation = {0, y, angle2};
-
-        normal = rot(normal, 0, rotation);
-
-        //normal = t_normal;
-
-        normal = fast_normalize(normal);*/
-    }
-    #endif
-
     ///http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
+    #if 0
     if(gobj[o_id].rid != -1)
     {
-        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, gobj[o_id].mip_start, nums, sizes, array).xyz;
+        float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, mip_start, nums, sizes, array).xyz;
 
         t_normal = 2.f * t_normal - 1.f;
 
@@ -5886,6 +5836,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         normal = normalize(model_space);
     }
+    #endif
 
 
     //col.xyz = normal;
@@ -6715,7 +6666,8 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
                   __global AUTOMATIC(float4*, cutdown_tris), __global AUTOMATIC(uint*, depth_buffer),
                     __global AUTOMATIC(struct obj_g_descriptor*, object_descriptors), uint frame_id,
                     float4 c_pos, float4 c_rot, float4 c_pos_old, float4 c_rot_old,
-                    image_3d_read array, __global uint *nums, __global uint *sizes)
+                    image_3d_read array, __global uint *nums, __global uint *sizes,
+                    uint mip_start)
 {
     int x = get_global_id(0);
     int y = get_global_id(1);
@@ -6829,7 +6781,7 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
         float2 vtdiff = get_vtdiff(tris_proj, (float2){x, y}, c_rot.xyz, c_pos.xyz, G, vt, p1, p2, p3, vt1, vt2, vt3, rconst);
 
         ///mip_start is a global parameter, edit it out
-        reflection_amount = texture_filter_diff(vt, vtdiff, G->ssid, G->mip_start, nums, sizes, array).x;
+        reflection_amount = texture_filter_diff(vt, vtdiff, G->ssid, mip_start, nums, sizes, array).x;
 
         if(reflection_amount < 0.1f)
             return;

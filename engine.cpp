@@ -1459,6 +1459,7 @@ compute::event engine::draw_screenspace_reflections(object_context_data& dat, ob
     reflection_args.push_back(&dat.tex_gpu_ctx.g_texture_array);
     reflection_args.push_back(&dat.tex_gpu_ctx.g_texture_nums);
     reflection_args.push_back(&dat.tex_gpu_ctx.g_texture_sizes);
+    reflection_args.push_back(&dat.tex_gpu_ctx.mipmap_start);
 
     return run_kernel_with_string("screenspace_reflections", {width, height}, {16, 16}, 2, reflection_args);
 }
@@ -1944,6 +1945,8 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
         p3arg_list.push_back(&eng.dummy_buffer);
         p3arg_list.push_back(&eng.dummy_image2d_t);
     }
+
+    p3arg_list.push_back(&dat.tex_gpu_ctx.mipmap_start);
 
     /*for(auto& i : p3arg_list.args)
     {
