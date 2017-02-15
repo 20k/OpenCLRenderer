@@ -5784,7 +5784,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     }*/
 
     ///http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
-    #if 0
+    #ifdef ENABLE_NORMAL_MAPPING
     if(gobj[o_id].rid != -1)
     {
         float3 t_normal = texture_filter_diff(vt, vtdiff, gobj[o_id].rid, mip_start, nums, sizes, array).xyz;
