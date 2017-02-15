@@ -5729,7 +5729,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     normal = rot_quat(normal, G->world_rot_quat);
 
-    normal = fast_normalize(normal);
+    //normal = fast_normalize(normal);
 
     bool has_colour_already = false;
     float4 vertex_col = 0;
@@ -5791,18 +5791,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         t_normal = 2.f * t_normal - 1.f;
 
-        /*t_normal.yz = t_normal.zy;*/
-
         t_normal = normalize(t_normal);
-
-        //col.xyz = t_normal;
-
-        /*write_imagef(screen, (int2){x, y}, col.xyzz);
-
-        return;*/
-
-        //float3 deltaPos1 = tris_proj[1] - tris_proj[0];
-        //float3 deltaPos2 = tris_proj[2] - tris_proj[0];
 
         float3 deltaPos1 = p2 - p1;
         float3 deltaPos2 = p3 - p1;
@@ -5834,7 +5823,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         model_space = rot_quat(model_space, G->world_rot_quat);
 
-        normal = normalize(model_space);
+        normal = model_space;
+
+        //normal = normalize(model_space);
     }
     #endif
 
@@ -5889,6 +5880,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     //col = ssao;
 
     bool static_geometry = has_feature(feature_flag, FEATURE_FLAG_IS_STATIC);
+
+    normal = fast_normalize(normal);
 
     ///slightly perturb normals to fix banding
     ///not using lighting normals slightly faster
