@@ -22,6 +22,7 @@ struct texture;
 void texture_load(texture*);
 void texture_make_blank(texture* tex, int w, int h, sf::Color col);
 void texture_load_from_image(texture* tex, sf::Image&);
+void texture_load_from_other(texture* tex, texture* other);
 
 struct texture_gpu;
 struct texture_context_data;
@@ -54,6 +55,7 @@ struct texture
     cl_uint gpu_id;
 
     std::string texture_location;
+    std::string cache_name;
 
     cl_uint get_largest_num(int) const;
 
@@ -61,7 +63,9 @@ struct texture
 
     void set_texture_location(const std::string&);
     void set_location(const std::string&);
+    void set_cache_name(const std::string&);
     void set_create_colour(sf::Color col, int w, int h);
+    void set_load_from_other_texture(texture* tex);
 
     bool exists();
 
@@ -79,6 +83,7 @@ struct texture
     void set_unique();
 
     void load();
+    void unload();
 
     texture();
 

@@ -135,9 +135,25 @@ void texture::set_location(const std::string& loc)
     texture_location = loc;
 }
 
+void texture::set_cache_name(const std::string& name)
+{
+    cache_name = name;
+}
+
 void texture::set_create_colour(sf::Color col, int w, int h)
 {
     set_load_func(std::bind(texture_make_blank, std::placeholders::_1, w, h, col));
+}
+
+void texture::set_load_from_other_texture(texture* tex)
+{
+    if(tex == nullptr)
+    {
+        lg::log("RUH ROH, BAD TEXTURE FOUND IN SET LOAD FROM OTHER TEXTURE");
+        return;
+    }
+
+    set_load_func(std::bind(texture_load_from_other, std::placeholders::_1, tex));
 }
 
 bool texture::exists()
@@ -182,6 +198,11 @@ void texture::push()
 void texture::load()
 {
     fp(this);
+}
+
+void texture::unload()
+{
+    is_loaded = false;
 }
 
 ///create mipmap from level, where 0 = base texture, 1 = first level etc up to 4
@@ -643,6 +664,24 @@ void texture_make_blank(texture* tex, int w, int h, sf::Color col)
 void texture_load_from_image(texture* tex, sf::Image& img)
 {
     tex->c_image = img;
+    tex->is_loaded = true;
+
+    if(tex->get_largest_dimension() > max_tex_size)
+    {
+        lg::log("Error, texture larger than max texture size @", __LINE__, " @", __FILE__);
+        ///error? set isloaded to false? return bad id or throw?
+    }
+}
+
+void texture_load_from_other(texture* tex, texture* other)
+{
+    if(!other->is_loaded)
+    {
+        lg::log("Other texture is not loaded @", __LINE__, " @", __FILE__);
+        return;
+    }
+
+    tex->c_image = other->c_image;
     tex->is_loaded = true;
 
     if(tex->get_largest_dimension() > max_tex_size)

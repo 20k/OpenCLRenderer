@@ -42,6 +42,7 @@ texture* texture_context::make_new_cached(const std::string& loc)
 
     ///might as well
     tex->set_location(loc);
+    tex->set_cache_name(loc);
 
     return tex;
 }
@@ -445,6 +446,17 @@ texture* texture_context::id_to_tex(int id)
     for(auto& i : all_textures)
     {
         if(i->id == id)
+            return i;
+    }
+
+    return nullptr;
+}
+
+texture* texture_context::cache_name_to_tex(const std::string& cache_name)
+{
+    for(texture* i : all_textures)
+    {
+        if(i->cache_name == cache_name)
             return i;
     }
 

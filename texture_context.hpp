@@ -57,6 +57,7 @@ struct texture_context
     texture_context_data alloc_gpu(object_context& ctx);
 
     texture* id_to_tex(int);
+    texture* cache_name_to_tex(const std::string& name);
 
     int gid = 0;
 
