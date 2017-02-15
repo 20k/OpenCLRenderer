@@ -28,6 +28,8 @@ struct texture_context_data
 {
     compute::buffer g_texture_sizes;
     compute::buffer g_texture_nums; ///cant be arsed to rename every single instance of this
+    ///lower 12 bits = x, next 12 bits = y, next 10 bits = z
+    //compute::buffer g_texture_offsets;
 
     ///either an image3d OR a uint4 buffer depending on hardware support
     compute::buffer g_texture_array;

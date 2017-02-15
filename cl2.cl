@@ -780,6 +780,7 @@ uint4 read_image_3d_hardware(int4 coord, __global uchar4* array, int width, int 
 ///reads a coordinate from the texture with id tid, num is and sizes are descriptors for the array
 ///fixme
 ///this should under no circumstances have to index two global arrays just to have to read from a damn texture
+///replace nums and sizes with texture start in pixels. Maybe remove tid as well, directly pass in?
 float4 read_tex_array(float2 coords, uint tid, global uint *num, global uint *size, image_3d_read array)
 {
     //cannot do linear interpolation on uchars

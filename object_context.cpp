@@ -394,6 +394,9 @@ std::vector<compute::event> alloc_gpu(cl_uint tri_num, object_context& context, 
             ///boost::compute fails an assertion if tri_num == 0
             ///we dont care if the data arrives late
             ///this might be causing the freezes
+            ///Ok. We should have the object basically store whether or not its internal triangle state is dirty
+            ///if its not, and its object id is the same, we can skip it here
+            ///if its not and its object id is different, we can probably do a memory -> memory gpu copy
             if(it->tri_num > 0)
             {
                 ///this is the bottleneck

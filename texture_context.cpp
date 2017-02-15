@@ -249,7 +249,6 @@ std::vector<cl_uint> get_texture_sizes(const std::vector<texture_page>& texture_
     return ret;
 }
 
-
 bool texture_context::should_realloc(object_context& ctx)
 {
     std::set<texture_id_t> textures_in_use;
