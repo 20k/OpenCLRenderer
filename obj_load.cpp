@@ -438,15 +438,6 @@ void obj_load(objects_container* pobj)
 
         bool is_real_file = texture_name != "" && file_to_load_exists;
 
-        /*if(pobj->textures_are_unique || texture_name == "" || !file_to_load_exists)
-        {
-            tex = tex_ctx->make_new();
-        }
-        else
-        {
-            tex = tex_ctx->make_new_cached(full);
-        }*/
-
         if(is_real_file)
         {
             if(pobj->textures_are_unique)
@@ -475,9 +466,8 @@ void obj_load(objects_container* pobj)
                 }
                 else
                 {
-
+                    tex = tex_ctx->make_new_cached(col2cachename({kd.x(), kd.y(), kd.z(), 255.f}));
                 }
-                tex = tex_ctx->make_new_cached(col2cachename({kd.x(), kd.y(), kd.z(), 255.f}));
 
                 lg::log("kd ", success, " ", kd.x(), kd.y(), kd.z());
 
