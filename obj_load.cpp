@@ -418,6 +418,8 @@ void obj_load(objects_container* pobj)
         std::string bumpmap_name = retrieve_bumpmap    (mtlf_contents, usemtl_name[i]);
         std::string full = dir + "/" + texture_name;
 
+        std::string cache_name = full;
+
         bool file_to_load_exists = file_exists(full);
 
         if(!file_to_load_exists && texture_name != "")
@@ -434,17 +436,28 @@ void obj_load(objects_container* pobj)
 
         texture* tex;
 
-        if(pobj->textures_are_unique || texture_name == "" || !file_to_load_exists)
+        bool is_real_file = texture_name != "" && file_to_load_exists;
+
+        /*if(pobj->textures_are_unique || texture_name == "" || !file_to_load_exists)
         {
             tex = tex_ctx->make_new();
         }
         else
         {
             tex = tex_ctx->make_new_cached(full);
-        }
+        }*/
 
-        if(texture_name != "" && file_to_load_exists)
+        if(is_real_file)
         {
+            if(pobj->textures_are_unique)
+            {
+                tex = tex_ctx->make_new();
+            }
+            else
+            {
+                tex = tex_ctx->make_new_cached(cache_name);
+            }
+
             tex->set_location(full);
         }
         else
@@ -456,12 +469,24 @@ void obj_load(objects_container* pobj)
 
             if(success)
             {
+                if(pobj->textures_are_unique)
+                {
+                    tex = tex_ctx->make_new();
+                }
+                else
+                {
+
+                }
+                tex = tex_ctx->make_new_cached(col2cachename({kd.x(), kd.y(), kd.z(), 255.f}));
+
                 lg::log("kd ", success, " ", kd.x(), kd.y(), kd.z());
 
                 tex->set_create_colour(sf::Color(kd.x(), kd.y(), kd.z()), 32, 32);
             }
             else
             {
+                tex = tex_ctx->make_new();
+
                 tex->set_create_colour(sf::Color(255, 0, 255), 32, 32);
 
                 lg::log("Warning, all attempts to get a reasonable texture in obj_load have failed");

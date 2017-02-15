@@ -11,6 +11,7 @@
 #include <boost/compute/system.hpp>
 #include "clstate.h"
 #include <stdint.h>
+#include <vec/vec.hpp>
 
 namespace compute = boost::compute;
 
@@ -24,6 +25,8 @@ void texture_load_from_image(texture* tex, sf::Image&);
 
 struct texture_gpu;
 struct texture_context_data;
+
+std::string col2cachename(const vec4f& col);
 
 struct texture
 {
