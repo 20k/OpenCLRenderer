@@ -6030,8 +6030,15 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///this is the gaussian distribution version
         float microfacet = gauss_constant*native_exp(-alpha*alpha/(rough*rough)); ///barely faster if at all to approximate
 
-        float c1 = native_divide(2 * ndh * ndv, vdh);
-        float c2 = native_divide(2 * ndh * ndl, vdh);
+        float sv = 2 * ndh / vdh;
+
+        float c1 = sv * ndv;
+        float c2 = sv * ndl;
+
+        //float c1 = native_divide(2 * ndh * ndv, vdh);
+        //float c2 = native_divide(2 * ndh * ndl, vdh);
+
+
         //float c2 = native_divide(2 * ndh * ndl, ldh);
 
         ///mediumly expensive
