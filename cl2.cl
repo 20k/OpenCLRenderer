@@ -4201,7 +4201,7 @@ void fill_ids(__global struct triangle* triangles, uint pad_id, int offset, int 
 #define op_size_light 300
 
 
-#define FRAGMENT_ID_MUL 6
+#define FRAGMENT_ID_MUL 5
 
 /*enum clip_type
 {
@@ -4353,7 +4353,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
                 fragment_id_buffer[f++] = a;
                 fragment_id_buffer[f++] = c_id;
 
-                fragment_id_buffer[f++] = as_int(true_area);
+                //fragment_id_buffer[f++] = as_int(true_area);
                 fragment_id_buffer[f++] = as_int(rconst);
                 fragment_id_buffer[f++] = o_id;
             }
@@ -4361,6 +4361,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
     }
 }
 
+#define FIDM1 (FRAGMENT_ID_MUL - 1)
 
 ///if we can get tiled based rendering workign
 ///we can map the depth buffer of the camera into the lights cubemap tile space
@@ -4566,7 +4567,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
 
             uint base = atomic_add(id_buffer_atomc, thread_num);
 
-            uint f = base*(FRAGMENT_ID_MUL-1);
+            uint f = base*FIDM1;
 
             for(uint a = 0; a < thread_num; a++)
             {
@@ -4579,7 +4580,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
                 fragment_id_buffer[f++] = a;
                 fragment_id_buffer[f++] = c_id;
 
-                fragment_id_buffer[f++] = as_int(true_area);
+                //fragment_id_buffer[f++] = as_int(true_area);
                 fragment_id_buffer[f++] = as_int(rconst);
                 //fragment_id_buffer[f++] = o_id;
             }
@@ -4587,6 +4588,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     }
 }
 
+#if 0
 __kernel
 void prearrange_light(__global struct triangle* triangles, __global uint* tri_num, float4 c_pos, float4 c_rot, __global uint* fragment_id_buffer, __global uint* id_buffer_maxlength, __global uint* id_buffer_atomc,
                 __global uint* id_cutdown_tris, __global float4* cutdown_tris, uint is_light,  __global struct obj_g_descriptor* gobj,
@@ -4721,6 +4723,7 @@ void prearrange_light(__global struct triangle* triangles, __global uint* tri_nu
         }
     }
 }
+#endif
 
 
 bool side(float2 p1, float2 p2, float2 p3)
@@ -4955,8 +4958,9 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
     uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
 
     ///we no longer use area, so get rid of this
-    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
-    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
+    //float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
+    ///USED TO BE +4, AREA NOT USED
+    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
 
     ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];
@@ -5086,7 +5090,6 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
     const float ewidth = LIGHTBUFFERDIM;
     const float eheight = LIGHTBUFFERDIM;
 
-    #define FIDM1 (FRAGMENT_ID_MUL - 1)
 
     ///DANGEROUS REPURPOSING OF FRAGMENT ID BUFFER BE AWARE
     uint cube_face = fragment_id_buffer[id*FIDM1 + 0];
@@ -5095,8 +5098,8 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
 
     uint ctri = fragment_id_buffer[id*FIDM1 + 2];
 
-    float area = as_float(fragment_id_buffer[id*FIDM1 + 3]);
-    float rconst = as_float(fragment_id_buffer[id*FIDM1 + 4]);
+    //float area = as_float(fragment_id_buffer[id*FIDM1 + 3]);
+    float rconst = as_float(fragment_id_buffer[id*FIDM1 + 3]);
 
     ///triangle retrieved from depth buffer
     float3 tris_proj_n[3];
@@ -5128,7 +5131,7 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
 
     int pcount = -1;
 
-    float mod = area / MOD_ERROR;
+    //float mod = area / MOD_ERROR;
 
     float x = ((pixel_along + 0) % width) + min_max[0] - 1;
     float y = floor(native_divide((float)(pixel_along + pcount), (float)width)) + min_max[2];
@@ -5190,6 +5193,7 @@ void kernel1_realtime_shadowing(__global struct triangle* triangles, __global ui
     }
 }
 
+#if 0
 __kernel
 void kernel1_light(__global struct triangle* triangles, __global uint* fragment_id_buffer, __global uint* tri_num, __global uint* depth_buffer, __global uint* f_len, __global uint* id_cutdown_tris,
            __global float4* cutdown_tris, uint is_light, __write_only image2d_t id_buffer,
@@ -5306,6 +5310,7 @@ void kernel1_light(__global struct triangle* triangles, __global uint* fragment_
         }
     }
 }
+#endif
 
 
 ///pad buffers so i don't have to do bounds checking? Probably slower
@@ -5351,8 +5356,9 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     uint ctri = fragment_id_buffer[id*FRAGMENT_ID_MUL + 2];
 
-    float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
-    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 4]);
+    //float area = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
+    ///USED TO BE +4, NOW +3 AS AREA IS NOT USED
+    float rconst = as_float(fragment_id_buffer[id*FRAGMENT_ID_MUL + 3]);
 
     ///triangle retrieved from depth buffer
     ///could well collide in memory. This is extremely slow?
@@ -5735,8 +5741,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
-    float rconst = as_float(fragment_id_buffer[id_val4.x*FRAGMENT_ID_MUL + 4]);
-    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    float rconst = as_float(fragment_id_buffer[id_val4.x*FRAGMENT_ID_MUL + 3]); ///used to be +4
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 4]; /// used to be +5
 
     float3 camera_pos;
     float3 camera_rot;
@@ -6318,7 +6324,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
-    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 4]; ///used to be 5. Why am I not using an enum?!
 
     float3 my_normal = decode_normal(screen_normals_optional[y*SCREENWIDTH + x]);
     my_normal = fast_normalize(my_normal);
@@ -6380,7 +6386,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
             uint their_depth_raw = depth_buffer[(y + j)*SCREENWIDTH + x + i];
 
-            int fo_id = fragment_id_buffer[fid * FRAGMENT_ID_MUL + 5];
+            int fo_id = fragment_id_buffer[fid * FRAGMENT_ID_MUL + 4];
 
             float depth = idcalc((float)their_depth_raw / mulint);
 
@@ -6523,14 +6529,14 @@ void do_pseudo_aa_outline(__read_only AUTOMATIC(image2d_t, id_buffer), __global 
 
     uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
-    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 4];
 
 
     uint up_id = read_imageui(id_buffer, sam, (int2){x, y-1}).x;
     uint right_id = read_imageui(id_buffer, sam, (int2){x+1, y}).x;
 
-    int up_oid = fragment_id_buffer[up_id * FRAGMENT_ID_MUL + 5];
-    int right_oid = fragment_id_buffer[right_id * FRAGMENT_ID_MUL + 5];
+    int up_oid = fragment_id_buffer[up_id * FRAGMENT_ID_MUL + 4];
+    int right_oid = fragment_id_buffer[right_id * FRAGMENT_ID_MUL + 4];
 
     //if(up_oid == o_id && right_oid == o_id)
     //    return;
@@ -6575,7 +6581,7 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
-    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 4];
 
     __global struct obj_g_descriptor *G = &object_descriptors[o_id];
 
@@ -6770,9 +6776,9 @@ void screenspace_reflections(uint tex_id, __global struct triangle *triangles, _
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
-    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 4];
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
-    float rconst = as_float(fragment_id_buffer[id_val4.x*FRAGMENT_ID_MUL + 4]);
+    float rconst = as_float(fragment_id_buffer[id_val4.x*FRAGMENT_ID_MUL + 3]);
     uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
 
     __global struct obj_g_descriptor *G = &object_descriptors[o_id];
@@ -7220,7 +7226,7 @@ void screenspace_reflections_asdf(__global struct triangle *triangles, __read_on
 
     uint4 id_val4 = read_imageui(id_buffer, sam, (int2){x, y});
 
-    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 5];
+    int o_id = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 4];
     uint ctri = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 2];
     uint tri_global = fragment_id_buffer[id_val4.x * FRAGMENT_ID_MUL + 0];
 
