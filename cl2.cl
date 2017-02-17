@@ -6297,6 +6297,7 @@ bool depth_disjointed(float d1, float d2)
 ///we need to add smoothing by normals
 ///or, we could pass in tris and simply go by tri boundaries > amount
 ///texture derivatives would be the best for AA ;_;
+///ok. Normals work sometimes, but if they're the same then rip. Use VTs and normals?
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),
@@ -6311,8 +6312,8 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
-    if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
-        return;
+    //if(x >= SCREENWIDTH || y >= SCREENHEIGHT)
+    //    return;
 
     if(x >= SCREENWIDTH-1 || y >= SCREENHEIGHT-1)
         return;
@@ -6369,11 +6370,16 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
     float avg_depth = my_depth;
     float3 avg_normal = my_normal;
 
+    if(my_depth_raw == mulint)
+        return;
+
     float AA_angle_degrees = 20.f;
 
     float AA_angle_cosrad = cos(AA_angle_degrees * 2 * M_PI / 360.f);
 
     const int num = 2;
+
+    const float depth_bound = 100;
 
     for(int j=-1; j<2; j++)
     {
@@ -6400,7 +6406,8 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
             //int tests[2] = {fo_id != o_id, !depth_approx_equal(my_depth, depth)};
             //int tests[2] = {fo_id != o_id, dot(my_normal, found_normal) < 0.5f};
 
-            int tests[2] = {fo_id != o_id, dot(my_normal, found_normal) < AA_angle_cosrad};
+            //int tests[2] = {fo_id != o_id, dot(my_normal, found_normal) < AA_angle_cosrad};
+            int tests[2] = {fabs(depth - my_depth) > depth_bound, dot(my_normal, found_normal) < AA_angle_cosrad};
 
             for(int kk = 0; kk < num; kk++)
             {
@@ -6435,8 +6442,8 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
             }
 
 
-            avg_id = (fo_id + avg_id)/2;
-            //avg_depth = (depth + avg_depth) / 2.f;
+            //avg_id = (fo_id + avg_id)/2;
+            avg_depth = (depth + avg_depth) / 2.f;
             avg_normal += (found_normal + avg_normal) / 2.f;
 
             avg_normal = fast_normalize(avg_normal);
@@ -6463,7 +6470,9 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
 
     //int exit_conditions[2] = {avg_id < o_id, my_depth < avg_depth};
 
-    int exit_conditions[2] = {avg_id < o_id, dot(avg_normal, my_normal) >= AA_angle_cosrad};
+    //int exit_conditions[2] = {avg_id < o_id, dot(avg_normal, my_normal) >= AA_angle_cosrad};
+
+    int exit_conditions[2] = {my_depth < avg_depth, dot(avg_normal, my_normal) >= AA_angle_cosrad};
 
     for(int kk=0; kk < num; kk++)
     {
@@ -6478,6 +6487,7 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
             my_accum[kk] /= my_samples[kk];
             their_accum[kk] /= their_samples[kk];
 
+            #if 0
             if(num_corner[kk] == 1)
             {
                 wm = 0.5f;
@@ -6489,9 +6499,16 @@ void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATI
                 if(avg_id == o_id && my_depth < avg_depth)
                     return;*/
 
+                ///tiebreaker to make sure we don't colour both sides thickly, only 1 pixel coloured
                 if(exit_conditions[kk])
                     return;
             }
+            #endif
+
+            #ifdef REDUCED_AA
+            if(exit_conditions[kk])
+                return;
+            #endif
 
             float3 accum = my_accum[kk] * wm + their_accum[kk] * wt;
 
