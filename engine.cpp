@@ -3631,46 +3631,48 @@ void engine::flip()
         old_time = current_time;
         current_time = ftime.getElapsedTime().asMicroseconds();
 
-        #define MANAGE_FRAMETIMES
-        #ifdef MANAGE_FRAMETIMES
-        float time_it_just_took_to_render_ms = get_frametime_ms();
-
-        //float last_frametime_ms = frametime_history_ms[0];
-
-        float last_frametime_ms = (frametime_history_ms[0] + frametime_history_ms[1] + frametime_history_ms[2]) / 3.f;
-
-        float max_frametime_deviation_ms = 0.5;
-
-        float time_to_next_frame = last_frametime_ms - time_it_just_took_to_render_ms;
-
-        ///if > 0
-        time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.1f);
-
-        if(time_to_next_frame > 0)
+        #ifdef WIN32
+        if(manage_frametimes)
         {
-            LARGE_INTEGER li;
+            float time_it_just_took_to_render_ms = get_frametime_ms();
 
-            double PCFreq = double(li.QuadPart)/1000.0;
+            //float last_frametime_ms = frametime_history_ms[0];
 
-            QueryPerformanceCounter(&li);
-            __int64 CounterStart = li.QuadPart;
+            float last_frametime_ms = (frametime_history_ms[0] + frametime_history_ms[1] + frametime_history_ms[2]) / 3.f;
 
+            float max_frametime_deviation_ms = 0.5;
 
-            while(1)
+            float time_to_next_frame = last_frametime_ms - time_it_just_took_to_render_ms;
+
+            ///if > 0
+            time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.1f);
+
+            if(time_to_next_frame > 0)
             {
-                LARGE_INTEGER li2;
+                LARGE_INTEGER li;
 
-                QueryPerformanceCounter(&li2);
+                double PCFreq = double(li.QuadPart)/1000.0;
 
-                double ntime_ms = double(li2.QuadPart-CounterStart)/PCFreq;
+                QueryPerformanceCounter(&li);
+                __int64 CounterStart = li.QuadPart;
 
-                if(ntime_ms*1000. >= time_to_next_frame)
-                    break;
+
+                while(1)
+                {
+                    LARGE_INTEGER li2;
+
+                    QueryPerformanceCounter(&li2);
+
+                    double ntime_ms = double(li2.QuadPart-CounterStart)/PCFreq;
+
+                    if(ntime_ms*1000. >= time_to_next_frame)
+                        break;
+                }
             }
+
+            current_time = ftime.getElapsedTime().asMicroseconds();
         }
         #endif
-
-        current_time = ftime.getElapsedTime().asMicroseconds();
 
         ///move into the past
         frametime_history_ms.flip();
@@ -4005,4 +4007,9 @@ bool use_3d_texture_array()
 void engine::set_max_input_lag_frames(int max_frames)
 {
     max_input_lag_frames = max_frames;
+}
+
+void engine::set_manage_frametimes(bool manage)
+{
+    manage_frametimes = manage;
 }

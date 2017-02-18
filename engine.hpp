@@ -198,6 +198,7 @@ struct engine
     ///everyone hates a microstutter
     float running_frametime_smoothed;
 
+    bool manage_frametimes = false;
     n_buffer<float, 3> frametime_history_ms;
 
     //float get_frametime_rendertime_target_ms();
@@ -368,6 +369,7 @@ struct engine
     int max_input_lag_frames = 0;
 
     void set_max_input_lag_frames(int max_frames);
+    void set_manage_frametimes(bool manage);
 };
 
 struct arg_list
