@@ -3628,14 +3628,8 @@ void engine::flip()
 {
     if(render_me)
     {
-        //render_me = false;
-
         old_time = current_time;
         current_time = ftime.getElapsedTime().asMicroseconds();
-
-
-        //std::cout << (double) std::chrono::high_resolution_clock::period::num
-        //     / std::chrono::high_resolution_clock::period::den;
 
         #define MANAGE_FRAMETIMES
         #ifdef MANAGE_FRAMETIMES
@@ -3654,39 +3648,11 @@ void engine::flip()
         //printf("last frametime %f %f\n", last_frametime_ms, get_frametime_ms());
 
         ///if > 0
-        time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.0f);
+        time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.1f);
 
-        //sf::Clock timer;
-
-        //auto start = std::chrono::high_resolution_clock::now();
 
         if(time_to_next_frame > 0)
         {
-            //printf("Delaying %f\n", time_to_next_frame);
-
-            //while(timer.getElapsedTime().asMicroseconds() / 1000.f < time_to_next_frame)
-            /*while(1)
-            {
-                auto cur = std::chrono::high_resolution_clock::now();
-
-                //std::chrono::duration<double> diff = cur-start;
-
-                auto diff = std::chrono::duration_cast<std::chrono::nanoseconds> (cur - start);
-
-                double ctime = diff.count() / 1000. / 1000.;
-
-                //printf("%lf\n", ctime);
-
-                if(ctime >= time_to_next_frame)
-                    break;
-            }*/
-
-            /*timeval tiv;
-            tiv.tv_sec = 0;
-            tiv.tv_usec = time_to_next_frame * 1000.f;
-
-            select(0, nullptr, nullptr, nullptr, &tiv);*/
-
             LARGE_INTEGER li;
 
             double PCFreq = double(li.QuadPart)/1000.0;
@@ -3708,14 +3674,6 @@ void engine::flip()
             }
         }
         #endif
-
-        //printf("Time delayed %f\n", timer.getElapsedTime().asMicroseconds() / 1000.f);
-
-        //std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start
-
-        //auto diff = std::chrono::duration_cast<std::chrono::microseconds> (std::chrono::high_resolution_clock::now() - start);
-
-        //printf("Time delayed %f\n", diff.count() / 1000.);
 
         current_time = ftime.getElapsedTime().asMicroseconds();
 
