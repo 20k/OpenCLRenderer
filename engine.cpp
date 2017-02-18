@@ -3645,9 +3645,10 @@ void engine::flip()
             float time_to_next_frame = last_frametime_ms - time_it_just_took_to_render_ms;
 
             ///if > 0
-            time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.1f);
+            ///in ms
+            time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.0f);
 
-            if(time_to_next_frame > 0)
+            if(time_to_next_frame > 49/1000.f/1000.f)
             {
                 LARGE_INTEGER li;
 
