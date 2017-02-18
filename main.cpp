@@ -27,6 +27,7 @@ struct viewport
     int width, int height, float FOV_CONST, vec3f camera_pos, vec3f camera_rot
 }
 */
+///Ok. Lets manage frametimes
 int main(int argc, char *argv[])
 {
     lg::set_logfile("./logging.txt");
@@ -135,7 +136,7 @@ int main(int argc, char *argv[])
     ///WE HAVE NO CLEAR CONCEPT OF OWNERSHIP OVER ANY OF THE LIGHTING DATA
     ///AAH AAH, PANIC AND its probably fine, but its *not* ideal
     window.set_light_data(light_data);
-    window.construct_shadowmaps();
+    //window.construct_shadowmaps();
 
     //context.flip();
 
@@ -253,9 +254,8 @@ int main(int argc, char *argv[])
 
         window.blit_to_screen(*context.fetch());
 
-        window.flip();
-
         window.render_block();
+        window.flip();
 
         context.build_tick();
         //context.flush_locations();
@@ -285,6 +285,10 @@ int main(int argc, char *argv[])
         if(key.isKeyPressed(sf::Keyboard::Num1))
             screenshake_test.init(200.f, 1.0f, 1.f);
 
+        //float avg = (window.frametime_history_ms[0] + window.frametime_history_ms[1] + window.frametime_history_ms[2]) / 3;
+
+        //printf("AVG %f\n", avg);
+        printf("FTIME %f\n", window.get_frametime_ms());
 
         screenshake_test.tick(window.get_frametime_ms(), window.c_pos, window.c_rot);
 

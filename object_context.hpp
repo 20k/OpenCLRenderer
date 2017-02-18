@@ -32,6 +32,15 @@ struct n_buffer
 {
     T buffers[N];
 
+    ///lets default initialise all the things, I hate uninitialised shit
+    n_buffer()
+    {
+        for(int i=0; i<N; i++)
+        {
+            buffers[i] = T();
+        }
+    }
+
     int c = 0;
 
     void flip()
@@ -40,6 +49,7 @@ struct n_buffer
         c = c % N;
     }
 
+    ///I think this may be wrong, should it be idx + N - c?
     T& operator[](std::size_t idx)
     {
         ///0 is always the front buffer, 1 is always the next

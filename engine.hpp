@@ -198,6 +198,10 @@ struct engine
     ///everyone hates a microstutter
     float running_frametime_smoothed;
 
+    n_buffer<float, 3> frametime_history_ms;
+
+    //float get_frametime_rendertime_target_ms();
+
     light_gpu* light_data;
     object_context_data* obj_data;
 

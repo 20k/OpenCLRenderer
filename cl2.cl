@@ -5628,6 +5628,9 @@ float4 get_vertex_col(__global struct vertex* v)
     return rgba / 255.f;
 }
 
+///I think we could rephrase this in terms of tris instead of from a screenspace perspective
+///we know that the vtdiff is constant across a tri face
+///so.. we can just do like, uv1 - uv0 / rate of change of position in screenspace from p1 - p0
 float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 camera_pos, __global struct obj_g_descriptor* G, float2 vt,
                   float3 p1, float3 p2, float3 p3, float2 vt1, float2 vt2, float2 vt3, float rconst)
 {
@@ -6298,6 +6301,8 @@ bool depth_disjointed(float d1, float d2)
 ///or, we could pass in tris and simply go by tri boundaries > amount
 ///texture derivatives would be the best for AA ;_;
 ///ok. Normals work sometimes, but if they're the same then rip. Use VTs and normals?
+///we know which object is closer due to depth
+///do if im further away, blur me into the near object but leave it untouched
 __kernel
 void do_pseudo_aa(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMATIC(uint*, fragment_id_buffer),
                   __read_only AUTOMATIC(image2d_t, in_screen), __write_only AUTOMATIC(image2d_t, screen),

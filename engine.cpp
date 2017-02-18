@@ -3633,6 +3633,98 @@ void engine::flip()
         old_time = current_time;
         current_time = ftime.getElapsedTime().asMicroseconds();
 
+
+        //std::cout << (double) std::chrono::high_resolution_clock::period::num
+        //     / std::chrono::high_resolution_clock::period::den;
+
+        #define MANAGE_FRAMETIMES
+        #ifdef MANAGE_FRAMETIMES
+        float time_it_just_took_to_render_ms = get_frametime_ms();
+
+        //float last_frametime_ms = frametime_history_ms[0];
+
+        float last_frametime_ms = (frametime_history_ms[0] + frametime_history_ms[1] + frametime_history_ms[2]) / 3.f;
+
+        float max_frametime_deviation_ms = 0.5;
+
+        //sf::Clock clk;
+
+        float time_to_next_frame = last_frametime_ms - time_it_just_took_to_render_ms;
+
+        //printf("last frametime %f %f\n", last_frametime_ms, get_frametime_ms());
+
+        ///if > 0
+        time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.0f);
+
+        //sf::Clock timer;
+
+        //auto start = std::chrono::high_resolution_clock::now();
+
+        if(time_to_next_frame > 0)
+        {
+            //printf("Delaying %f\n", time_to_next_frame);
+
+            //while(timer.getElapsedTime().asMicroseconds() / 1000.f < time_to_next_frame)
+            /*while(1)
+            {
+                auto cur = std::chrono::high_resolution_clock::now();
+
+                //std::chrono::duration<double> diff = cur-start;
+
+                auto diff = std::chrono::duration_cast<std::chrono::nanoseconds> (cur - start);
+
+                double ctime = diff.count() / 1000. / 1000.;
+
+                //printf("%lf\n", ctime);
+
+                if(ctime >= time_to_next_frame)
+                    break;
+            }*/
+
+            /*timeval tiv;
+            tiv.tv_sec = 0;
+            tiv.tv_usec = time_to_next_frame * 1000.f;
+
+            select(0, nullptr, nullptr, nullptr, &tiv);*/
+
+            LARGE_INTEGER li;
+
+            double PCFreq = double(li.QuadPart)/1000.0;
+
+            QueryPerformanceCounter(&li);
+            __int64 CounterStart = li.QuadPart;
+
+
+            while(1)
+            {
+                LARGE_INTEGER li2;
+
+                QueryPerformanceCounter(&li2);
+
+                double ntime_ms = double(li2.QuadPart-CounterStart)/PCFreq;
+
+                if(ntime_ms*1000. >= time_to_next_frame)
+                    break;
+            }
+        }
+        #endif
+
+        //printf("Time delayed %f\n", timer.getElapsedTime().asMicroseconds() / 1000.f);
+
+        //std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start
+
+        //auto diff = std::chrono::duration_cast<std::chrono::microseconds> (std::chrono::high_resolution_clock::now() - start);
+
+        //printf("Time delayed %f\n", diff.count() / 1000.);
+
+        current_time = ftime.getElapsedTime().asMicroseconds();
+
+        ///move into the past
+        frametime_history_ms.flip();
+        ///update current value with current frametime history
+        frametime_history_ms[0] = get_frametime_ms();
+
+
         window.display();
 
         //compute::opengl_enqueue_acquire_gl_objects(1, &g_screen.get(), cl::cqueue);
