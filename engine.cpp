@@ -3641,15 +3641,10 @@ void engine::flip()
 
         float max_frametime_deviation_ms = 0.5;
 
-        //sf::Clock clk;
-
         float time_to_next_frame = last_frametime_ms - time_it_just_took_to_render_ms;
-
-        //printf("last frametime %f %f\n", last_frametime_ms, get_frametime_ms());
 
         ///if > 0
         time_to_next_frame = std::min(max_frametime_deviation_ms, time_to_next_frame/1.1f);
-
 
         if(time_to_next_frame > 0)
         {
