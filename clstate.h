@@ -116,6 +116,7 @@ namespace cl
     extern kernel draw_hermite_skin;
 
     extern bool program_built;
+    extern bool any_built_requested;
 }
 
 

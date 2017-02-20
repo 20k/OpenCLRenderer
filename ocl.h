@@ -401,6 +401,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     }
 
 
+    ///you know... I'm not sure we *do* want to retain the context here...!
     cl::context = compute::context(context, true);
 
     lg::log("Bound context");
@@ -520,6 +521,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 
     lg::log("Created command queue");
 
+    cl::any_built_requested = true;
     build_thread = std::thread(build, file, w, h, lres, only_3d, extra_build_commands);
     //build_thread.join();
 
@@ -529,6 +531,9 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
 inline
 void reset_program_built()
 {
+    if(cl::any_built_requested)
+        program_ensure_built();
+
     cl::program_built = false;
 }
 

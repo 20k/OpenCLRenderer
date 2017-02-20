@@ -85,4 +85,5 @@ kernel cl::process_skins;
 kernel cl::draw_hermite_skin;
 
 bool cl::program_built = false;
+bool cl::any_built_requested = false;
 

@@ -201,11 +201,12 @@ bool engine::is_requested_close()
     return requested_close;
 }
 
-#ifdef WIN32
+
 ///fuck this shit I'm out
 ///does borderless window toggling and also returns the height of the bar at the top
 int window_fuckery(sf::RenderWindow& window, int videowidth, int height, bool fullscreen)
 {
+    #ifdef WIN32
     window.setSize({videowidth, height});
 
     window.setView(sf::View(sf::FloatRect(0, 0, videowidth, height)));
@@ -242,12 +243,48 @@ int window_fuckery(sf::RenderWindow& window, int videowidth, int height, bool fu
     }
 
     return yheight;
+    #else // WIN32
+    return 0;
+    #endif
 }
-#endif
 
 void engine::set_fov(float phorizontal_fov_degrees)
 {
     horizontal_fov_degrees = phorizontal_fov_degrees;
+}
+
+void resize_window(int width, int height, bool fullscreen, engine& window)
+{
+    int yheight;
+
+    window_fuckery(window.window, width, height, fullscreen);
+
+    ///I don't know. I dont know why we have to do this twice, it just fixes absolutely everything ever
+    ///Why? Who knows. SFML seems to have a heart attack if you just call setview/setsize again for a second time
+    ///without doing all the appropriate window fiddling afterwards, even though nothing has changed
+    ///and we don't even call setwindow pos. Who knows. This probably wont work on nvidia (kill me)
+    yheight = window_fuckery(window.window, width, height, fullscreen);
+
+    ///problem is,we setwindowpos here which applies the above updates, which means that our titlebar is no longer valid
+    if(window.loaded && fullscreen)
+    {
+        window.window.setPosition({0, -yheight});
+    }
+
+    if(window.loaded && !fullscreen)
+    {
+        window.window.setPosition({10, 10});
+    }
+
+    sf::Image img;
+    img.create(32, 32);
+
+    sf::Texture tex;
+    tex.loadFromImage(img);
+
+    sf::Sprite spr(tex);
+
+    window.window.draw(spr);
 }
 
 void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::string& name, const std::string& loc, bool only_3d, bool fullscreen)
@@ -411,15 +448,15 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         window.setPosition({old_win_pos.x, old_win_pos.y});
     }
 
-    ///problem is,we setwindowpos here which applies the above updates, which means that our titlebar is no longer valid
-    if(loaded && fullscreen && do_resize_hack)
-    {
-        window.setPosition({0, -yheight});
-    }
+    ///problem is, we setwindowpos here which applies the above updates, which means that our titlebar is no longer valid
 
-    if(loaded && !fullscreen && do_resize_hack)
+    ///fix alt tabbing
+    ///Why does this fix alt tabbing you ask?
+    ///I'm not sure. I think its because we're tinkering around with the internals of SFML
+    if(do_resize_hack)
     {
-        window.setPosition({10, 10});
+        resize_window(width-1, height-1, fullscreen, *this);
+        resize_window(width, height, fullscreen, *this);
     }
 
     ///passed in as compilation parameter to opencl
@@ -539,7 +576,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         }
     }*/
 
-    lg::log("Acquired shared main opengl screen renderwindow");
+    //lg::log("Acquired shared main opengl screen renderwindow");
 
     //g_screen_reprojected = gen_cl_gl_framebuffer_renderbuffer(&gl_reprojected_framebuffer_id, width, height);
 
@@ -566,8 +603,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
 
     lg::log("Pre cl alloc");
 
-    ///release old memory
-    g_tid_buf = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
+    //g_tid_buf = compute::buffer(cl::context, sizeof(cl_uint), CL_MEM_READ_WRITE, nullptr);
 
     g_tid_buf              = compute::buffer(cl::context, size_of_uid_buffer*sizeof(cl_uint), CL_MEM_READ_WRITE, NULL);
 
@@ -686,10 +722,10 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         raw_input_inited = false;
 
     loaded = true;
+
     suppress_resize = true;
 
     lg::log("end engine::load()");
-
 }
 
 void engine::set_light_data(light_gpu& ldat)
@@ -3626,7 +3662,7 @@ void render_screen(engine& eng, object_context_data& dat)
 
 void engine::flip()
 {
-    if(render_me)
+    //if(render_me)
     {
         old_time = current_time;
         current_time = ftime.getElapsedTime().asMicroseconds();
@@ -3701,7 +3737,7 @@ void engine::blit_to_screen(object_context_data& dat)
     ///and hope the api doesn't notice
     dat.ensure_screen_buffers(width, height);
 
-    if(render_me)
+    //if(render_me)
     {
         static sf::Clock clk;
 
