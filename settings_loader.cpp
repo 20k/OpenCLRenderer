@@ -64,7 +64,7 @@ void settings::load(const std::string& loc)
         }
     }
 
-    if(content.size() < 13)
+    if(content.size() < 14)
     {
         lg::log("Invalid settings file");
         return;
@@ -84,7 +84,7 @@ void settings::load(const std::string& loc)
     frames_of_input_lag = atoi(content[11].c_str());
     horizontal_fov_degrees = atof(content[12].c_str());
     use_frametime_management = atoi(content[13].c_str());
-
+    is_fullscreen = atoi(content[14].c_str());
 
     if(name.length() == 0)
     {
@@ -139,6 +139,7 @@ void settings::save(const std::string& loc)
     to_save.push_back(std::to_string(frames_of_input_lag));
     to_save.push_back(std::to_string(horizontal_fov_degrees));
     to_save.push_back(std::to_string(use_frametime_management));
+    to_save.push_back(std::to_string(is_fullscreen));
 
 
 

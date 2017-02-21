@@ -301,6 +301,14 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
         old_win_pos = {window.getPosition().x, window.getPosition().y};
     }
 
+    if(fullscreen)
+    {
+        sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+
+        pwidth = desktop.width;
+        pheight = desktop.height;
+    }
+
     width = pwidth;
     height = pheight;
     depth = pdepth;
@@ -416,7 +424,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             window.create(sf::VideoMode::getDesktopMode(), name, sf::Style::Fullscreen);
 
         if(fullscreen && do_resize_hack)
-            window.create(sf::VideoMode::getDesktopMode(), name);
+            window.create(sf::VideoMode(videowidth, height), name);
         #endif
     }
     ///for this to work, sfml would need to support going fullscreen without recreating context
@@ -455,7 +463,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     ///I'm not sure. I think its because we're tinkering around with the internals of SFML
     if(do_resize_hack)
     {
-        resize_window(width-1, height-1, fullscreen, *this);
+        resize_window(width-1, height-1, false, *this);
         resize_window(width, height, fullscreen, *this);
     }
 
