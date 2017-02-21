@@ -4474,7 +4474,7 @@ void prearrange_realtime_shadowing(__global struct triangle* triangles, __global
     {
         //float3 project = rot_quat_with_offset(vertex_pos(T->vertices[kk]), c_pos, )
 
-        float3 rotated = rot_quat(vertex_pos(&T->vertices[kk]), G->world_rot_quat);
+        float3 rotated = rot_quat(vertex_pos(&T->vertices[kk])*G->scale, G->world_rot_quat);
         rotated += g_world_pos;
 
         ///need to add object positions???!
