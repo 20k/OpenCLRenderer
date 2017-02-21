@@ -5755,11 +5755,29 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     if(*ft == mulint)
     {
+        float4 final_col = screen_clear_colour;
+
+        #ifdef CAN_INTEGRATED_BLEND
+        if(use_optional_blend_buffer)
+        {
+            uint optional_depth = optional_blend_buffer_depth[y * SCREENWIDTH + x];
+
+            if(optional_depth < *ft)
+            {
+                float4 optional_col = read_imagef(optional_blend_screen, sam, (int2){x, y});
+
+                final_col = alpha_blend(optional_col, final_col.xyzz).xyzz;
+            }
+
+            ///ignoring final_col.w here may be an error for chaining
+        }
+        #endif
+
         ///temp, remember to fix when we're back in action
         //write_imagei(object_ids, (int2){x, y}, -1);
         //write_imageui(id_buffer, (int2){x, y}, -1);
-        write_imagef(screen, (int2){x, y}, screen_clear_colour);
-        write_imagef(backup_screen, (int2){x, y}, screen_clear_colour);
+        write_imagef(screen, (int2){x, y}, final_col);
+        write_imagef(backup_screen, (int2){x, y}, final_col);
 
         return;
     }
