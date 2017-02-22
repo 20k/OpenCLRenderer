@@ -468,7 +468,7 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
     }
 
     ///passed in as compilation parameter to opencl
-    l_size = 512;
+    l_size = 1024;
 
 
     float fov = calculate_fov_constant_from_hfov(horizontal_fov_degrees, width);

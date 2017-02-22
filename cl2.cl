@@ -4318,7 +4318,7 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
         xpv = round((float3){tris_proj[i][0].x, tris_proj[i][1].x, tris_proj[i][2].x});
         ypv = round((float3){tris_proj[i][0].y, tris_proj[i][1].y, tris_proj[i][2].y});
 
-        float true_area = calc_area(xpv, ypv);
+        //float true_area = calc_area(xpv, ypv);
         float rconst = calc_rconstant_v(xpv, ypv);
 
 

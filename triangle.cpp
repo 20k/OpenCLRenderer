@@ -12,6 +12,22 @@ void triangle::generate_flat_normals()
     }
 }
 
+std::pair<vec3f, vec3f> triangle::get_min_max()
+{
+    vec3f minv = {FLT_MAX, FLT_MAX, FLT_MAX};
+    vec3f maxv = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+    for(auto& i : vertices)
+    {
+        cl_float4 pos = i.get_pos();
+
+        minv = min(minv, (vec3f){pos.x, pos.y, pos.z});
+        maxv = max(maxv, (vec3f){pos.x, pos.y, pos.z});
+    }
+
+    return {minv, maxv};
+}
+
 std::array<cl_float4, 6> quad::decompose()
 {
     std::vector<vec3f> points;
