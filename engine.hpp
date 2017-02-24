@@ -370,6 +370,8 @@ struct engine
 
     void set_max_input_lag_frames(int max_frames);
     void set_manage_frametimes(bool manage);
+    bool supports_efficient_cl_gl_interop();
+    bool use_efficient_cl_gl_interop();
 };
 
 struct arg_list

@@ -430,7 +430,7 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
     std::vector<char> interop_sync = get_device_info(cl::device.get(), CL_DEVICE_PREFERRED_INTEROP_USER_SYNC);
 
     if(interop_sync.size() == sizeof(cl_bool))
-        lg::log("Does device perfer user interop sync ", *(cl_bool*)&interop_sync[0]);
+        lg::log("Does device prefer user interop sync ", *(cl_bool*)&interop_sync[0]);
 
     std::vector<char> unified_memory = get_device_info(cl::device.get(), CL_DEVICE_HOST_UNIFIED_MEMORY);
 
@@ -507,6 +507,14 @@ inline void oclstuff(const std::string& file, int w, int h, int lres, bool only_
         lg::log("Try updating your drivers, or if the latest drivers don't support it, complain to whoever provides them");
     }
 
+    bool supports_efficient_clgl_interop = supports_extension("cl_khr_gl_event");
+
+    lg::log("Does this device support efficient cl/gl interop with cl_khr_gl_event: ", supports_efficient_clgl_interop);
+
+    if(!supports_efficient_clgl_interop)
+    {
+        lg::log("Warning: Device does not support fast implicit synchronisation, update your drivers or complain to your gpu vendor");
+    }
 
     #ifdef PROFILING
     cl::cqueue = compute::command_queue(cl::context, cl::device, CL_QUEUE_PROFILING_ENABLE);

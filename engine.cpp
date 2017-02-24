@@ -4060,3 +4060,16 @@ void engine::set_manage_frametimes(bool manage)
 {
     manage_frametimes = manage;
 }
+
+bool engine::supports_efficient_cl_gl_interop()
+{
+    bool does_support_efficient_cl_gl_interop = supports_extension("cl_khr_gl_event");
+
+    return does_support_efficient_cl_gl_interop;
+}
+
+///so we can disable this easily without cracking open the above test
+bool engine::use_efficient_cl_gl_interop()
+{
+    return supports_efficient_cl_gl_interop();
+}
