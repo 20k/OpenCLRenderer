@@ -503,7 +503,9 @@ void engine::load(cl_uint pwidth, cl_uint pheight, cl_uint pdepth, const std::st
             build_thread = std::thread(build, loc, width, height, l_size, only_3d, opencl_extra_command_line);
         #endif
 
+        #ifdef WIN32
         if(!do_resize_hack)
+        #endif
             oclstuff(loc, width, height, l_size, only_3d, opencl_extra_command_line);
     }
 
