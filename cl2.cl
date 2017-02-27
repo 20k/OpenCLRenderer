@@ -6629,7 +6629,7 @@ void do_motion_blur(__read_only AUTOMATIC(image2d_t, id_buffer), __global AUTOMA
 
     if(dbuf_val == mulint)
     {
-        write_imagef(back_screen, (int2){x, y}, 0.f);
+        //write_imagef(back_screen, (int2){x, y}, 0.f);
         return;
     }
 
