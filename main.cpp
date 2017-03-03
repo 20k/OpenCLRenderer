@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
     sponza->set_specular(0.f);
     sponza->set_ss_reflective(false);
     //sponza->set_screenspace_map_id(tex->id);
+    sponza->set_is_static(true);
 
     context.build(true);
 
@@ -113,6 +114,7 @@ int main(int argc, char *argv[])
     l.set_col((cl_float4){1.0f, 1.0f, 1.0f, 0.0f});
     l.set_shadow_casting(1);
     l.set_brightness(1.0);
+    l.set_is_static(true);
     l.radius = 100000;
     l.set_pos((cl_float4){-200, 1000, -100, 0});
     //l.set_godray_intensity(1.f);

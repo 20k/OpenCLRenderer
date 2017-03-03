@@ -4197,7 +4197,9 @@ void fill_ids(__global struct triangle* triangles, uint pad_id, int offset, int 
 ///lower = better for sparse scenes, higher = better for large tri scenes
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
-#define op_size 500
+///make sure to check this new value with nvidia
+#define op_size 200
+//#define op_size 500
 #define op_size_light 300
 
 
@@ -4320,7 +4322,6 @@ void prearrange(__global struct triangle* triangles, __global uint* tri_num, flo
 
         //float true_area = calc_area(xpv, ypv);
         float rconst = calc_rconstant_v(xpv, ypv);
-
 
         float min_max[4];
         calc_min_max(tris_proj[i], ewidth, eheight, min_max);
