@@ -5050,6 +5050,7 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         //cond = point_in_tri((float2){x, y}, (float2){tris_proj_n[0].x, tris_proj_n[0].y}, (float2){tris_proj_n[1].x, tris_proj_n[1].y}, (float2){tris_proj_n[2].x, tris_proj_n[2].y});
 
+        ///ok. Point in tri routine does seem to be the issue
         bool cond = point_in_tri((float2){x, y}, (float2){xpv.x, ypv.x}, (float2){xpv.y, ypv.y}, (float2){xpv.z, ypv.z});
 
         //bool cond = npoint_in_tri(tris_proj_n[0], tris_proj_n[1], tris_proj_n[2], (int2){x, y});
@@ -5460,6 +5461,7 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
 
         //bool cond = s1 < area + mod;
 
+        ///if(true) means we produce values where there are currently holes, which means that point_in_tri routine is definitely suspect
         if(cond)
         {
             //float fmydepth = A * x + B * y + C;
