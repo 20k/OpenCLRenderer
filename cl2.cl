@@ -4198,7 +4198,7 @@ void fill_ids(__global struct triangle* triangles, uint pad_id, int offset, int 
 ///fragment size in pixels
 ///fixed, now it should probably scale with screen resolution
 ///make sure to check this new value with nvidia
-#define op_size 200
+#define op_size 500
 //#define op_size 500
 #define op_size_light 300
 
@@ -5008,6 +5008,10 @@ void kernel1(__global struct triangle* triangles, __global uint* fragment_id_buf
 
     float running_width_mod = (pixel_along + pcount) % width;
 
+    //int max_pixels = min(op_size, (int)((min_max[1] - min_max[0]) * (min_max[3] - min_max[2])));
+
+    //max_pixels = op_size;
+
     ///while more pixels to write
     while(pcount < op_size)
     {
@@ -5417,6 +5421,10 @@ void kernel2(__global struct triangle* triangles, __global uint* fragment_id_buf
     ///write to local memory, then flush to texture?
 
     float running_width_mod = (pixel_along + pcount) % width;
+
+    //int max_pixels = min(op_size, (int)((min_max.y - min_max.x) * (min_max.w - min_max.z)));
+
+    //max_pixels = op_size;
 
     while(pcount < op_size)
     {
