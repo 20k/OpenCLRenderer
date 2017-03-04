@@ -113,9 +113,9 @@ void object_context::destroy(objects_container* obj)
     {
         if(containers[i] == obj)
         {
-            delete obj;
-
             containers.erase(containers.begin() + i);
+
+            delete obj;
 
             i--;
         }
@@ -182,6 +182,8 @@ void object_context::load_active()
             }
             else
             {
+                ///problem is, object cache might refer to something that no longer exists
+                ///so we load a cached object and we have an invalid texture
                 ///object cache is really counter intuitive
                 obj->call_load_func(containers[i]);
                 obj->set_active_subobjs(true);
@@ -194,10 +196,29 @@ void object_context::load_active()
                 {
                     object_cache[obj->file] = *obj;
                     object_cache[obj->file].id = -1;
+
+                    //if(!obj->textures_are_unique)
+                    {
+                        for(object& o : obj->objs)
+                        {
+                            int tid = o.tid;
+
+                            texture* tex = obj->parent->tex_ctx.id_to_tex(tid);
+
+                            if(tex)
+                            {
+                                tex->pinned = true;
+
+                                printf("PINPINPINPIN\n\n\n\n\n\n\n\n");
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
+    //printf("\n\n\n\n NUM CONTAINERS %i\n\n\n\n", containers.size());
 }
 
 //#include "texture_manager.hpp"
@@ -868,4 +889,16 @@ void object_context::enable_experimental_reflections()
 void object_context::set_blend_render_context(object_context& other_context)
 {
     blend_render_context = &other_context;
+}
+
+int object_context::get_approx_debug_cpu_memory_size()
+{
+    int cur_size_bytes = 0;
+
+    for(objects_container* c : containers)
+    {
+        cur_size_bytes += c->get_approx_debug_total_memory_size();
+    }
+
+    return cur_size_bytes;
 }

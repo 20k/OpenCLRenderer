@@ -34,11 +34,13 @@ texture* texture_context::make_new_cached(const std::string& loc)
             lg::log("cached texture load");
             #endif // DEBUGGING
 
+            i->ref_count++;
+
             return i;
         }
     }
 
-    auto tex = make_new();
+    texture* tex = make_new();
 
     ///might as well
     tex->set_location(loc);
@@ -65,6 +67,7 @@ void texture_context::destroy(texture* tex)
         }
     }*/
 
+    tex->ref_count--;
     tex->cleanup = true;
     //tex->c_image = sf::Image();
 }
@@ -73,9 +76,11 @@ void prepare_textures_in_use(texture_context& tex_ctx, std::set<texture_id_t>& t
 {
     for(auto& i : tex_ids)
     {
-        //printf("ival %i\n", i);
+        printf("ival %i\n", i);
 
         texture* tex = tex_ctx.id_to_tex(i);
+
+        assert(tex);
 
         if(!tex->is_loaded)
             tex->load();
@@ -332,8 +337,11 @@ void texture_context::erase_texture(texture* tex)
 
         if(id_me == id_them)
         {
-            delete all_textures[i];
+            texture* tex = all_textures[i];
             all_textures.erase(all_textures.begin() + i);
+
+            delete tex;
+
             i--;
         }
     }
@@ -352,7 +360,7 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
     {
         texture* tex = all_textures[i];
 
-        if(tex->cleanup && !tex->cacheable)
+        if(tex->ref_count <= 0 && !tex->pinned)
         {
             to_erase.insert(all_textures[i]->id);
         }
@@ -392,14 +400,14 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
     std::set_difference(to_erase.begin(), to_erase.end(), textures_in_use.begin(), textures_in_use.end(), std::inserter(can_erase, can_erase.begin()));
 
-    //printf("TO ERASE SIZE %i\n\n\n\n\n\n\n\n\n", can_erase.size());
-
     for(auto& i : can_erase)
     {
         texture* tex = id_to_tex(i);
 
         erase_texture(tex);
     }
+
+    lg::log("Post erase");
 
     for(auto& i : textures_in_use)
     {
@@ -416,7 +424,11 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
 
     mipmap_start = textures_in_use.size();
 
+    lg::log("Pre prepare");
+
     prepare_textures_in_use(*this, textures_in_use);
+
+    lg::log("Pre calc tex pages");
 
     auto raw_texture_pages = calculate_texture_pages(*this, textures_in_use);
 
@@ -524,4 +536,16 @@ texture* texture_context::cache_name_to_tex(const std::string& cache_name)
     }
 
     return nullptr;
+}
+
+int texture_context::get_approx_debug_cpu_memory_size()
+{
+    int base_size_bytes = 0;
+
+    for(texture* tex : all_textures)
+    {
+        base_size_bytes += tex->c_image.getSize().x * tex->c_image.getSize().y * sizeof(uint32_t);
+    }
+
+    return base_size_bytes;
 }

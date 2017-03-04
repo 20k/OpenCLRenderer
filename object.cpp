@@ -333,7 +333,7 @@ void object::destroy_textures(texture_context& tex_ctx)
 
         tex_ctx.destroy(tex);
 
-        printf("destroyed tid %i\n", i);
+        //printf("destroyed tid %i\n", i);
     }
 
     tid = -1;

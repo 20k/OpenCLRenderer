@@ -65,6 +65,8 @@ struct texture_context
 
     int get_gpu_position_id(texture_id_t id);
 
+    int get_approx_debug_cpu_memory_size();
+
 private:
     void erase_texture(texture* tex);
 };

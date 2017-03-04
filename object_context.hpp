@@ -255,6 +255,8 @@ struct object_context
 
     void set_blend_render_context(object_context& other_ctx);
 
+    int get_approx_debug_cpu_memory_size();
+
 private:
 
     ///so we can use write async

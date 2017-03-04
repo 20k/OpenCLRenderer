@@ -609,6 +609,19 @@ void objects_container::patch_stretch_texture_to_full()
     }
 }
 
+int objects_container::get_approx_debug_total_memory_size()
+{
+    int base_size = sizeof(objects_container);
+
+    for(object& o : objs)
+    {
+        base_size += sizeof(object);
+        base_size += sizeof(triangle) * o.tri_list.size();
+    }
+
+    return base_size;
+}
+
 int objects_container::get_object_by_id(int in)
 {
     lg::log("Err get_object_by_id");

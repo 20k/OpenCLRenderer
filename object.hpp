@@ -25,6 +25,11 @@ struct cache
     int init = 0;
 };
 
+struct texture_reference
+{
+    int id;
+};
+
 struct object
 {
     cl_uint gpu_tri_start;

@@ -31,6 +31,7 @@ std::string col2cachename(const vec4f& col);
 
 struct texture
 {
+    int ref_count = 1;
     sf::Image c_image;
 
     sf::Image mipmaps[MIP_LEVELS];
@@ -48,8 +49,6 @@ struct texture
     bool has_mipmaps;
 
     bool cacheable;
-
-    int id;
 
     int type;
 
@@ -106,6 +105,9 @@ struct texture
     std::function<void (texture*)> fp;
 
     ~texture();
+
+    int id;
+    bool pinned = false; ///cannot be destroyed
 };
 
 
