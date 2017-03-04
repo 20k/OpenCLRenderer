@@ -64,6 +64,9 @@ struct texture_context
     bool should_realloc(object_context&);
 
     int get_gpu_position_id(texture_id_t id);
+
+private:
+    void erase_texture(texture* tex);
 };
 
 

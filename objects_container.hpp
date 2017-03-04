@@ -108,6 +108,7 @@ struct objects_container
     float   get_final_scale();
 
     void    unload();
+    void    destroy_textures();
 
     void    set_specular(float); ///1.f - roughness
     void    set_spec_mult(float);

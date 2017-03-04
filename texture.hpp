@@ -43,6 +43,7 @@ struct texture
     bool is_loaded;
     bool is_unique; ///ie don't cache me
     bool force_load;
+    bool cleanup = false; ///texture is to be deleted
 
     bool has_mipmaps;
 

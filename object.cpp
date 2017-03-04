@@ -55,7 +55,7 @@ object::object() : tri_list(0)
     pos.x=0, pos.y=0, pos.z=0;
     rot.x=0, rot.y=0, rot.z=0;
     centre.x = 0, centre.y = 0, centre.z = 0, centre.w = 0;
-    tid = 0;
+    tid = -1;
     bid = -1;
     rid = -1;
     ssid = -1;
@@ -318,6 +318,28 @@ void object::set_quantise_position(bool do_quantise, float grid_size)
     {
         position_quantise_grid_size = grid_size;
     }
+}
+
+void object::destroy_textures(texture_context& tex_ctx)
+{
+    int to_destroy[] = {tid, bid, rid, ssid};
+
+    for(int& i : to_destroy)
+    {
+        if(i == -1)
+            continue;
+
+        texture* tex = tex_ctx.id_to_tex(i);
+
+        tex_ctx.destroy(tex);
+
+        printf("destroyed tid %i\n", i);
+    }
+
+    tid = -1;
+    bid = -1;
+    rid = -1;
+    ssid = -1;
 }
 
 void object::patch_non_square_texture_maps(texture_context& ctx)

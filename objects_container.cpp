@@ -178,6 +178,11 @@ void objects_container::set_active_subobjs(bool param)
 void objects_container::set_active(bool param)
 {
     isactive = param;
+
+    for(object& o : objs)
+    {
+        o.set_active(param);
+    }
 }
 
 void objects_container::unload_tris()
@@ -479,6 +484,14 @@ float objects_container::get_min_y()
     }
 
     return miny;
+}
+
+void objects_container::destroy_textures()
+{
+    for(object& o : objs)
+    {
+        o.destroy_textures(parent->tex_ctx);
+    }
 }
 
 void objects_container::unload()

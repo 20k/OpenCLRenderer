@@ -52,7 +52,7 @@ void texture_context::destroy(texture* tex)
     if(!tex)
         return;
 
-    for(int i=0; i<all_textures.size(); i++)
+    /*for(int i=0; i<all_textures.size(); i++)
     {
         int id_me = tex->id;
         int id_them = all_textures[i]->id;
@@ -63,13 +63,18 @@ void texture_context::destroy(texture* tex)
             all_textures.erase(all_textures.begin() + i);
             i--;
         }
-    }
+    }*/
+
+    tex->cleanup = true;
+    //tex->c_image = sf::Image();
 }
 
 void prepare_textures_in_use(texture_context& tex_ctx, std::set<texture_id_t>& tex_ids)
 {
     for(auto& i : tex_ids)
     {
+        //printf("ival %i\n", i);
+
         texture* tex = tex_ctx.id_to_tex(i);
 
         if(!tex->is_loaded)
@@ -256,9 +261,16 @@ bool texture_context::should_realloc(object_context& ctx)
 
     for(auto& i : ctx.containers)
     {
+        if(!i->isactive)
+            continue;
+
         for(auto& o : i->objs)
         {
-            textures_in_use.insert(o.tid);
+            if(!o.isactive)
+                continue;
+
+            if(o.tid != -1)
+                textures_in_use.insert(o.tid);
 
             if(o.rid != -1)
                 textures_in_use.insert(o.rid);
@@ -308,19 +320,57 @@ int texture_context::get_gpu_position_id(texture_id_t id)
 
 bool use_3d_texture_array();
 
+void texture_context::erase_texture(texture* tex)
+{
+    if(!tex)
+        return;
+
+    for(int i=0; i<all_textures.size(); i++)
+    {
+        int id_me = tex->id;
+        int id_them = all_textures[i]->id;
+
+        if(id_me == id_them)
+        {
+            delete all_textures[i];
+            all_textures.erase(all_textures.begin() + i);
+            i--;
+        }
+    }
+}
+
 texture_context_data texture_context::alloc_gpu(object_context& ctx)
 {
     ///id
     std::set<texture_id_t> textures_in_use;
+    std::set<texture_id_t> to_erase;
 
     std::vector<texture_id_t> texture_order;
 
+    //for(texture* tex : all_textures)
+    for(int i=0; i<all_textures.size(); i++)
+    {
+        texture* tex = all_textures[i];
+
+        if(tex->cleanup && !tex->cacheable)
+        {
+            to_erase.insert(all_textures[i]->id);
+        }
+    }
+
     for(auto& i : ctx.containers)
     {
+        if(!i->isactive)
+            continue;
+
         for(auto& o : i->objs)
         {
+            if(!o.isactive)
+                continue;
+
             ///if we update this, update should realloc
-            textures_in_use.insert(o.tid);
+            if(o.tid != -1)
+                textures_in_use.insert(o.tid);
 
             if(o.rid != -1)
                 textures_in_use.insert(o.rid);
@@ -336,6 +386,19 @@ texture_context_data texture_context::alloc_gpu(object_context& ctx)
         {
             textures_in_use.insert(i->id);
         }
+    }
+
+    std::set<texture_id_t> can_erase;
+
+    std::set_difference(to_erase.begin(), to_erase.end(), textures_in_use.begin(), textures_in_use.end(), std::inserter(can_erase, can_erase.begin()));
+
+    //printf("TO ERASE SIZE %i\n\n\n\n\n\n\n\n\n", can_erase.size());
+
+    for(auto& i : can_erase)
+    {
+        texture* tex = id_to_tex(i);
+
+        erase_texture(tex);
     }
 
     for(auto& i : textures_in_use)
