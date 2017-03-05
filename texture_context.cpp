@@ -76,7 +76,7 @@ void prepare_textures_in_use(texture_context& tex_ctx, std::set<texture_id_t>& t
 {
     for(auto& i : tex_ids)
     {
-        printf("ival %i\n", i);
+        //printf("ival %i\n", i);
 
         texture* tex = tex_ctx.id_to_tex(i);
 
