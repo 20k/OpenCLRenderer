@@ -209,7 +209,7 @@ void object_context::load_active()
                             {
                                 tex->pinned = true;
 
-                                printf("PINPINPINPIN\n\n\n\n\n\n\n\n");
+                                //printf("PINPINPINPIN\n\n\n\n\n\n\n\n");
                             }
                         }
                     }
