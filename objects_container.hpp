@@ -16,6 +16,7 @@ struct object_context;
 struct object_context_data;
 
 ///do heirarchy finally
+///add a no_load_textures to prevent texture loading?
 struct objects_container
 {
     object_context* parent = nullptr;
