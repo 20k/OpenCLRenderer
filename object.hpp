@@ -32,6 +32,8 @@ struct texture_reference
 
 struct object
 {
+    std::string object_name;
+
     cl_uint gpu_tri_start;
     cl_uint gpu_tri_end;
 

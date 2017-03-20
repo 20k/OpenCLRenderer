@@ -269,9 +269,11 @@ void obj_load(objects_container* pobj)
         }
     }
 
-
+    ///need to find object groups as well
     std::vector<int> usemtl_pos;
     std::vector<std::string> usemtl_name;
+    std::vector<int> group_pos;
+    std::vector<std::string> group_name;
     std::vector<cl_float4> vl, vnl;
     std::vector<cl_float2> vtl;
     std::vector<indices> fl;
@@ -358,6 +360,13 @@ void obj_load(objects_container* pobj)
 
             continue;
         }
+        else if(file_contents[i].substr(0, 2) == "g ")
+        {
+            group_pos.push_back(usefc);
+            group_name.push_back(file_contents[i].substr(file_contents[i].find_last_of(" ")+1, std::string::npos));
+
+            continue;
+        }
     }
 
     //std::cout << clk2.getElapsedTime().asSeconds() << std::endl;
@@ -405,6 +414,7 @@ void obj_load(objects_container* pobj)
     vnl.clear();
     fl.clear();
 
+    bool using_groups = usemtl_pos.size() == group_pos.size();
 
     objects_container *c = pobj;
 
@@ -417,6 +427,11 @@ void obj_load(objects_container* pobj)
         std::string texture_name = retrieve_diffuse_new(mtlf_contents, usemtl_name[i]);
         std::string bumpmap_name = retrieve_bumpmap    (mtlf_contents, usemtl_name[i]);
         std::string full = dir + "/" + texture_name;
+
+        std::string object_group_name;
+
+        if(using_groups)
+            object_group_name = group_name[i];
 
         std::string cache_name = full;
 
@@ -507,6 +522,8 @@ void obj_load(objects_container* pobj)
         {
             obj.tri_list.push_back(tris[j]);
         }
+
+        obj.object_name = object_group_name;
 
         //memcpy(&obj.tri_list[0], &tris[usemtl_pos[i]], sizeof(triangle) * (usemtl_pos[i+1] - usemtl_pos[i]));
 
