@@ -639,6 +639,19 @@ int objects_container::get_object_by_id(int in)
     return -1;
 }
 
+object* objects_container::get_object_by_partial_object_name(const std::string& partial_name)
+{
+    for(object& o : objs)
+    {
+        if(o.object_name.find(partial_name) != std::string::npos)
+        {
+            return &o;
+        }
+    }
+
+    return nullptr;
+}
+
 objects_container::~objects_container()
 {
     ///std::cout << "object removed: " << id << std::endl;

@@ -130,7 +130,10 @@ struct objects_container
     void    patch_non_2pow_texture_maps(); ///maps eg a 254 x 234 -> 254 x 234 under a 256x256 backing, correcting the vts to do so
     void    patch_stretch_texture_to_full(); /// maps eg a 254 x 234 -> 256 x 256 using the full range
 
+
+
     int     get_approx_debug_total_memory_size();
+
 
     ///currently uncached
     ///local centre, not world
@@ -140,6 +143,8 @@ struct objects_container
     void    g_flush_objects(object_context& dat, bool force = false); ///calls g_flush for all objects
 
     static int get_object_by_id(int);
+
+    object* get_object_by_partial_object_name(const std::string& partial_name);
 
     ~objects_container();
 
