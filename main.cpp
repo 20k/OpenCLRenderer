@@ -47,7 +47,8 @@ int main(int argc, char *argv[])
 
     objects_container* sponza = context.make_new();
     //sponza->set_file("sp2/sp2.obj");
-    sponza->set_file("D:/Games/models/I_hate_blender.obj");
+    //sponza->set_file("D:/Games/models/I_hate_blender.obj");
+    sponza->set_file("C:/Users/James/Desktop/render_projects/Sword/Res/gauntlet/knight_hand_cleaned_separated_named.obj");
     sponza->set_active(true);
     //sponza->cache = false;
 

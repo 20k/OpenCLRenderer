@@ -9,7 +9,7 @@
 struct obj_g_descriptor
 {
     cl_float4 world_pos; ///w is blank
-    cl_float4 world_rot; ///w is blank
+    //cl_float4 world_rot; ///w is blank
     cl_float4 world_rot_quat;
 
     cl_float4 old_world_pos_1;

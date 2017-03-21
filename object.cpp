@@ -690,7 +690,7 @@ void object::g_flush(object_context& cpu_dat, bool force)
     }
 
     posrot.lo = pos;
-    posrot.hi = rot;
+    posrot.hi = cl_rot_quat;
 
     if(position_quantise)
     {
@@ -704,10 +704,6 @@ void object::g_flush(object_context& cpu_dat, bool force)
     }
 
     cl_event event;
-
-    ///suboptimal performance for objects with no texture... which is currently impossible but note to self
-    //if((force_flush || last_gpu_position_id == -1))
-    //    last_gpu_position_id = cpu_dat.tex_ctx.get_gpu_position_id(tid);
 
     cl_uint ltid = cpu_dat.tex_ctx.get_gpu_position_id(tid);
 
@@ -761,44 +757,28 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     std::vector<cl_event> next_events;
 
-    #ifdef LEGACY_ROTATION_SYSTEM
-    if(dirty_pos && dirty_rot)
+    ///writing here all separately is very slow, 0.5-1ms/frame
+    ///Nope. Turned out to be a queue issue, swapping to a separate queue was much faster. No performance penalty here now
+    ///whatsoever
+
+    if(dirty_pos && dirty_rot_quat)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///both position and rotation dirty
+        ret |= clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float4)*2, &posrot, num_events, event_ptr, &event); ///only position
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
     }
     else if(dirty_pos)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float)*3, &posrot.lo, num_events, event_ptr, &event); ///only position
-
-        if(ret == CL_SUCCESS)
-            next_events.push_back(event);
-    }
-    else if(dirty_rot)
-    {
-        ret |= clEnqueueWriteBuffer(cl::cqueue, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float)*3, &posrot.hi, num_events, event_ptr, &event); ///only rotation
-
-        if(ret == CL_SUCCESS)
-            next_events.push_back(event);
-    }
-    #else
-    ///writing here all separately is very slow, 0.5-1ms/frame
-    ///Nope. Turned out to be a queue issue, swapping to a separate queue was much faster. No performance penalty here now
-    ///whatsoever
-    if(dirty_pos)
-    {
         ret |= clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id, sizeof(cl_float)*3, &posrot.lo, num_events, event_ptr, &event); ///only position
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
     }
-    #endif
 
-    if(dirty_rot_quat)
+    else if(dirty_rot_quat)
     {
-        ret |= clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4)*2, sizeof(cl_float4), &cl_rot_quat, num_events, event_ptr, &event); ///only rotation
+        ret |= clEnqueueWriteBuffer(cl::cqueue2, dat.g_obj_desc.get(), CL_FALSE, sizeof(obj_g_descriptor)*object_g_id + sizeof(cl_float4), sizeof(cl_float4), &cl_rot_quat, num_events, event_ptr, &event); ///only rotation
 
         if(ret == CL_SUCCESS)
             next_events.push_back(event);
@@ -867,7 +847,7 @@ void object::g_flush(object_context& cpu_dat, bool force)
 
     last_pos = pos;
     last_rot = rot;
-    last_rot_quat = conv_implicit<cl_float4>(rot_quat);
+    last_rot_quat = cl_rot_quat;
 }
 
 void object::set_buffer_offset(int offset)

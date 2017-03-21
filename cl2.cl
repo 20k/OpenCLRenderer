@@ -98,7 +98,7 @@ enum object_feature_flag
 struct obj_g_descriptor
 {
     float4 world_pos;   ///w is 0
-    float4 world_rot;   ///w is 0
+    //float4 world_rot;   ///w is 0
     float4 world_rot_quat;
 
     ///motion blur
