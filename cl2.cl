@@ -887,6 +887,24 @@ void write_tex_array(uint4 to_write, float2 coords, uint tid, __global uint* num
     write_image_3d_hardware(coord, array, to_write, max_tex_size, max_tex_size);
 }
 
+///will only work if image_3d_write is not the array tex type
+#ifndef supports_3d_writes
+void blend_tex_array(uint4 to_write, float2 coords, uint tid, __global uint* num, __global uint* size, image_3d_write array)
+{
+    float4 ccol = read_tex_array(coords, tid, num, size, array) / 255.f;
+
+    float4 b1 = convert_float4(to_write) / 255.f;
+    float4 b2 = convert_float4(ccol) / 255.f;
+
+    float3 pre1 = b1.xyz * b1.w;
+    float3 pre2 = b2.xyz * b2.w;
+
+    float4 res = (float4)(pre1.xyz + pre2 * (1.f - b1.w), 1.f) * 255.f;
+
+    write_tex_array(convert_uint4(res), coords, tid, num, size, array);
+}
+#endif
+
 __kernel void write_col_to_tex(uint tex_id, __global uint* nums, __global uint* sizes, image_3d_write array, int x, int y, float4 col)
 {
     if(get_global_id(0) > 1)
@@ -1317,7 +1335,12 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
 
     if(line_id == 0 || line_id == num-1)
     {
+        #ifdef supports_3d_writes
         col.xyz += 0.5f;
+        #else
+        col.w = 0.5f;
+        col.xyz += 0.5f;
+        #endif
     }
 
     float nnoise = dir.x * 1000.f + dir.y * 100;
@@ -1341,7 +1364,19 @@ void procedural_crack(int num, float2 pos, float2 dir, float4 col, uint tex_id, 
 
         uint4 ucol = convert_uint4(col * 255.f);
 
-        write_tex_array(ucol, cur, tex_id, nums, sizes, array);
+        float2 read_pos = round(cur);
+
+        if(all(round(next) == round(cur)))
+        {
+            cur = next;
+            continue;
+        }
+
+        #ifdef supports_3d_writes
+        write_tex_array(ucol, read_pos, tex_id, nums, sizes, array);
+        #else
+        blend_tex_array(ucol, read_pos, tex_id, nums, sizes, array);
+        #endif
 
         cur = next;
     }
