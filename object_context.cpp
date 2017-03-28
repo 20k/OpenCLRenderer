@@ -710,6 +710,8 @@ void object_context::build(bool force, bool async, compute::event* async_render_
 
     new_gpu_dat.use_experimental_reflections = use_experimental_reflections;
 
+    new_gpu_dat.use_linear_rendering = use_linear_rendering;
+
     auto descriptor_events = alloc_object_descriptors(object_descriptors, new_gpu_dat);
 
     std::vector<cl_event> flattened;
@@ -901,4 +903,9 @@ int object_context::get_approx_debug_cpu_memory_size()
     }
 
     return cur_size_bytes;
+}
+
+void object_context::set_use_linear_rendering(cl_uint use_linear)
+{
+    use_linear_rendering = use_linear;
 }

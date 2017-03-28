@@ -1993,6 +1993,7 @@ compute::event render_tris(engine& eng, cl_float4 position, cl_float4 rotation, 
     }
 
     p3arg_list.push_back(&dat.tex_gpu_ctx.mipmap_start);
+    p3arg_list.push_back(&dat.use_linear_rendering);
 
     /*for(auto& i : p3arg_list.args)
     {

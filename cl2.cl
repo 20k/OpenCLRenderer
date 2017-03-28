@@ -5748,6 +5748,28 @@ float2 get_vtdiff(float3 tris_proj[3], float2 xy, float3 camera_rot, float3 came
     return vtdiff;
 }
 
+///https://chilliant.blogspot.co.uk/2012/08/srgb-approximations-for-hlsl.html
+float4 gamma_transform_approx(float4 C_srgb)
+{
+    float4 C_lin_3 = 0.012522878f * C_srgb +
+            0.682171111f * C_srgb * C_srgb +
+            0.305306011f * C_srgb * C_srgb * C_srgb;
+
+    C_lin_3.w = C_srgb.w;
+
+    return C_lin_3;
+}
+
+float4 gamma_inverse_approx(float4 RGB)
+{
+    float3 S1 = sqrt(RGB.xyz);
+    float3 S2 = sqrt(S1);
+    float3 S3 = sqrt(S2);
+    float3 sRGB = 0.585122381f * S1 + 0.783140355f * S2 - 0.368262736f * S3;
+
+    return (float4)(sRGB, RGB.w);
+}
+
 ///screenspace step, this is slow and needs improving
 ///gnum unused, bounds checking?
 ///rewrite using the raytracers triangle bits
@@ -5763,7 +5785,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
            image_3d_read array, __write_only image2d_t screen, __write_only image2d_t backup_screen, __global uint *nums, __global uint *sizes, __global struct obj_g_descriptor* gobj,
            __global uint* lnum, __global struct light* lights, __global uint* light_depth_buffer, __global uint* static_light_depth_buffer, __global uint * to_clear, __global uint* fragment_id_buffer, __global float4* cutdown_tris,
            float4 screen_clear_colour, uint frame_id, __global ushort2* screen_normals_optional,
-            int use_optional_blend_buffer, __global uint* optional_blend_buffer_depth, __read_only image2d_t optional_blend_screen, uint mip_start
+            int use_optional_blend_buffer, __global uint* optional_blend_buffer_depth, __read_only image2d_t optional_blend_screen, uint mip_start, uint use_linear_rendering
            )
 
 ///__global uint sacrifice_children_to_argument_god
@@ -5925,7 +5947,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     }
 
     #ifdef TEST_LINEAR
-    col = pow(col, 2.2f);
+    if(use_linear_rendering)
+        col = gamma_transform_approx(col);
     #endif
 
     uint seed1 = wang_hash(x + y*SCREENWIDTH*SCREENHEIGHT);
@@ -5949,6 +5972,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     }*/
 
     ///http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
+    ///ok so if we pow or do anything expensive here that's probably why this is so slow, the texture filter call is possibly the culprit
     #ifdef ENABLE_NORMAL_MAPPING
     if(gobj[o_id].rid != -1)
     {
@@ -6053,18 +6077,30 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     float3 lighting_normal = normal + rseed / 100.f;
     lighting_normal = fast_normalize(lighting_normal);
 
+    #ifndef AMBIENT
+        #define AMBIENT_GAMMA 0.2f
+        #define AMBIENT_LINEAR gamma_transform_approx(AMBIENT_GAMMA).x
+        #define AMBIENT AMBIENT_GAMMA
+
+        /*#ifdef TEST_LINAER
+            #define AMTIENT AMBIENT_GAMMA
+        #else
+            #define AMBIENT AMBIENT_LINEAR
+        #endif*/
+
+    #else // AMBIENT
+        #define AMBIENT_LINEAR gamma_transform_approx(AMBIENT).x
+    #endif
+
+    float ambient = AMBIENT;
+
+    #ifdef TEST_LINEAR
+    if(use_linear_rendering)
+        ambient = AMBIENT_LINEAR;
+    #endif // TEST_LINEAR
+
     for(int i=0; i<num_lights; i++)
     {
-        #ifndef AMBIENT
-        #define AMBIENT 0.2f
-        #endif // AMBIENT
-
-        #ifdef TEST_LINEAR
-        #define AMBIENT pow(0.2f, 2.2f)
-        #endif // TEST_LINEAR
-
-        const float ambient = AMBIENT;
-
         ///might be slow on nvidia
         const struct light l = lights[i];
 
@@ -6095,8 +6131,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float3 light_col = l.col.xyz;
 
         #ifdef TEST_LINEAR
-        light_col = pow(light_col, 2.2f);
-        #endif
+        if(use_linear_rendering)
+            light_col = gamma_transform_approx(light_col.xyzz).xyz;
+        #endif // TEST_LINEAR
 
         ///for the moment, im abusing diffuse to mean both ambient and diffuse
         ///yes it is bad
@@ -6241,30 +6278,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     float3 final_col = mad(colclamp, diffuse_sum, specular_sum * (1.f - reflected_surface_colour));
 
-    #ifdef TEST_LINEAR
-    final_col = pow(final_col, 1.f/2.2f);
-    #endif
-
-    //#define OUTLINE
-    #ifdef OUTLINE
-    float hbao = generate_outline(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
-    final_col += hbao;
-    #endif // OUTLINE
-
-    #ifdef CAN_OUTLINE
-    if(has_feature(feature_flag, FEATURE_FLAG_OUTLINE))
-    {
-        float outline = generate_outline(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
-        final_col += outline;
-    }
-    #endif
-
-    #ifdef STYLISED
-    float outline = generate_outline(scoord,depth_buffer, rot(normal, 0, c_rot.xyz));
-
-    final_col += outline/10.f;
-    #endif
-
     //float3 flat_normal = fast_normalize(cross(tris_proj[1] - tris_proj[0], tris_proj[2] - tris_proj[0]));
 
     //float3 flat_normal = fast_normalize(cross(p2 - p1, p3 - p1));
@@ -6281,7 +6294,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
     final_col = hbao_new;
     #endif*/
 
-    final_col = clamp(final_col, 0.f, 1.f);
 
     //final_col.xyz = flat_normal;
     //final_col.xyz = normal;
@@ -6322,6 +6334,34 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///ignoring final_col.w here may be an error for chaining
     }
     #endif
+
+    #ifdef TEST_LINEAR
+    if(use_linear_rendering)
+        final_col = gamma_inverse_approx(final_col.xyzz).xyz;
+    #endif // TEST_LINEAR
+
+    //#define OUTLINE
+    #ifdef OUTLINE
+    float hbao = generate_outline(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
+    final_col += hbao;
+    #endif // OUTLINE
+
+    #ifdef CAN_OUTLINE
+    if(has_feature(feature_flag, FEATURE_FLAG_OUTLINE))
+    {
+        float outline = generate_outline(scoord, depth_buffer, rot(normal, 0, c_rot.xyz));
+        final_col += outline;
+    }
+    #endif
+
+    #ifdef STYLISED
+    float outline = generate_outline(scoord,depth_buffer, rot(normal, 0, c_rot.xyz));
+
+    final_col += outline/10.f;
+    #endif
+
+
+    final_col = clamp(final_col, 0.f, 1.f);
 
 
     //final_col = ((T->vertices[0].normal.x + T->vertices[0].normal.y));

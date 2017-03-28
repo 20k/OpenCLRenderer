@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     window.append_opencl_extra_command_line("-D AMBIENT=0.2f");
     window.append_opencl_extra_command_line("-D SSAO_RAD=2.f");
     //window.append_opencl_extra_command_line("-D SHADOWBIAS=120");
-    window.append_opencl_extra_command_line("-D TEST_LINEAR");
+    //window.append_opencl_extra_command_line("-D TEST_LINEAR");
 
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
 

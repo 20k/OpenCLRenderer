@@ -84,6 +84,7 @@ struct object_context_data
     cl_uint tri_num;
     cl_uint obj_num;
     cl_uint frame_id = 0; ///increase monotonically
+    cl_uint use_linear_rendering = 1;
 
     cl_float4 c_pos_old{{0}};
     cl_float4 c_rot_old{{0}};
@@ -256,6 +257,10 @@ struct object_context
     void set_blend_render_context(object_context& other_ctx);
 
     int get_approx_debug_cpu_memory_size();
+
+    void set_use_linear_rendering(cl_uint use_linaer);
+
+    cl_uint use_linear_rendering = 1;
 
 private:
 
