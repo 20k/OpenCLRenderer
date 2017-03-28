@@ -46,11 +46,11 @@ int main(int argc, char *argv[])
     object_context context;
 
     objects_container* sponza = context.make_new();
-    //sponza->set_file("sp2/sp2.obj");
+    sponza->set_file("sp2/sp2.obj");
     //sponza->set_file("D:/Games/models/I_hate_blender.obj");
-    sponza->set_file("C:/Users/James/Desktop/render_projects/Sword/Res/gauntlet/knight_hand_cleaned_separated_named.obj");
+    //sponza->set_file("C:/Users/James/Desktop/render_projects/Sword/Res/gauntlet/knight_hand_cleaned_separated_named.obj");
     sponza->set_active(true);
-    //sponza->cache = false;
+    sponza->cache = false;
 
     engine window;
 
@@ -85,8 +85,8 @@ int main(int argc, char *argv[])
     ///we need a context.unload_inactive
     context.load_active();
 
-    sponza->set_specular(0.9f);
-    sponza->set_spec_mult(5.f);
+    //sponza->set_specular(0.9f);
+    //sponza->set_spec_mult(5.f);
     sponza->set_ss_reflective(false);
     //sponza->set_screenspace_map_id(tex->id);
     sponza->set_is_static(true);
@@ -121,8 +121,8 @@ int main(int argc, char *argv[])
     l.set_brightness(1.0);
     l.set_is_static(true);
     l.radius = 100000;
-    l.set_pos((cl_float4){9, 180, 200, 0});
-    //l.set_pos((cl_float4){-200, 1000, -100, 0});
+    //l.set_pos((cl_float4){9, 180, 200, 0});
+    l.set_pos((cl_float4){-200, 1000, -100, 0});
     //l.set_godray_intensity(1.f);
     //window.add_light(&l);
 
@@ -130,9 +130,10 @@ int main(int argc, char *argv[])
 
     scene_light = light::add_light(&l);
 
-    l.set_col((cl_float4){1.0f, 1.0f, 1.0f, 0});
+    l.set_col((cl_float4){0.0f, 0.0f, 1.0f, 0});
 
-    l.set_pos((cl_float4){-0, 2000, -500, 0});
+    l.set_pos((cl_float4){-0, 200, -500, 0});
+    //l.set_pos((cl_float4){-0, 2000, -500, 0});
     l.set_shadow_casting(0);
     l.radius = 100000;
 
@@ -240,9 +241,9 @@ int main(int argc, char *argv[])
             event = window.draw_bulk_objs_n(*context.fetch());
             //event = window.draw_tiled_deferred(*context.fetch());
 
-            event = window.do_pseudo_aa();
+            //event = window.do_pseudo_aa();
 
-            event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
+            //event = window.do_motion_blur(*context.fetch(), 1.f, 1.f);
 
             //event = internal_screen_mip_test->update_internal(context.fetch()->gl_screen[0].get(), context.fetch()->tex_gpu_ctx);
 

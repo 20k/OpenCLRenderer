@@ -5924,7 +5924,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         col = vertex_col;
     }
 
-    //col = pow(col, 2.2f);
+    #ifdef TEST_LINEAR
+    col = pow(col, 2.2f);
+    #endif
 
     uint seed1 = wang_hash(x + y*SCREENWIDTH*SCREENHEIGHT);
     uint seed2 = rand_xorshift(seed1);
@@ -6088,7 +6090,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float3 light_col = l.col.xyz;
 
-        //light_col = pow(light_col, 2.2f);
+        #ifdef TEST_LINEAR
+        light_col = pow(light_col, 2.2f);
+        #endif
 
         ///for the moment, im abusing diffuse to mean both ambient and diffuse
         ///yes it is bad
@@ -6233,7 +6237,9 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     float3 final_col = mad(colclamp, diffuse_sum, specular_sum * (1.f - reflected_surface_colour));
 
-    //final_col = pow(final_col, 1.f/2.2f);
+    #ifdef TEST_LINEAR
+    final_col = pow(final_col, 1.f/2.2f);
+    #endif
 
     //#define OUTLINE
     #ifdef OUTLINE
