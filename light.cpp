@@ -199,13 +199,13 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
 
     ///sacrifice soul to chaos gods, allocate light buffers here
 
-    int ln = 0;
+    int shadowcasting_lights_num = 0;
 
     for(unsigned int i=0; i<light::lightlist.size(); i++)
     {
         if(light::lightlist[i]->shadow == 1)
         {
-            ln++;
+            shadowcasting_lights_num++;
         }
     }
 
@@ -214,7 +214,7 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
 
     if(dirty_shadow)
     {
-        uint32_t total_len = sizeof(cl_uint)*l_size*l_size*6*ln;
+        uint32_t total_len = sizeof(cl_uint)*l_size*l_size*6*shadowcasting_lights_num;
 
         if(total_len % expected_clear_kernel_size != 0)
         {
@@ -223,6 +223,8 @@ light_gpu light::build(light_gpu* old_dat) ///for the moment, just reallocate ev
             total_len -= rem;
             total_len += expected_clear_kernel_size;
         }
+
+        total_len = std::max(total_len, (uint32_t)sizeof(cl_uint));
 
         ///blank cubemap filled with UINT_MAX
         engine::g_shadow_light_buffer = compute::buffer(cl::context, total_len, CL_MEM_READ_WRITE, NULL);

@@ -6070,7 +6070,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float occlusion = 1;
 
-        if(l.is_static)
+        if(l.shadow && l.is_static)
         {
             int which_cubeface = ret_cubeface(global_position, lpos);
 
