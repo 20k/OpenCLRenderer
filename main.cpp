@@ -54,11 +54,11 @@ int main(int argc, char *argv[])
 
     engine window;
 
-    window.set_opencl_extra_command_line("-D TILE_DIM=64");
-    window.set_opencl_extra_command_line("-D depth_icutoff=20");
-    window.set_opencl_extra_command_line("-D USE_EXPERIMENTAL_REFLECTIONS");
-    window.set_opencl_extra_command_line("-D AMBIENT=0.7f");
-    window.set_opencl_extra_command_line("-D SSAO_RAD=2.f");
+    //window.append_opencl_extra_command_line("-D TILE_DIM=64");
+    window.append_opencl_extra_command_line("-D depth_icutoff=20");
+    //window.append_opencl_extra_command_line("-D USE_EXPERIMENTAL_REFLECTIONS");
+    //window.append_opencl_extra_command_line("-D AMBIENT=0.7f");
+    window.append_opencl_extra_command_line("-D SSAO_RAD=2.f");
     window.append_opencl_extra_command_line("-D SHADOWBIAS=120");
 
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 
     l.set_pos((cl_float4){-0, 200, -500, 0});
     //l.set_pos((cl_float4){-0, 2000, -500, 0});
-    l.set_shadow_casting(0);
+    l.set_shadow_casting(1);
     l.radius = 100000;
 
     light::add_light(&l);
