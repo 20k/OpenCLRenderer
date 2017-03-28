@@ -6195,6 +6195,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         light = max(light, 0.f);
 
+        ///this, diffuse sum, and the entire definition of ambient seem fundamentally wrong
         float diffuse = (1.0f-ambient)*light;
 
         diffuse_sum += light_col * ((diffuse + ambient) * l.brightness * l.diffuse * G->diffuse * distance_modifier);
