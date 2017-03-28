@@ -1458,11 +1458,9 @@ float2 texture_mod(float2 in)
     float2 vtm = in;
 
     vtm.x = vtm.x >= 1 ? 1.0f - (vtm.x - floor(vtm.x)) : vtm.x;
-
-    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
-
     vtm.y = vtm.y >= 1 ? 1.0f - (vtm.y - floor(vtm.y)) : vtm.y;
 
+    vtm.x = vtm.x < 0 ? 1.0f + fabs(vtm.x) - fabs(floor(vtm.x)) : vtm.x;
     vtm.y = vtm.y < 0 ? 1.0f + fabs(vtm.y) - fabs(floor(vtm.y)) : vtm.y;
 
     return vtm;
@@ -1495,6 +1493,16 @@ float4 texture_filter_direct(float2 vt, float direct_interpolating_factor, int t
     return native_divide(finalcol, 255.0f);
 }
 
+///https://stackoverflow.com/questions/9411823/fast-log2float-x-implementation-c
+float log2_approx(float val) {
+    union { float val; int x; } u = { val };
+    float log_2 = (float)(((u.x >> 23) & 255) - 128);
+    u.x   &= ~(255 << 23);
+    u.x   += 127 << 23;
+    log_2 += ((-0.3358287811f) * u.val + 2.0f) * u.val  -0.65871759316667f;
+    return (log_2);
+}
+
 ///two mip levels are interchanging inappropriately
 ///fov const is key to mipmapping?
 ///textures are suddenly popping between levels, this isnt right
@@ -1511,7 +1519,7 @@ float4 texture_filter_diff(float2 vt, float2 vtdiff, int tid2, uint mip_start, g
 
     float worst = fast_length(vtdiff * tsize);
 
-    float worst_id_frac = native_log2(worst);
+    float worst_id_frac = log2_approx(worst);
 
     worst_id_frac = max(worst_id_frac, 0.f);
 
