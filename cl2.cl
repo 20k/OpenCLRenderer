@@ -752,7 +752,7 @@ void write_image_3d_hardware(int4 coord, __global uchar4* array, uint4 to_write,
     //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
     //    return;
 
-    array[coord.z * width * height + coord.y * width + coord.x] = convert_uchar4(to_write);
+    array[coord.z * width * height + mul24(coord.y, width) + coord.x] = convert_uchar4(to_write);
     #endif
 }
 
@@ -773,7 +773,7 @@ uint4 read_image_3d_hardware(int4 coord, __global uchar4* array, int width, int 
     //if(coord.x >= width || coord.y >= height || coord.x < 0 || coord.y < 0)
     //    return 0;
 
-    return convert_uint4(array[coord.z * width * height + coord.y * width + coord.x]);
+    return convert_uint4(array[coord.z * width * height + mul24(coord.y, width) + coord.x]);
     #endif
 }
 

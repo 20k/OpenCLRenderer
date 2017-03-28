@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     window.append_opencl_extra_command_line("-D AMBIENT=0.2f");
     window.append_opencl_extra_command_line("-D SSAO_RAD=2.f");
     //window.append_opencl_extra_command_line("-D SHADOWBIAS=120");
-    //window.append_opencl_extra_command_line("-D TEST_LINEAR");
+    window.append_opencl_extra_command_line("-D TEST_LINEAR");
 
     window.load(1680,1050,1000, "turtles", "cl2.cl", true);
 
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
         //sponza->set_rot_quat(q);
 
         if(key.isKeyPressed(sf::Keyboard::M))
-            std::cout << c.getElapsedTime().asMicroseconds() << std::endl;
+            std::cout << window.get_frametime_ms() << std::endl;
 
         if(key.isKeyPressed(sf::Keyboard::Comma))
             std::cout << avg_ftime << std::endl;
