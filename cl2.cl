@@ -2636,6 +2636,8 @@ float generate_hard_occlusion(float2 spos, float3 lpos, float3 normal, float3 po
     #define SMOOTH_SHADOWS
     #ifdef SMOOTH_SHADOWS
 
+    ///early out here provides no benefit
+
     ///wtf? We should only have 9 samples, 16 is definitely wrong
     int conditions[4*4];
 

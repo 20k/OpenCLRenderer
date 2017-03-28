@@ -13,6 +13,28 @@ void callback (cl_event event, cl_int event_command_exec_status, void *user_data
     std::cout << (*(sf::Clock*)user_data).getElapsedTime().asMicroseconds()/1000.f << std::endl;
 }
 
+template<sf::Keyboard::Key k>
+bool once()
+{
+    static bool last;
+
+    sf::Keyboard key;
+
+    if(key.isKeyPressed(k) && !last)
+    {
+        last = true;
+
+        return true;
+    }
+
+    if(!key.isKeyPressed(k))
+    {
+        last = false;
+    }
+
+    return false;
+}
+
 ///gamma correct mipmap filtering
 ///7ish pre tile deferred
 ///try first bounce in SS, then go to global if fail
@@ -295,6 +317,12 @@ int main(int argc, char *argv[])
         ///chiv = low frequency, high shake
         if(key.isKeyPressed(sf::Keyboard::Num1))
             screenshake_test.init(200.f, 1.0f, 1.f);
+
+        if(once<sf::Keyboard::Num2>())
+        {
+            context.use_linear_rendering = !context.use_linear_rendering;
+            context.fetch()->use_linear_rendering = context.use_linear_rendering;
+        }
 
         //float avg = (window.frametime_history_ms[0] + window.frametime_history_ms[1] + window.frametime_history_ms[2]) / 3;
 
