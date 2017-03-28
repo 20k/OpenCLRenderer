@@ -6059,6 +6059,10 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         #define AMBIENT 0.2f
         #endif // AMBIENT
 
+        #ifdef TEST_LINEAR
+        #define AMBIENT pow(0.2f, 2.2f)
+        #endif // TEST_LINEAR
+
         const float ambient = AMBIENT;
 
         ///might be slow on nvidia
