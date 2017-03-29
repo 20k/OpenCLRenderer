@@ -285,7 +285,8 @@ struct cl_gl_interop_texture
         glBindRenderbufferEXT(GL_RENDERBUFFER, screen_id);
 
         ///generate storage for renderbuffer
-        glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA8, w, h);
+        glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA16, w, h);
+        //glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA8, w, h);
 
         GLuint framebuf;
 
@@ -310,7 +311,8 @@ struct cl_gl_interop_texture
 
     void init_nogl()
     {
-        compute::image_format format_opengl(CL_RGBA, CL_UNORM_INT8);
+        compute::image_format format_opengl(CL_RGBA, CL_HALF_FLOAT);
+        //compute::image_format format_opengl(CL_RGBA, CL_UNORM_INT8);
 
         g_texture_nogl = compute::image2d(cl::context, CL_MEM_READ_WRITE, format_opengl, w, h, 0, nullptr);
 
