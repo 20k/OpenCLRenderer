@@ -320,8 +320,7 @@ int main(int argc, char *argv[])
 
         if(once<sf::Keyboard::Num2>())
         {
-            context.use_linear_rendering = !context.use_linear_rendering;
-            context.fetch()->use_linear_rendering = context.use_linear_rendering;
+            context.set_use_linear_rendering(!context.use_linear_rendering);
         }
 
         //float avg = (window.frametime_history_ms[0] + window.frametime_history_ms[1] + window.frametime_history_ms[2]) / 3;

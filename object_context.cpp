@@ -908,4 +908,7 @@ int object_context::get_approx_debug_cpu_memory_size()
 void object_context::set_use_linear_rendering(cl_uint use_linear)
 {
     use_linear_rendering = use_linear;
+
+    gpu_dat.use_linear_rendering = use_linear_rendering;
+    new_gpu_dat.use_linear_rendering = use_linear_rendering;
 }
