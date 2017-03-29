@@ -148,7 +148,7 @@ compute::opengl_renderbuffer engine::gen_cl_gl_framebuffer_renderbuffer(GLuint* 
     glBindRenderbufferEXT(GL_RENDERBUFFER, screen_id);
 
     ///generate storage for renderbuffer
-    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA8, w, h);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_RGBA16, w, h);
 
     GLuint framebuf;
 
