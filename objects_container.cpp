@@ -275,6 +275,14 @@ void objects_container::set_is_static(bool is_static)
     }
 }
 
+void objects_container::set_does_not_receive_dynamic_shadows(bool does_not_receive)
+{
+    for(auto& i : objs)
+    {
+        i.set_does_not_receive_dynamic_shadows(does_not_receive);
+    }
+}
+
 void objects_container::set_quantise_position(bool do_quantise, float grid_size)
 {
     position_quantise = do_quantise;

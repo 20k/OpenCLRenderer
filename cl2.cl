@@ -93,6 +93,7 @@ enum object_feature_flag
     FEATURE_FLAG_TWO_SIDED = 2,
     FEATURE_FLAG_OUTLINE = 4,
     FEATURE_FLAG_IS_STATIC = 8,
+    FEATURE_FLAG_DOES_NOT_RECEIVE_DYNAMIC_SHADOWS = 16,
 };
 
 struct obj_g_descriptor
@@ -6056,6 +6057,8 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
     bool is_two_sided = has_feature(feature_flag, FEATURE_FLAG_TWO_SIDED);
 
+    bool receives_dynamic_shadows = !has_feature(feature_flag, FEATURE_FLAG_DOES_NOT_RECEIVE_DYNAMIC_SHADOWS);
+
     int is_front = backface_cull_expanded(tris_proj[0], tris_proj[1], tris_proj[2]);
     int flip_normals = !is_front && is_two_sided == 1;
 
@@ -6156,7 +6159,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         ///ambient wont work correctly in shadows atm
         ///something is wrong with lips of vertices over shadowed areas
-        if(l.shadow == 1) ///do shadow bits and bobs
+        if(l.shadow && receives_dynamic_shadows) ///do shadow bits and bobs
         {
             int which_cubeface = ret_cubeface(global_position, lpos);
 

@@ -13,6 +13,7 @@ enum object_feature_flag
     FEATURE_FLAG_TWO_SIDED = 2,
     FEATURE_FLAG_OUTLINE = 4,
     FEATURE_FLAG_IS_STATIC = 8,
+    FEATURE_FLAG_DOES_NOT_RECEIVE_DYNAMIC_SHADOWS = 16,
 };
 
 bool has_feature(int feature_flag, object_feature_flag flag)
@@ -158,6 +159,11 @@ void object::set_outlined(bool is_outlined)
 void object::set_is_static(bool is_static)
 {
     feature_flag = set_flag(feature_flag, FEATURE_FLAG_IS_STATIC, is_static);
+}
+
+void object::set_does_not_receive_dynamic_shadows(bool does_not_receive)
+{
+    feature_flag = set_flag(feature_flag, FEATURE_FLAG_DOES_NOT_RECEIVE_DYNAMIC_SHADOWS, does_not_receive);
 }
 
 void object::offset_pos(cl_float4 _offset)

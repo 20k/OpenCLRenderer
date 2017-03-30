@@ -112,6 +112,7 @@ struct object
     void set_two_sided(bool is_two_sided);
     void set_outlined(bool is_outlined);
     void set_is_static(bool is_static);
+    void set_does_not_receive_dynamic_shadows(bool does_not_receive);
     void offset_pos(cl_float4);
     void swap_90();
     void swap_90_perp();

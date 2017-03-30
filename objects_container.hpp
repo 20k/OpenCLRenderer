@@ -81,6 +81,7 @@ struct objects_container
     void    notify_child_transform_update();
     void    set_children_texture_id(cl_uint tid);
     void    set_is_static(bool is_static);
+    void    set_does_not_receive_dynamic_shadows(bool does_not_receive);
     void    set_quantise_position(bool do_quantise, float grid_size = 1);
 
     void    translate_centre(cl_float4);
