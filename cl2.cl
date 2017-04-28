@@ -6134,12 +6134,16 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
 
         float distance = fast_length(point_to_light);
 
-        float distance_modifier = 1.0f - native_divide(distance, l.radius);
+        float illumination = l.brightness / pow((distance / l.radius) + 1, 2);
 
-        if(distance_modifier <= 0)
+        const float cutoff = 0.1f;
+
+        illumination -= cutoff;
+
+        illumination *= 1.f / (1.f - cutoff);
+
+        if(illumination <= 0)
             continue;
-
-        distance_modifier *= distance_modifier;
 
         float3 light_col = l.col.xyz;
 
@@ -6155,7 +6159,6 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///this is madness. no, this is SPARTA. This expression is slightly slower than the one aboveg
         ///I guess this is not the use case for mad
         //ambient_sum = mad(l.col.xyz, ambient * distance_modifier * l.brightness * l.diffuse * G->diffuse, ambient_sum);
-
 
         ///ambient wont work correctly in shadows atm
         ///something is wrong with lips of vertices over shadowed areas
@@ -6201,7 +6204,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         ///this, diffuse sum, and the entire definition of ambient seem fundamentally wrong
         float diffuse = (1.0f-ambient)*light;
 
-        diffuse_sum += light_col * ((diffuse + ambient) * l.brightness * l.diffuse * G->diffuse * distance_modifier);
+        diffuse_sum += light_col * ((diffuse + ambient) * l.diffuse * G->diffuse * illumination);
 
         float3 H = fast_normalize(l2p + point_to_light);
 
@@ -6220,7 +6223,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float spec = mdot(H, N);
         //spec = pow(spec, G->specular);
         //spec = pow(spec, 50.f);
-        specular_sum += light_col * (spec * kS * l.brightness * distance_modifier * 0.3f);
+        specular_sum += light_col * (spec * kS * illumination * 0.3f);
 
         #else
         const float kS = 0.4f;
@@ -6266,7 +6269,7 @@ void kernel3(__global struct triangle *triangles, float4 c_pos, float4 c_rot, __
         float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndv));
         //float spec = native_divide(fresnel * microfacet * geometric, (M_PI * ndl * ndv));
 
-        specular_sum += light_col * (spec * kS * l.brightness * distance_modifier) * G->spec_mult;
+        specular_sum += light_col * (spec * kS * illumination) * G->spec_mult;
 
         specular_sum = max(specular_sum, 0.f);
         #endif

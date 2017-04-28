@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     l.set_shadow_casting(1);
     l.set_brightness(1.0);
     l.set_is_static(true);
-    l.radius = 100000;
+    l.radius = 20000;
     //l.set_pos((cl_float4){9, 180, 200, 0});
     l.set_pos((cl_float4){-200, 1000, -100, 0});
     //l.set_godray_intensity(1.f);
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
     //l.set_pos((cl_float4){-0, 1000, -500, 0});
     l.set_pos((cl_float4){-660, 250, 0, 0});
     l.set_shadow_casting(1);
-    l.radius = 100000;
+    l.radius = 20000;
 
     light::add_light(&l);
 
